@@ -7,7 +7,7 @@ This is the *readme* file for developing the reghdfe project. What you probably 
 
 Reghdfe is a [Stata](http://stata.com) package that estimates linear and instrumental variable regressions while controlling for any number of fixed effects. It is most useful when dealing with two or more highly dimensional fixed effects (HDFE).
 
-It extends the algorithm of *reg2hdfe* (Paulo Guimaraes and Pedro Portugal) in several aspects, **drastically speeding it up**, as well as **generalizing** it to any number of sets of fixed effects, slope interactions, multicore, etc.
+It extends the algorithm of *reg2hdfe* (by Paulo Guimaraes and Pedro Portugal) in several aspects, **drastically speeding it up**, as well as **generalizing** it to any number of sets of fixed effects, slope interactions, multicore, etc.
 
 It's objectives are similar to the *lfe* package in R by Simen Gaure, and to several precursor Stata packages, such as *a2reg* by Amine Quazad
 
