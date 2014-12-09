@@ -22,6 +22,13 @@ It's objectives are similar to the *lfe* package in R by Simen Gaure, and to sev
 * Attention to the detail. For instance, you can just include firm#year instead of writing *egen firm_year = group(firm year)*. This works in the varlist, in the absvars, and even with the vce(cluster ..) option.
 * Many other options such as analytic and frequency weights, detailed debugging options, etc.
 
+## Installing the development version (i.e. Github instead of SSC)
+```stata
+net from https://raw.githubusercontent.com/sergiocorreia/reghdfe/master/package/
+net install reghdfe.pkg
+```
+If already installed, add the option `replace` to the last command.
+
 ## Contributing
 
 Contributors and pull requests are more than welcome. There are a number of extension possibilities, such as adding two-way clustering, multicore support for OSX and Linux, estimating standard errors for the fixed effects using bootstrapping, and exact computation of degrees-of-freedom for more than two HDFEs.
