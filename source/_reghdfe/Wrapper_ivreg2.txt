@@ -1,0 +1,62 @@
+
+
+
+reghdfe is equivalent to
+i) tab, gen(__GEN)
+ii) ivreg2 ... , small partial(__GEN)
+
+Con cluster, la opcion correcta deberia ser SDOFMINUS y no DOFMINUS
+En especial dado que ya estoy viendo si el cluster esta nested!!!
+
+
+
+
+Although the point estimates produced by areg and xtreg, fe are the same, the estimated VCEs
+differ when cluster() is specified because the commands make different assumptions about whether
+the number of groups increases with the sample size.
+
+
+BASICAMENTE
+DOFMINUS Y SDOFMINUS SOLO DIFIEREN CON CLUSTER!!!
+XQ CON CLUSTER DIVIDIMOS
+/ (N-K-sdofminus)
+
+
+
+
+
+
+
+
+* Small sample corrections for var-cov matrix.
+* If robust, the finite sample correction is N/(N-K), and with no small
+* we change this to 1 (a la Davidson & MacKinnon 1993, p. 554, HC0).
+* If cluster, the finite sample correction is (N-1)/(N-K)*M/(M-1), and with no small
+* we change this to 1 (a la Wooldridge 2002, p. 193), where M=number of clusters.
+
+
+
+Quick notes that might be wrongish, disregard:
+dofminus: large sample corr
+sdofminus: small sample
+
+Equiv to just having the regressors, will affect df_m
+
+If not cluster, df_r = N - K - dofminus - sdofminus
+If cluster, df_r = N_clust - 1
+
+If small==1:
+a) If not cluster,  V = V * (N-dofminus) / (N-K-dofminus-sdofminus)
+b) If cluster, V = V * (N-1) / (N-K-sdofminus) * N_clust / (N_clust-1)
+
+sigmasq = RSS / (N-K-dofminus-sdofminus) in both cases
+
+In other words, DoF enter both the VCV and the DoF of the statistical tests
+
+
+Multiplication part undoes the prev formula, so the end result is
+LARGE: V = VBASE / (N-K-dofminus-sdofminus)
+SMALL: V = VBASE / (N-dofminus)
+
+LARGE CLUSTER: V = VBASE / (N-K-dofminus-sdofminus)??????????
+SMALL CLUSTER: V = VBASE / (N-dofminus)????????????????

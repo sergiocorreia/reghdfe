@@ -1,0 +1,10 @@
+v 3
+d Sergio Correia, Duke University (sergio.correia@duke.edu)
+p reghdfe REGHDFE - Linear regression with many high-dimensional fixed effects
+
+* l word-to-show path-or-url [description]
+* t: Directories within site:
+* t path [description]
+* Packages:
+* p pkgname [description]
+
