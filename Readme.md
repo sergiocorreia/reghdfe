@@ -24,10 +24,10 @@ It's objectives are similar to the *lfe* package in R by Simen Gaure, and to sev
 
 ## Installing the development version (i.e. Github instead of SSC)
 ```stata
+cap ado uninstall reghdfe
 net from https://raw.githubusercontent.com/sergiocorreia/reghdfe/master/package/
 net install reghdfe.pkg
 ```
-If already installed, add the option `replace` to the last command.
 
 ## Contributing
 
