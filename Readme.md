@@ -33,6 +33,16 @@ net install reghdfe
 
 Contributors and pull requests are more than welcome. There are a number of extension possibilities, such as adding two-way clustering, multicore support for OSX and Linux, estimating standard errors for the fixed effects using bootstrapping, and exact computation of degrees-of-freedom for more than two HDFEs.
 
+## Building the package
+
+For sanity reasons, the source code is spread through several files and folders (in the *source* folder). To update the package, do the following:
+
+* Download the entire project to your computer (through the "Clone Desktop" or "Download ZIP" buttons on the right).
+* Uninstall any existing versions of *reghdfe* (`ado uninstall reghdfe` in Stata).
+* In Stata, change the current working directory to the `source` folder. Do any changes that you want on the files in that folder. You can run *reghdfe* without problems as long as the working directory is in that folder.
+* To build the package, run the *build.py* file (in the *build* folder), using either Python 2.7 or Python 3.x (3.x is not tested but should work). This python script will carefully combine all the files and update the version/date.
+* Finally, you can upload it back to github and submit a pull request.
+
 ## Author
 
 [Sergio Correia](sergio.correia@gmail.com), Duke University
