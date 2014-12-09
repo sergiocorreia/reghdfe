@@ -26,7 +26,7 @@ It's objectives are similar to the *lfe* package in R by Simen Gaure, and to sev
 ```stata
 cap ado uninstall reghdfe
 net from https://raw.githubusercontent.com/sergiocorreia/reghdfe/master/package/
-net install reghdfe.pkg
+net install reghdfe
 ```
 
 ## Contributing
