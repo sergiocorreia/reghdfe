@@ -15,8 +15,9 @@ program define Parse
 
 if (`savingcache') {
 
-	local fast 0
-	local nested 0
+	* Disable these options
+	local fast
+	local nested
 
 	syntax anything(name=indepvars) [if] [in] [fweight aweight/] , ///
 		Absorb(string) SAVEcache(string) ///

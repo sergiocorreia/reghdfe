@@ -1,6 +1,6 @@
-*! version 1.2.1 09dec2014
+*! version 1.3.1 10dec2014
 *! By Sergio Correia (sergio.correia@duke.edu)
-* (built from multiple source files using push.py)
+* (built from multiple source files using build.py)
 program define reghdfe
 	local version `=clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
 	qui version `version'
@@ -568,8 +568,9 @@ program define Parse
 
 if (`savingcache') {
 
-	local fast 0
-	local nested 0
+	* Disable these options
+	local fast
+	local nested
 
 	syntax anything(name=indepvars) [if] [in] [fweight aweight/] , ///
 		Absorb(string) SAVEcache(string) ///

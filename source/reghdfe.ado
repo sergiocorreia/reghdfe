@@ -1,6 +1,6 @@
-*! reghdfe 1.2.0 10Aug2014
+*! reghdfe 1.3.0 10Dec2014
 *! By Sergio Correia (sergio.correia@duke.edu)
-* (built from multiple source files using push.py)
+* (built from multiple source files using build.py)
 
 cap pr drop reghdfe
 program define reghdfe
