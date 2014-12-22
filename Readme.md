@@ -31,7 +31,7 @@ net install reghdfe
 ```
 **Note: this requires Stata 13, as older versions of stata cannot handle *https*. If you have an older version, see below.**
 
-If you have an older version of Stata, first copy the contents of the [package folder](/package) to a folder on your computer, and then replace the second line above with `net from My/Path/` where My/Path is the path where you saved the files. Note that with this workaround you will not be able to use `ado update` to automatically update from github. If you don't want to download each file by hand, [download the zip](https://github.com/sergiocorreia/reghdfe/archive/master.zip).
+If you have an older version of Stata, first copy the contents of the [package folder](/package) to a folder on your computer, and then replace the second line above with `net from My/Path/` where My/Path is the path where you saved the files. Note that with this workaround you will not be able to use `adoupdate, update` to automatically update from github. If you don't want to download each file by hand, [download the zip](https://github.com/sergiocorreia/reghdfe/archive/master.zip).
 
 ## Contributing
 
