@@ -22,7 +22,7 @@ It's objectives are similar to the *lfe* package in R by Simen Gaure, and to sev
 * Attention to the detail. For instance, you can just include firm#year instead of writing *egen firm_year = group(firm year)*. This works in the varlist, in the absvars, and even with the vce(cluster ..) option.
 * Many other options such as analytic and frequency weights, detailed debugging options, etc.
 
-## Installing the development version (i.e. Github instead of SSC)
+## Installing the development version (i.e. from Github instead of SSC)
 
 ```stata
 cap ado uninstall reghdfe
