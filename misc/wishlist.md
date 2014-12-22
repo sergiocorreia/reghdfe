@@ -2,7 +2,7 @@
 
 ## Easy(sh)
 
-* Add two-way clustering (but first check that combining TWC and HDFE is theoretically sane). Update: see http://repec.org/usug2014/baumschaffer_uksug14.pdf ; we could use -avar- as a plugin extension (like ivreg2) that gets called for all the complicated VCEs,
+* Add two-way clustering (but first check that combining TWC and HDFE is theoretically sane). Update: see http://repec.org/usug2014/baumschaffer_uksug14.pdf ; we could use -avar- as a plugin extension (like ivreg2) that gets called for all the complicated VCEs.
 * Add core() support for OSX/Linux.
 * In the regression table, make the absvar name column at least as wide as the indepvar name column (it looks ugly otherwise).
 * More postestimation commands (e.g. -test-).
