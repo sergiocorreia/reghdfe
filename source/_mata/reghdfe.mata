@@ -699,7 +699,7 @@ void function make_residual(
 
 	if (VERBOSE>=2 & VERBOSE<=3 & mod(iter,99)!=0) printf("\n")
 	if (!converged) {
-		stata(sprintf(`"di as error "could not obtain resid of %s in %g iterations (last error=%e)""', varname, max_iterations, update_error))
+		stata(sprintf(`"di as error "could not obtain resid of %s in %g iterations (last error=%e); to solve increase maxiter() or decrease tol().""', varname, max_iterations, update_error))
 		exit(error(430))
 	}
 	if (VERBOSE>1) printf("{txt} - Converged in %g iterations (last error =%3.1e)\n", iter, update_error)
