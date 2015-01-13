@@ -117,12 +117,15 @@ but at most one continuous interaction
 
 {pstd}
 {cmd:reghdfe} fits a linear regression of {depvar} on {indepvars} while absorbing an arbitrary number of fixed effects indicated by the categories of {help reghdfe##absvar:absvars}. It also supports regressing
- on {it:endogvars}, in which case it uses {it:iv_vars} (along with {it:indepvars} and the fixed effects) as instruments for {it:endogvars}.
+ on {it:endogvars}, in which case it uses {it:iv_vars} (along with {it:indepvars} and the fixed effects) as instruments for {it:endogvars}.{p_end}
+
+{pstd}The reported constant is obtained from normalizing the first fixed effect so it has a mean of zero.{p_end}
 
 {pstd}The estimates for the fixed effects (including those with continous interactions) can be saved, although their standard errors are not recovered. When using multiple highly-dimensional fixed-effects,
-the user should be aware of the identification requirements regarding the fixed effects. For instance, the fixed effects cannot form disjoint graphs or else identification would only be possible within each subgraph (see {help reghdfe##references:references}).
+the user should be aware of the identification requirements regarding the fixed effects. For instance, the fixed effects cannot form disjoint graphs or else identification would only be possible
+within each subgraph (see {help reghdfe##references:references}).{p_end}
 
-{pstd}There are several features generalized from either {cmd: areg} or {cmd: xtreg, fe}, such as:
+{pstd}There are several features generalized from either {cmd: areg} or {cmd: xtreg, fe}, such as:{p_end}
 
 {p2col 6 9 9 2: a)}reporting F-tests on the absorbed variables (except with robust and clustered vce){p_end}
 {p2col 6 9 9 2: b)}correlations between the FEs and the other regressors(except with robust and clustered vce){p_end}

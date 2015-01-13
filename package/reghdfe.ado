@@ -1,4 +1,4 @@
-*! version 1.3.1 10dec2014
+*! version 1.3.1 13jan2015
 *! By Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 program define reghdfe
