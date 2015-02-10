@@ -471,6 +471,12 @@ else {
 	ereturn scalar mss = e(tss) - e(rss)
 	ereturn scalar r2 = 1 - e(rss) / `tss'
 
+	* ivreg2 uses e(r2c) and e(r2u) for centered/uncetered R2; overwrite first and discard second
+	if (e(r2c)!=.) {
+		ereturn scalar r2c = e(r2)
+		ereturn scalar r2u = .
+	}
+
 	ereturn scalar r2_a = 1 - (e(rss)/e(df_r)) / (`tss' / (e(N)-1) ) // After fixing e(df_r)
 	ereturn scalar rmse = sqrt( e(rss) / e(df_r) )
 
