@@ -10,7 +10,7 @@ cap pr drop Parse
 program define Parse
 
 * Remove extra spacing from cmdline (just for aesthetics, run before syntax)
-	cap syntax anything(name=indepvars) [if] [in] [fweight aweight/] , SAVEcache(string) [*]
+	cap syntax anything(name=indepvars) [if] [in] [fweight aweight pweight/] , SAVEcache(string) [*]
 	local savingcache = (`=_rc'==0)
 
 if (`savingcache') {
@@ -19,7 +19,7 @@ if (`savingcache') {
 	local fast
 	local nested
 
-	syntax anything(name=indepvars) [if] [in] [fweight aweight/] , ///
+	syntax anything(name=indepvars) [if] [in] [fweight aweight pweight/] , ///
 		Absorb(string) SAVEcache(string) ///
 		[Verbose(integer 0) CHECK TOLerance(real 1e-7) MAXITerations(integer 1000) noACCELerate ///
 		bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) ///
@@ -37,7 +37,7 @@ else {
 	mata: st_local("cmdline", stritrim(`"reghdfe `0'"') )
 	ereturn clear // Clear previous results and drops e(sample)
 	syntax anything(id="varlist" name=0 equalok) [if] [in] ///
-		[fweight aweight/] , ///
+		[fweight aweight pweight/] , ///
 		Absorb(string) ///
 		[GROUP(name) VCE(string) Verbose(integer 0) CHECK NESTED FAST] ///
 		[avge(string) EXCLUDESELF] ///
@@ -55,11 +55,12 @@ else {
 }
 
 * Weight
-* We'll have -weight- (fweight|aweight), -weightvar-, -exp-, and -weightexp-
+* We'll have -weight- (fweight|aweight|pweight), -weightvar-, -exp-, and -weightexp-
 	if ("`weight'"!="") {
 		local weightvar `exp'
 		conf var `weightvar' // just allow simple weights
 		local weightexp [`weight'=`weightvar']
+		local backupweight `weight'
 	}
 
 * Cache options
@@ -103,7 +104,6 @@ if (!`savingcache') {
 		}
 	}
 	
-
 
 	if ("`model'"=="iv") {
 
@@ -171,6 +171,7 @@ if (!`savingcache') {
 	if ("`vcetype'"=="") {
 		local vcetype unadjusted
 		if ("`ivsuite'"=="ivregress" & "`estimator'"=="gmm") local vcetype robust // Default for ivregress gmm
+		if ("`backupweight'"=="pweight") local vcetype robust // pweight requires robust
 	}
 
 	* Abbreviations:
@@ -293,6 +294,10 @@ if (!`savingcache') {
 * (useful for benchmarking and testing correctness of results)
 	local subcmd = cond("`model'"=="ols" ,"regress", "`ivsuite'")
 
+* _fv_check_depvar overwrites the local -weight-
+	local weight `backupweight'
+	Assert inlist( ("`weight'"!="") + ("`weightvar'"!="") + ("`weightexp'"!="") , 0 , 3 ) , msg("not all 3 weight locals are set")
+
 * Return values
 	local names cmdline diopts model ///
 		ivsuite estimator showraw dofminus ///
@@ -303,7 +308,7 @@ if (!`savingcache') {
 		subcmd suboptions ///
 		absorb avge excludeself ///
 		timevar panelvar basevars ///
-		weight weightvar exp weightexp /// type of weight (fw,aw), weight var., and full expr. ([fw=n])
+		weight weightvar exp weightexp /// type of weight (fw,aw,pw), weight var., and full expr. ([fw=n])
 		cores savingcache usecache over
 }
 

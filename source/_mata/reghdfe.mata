@@ -92,7 +92,7 @@ void function fe2local(`Integer' g) {
 	stata("c_local is_mock " + strofreal(FEs[g].is_mock))
 	stata("c_local levels " + strofreal(FEs[g].levels))
 	stata("c_local group_k " + strofreal(FEs[g].K))
-	stata("c_local fweight " + FEs[g].weightvar)
+	stata("c_local weightvar " + FEs[g].weightvar)
 }
 
 // Fill aux structures

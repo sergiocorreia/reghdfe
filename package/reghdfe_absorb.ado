@@ -5,7 +5,7 @@
 
  (-)		Call -Parse-
 			
- (1)	reghdfe_absorb, step(start) absorb(...)  avge(...) clustervar1(...) fweight(..)
+ (1)	reghdfe_absorb, step(start) absorb(...)  avge(...) clustervar1(...) weight(..) weightvar(..)
 			Parse absorb(), create almost-empty Mata objects
 			Parse avge() and store results in Mata string vectors
 			RETURN r(N_hdfe) r(N_avge) r(keepvars)
@@ -142,7 +142,7 @@ void function fe2local(`Integer' g) {
 	stata("c_local is_mock " + strofreal(FEs[g].is_mock))
 	stata("c_local levels " + strofreal(FEs[g].levels))
 	stata("c_local group_k " + strofreal(FEs[g].K))
-	stata("c_local fweight " + FEs[g].weightvar)
+	stata("c_local weightvar " + FEs[g].weightvar)
 }
 
 // Fill aux structures
@@ -877,11 +877,13 @@ end
 //------------------------------------------------------------------------------
 program define Initialize, rclass
 //------------------------------------------------------------------------------
-syntax, Absorb(string) [AVGE(string)] [CLUSTERVAR1(string)] [OVER(varname numeric)] [FWEIGHT(varname numeric)]
+syntax, Absorb(string) [AVGE(string)] [CLUSTERVAR1(string)] [OVER(varname numeric)] [WEIGHT(string) WEIGHTVAR(varname numeric)]
 	Assert !regexm("`absorb'","[*?-]"), ///
 		msg("error: please avoid pattern matching in -absorb-")
 
 	if ("`over'"!="") Assert "`avge'"=="", msg("-avge- needs to be empty if -over- is used")
+
+	Assert inlist("`weight'", "", "fweight", "aweight", "pweight")
 
 **** ABSORB PART ****
 
@@ -914,10 +916,10 @@ syntax, Absorb(string) [AVGE(string)] [CLUSTERVAR1(string)] [OVER(varname numeri
 	Debug, msg(`"(`i' absorbed fixed `=plural(`i',"effect")': "' as result "`absorb'" as text ")")
 	mata: weightexp = ""
 	mata: weightvar = ""
-	if ("`fweight'"!="") {
-		Debug, msg(`"(fweight/aweight: "' as result "`fweight'" as text ")")
-		mata: weightexp = "[fw=`fweight']"
-		mata: weightvar = "`fweight'"
+	if ("`weightvar'"!="") {
+		Debug, msg(`"(`weight': "' as result "`weightvar'" as text ")")
+		mata: weightexp = "[`weight'=`weightvar']"
+		mata: weightvar = "`weightvar'"
 		**qui cou if `fweight'<=0 | `fweight'>=. | (`fweight'!=int(`fweight'))
 		** Move this somewhere else.. else it will fail needlesly if some excluded obs. have missing weights
 		**Assert (`r(N)'==0), msg("fweight -`fweight'- can only have strictly positive integers (no zero, negative, MVs, or reals)!")
@@ -933,7 +935,7 @@ syntax, Absorb(string) [AVGE(string)] [CLUSTERVAR1(string)] [OVER(varname numeri
 		local varlabel = "i." + subinstr("`r(ivars)'", " ", "#i.", .)
 		if (`r(is_cont_interaction)' & !`r(is_bivariate)') local varlabel "`varlabel'#c.`r(cvars)'"
 		
-		local args `" "`r(target)'", "`r(ivars)'", "`r(cvars)'", `r(is_interaction)', `r(is_cont_interaction)', `r(is_bivariate)', "`fweight'" "'
+		local args `" "`r(target)'", "`r(ivars)'", "`r(cvars)'", `r(is_interaction)', `r(is_cont_interaction)', `r(is_bivariate)', "`weightvar'" "'
 		mata: add_fe(`++i', "`varlabel'", `args', 0)
 		if (`r(is_bivariate)') {
 			local varlabel "`varlabel'#c.`r(cvars)'"
@@ -1176,7 +1178,7 @@ if (`N_avge'>0) {
 	}
 
 	return local clustervar1 "`clustervar1'"
-	keep __FE*__ `all_cvars' `clustervar1' `keepvars' `fweight'
+	keep __FE*__ `all_cvars' `clustervar1' `keepvars' `weightvar'
 	Debug, level(1) msg("(number of categories by fixed effect:" `summarize_fe' as text ")") newline
 
 * Fill in auxiliary Mata structures
@@ -1234,7 +1236,10 @@ syntax , VARlist(varlist numeric) ///
 		Assert !missing(`var'), msg("reghdfe_absorb: `var' has missing values and cannot be transformed")
 		
 		* Syntax: MAKE_RESIDUAL(var, newvar, tol, maxiter | , save=0 , accel=1, first_n=`num_fe')
-		qui su `var' `weightexp', mean
+		* Note: summarize doesn't allow pweight ( see http://www.stata.com/support/faqs/statistics/weights-and-summary-statistics/ )
+		* Since we only want to compute means, replace with [aw]
+		local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)
+		qui su `var' `tmpweightexp', mean
 		local AVG = r(mean)
 		mata: make_residual("`var'", `args')
 		assert !missing(`resid')
@@ -1262,7 +1267,8 @@ syntax , VARlist(varlist numeric) ///
 		}
 
 		* If the tol() is not high enough (e.g. 1e-14), we may fail to detect variables collinear with the absorbed categories
-		qui su `resid' `weightexp'
+		* Again, we can't use pweight with summarize, but in this case it's just for debugging purposes so use [aw]
+		qui su `resid' `tmpweightexp'
 		local prettyvar `var'
 		if (substr("`var'", 1, 2)=="__") local prettyvar : var label `var'
 		if inrange(r(sd), 1e-20 , epsfloat()) di in ye "(warning: variable `prettyvar' is probably collinear, maybe try a tighter tolerance)"

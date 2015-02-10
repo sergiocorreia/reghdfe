@@ -1,4 +1,4 @@
-*! version 1.3.1 13jan2015
+*! version 1.3.1 09feb2015
 *! By Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 program define reghdfe
@@ -47,7 +47,7 @@ program define Estimate, eclass
 	local sets depvar indepvars endogvars instruments // depvar MUST be first
 
 * 2) Parse identifiers (absorb variables, avge, clustervar)
-	reghdfe_absorb, step(start) absorb(`absorb') over(`over') avge(`avge') clustervar1(`clustervar1') fweight(`weightvar')
+	reghdfe_absorb, step(start) absorb(`absorb') over(`over') avge(`avge') clustervar1(`clustervar1') weight(`weight') weightvar(`weightvar')
 	// In this step, it doesn't matter if the weight is FW or AW
 	local N_hdfe = r(N_hdfe)
 	local N_avge = r(N_avge)
@@ -82,6 +82,7 @@ else {
 	Debug, msg("(dataset preserved)") level(2)
 
 * 4) Drop unused variables
+	local exp "= `weightvar'"
 	marksample touse, novar // Uses -if- , -in- ; -weight-? and -exp- ; can't drop any var until this
 	keep `uid' `touse' `timevar' `panelvar' `absorb_keepvars' `basevars' `over' `weightvar'
 
@@ -130,15 +131,20 @@ else {
 
 * ?) Check that weights have acceptable values
 if ("`weightvar'"!="") {
-	local basenote "weight -`weightvar'- can only contain strictly positive integers, but"
+	local require_integer = ("`weight'"=="fweight")
+	local num_type = cond(`require_integer', "integers", "reals")
+
+	local basenote "weight -`weightvar'- can only contain strictly positive `num_type', but"
 	qui cou if `weightvar'<0
 	Assert (`r(N)'==0), msg("`basenote' `r(N)' negative values were found!")
 	qui cou if `weightvar'==0
 	Assert (`r(N)'==0), msg("`basenote' `r(N)' zero values were found!")
 	qui cou if `weightvar'>=.
 	Assert (`r(N)'==0), msg("`basenote' `r(N)' missing values were found!")
-	qui cou if mod(`weightvar',1)
-	Assert (`r(N)'==0), msg("`basenote' `r(N)' non-integer values were found!")
+	if (`require_integer') {
+		qui cou if mod(`weightvar',1)
+		Assert (`r(N)'==0), msg("`basenote' `r(N)' non-integer values were found!")
+	}
 }
 
 * 9) Save the statistics we need before transforming the variables
@@ -148,7 +154,8 @@ if (`savingcache') {
 }
 else {
 	* Compute TSS of untransformed depvar
-	qui su `depvar' `weightexp'
+	local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)
+	qui su `depvar' `tmpweightexp' // BUGBUG: Is this correct?!
 	local tss = r(Var)*(r(N)-1)
 	assert `tss'<.
 
@@ -563,7 +570,7 @@ end
 program define Parse
 
 * Remove extra spacing from cmdline (just for aesthetics, run before syntax)
-	cap syntax anything(name=indepvars) [if] [in] [fweight aweight/] , SAVEcache(string) [*]
+	cap syntax anything(name=indepvars) [if] [in] [fweight aweight pweight/] , SAVEcache(string) [*]
 	local savingcache = (`=_rc'==0)
 
 if (`savingcache') {
@@ -572,7 +579,7 @@ if (`savingcache') {
 	local fast
 	local nested
 
-	syntax anything(name=indepvars) [if] [in] [fweight aweight/] , ///
+	syntax anything(name=indepvars) [if] [in] [fweight aweight pweight/] , ///
 		Absorb(string) SAVEcache(string) ///
 		[Verbose(integer 0) CHECK TOLerance(real 1e-7) MAXITerations(integer 1000) noACCELerate ///
 		bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) ///
@@ -590,7 +597,7 @@ else {
 	mata: st_local("cmdline", stritrim(`"reghdfe `0'"') )
 	ereturn clear // Clear previous results and drops e(sample)
 	syntax anything(id="varlist" name=0 equalok) [if] [in] ///
-		[fweight aweight/] , ///
+		[fweight aweight pweight/] , ///
 		Absorb(string) ///
 		[GROUP(name) VCE(string) Verbose(integer 0) CHECK NESTED FAST] ///
 		[avge(string) EXCLUDESELF] ///
@@ -608,11 +615,12 @@ else {
 }
 
 * Weight
-* We'll have -weight- (fweight|aweight), -weightvar-, -exp-, and -weightexp-
+* We'll have -weight- (fweight|aweight|pweight), -weightvar-, -exp-, and -weightexp-
 	if ("`weight'"!="") {
 		local weightvar `exp'
 		conf var `weightvar' // just allow simple weights
 		local weightexp [`weight'=`weightvar']
+		local backupweight `weight'
 	}
 
 * Cache options
@@ -656,7 +664,6 @@ if (!`savingcache') {
 		}
 	}
 	
-
 
 	if ("`model'"=="iv") {
 
@@ -724,6 +731,7 @@ if (!`savingcache') {
 	if ("`vcetype'"=="") {
 		local vcetype unadjusted
 		if ("`ivsuite'"=="ivregress" & "`estimator'"=="gmm") local vcetype robust // Default for ivregress gmm
+		if ("`backupweight'"=="pweight") local vcetype robust // pweight requires robust
 	}
 
 	* Abbreviations:
@@ -846,6 +854,10 @@ if (!`savingcache') {
 * (useful for benchmarking and testing correctness of results)
 	local subcmd = cond("`model'"=="ols" ,"regress", "`ivsuite'")
 
+* _fv_check_depvar overwrites the local -weight-
+	local weight `backupweight'
+	Assert inlist( ("`weight'"!="") + ("`weightvar'"!="") + ("`weightexp'"!="") , 0 , 3 ) , msg("not all 3 weight locals are set")
+
 * Return values
 	local names cmdline diopts model ///
 		ivsuite estimator showraw dofminus ///
@@ -856,7 +868,7 @@ if (!`savingcache') {
 		subcmd suboptions ///
 		absorb avge excludeself ///
 		timevar panelvar basevars ///
-		weight weightvar exp weightexp /// type of weight (fw,aw), weight var., and full expr. ([fw=n])
+		weight weightvar exp weightexp /// type of weight (fw,aw,pw), weight var., and full expr. ([fw=n])
 		cores savingcache usecache over
 }
 

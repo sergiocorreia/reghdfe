@@ -16,7 +16,7 @@ program define Estimate, eclass
 	local sets depvar indepvars endogvars instruments // depvar MUST be first
 
 * 2) Parse identifiers (absorb variables, avge, clustervar)
-	reghdfe_absorb, step(start) absorb(`absorb') over(`over') avge(`avge') clustervar1(`clustervar1') fweight(`weightvar')
+	reghdfe_absorb, step(start) absorb(`absorb') over(`over') avge(`avge') clustervar1(`clustervar1') weight(`weight') weightvar(`weightvar')
 	// In this step, it doesn't matter if the weight is FW or AW
 	local N_hdfe = r(N_hdfe)
 	local N_avge = r(N_avge)
@@ -51,6 +51,7 @@ else {
 	Debug, msg("(dataset preserved)") level(2)
 
 * 4) Drop unused variables
+	local exp "= `weightvar'"
 	marksample touse, novar // Uses -if- , -in- ; -weight-? and -exp- ; can't drop any var until this
 	keep `uid' `touse' `timevar' `panelvar' `absorb_keepvars' `basevars' `over' `weightvar'
 
@@ -99,15 +100,20 @@ else {
 
 * ?) Check that weights have acceptable values
 if ("`weightvar'"!="") {
-	local basenote "weight -`weightvar'- can only contain strictly positive integers, but"
+	local require_integer = ("`weight'"=="fweight")
+	local num_type = cond(`require_integer', "integers", "reals")
+
+	local basenote "weight -`weightvar'- can only contain strictly positive `num_type', but"
 	qui cou if `weightvar'<0
 	Assert (`r(N)'==0), msg("`basenote' `r(N)' negative values were found!")
 	qui cou if `weightvar'==0
 	Assert (`r(N)'==0), msg("`basenote' `r(N)' zero values were found!")
 	qui cou if `weightvar'>=.
 	Assert (`r(N)'==0), msg("`basenote' `r(N)' missing values were found!")
-	qui cou if mod(`weightvar',1)
-	Assert (`r(N)'==0), msg("`basenote' `r(N)' non-integer values were found!")
+	if (`require_integer') {
+		qui cou if mod(`weightvar',1)
+		Assert (`r(N)'==0), msg("`basenote' `r(N)' non-integer values were found!")
+	}
 }
 
 * 9) Save the statistics we need before transforming the variables
@@ -117,7 +123,8 @@ if (`savingcache') {
 }
 else {
 	* Compute TSS of untransformed depvar
-	qui su `depvar' `weightexp'
+	local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)
+	qui su `depvar' `tmpweightexp' // BUGBUG: Is this correct?!
 	local tss = r(Var)*(r(N)-1)
 	assert `tss'<.
 
