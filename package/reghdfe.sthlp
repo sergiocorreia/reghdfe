@@ -57,7 +57,7 @@ but at most one continuous interaction
 {p 4 6 2}The first {it:absvar} cannot contain a continuous variable ({cmd:i.}{it:var1}{cmd:#c.}{it:var2} is not allowed, although {cmd:i.}{it:var1}{cmd:##c.}{it:var2} is ok).{p_end}
 {p 4 6 2}{newvar}{cmd:=}{it:varname1}{cmd:##c.}{it:varname2} is equivalent to
 "{newvar}{cmd:=}{it:varname1} {newvar:_slope}{cmd:=}{it:varname1}{cmd:#c.}{it:varname2}"{p_end}
-{p 4 6 2} {cmd:aweight}s and {cmd:fweight}s are allowed; see {help weight}.{p_end}
+{p 4 6 2} {cmd:fweight}s, {cmd:aweight}s and {cmd:pweight}s are allowed; see {help weight}.{p_end}
 
 
 {synoptset 22 tabbed}{...}
