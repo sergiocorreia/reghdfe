@@ -7,17 +7,25 @@ program reghdfe_estat, rclass
 		error 301
 	}
 	
-	gettoken key rest : 0, parse(", ")
+	gettoken key 0 : 0, parse(", ")
 	local lkey = length(`"`key'"')
 
 	if `"`key'"' == substr("summarize",1,max(2,`lkey')) {
-		* estat_summ `rest'
-		* There is a bug in estat_summ , so we'll do it by hand
-		if ("`e(wtype)'"!="") local weight [`e(wtype)'`e(wexp)']
-		su `e(depvar)' `e(indepvars)' `e()' `e(endogvars)' `e(instruments)' if e(sample) `weight'
+
+		local 0 `rest'
+		syntax [anything] , [*] [noheader] // -noheader- gets silently ignored b/c it will always be -on-
+
+		if ("`anything'"=="") {
+			* By default include the instruments
+			local anything `e(depvar)' `e(indepvars)' `e(endogvars)' `e(instruments)'
+		}
+
+		* Need to use -noheader- as a workaround to the bug in -estat_summ-
+		estat_summ `anything' , `options' noheader
+
 	}
 	else if `"`key'"' == "vce" {
-		vce `rest'
+		vce `0'
 	}
 	return add // ?
 end
