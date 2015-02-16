@@ -27,5 +27,9 @@ program reghdfe_estat, rclass
 	else if `"`key'"' == "vce" {
 		vce `0'
 	}
+	else {
+		di as error `"invalid subcommand `key'"'
+		exit 321
+	}
 	return add // ?
 end
