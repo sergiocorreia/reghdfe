@@ -127,7 +127,7 @@ end
 cap pr drop Initialize
 program define Initialize, rclass
 //------------------------------------------------------------------------------
-syntax, Absorb(string) [AVGE(string)] [CLUSTERVAR1(string)] [OVER(varname numeric)] [WEIGHT(string) WEIGHTVAR(varname numeric)]
+syntax, Absorb(string) [AVGE(string)] [CLUSTERVAR(string)] [OVER(varname numeric)] [WEIGHT(string) WEIGHTVAR(varname numeric)]
 	Assert !regexm("`absorb'","[*?-]"), ///
 		msg("error: please avoid pattern matching in -absorb-")
 
@@ -241,14 +241,17 @@ if ("`avge'"!="") {
 
 *** CLUSTER PART ****
 * EG: If clustervar1=foreign, absorb=foreign, then clustervar1 -> __FE1__
-	mata: ivars_clustervar1 = ""
-	if ("`clustervar1'"!="") {
-		Debug, level(3) msg(_n "Cluster by:")
-		ParseOneAbsvar, absvar(`clustervar1')
-		Assert "`r(cvars)'"=="", msg("clustervar cannot contain continuous interactions")
-		local ivars_clustervar1 "`r(ivars)'"
-		local keepvars `keepvars' `r(ivars)'
-		mata: ivars_clustervar1 = "`ivars_clustervar1'"
+	local N_clustervars : word count `clustervar'
+	forv i=1/`N_clustervars' {
+		mata: ivars_clustervar1 = ""
+		if ("`clustervar1'"!="") {
+			Debug, level(3) msg(_n "Cluster by:")
+			ParseOneAbsvar, absvar(`clustervar1')
+			Assert "`r(cvars)'"=="", msg("clustervar cannot contain continuous interactions")
+			local ivars_clustervar1 "`r(ivars)'"
+			local keepvars `keepvars' `r(ivars)'
+			mata: ivars_clustervar1 = "`ivars_clustervar1'"
+		}
 	}
 	
 **** Returns ****
