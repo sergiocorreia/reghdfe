@@ -16,7 +16,7 @@ program define Estimate, eclass
 	local sets depvar indepvars endogvars instruments // depvar MUST be first
 
 * 2) Parse identifiers (absorb variables, avge, clustervar)
-	reghdfe_absorb, step(start) absorb(`absorb') over(`over') avge(`avge') clustervar1(`clustervar1') weight(`weight') weightvar(`weightvar')
+	reghdfe_absorb, step(start) absorb(`absorb') over(`over') avge(`avge') clustervar(`clustervar') weight(`weight') weightvar(`weightvar')
 	// In this step, it doesn't matter if the weight is FW or AW
 	local N_hdfe = r(N_hdfe)
 	local N_avge = r(N_avge)

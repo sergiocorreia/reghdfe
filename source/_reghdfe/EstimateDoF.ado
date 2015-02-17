@@ -22,6 +22,11 @@ syntax, dofmethod(string) [clustervar1(string) group(name) uid(varname) groupdta
 		// If the FE is just an intercept, it's redundant (useful with -over-)
 	}
 
+* TODO: 
+* - the ADDENDUM, before checking if its nested, just see if if it's the same variable (i.e. step 1 later)
+* - With i.a#c.b , whenever b==0 for all values of a group (of -a-), add one redundant
+* - With i.a##c.b, do the same but whenever b==CONSTANT (so not just zero)
+* - Multiple clusters; what's the correct adjustment including nesting?
 
 * (ADDENDUM) Look for nested within cluster for the categorical components of a FE with cont. interaction
 	if ("`clustervar1'"!="" & "`dofmethod'"!="naive") {
