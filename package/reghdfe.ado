@@ -1,4 +1,4 @@
-*! version 1.3.1 15feb2015
+*! version 1.3.1 17feb2015
 *! By Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 program define reghdfe
@@ -239,7 +239,7 @@ else {
 			local subZs
 			forv g=1/`=`N_hdfe'-1' {
 				Debug, msg("(computing nested model w/`g' FEs)")
-				reghdfe_absorb, step(demean) varlist(`vars') `maximize_options' num_fe(`g') `parallel_opt'
+				reghdfe_absorb, step(demean) subcmd(`subcmd') varlist(`vars') `maximize_options' num_fe(`g') `parallel_opt'
 				qui _regress `vars' `weightexp', noheader notable
 				local rss`g' = e(rss)
 				qui use "`original_vars'", clear // Back to untransformed dataset
@@ -261,7 +261,7 @@ else {
 	Debug, msg(" - tolerance = `tolerance'")
 	Debug, msg(" - max. iter = `maxiterations'")
 	if ("`usecache'"=="") {
-		reghdfe_absorb, step(demean) varlist(`vars') `maximize_options' `parallel_opt'
+		reghdfe_absorb, step(demean) subcmd(`subcmd') varlist(`vars') `maximize_options' `parallel_opt'
 	}
 	else {
 		Debug, msg("(using cache data)")
@@ -372,7 +372,7 @@ else {
 
 	* Absorb the residuals to obtain the FEs (i.e. run a regression on just the resids)
 	Debug, level(2) tic(31)
-	reghdfe_absorb, step(demean) varlist(`resid_d') `maximize_options' save_fe(1)
+	reghdfe_absorb, step(demean) subcmd(`subcmd') varlist(`resid_d') `maximize_options' save_fe(1)
 	Debug, level(2) toc(31) msg("mata:make_residual on final model took")
 	drop `resid_d'
 
@@ -1482,7 +1482,7 @@ program define Wrapper_ivreg2, eclass
 	}
 	Assert inlist("`dofminus'","dofminus","sdofminus")
 
-	local subcmd ivreg2 `vars' `weightexp', `estimator' `vceoption' `firstoption' small `dofminus'(`kk') `suboptions'
+	local subcmd ivreg2 `vars' `weightexp', `estimator' `vceoption' `firstoption' small `dofminus'(`=`kk'+1') `suboptions' nocons
 	Debug, level(3) msg(_n "call to subcommand: " _n as result "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'
