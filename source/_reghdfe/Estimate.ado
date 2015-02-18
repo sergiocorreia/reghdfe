@@ -208,7 +208,7 @@ else {
 			local subZs
 			forv g=1/`=`N_hdfe'-1' {
 				Debug, msg("(computing nested model w/`g' FEs)")
-				reghdfe_absorb, step(demean) varlist(`vars') `maximize_options' num_fe(`g') `parallel_opt'
+				reghdfe_absorb, step(demean) subcmd(`subcmd') varlist(`vars') `maximize_options' num_fe(`g') `parallel_opt'
 				qui _regress `vars' `weightexp', noheader notable
 				local rss`g' = e(rss)
 				qui use "`original_vars'", clear // Back to untransformed dataset
@@ -230,7 +230,7 @@ else {
 	Debug, msg(" - tolerance = `tolerance'")
 	Debug, msg(" - max. iter = `maxiterations'")
 	if ("`usecache'"=="") {
-		reghdfe_absorb, step(demean) varlist(`vars') `maximize_options' `parallel_opt'
+		reghdfe_absorb, step(demean) subcmd(`subcmd') varlist(`vars') `maximize_options' `parallel_opt'
 	}
 	else {
 		Debug, msg("(using cache data)")
@@ -341,7 +341,7 @@ else {
 
 	* Absorb the residuals to obtain the FEs (i.e. run a regression on just the resids)
 	Debug, level(2) tic(31)
-	reghdfe_absorb, step(demean) varlist(`resid_d') `maximize_options' save_fe(1)
+	reghdfe_absorb, step(demean) subcmd(`subcmd') varlist(`resid_d') `maximize_options' save_fe(1)
 	Debug, level(2) toc(31) msg("mata:make_residual on final model took")
 	drop `resid_d'
 
