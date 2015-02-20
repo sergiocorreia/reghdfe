@@ -15,3 +15,6 @@
 * Implement -bootstrap- option in DoF estimation
 * Calculate exact DoF adjustment for 3+ HDFEs (note: not a problem with cluster VCE when one FE is nested within the cluster). Note: Paulo Guimaraes has worked on this, and *lfe* and a few received emails have a few discussions about this.
 
+## New
+
+* Add option -DROPSINGLETONs- so we drop cases where an ID only spans one observation (after accounting for MVs).
