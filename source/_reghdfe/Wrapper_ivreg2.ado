@@ -38,7 +38,7 @@ program define Wrapper_ivreg2, eclass
 	}
 	Assert inlist("`dofminus'","dofminus","sdofminus")
 
-	local subcmd ivreg2 `vars' `weightexp', `estimator' `vceoption' `firstoption' small `dofminus'(`=`kk'+1') `suboptions' nocons
+	local subcmd ivreg2 `vars' `weightexp', `estimator' `vceoption' `firstoption' small `dofminus'(`kk') `suboptions'
 	Debug, level(3) msg(_n "call to subcommand: " _n as result "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'
