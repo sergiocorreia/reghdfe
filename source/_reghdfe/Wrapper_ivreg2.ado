@@ -7,6 +7,7 @@ program define Wrapper_ivreg2, eclass
 		[original_absvars(string) avge_targets] ///
 		estimator(string) vceoption(string asis) KK(integer) ///
 		[SHOWRAW(integer 0) dofminus(string)] first(integer) [weightexp(string)] ///
+		addconstant(integer) ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
 	if (`c(version)'>=12) local hidden hidden
@@ -15,6 +16,7 @@ program define Wrapper_ivreg2, eclass
 	local 0 , `suboptions'
 	syntax , [SAVEFPrefix(name)] [*] // Will ignore SAVEFPREFIX
 	local suboptions `options'
+	assert (`addconstant'==0)
 
 	if ("`estimator'"=="2sls") local estimator
 
@@ -38,7 +40,8 @@ program define Wrapper_ivreg2, eclass
 	}
 	Assert inlist("`dofminus'","dofminus","sdofminus")
 
-	local subcmd ivreg2 `vars' `weightexp', `estimator' `vceoption' `firstoption' small `dofminus'(`kk') `suboptions'
+	* Variables have already been demeaned, so we need to add -nocons- or the matrix of orthog conditions will be singular
+	local subcmd ivreg2 `vars' `weightexp', `estimator' `vceoption' `firstoption' small `dofminus'(`=`kk'+1') `suboptions' nocons
 	Debug, level(3) msg(_n "call to subcommand: " _n as result "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'

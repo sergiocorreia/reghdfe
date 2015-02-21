@@ -45,12 +45,13 @@ else {
 		[noTRACK] /// Not used here but in -Track-
 		[IVsuite(string) ESTimator(string) SAVEFIRST FIRST SHOWRAW dofminus(string)] ///
 		[dofmethod(string)] ///
-		[SMALL noCONstant Hascons TSSCONS] /// ignored options
+		[SMALL Hascons TSSCONS] /// ignored options
 		[gmm2s liml kiefer cue] ///
 		[SUBOPTions(string)] /// Options to be passed to the estimation command (e.g . to regress)
 		[bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) ///
 		accel_freq(integer 3) accel_start(integer 6)] /// Advanced optimization options
 		[CORES(integer 1)] [USEcache(string)] [OVER(varname numeric)] ///
+		[noCONstant] /// Disable adding back the intercept (mandatory with -ivreg2-)
 		[*] // For display options
 }
 
@@ -79,7 +80,7 @@ else {
 if (!`savingcache') {
 	_get_diopts diopts options, `options'
 	Assert `"`options'"'=="", msg(`"invalid options: `options'"')
-	if ("`constant'`hascons'`tsscons'"!="") di in ye "(option `constant'`hascons'`tsscons' ignored)"
+	if ("`hascons'`tsscons'"!="") di in ye "(option `hascons'`tsscons' ignored)"
 }
 
 * Over
@@ -91,6 +92,9 @@ if (!`savingcache') {
 * Verbose
 	assert inlist(`verbose', 0, 1, 2, 3, 4) // 3 and 4 are developer options
 	mata: VERBOSE = `verbose' // Ugly hack to avoid using a -global-
+
+* Show raw output of called subcommand (e.g. ivreg2)
+	local showraw = ("`showraw'"!="")
 
 * Model settings
 if (!`savingcache') {
@@ -166,6 +170,9 @@ if (!`savingcache') {
 	Debug, msg(_n " {title:REGHDFE} Verbose level = `verbose'")
 	*Debug, msg("{hline 64}")
 
+* Add back constants (place this *after* we define `model')
+	local addconstant = ("`constant'"!="noconstant") & !("`model'"=="iv" & "`ivsuite'"=="ivreg2")
+
 * VCE
 	gettoken vcetype vcerest : vce, parse(" ,")
 	if ("`vcetype'"=="") {
@@ -238,9 +245,8 @@ if (!`savingcache') {
 	}
 	else if ("`model'"=="iv" & "`ivsuite'"=="ivreg2") {
 		if ("`estimator'"=="") local estimator 2sls
-    	Assert inlist("`estimator'","2sls","gmm2s") , msg("Estimator is `estimator', instead of empty (2sls/ols) or gmm2s")
-    	* di in ye "WARNING: IV estimates not fully tested; methods like GMM2S will not work correctly"
-		if ("`showraw'"!="") local showraw 1
+	Assert inlist("`estimator'","2sls","gmm2s") , msg("Estimator is `estimator', instead of empty (2sls/ols) or gmm2s")
+	* di in ye "WARNING: IV estimates not fully tested; methods like GMM2S will not work correctly"
 
 		Assert inlist("`dofminus'","","large","small"), msg("option -dofminus- is either -small- or -large-")
 		local dofminus = cond("`dofminus'"=="large", "dofminus", "sdofminus") // Default uses sdofminus
@@ -308,6 +314,7 @@ if (!`savingcache') {
 		subcmd suboptions ///
 		absorb avge excludeself ///
 		timevar panelvar basevars ///
+		addconstant ///
 		weight weightvar exp weightexp /// type of weight (fw,aw,pw), weight var., and full expr. ([fw=n])
 		cores savingcache usecache over
 }

@@ -5,6 +5,8 @@ program define Wrapper_ivregress, eclass
 		original_depvar(string) original_endogvars(string) original_instruments(string) ///
 		[original_indepvars(string) avge_targets(string)] ///
 		estimator(string) vceoption(string asis) KK(integer) [weightexp(string)] ///
+		addconstant(integer) ///
+		SHOWRAW(integer) first(integer) ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars' (`endogvars'=`instruments')" )) )
@@ -15,10 +17,21 @@ program define Wrapper_ivregress, eclass
 	* But it's a 1700 line program so let's not worry about it
 	*profiler on
 
-	local subcmd ivregress `estimator' `vars' `weightexp', `vceoption' small `suboptions'
+* Hide constant
+	if (!`addconstant') {
+		local nocons noconstant
+		local kk = `kk' + 1
+	}
+
+* Show first stage
+	if (`first') {
+		local firstoption "first"
+	}
+
+* Subcmd
+	local subcmd ivregress `estimator' `vars' `weightexp', `vceoption' small `nocons' `firstoption' `suboptions'
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
-	local noise qui
-	if (strpos("`options'", "first")>0) local noise noi
+	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'
 	
 	*profiler off
@@ -27,7 +40,7 @@ program define Wrapper_ivregress, eclass
 	* Fix DoF if needed
 	local N = e(N)
 	local K = e(df_m)
-	local WrongDoF = `N' - 1 - `K'
+	local WrongDoF = `N' - `addconstant' - `K'
 	local CorrectDoF = `WrongDoF' - `kk'
 	Assert !missing(`CorrectDoF')
 	if ("`estimator'"!="gmm" | 1) {

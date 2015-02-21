@@ -291,6 +291,12 @@ if (`savingcache') {
 		local alternative_ok 0
 	}
 
+* Add back constant
+	if (`addconstant') {
+		Debug, level(3) msg(_n "adding back constant to regression")
+		AddConstant `depvar' `indepvars' `avgevars' `endogvars' `instruments'
+	}
+
 * 3) Regression
 	Debug, level(2) msg("(running regresion: `model'.`ivsuite')")
 	local avge = cond(`N_avge'>0, "__W*__", "")
@@ -299,7 +305,8 @@ if (`savingcache') {
 		depvar indepvars endogvars instruments avgevars ///
 		original_depvar original_indepvars original_endogvars ///
 		original_instruments original_absvars avge_targets ///
-		estimator vceoption vcetype kk suboptions showraw dofminus first  weightexp
+		estimator vceoption vcetype kk suboptions showraw dofminus first  weightexp ///
+		addconstant // tells -regress- to hide _cons
 	foreach opt of local option_list {
 		if ("``opt''"!="") local options `options' `opt'(``opt'')
 	}

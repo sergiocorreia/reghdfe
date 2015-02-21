@@ -28,7 +28,7 @@ cscript "reghdfe with weights" adofile reghdfe
 	areg price weight disp turn#foreign [fw=n], a(turn)
 	TrimMatrix 2
 	storedresults save areg e()
-	
+
 	reghdfe price weight disp [fw=n], a(turn#foreign) tol(1e-10)
 	TrimMatrix 2
 	storedresults compare areg e(), tol(1e-10) include(scalar: N r2 matrix: trim_b trim_V macros: wexp wtype)

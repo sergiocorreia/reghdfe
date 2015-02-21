@@ -15,12 +15,19 @@ program define Wrapper_regress, eclass
 	syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 		original_absvars(string) original_depvar(string) [original_indepvars(string) avge_targets(string)] ///
 		vceoption(string asis) kk(integer) vcetype(string) [weightexp(string)] ///
+		addconstant(integer) ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
 
 	local vceoption = regexr("`vceoption'", "vce\( *unadjusted *\)", "vce(ols)")
 	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars'" )) ) // Just for esthetic purposes
+
+* Hide constant
+	if (!`addconstant') {
+		local nocons noconstant
+		local kk = `kk' + 1
+	}
 
 * Run regression just to compute true DoF
 	local subcmd _regress `vars' `weightexp', noheader notable `suboptions'
@@ -29,15 +36,15 @@ program define Wrapper_regress, eclass
 	local N = e(N)
 	local K = e(df_m) // Should also be equal to e(rank)+1
 	*** scalar `sse' = e(rss)
-	local WrongDoF = `N' - 1 - `K'
+	local WrongDoF = `N' - `addconstant' - `K'
 	local CorrectDoF = `WrongDoF' - `kk' // kk = Absorbed DoF
 	Assert !missing(`CorrectDoF')
 	
 * Now run intended regression and fix VCV
-	qui regress `vars' `weightexp', `vceoption' noheader notable `suboptions'
+	qui regress `vars' `weightexp', `vceoption' noheader notable `suboptions' `nocons'
 	* Fix DoF
 	tempname V
-	matrix `V' = e(V) * (`WrongDoF' / `CorrectDoF')
+	cap matrix `V' = e(V) * (`WrongDoF' / `CorrectDoF')
 
 	* Avoid corner case error when all the RHS vars are collinear with the FEs
 	if (`K'>0) {

@@ -492,7 +492,7 @@ syntax , VARlist(varlist numeric) ///
 		* Since we only want to compute means, replace with [aw]
 		local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)
 		qui su `var' `tmpweightexp', mean
-		local AVG = r(mean)
+		char define `var'[mean] `r(mean)'
 		mata: make_residual("`var'", `args')
 		assert !missing(`resid')
 
@@ -525,8 +525,7 @@ syntax , VARlist(varlist numeric) ///
 		if (substr("`var'", 1, 2)=="__") local prettyvar : var label `var'
 		if inrange(r(sd), 1e-20 , epsfloat()) di in ye "(warning: variable `prettyvar' is probably collinear, maybe try a tighter tolerance)"
 
-		** Add r(mean) so we don't swipe away the intercept in the main regression
-		qui replace `var' = `resid' + `AVG' // This way I keep labels and so on
+		qui replace `var' = `resid' // This way I keep labels and so on
 		drop `resid'
 		Assert !missing(`var'), msg("REGHDFE.Annihilate: `var' has missing values after transformation")
 	}
