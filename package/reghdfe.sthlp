@@ -68,7 +68,8 @@ but at most one continuous interaction
 {synopt: {opth group(newvarname)}}unique identifier for the first mobility group{p_end}
 {synopt: {opt nested}}Add each {it:absvar} recursively, reporting the R2 at each stage and the associated F-test of significance
 (only under linear regression and unadjusted standard errors){p_end}
-{synopt : {opt sub:options(...)}} options that will be passed to the regression command (either {help regress}, {help ivreg2}, or {help ivregress}){p_end}
+{synopt :{opt nocon:stant}}do not add back constant to regression ({cmd:ivreg2} will always do that). Rarely used.{p_end}
+{synopt : {opt sub:options(...)}}options that will be passed to the regression command (either {help regress}, {help ivreg2}, or {help ivregress}){p_end}
 
 {syntab:IV/2SLS}
 {synopt :{opth iv:suite(subcmd)}}package used in the IV/2SLS regressions; either {opt ivregress} or {opt ivreg2} (if installed){p_end}
@@ -159,7 +160,7 @@ To save a fixed effect, prefix the absvar with "{newvar}{cmd:=}". For instance, 
 options that will be passed directly to the regression command (either {help regress}, {help ivreg2}, or {help ivregress})
 
 {pmore}
-Some options are not allowed and will be silently ignored ({it:nosmall}, {it:noconstant}, {it:hascons}, {it:tsscons})
+Some options are not allowed and will be silently ignored ({it:nosmall}, {it:hascons}, {it:tsscons})
 
 {dlgtab:IV/2SLS}
 

@@ -27,7 +27,7 @@
  (-)		Compute statistics such as TSS, used later on
 			Save untransformed variables
 
- (3)	reghdfe_absorb, step(demean) subcmd(`subcmd') varlist(...)  [maximize_options..]
+ (3)	reghdfe_absorb, step(demean) varlist(...)  [maximize_options..]
 			Obtain residuals of varlist wrt the FEs
 			Note: can be run multiple times
 
@@ -37,7 +37,7 @@
 			Load untransformed variables
 			Use predict to get resid+d
 
-		reghdfe_absorb, step(demean) subcmd(`subcmd') save_fe(1) var(resid_d) -> get FEs
+		reghdfe_absorb, step(demean) save_fe(1) var(resid_d) -> get FEs
  (4)	reghdfe_absorb, step(save) original_depvar(..)
 			Save required FEs with proper name, labels, etc.
 
@@ -1198,7 +1198,6 @@ syntax , VARlist(varlist numeric) ///
 	NUM_fe(integer -1)] /// Regress only against the first Nth FEs (used in nested Fstats)
 	[bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) ///
 	accel_freq(integer 3) accel_start(integer 6)] /// Advanced options
-	SUBCMD(string) // If -ivreg2- , do not add back the mean so we can use -nocons- there
 
 	assert inrange(`tolerance', 1e-20, 1) // However beyond 1e-16 we reach the limits of -double-
 	assert inrange(`maxiterations',1,.)
@@ -1240,10 +1239,8 @@ syntax , VARlist(varlist numeric) ///
 		* Note: summarize doesn't allow pweight ( see http://www.stata.com/support/faqs/statistics/weights-and-summary-statistics/ )
 		* Since we only want to compute means, replace with [aw]
 		local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)
-		if ("`subcmd'"!="ivreg2") {
-			qui su `var' `tmpweightexp', mean
-			local AVG = r(mean)
-		}
+		qui su `var' `tmpweightexp', mean
+		char define `var'[mean] `r(mean)'
 		mata: make_residual("`var'", `args')
 		assert !missing(`resid')
 
@@ -1276,13 +1273,7 @@ syntax , VARlist(varlist numeric) ///
 		if (substr("`var'", 1, 2)=="__") local prettyvar : var label `var'
 		if inrange(r(sd), 1e-20 , epsfloat()) di in ye "(warning: variable `prettyvar' is probably collinear, maybe try a tighter tolerance)"
 
-		** Add r(mean) so we don't swipe away the intercept in the main regression
-		if ("`subcmd'")!="ivreg2" {
-			qui replace `var' = `resid' + `AVG' // This way I keep labels and so on
-		}
-		else {
-			qui replace `var' = `resid'         // This way I keep labels and so on
-		}
+		qui replace `var' = `resid' // This way I keep labels and so on
 		drop `resid'
 		Assert !missing(`var'), msg("REGHDFE.Annihilate: `var' has missing values after transformation")
 	}
@@ -1376,7 +1367,7 @@ end
 //------------------------------------------------------------------------------
 program ParallelInstance
 //------------------------------------------------------------------------------
-	syntax, core(integer) code(string asis) SUBCMD(string)
+	syntax, core(integer) code(string asis)
 	set more off
 	assert inrange(`core',1,32)
 	local path "`c(tmpdir)'reghdfe_`code'`c(dirsep)'"
@@ -1405,7 +1396,7 @@ program ParallelInstance
 
 		use `vars' `weightvar' using "`usedta'"
 		de, full
-		reghdfe_absorb, step(demean) subcmd(`subcmd') varlist(`vars') `opt'
+		reghdfe_absorb, step(demean) varlist(`vars') `opt'
 		keep `vars'
 		save `"`outfn'"'
 		log close _all
@@ -1439,7 +1430,7 @@ program AnnihilateParallel
 // (the other start with 1 proc allowed, which should be fine)
 // Thus it will usually finish faster, to start waiting for the 2nd fastest  to merge
 
-syntax, VARlist(varlist numeric) FILEname(string) UID(varname numeric) Numcores(integer) SUBCMD(string) [*]
+syntax, VARlist(varlist numeric) FILEname(string) UID(varname numeric) Numcores(integer) [*]
 
 	local varlist : list uniq varlist
 	local K : list sizeof varlist
@@ -1496,13 +1487,13 @@ syntax, VARlist(varlist numeric) FILEname(string) UID(varname numeric) Numcores(
 
 	* Create instances
 	forv i=2/`numcores' {
-		local cmd `"winexec `binary' /q  reghdfe_absorb, instance core(`i') code(`code') subcmd(`subcmd')"'
+		local cmd `"winexec `binary' /q  reghdfe_absorb, instance core(`i') code(`code') "'
 		Debug, level(1) msg(" - Executing " in ye `"`cmd' "')
 		`cmd'
 		Debug, level(1) msg(" - Sleeping `wait'ms")
 		if (`i'!=`numcores') sleep `wait'
 	}
-	reghdfe_absorb, step(demean) subcmd(`subcmd') varlist(`varlist1') `options' // core=1
+	reghdfe_absorb, step(demean) varlist(`varlist1') `options' // core=1
 
 	* Wait until all instances have started
 	local timeout 20

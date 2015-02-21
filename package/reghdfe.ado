@@ -1,4 +1,4 @@
-*! version 1.3.1 17feb2015
+*! version 1.3.1 20feb2015
 *! By Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 program define reghdfe
@@ -239,7 +239,7 @@ else {
 			local subZs
 			forv g=1/`=`N_hdfe'-1' {
 				Debug, msg("(computing nested model w/`g' FEs)")
-				reghdfe_absorb, step(demean) subcmd(`subcmd') varlist(`vars') `maximize_options' num_fe(`g') `parallel_opt'
+				reghdfe_absorb, step(demean) varlist(`vars') `maximize_options' num_fe(`g') `parallel_opt'
 				qui _regress `vars' `weightexp', noheader notable
 				local rss`g' = e(rss)
 				qui use "`original_vars'", clear // Back to untransformed dataset
@@ -261,7 +261,7 @@ else {
 	Debug, msg(" - tolerance = `tolerance'")
 	Debug, msg(" - max. iter = `maxiterations'")
 	if ("`usecache'"=="") {
-		reghdfe_absorb, step(demean) subcmd(`subcmd') varlist(`vars') `maximize_options' `parallel_opt'
+		reghdfe_absorb, step(demean) varlist(`vars') `maximize_options' `parallel_opt'
 	}
 	else {
 		Debug, msg("(using cache data)")
@@ -322,6 +322,12 @@ if (`savingcache') {
 		local alternative_ok 0
 	}
 
+* Add back constant
+	if (`addconstant') {
+		Debug, level(3) msg(_n "adding back constant to regression")
+		AddConstant `depvar' `indepvars' `avgevars' `endogvars' `instruments'
+	}
+
 * 3) Regression
 	Debug, level(2) msg("(running regresion: `model'.`ivsuite')")
 	local avge = cond(`N_avge'>0, "__W*__", "")
@@ -330,7 +336,8 @@ if (`savingcache') {
 		depvar indepvars endogvars instruments avgevars ///
 		original_depvar original_indepvars original_endogvars ///
 		original_instruments original_absvars avge_targets ///
-		estimator vceoption vcetype kk suboptions showraw dofminus first  weightexp
+		estimator vceoption vcetype kk suboptions showraw dofminus first  weightexp ///
+		addconstant // tells -regress- to hide _cons
 	foreach opt of local option_list {
 		if ("``opt''"!="") local options `options' `opt'(``opt'')
 	}
@@ -372,7 +379,7 @@ else {
 
 	* Absorb the residuals to obtain the FEs (i.e. run a regression on just the resids)
 	Debug, level(2) tic(31)
-	reghdfe_absorb, step(demean) subcmd(`subcmd') varlist(`resid_d') `maximize_options' save_fe(1)
+	reghdfe_absorb, step(demean) varlist(`resid_d') `maximize_options' save_fe(1)
 	Debug, level(2) toc(31) msg("mata:make_residual on final model took")
 	drop `resid_d'
 
@@ -611,12 +618,13 @@ else {
 		[noTRACK] /// Not used here but in -Track-
 		[IVsuite(string) ESTimator(string) SAVEFIRST FIRST SHOWRAW dofminus(string)] ///
 		[dofmethod(string)] ///
-		[SMALL noCONstant Hascons TSSCONS] /// ignored options
+		[SMALL Hascons TSSCONS] /// ignored options
 		[gmm2s liml kiefer cue] ///
 		[SUBOPTions(string)] /// Options to be passed to the estimation command (e.g . to regress)
 		[bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) ///
 		accel_freq(integer 3) accel_start(integer 6)] /// Advanced optimization options
 		[CORES(integer 1)] [USEcache(string)] [OVER(varname numeric)] ///
+		[noCONstant] /// Disable adding back the intercept (mandatory with -ivreg2-)
 		[*] // For display options
 }
 
@@ -645,7 +653,7 @@ else {
 if (!`savingcache') {
 	_get_diopts diopts options, `options'
 	Assert `"`options'"'=="", msg(`"invalid options: `options'"')
-	if ("`constant'`hascons'`tsscons'"!="") di in ye "(option `constant'`hascons'`tsscons' ignored)"
+	if ("`hascons'`tsscons'"!="") di in ye "(option `hascons'`tsscons' ignored)"
 }
 
 * Over
@@ -657,6 +665,9 @@ if (!`savingcache') {
 * Verbose
 	assert inlist(`verbose', 0, 1, 2, 3, 4) // 3 and 4 are developer options
 	mata: VERBOSE = `verbose' // Ugly hack to avoid using a -global-
+
+* Show raw output of called subcommand (e.g. ivreg2)
+	local showraw = ("`showraw'"!="")
 
 * Model settings
 if (!`savingcache') {
@@ -732,6 +743,9 @@ if (!`savingcache') {
 	Debug, msg(_n " {title:REGHDFE} Verbose level = `verbose'")
 	*Debug, msg("{hline 64}")
 
+* Add back constants (place this *after* we define `model')
+	local addconstant = ("`constant'"!="noconstant") & !("`model'"=="iv" & "`ivsuite'"=="ivreg2")
+
 * VCE
 	gettoken vcetype vcerest : vce, parse(" ,")
 	if ("`vcetype'"=="") {
@@ -804,9 +818,8 @@ if (!`savingcache') {
 	}
 	else if ("`model'"=="iv" & "`ivsuite'"=="ivreg2") {
 		if ("`estimator'"=="") local estimator 2sls
-    	Assert inlist("`estimator'","2sls","gmm2s") , msg("Estimator is `estimator', instead of empty (2sls/ols) or gmm2s")
-    	* di in ye "WARNING: IV estimates not fully tested; methods like GMM2S will not work correctly"
-		if ("`showraw'"!="") local showraw 1
+	Assert inlist("`estimator'","2sls","gmm2s") , msg("Estimator is `estimator', instead of empty (2sls/ols) or gmm2s")
+	* di in ye "WARNING: IV estimates not fully tested; methods like GMM2S will not work correctly"
 
 		Assert inlist("`dofminus'","","large","small"), msg("option -dofminus- is either -small- or -large-")
 		local dofminus = cond("`dofminus'"=="large", "dofminus", "sdofminus") // Default uses sdofminus
@@ -874,6 +887,7 @@ if (!`savingcache') {
 		subcmd suboptions ///
 		absorb avge excludeself ///
 		timevar panelvar basevars ///
+		addconstant ///
 		weight weightvar exp weightexp /// type of weight (fw,aw,pw), weight var., and full expr. ([fw=n])
 		cores savingcache usecache over
 }
@@ -1316,12 +1330,19 @@ program define Wrapper_regress, eclass
 	syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 		original_absvars(string) original_depvar(string) [original_indepvars(string) avge_targets(string)] ///
 		vceoption(string asis) kk(integer) vcetype(string) [weightexp(string)] ///
+		addconstant(integer) ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
 
 	local vceoption = regexr("`vceoption'", "vce\( *unadjusted *\)", "vce(ols)")
 	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars'" )) ) // Just for esthetic purposes
+
+* Hide constant
+	if (!`addconstant') {
+		local nocons noconstant
+		local kk = `kk' + 1
+	}
 
 * Run regression just to compute true DoF
 	local subcmd _regress `vars' `weightexp', noheader notable `suboptions'
@@ -1330,15 +1351,15 @@ program define Wrapper_regress, eclass
 	local N = e(N)
 	local K = e(df_m) // Should also be equal to e(rank)+1
 	*** scalar `sse' = e(rss)
-	local WrongDoF = `N' - 1 - `K'
+	local WrongDoF = `N' - `addconstant' - `K'
 	local CorrectDoF = `WrongDoF' - `kk' // kk = Absorbed DoF
 	Assert !missing(`CorrectDoF')
 	
 * Now run intended regression and fix VCV
-	qui regress `vars' `weightexp', `vceoption' noheader notable `suboptions'
+	qui regress `vars' `weightexp', `vceoption' noheader notable `suboptions' `nocons'
 	* Fix DoF
 	tempname V
-	matrix `V' = e(V) * (`WrongDoF' / `CorrectDoF')
+	cap matrix `V' = e(V) * (`WrongDoF' / `CorrectDoF')
 
 	* Avoid corner case error when all the RHS vars are collinear with the FEs
 	if (`K'>0) {
@@ -1405,6 +1426,8 @@ program define Wrapper_ivregress, eclass
 		original_depvar(string) original_endogvars(string) original_instruments(string) ///
 		[original_indepvars(string) avge_targets(string)] ///
 		estimator(string) vceoption(string asis) KK(integer) [weightexp(string)] ///
+		addconstant(integer) ///
+		SHOWRAW(integer) first(integer) ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars' (`endogvars'=`instruments')" )) )
@@ -1415,10 +1438,21 @@ program define Wrapper_ivregress, eclass
 	* But it's a 1700 line program so let's not worry about it
 	*profiler on
 
-	local subcmd ivregress `estimator' `vars' `weightexp', `vceoption' small `suboptions'
+* Hide constant
+	if (!`addconstant') {
+		local nocons noconstant
+		local kk = `kk' + 1
+	}
+
+* Show first stage
+	if (`first') {
+		local firstoption "first"
+	}
+
+* Subcmd
+	local subcmd ivregress `estimator' `vars' `weightexp', `vceoption' small `nocons' `firstoption' `suboptions'
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
-	local noise qui
-	if (strpos("`options'", "first")>0) local noise noi
+	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'
 	
 	*profiler off
@@ -1427,7 +1461,7 @@ program define Wrapper_ivregress, eclass
 	* Fix DoF if needed
 	local N = e(N)
 	local K = e(df_m)
-	local WrongDoF = `N' - 1 - `K'
+	local WrongDoF = `N' - `addconstant' - `K'
 	local CorrectDoF = `WrongDoF' - `kk'
 	Assert !missing(`CorrectDoF')
 	if ("`estimator'"!="gmm" | 1) {
@@ -1451,6 +1485,7 @@ program define Wrapper_ivreg2, eclass
 		[original_absvars(string) avge_targets] ///
 		estimator(string) vceoption(string asis) KK(integer) ///
 		[SHOWRAW(integer 0) dofminus(string)] first(integer) [weightexp(string)] ///
+		addconstant(integer) ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
 	if (`c(version)'>=12) local hidden hidden
@@ -1459,6 +1494,7 @@ program define Wrapper_ivreg2, eclass
 	local 0 , `suboptions'
 	syntax , [SAVEFPrefix(name)] [*] // Will ignore SAVEFPREFIX
 	local suboptions `options'
+	assert (`addconstant'==0)
 
 	if ("`estimator'"=="2sls") local estimator
 
@@ -1482,6 +1518,7 @@ program define Wrapper_ivreg2, eclass
 	}
 	Assert inlist("`dofminus'","dofminus","sdofminus")
 
+	* Variables have already been demeaned, so we need to add -nocons- or the matrix of orthog conditions will be singular
 	local subcmd ivreg2 `vars' `weightexp', `estimator' `vceoption' `firstoption' small `dofminus'(`=`kk'+1') `suboptions' nocons
 	Debug, level(3) msg(_n "call to subcommand: " _n as result "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
@@ -1534,6 +1571,18 @@ program define Wrapper_ivreg2, eclass
 	ereturn local alternative_cmd ivreg2 `original_vars', small `vceoption' `options' `estimator'
 	***if ("`estimator'"!="gmm") ereturn scalar F = e(F) * `CorrectDoF' / `WrongDoF'
 
+end
+
+	
+capture program drop AddConstant
+program define AddConstant
+	syntax varlist(numeric)
+	foreach var of local varlist {
+		local mean : char `var'[mean]
+		assert "`mean'"!=""
+		assert !missing(`mean')
+		qui replace `var' = `var' + `mean'
+	}
 end
 
 
