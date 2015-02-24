@@ -14,6 +14,7 @@ cscript "reghdfe with multi-way clustering" adofile reghdfe
 	clear all
 	set more off
 	qui adopath + "D:/Github/reghdfe/test"
+	set more off
 
 * Convenience
 	capture program drop TrimMatrix

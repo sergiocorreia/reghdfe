@@ -3,13 +3,27 @@
 // -------------------------------------------------------------
 cap pr drop EstimateDoF
 program define EstimateDoF
-syntax, dofmethod(string) [clustervar1(string) group(name) uid(varname) groupdta(string)]
+syntax, dofmethod(string) [clustervars(string) group(name) uid(varname) groupdta(string)]
 	
 	Assert inlist("`dofmethod'", "bounds", "simple", "naive", "bootstrap")
 	Assert "`dofmethod'"!="bootstrap" , msg("DoF Bootstrap: not yet implemented!")
 	Debug, level(1) msg("(calculating degrees of freedom lost by the FEs)")
 	Debug, level(2) msg(" - dofmethod: `dofmethod'")
 	mata: st_local("G", strofreal(G))
+	local N_clustervars : word count `clustervars' // Could have gotten this from mata st_local N_clustervars
+
+	
+
+	* FOR NOW THIS IS COMPLETELY BROKEN, FIX THE ENTIRE CLUSTERVAR THING AND ALSO MAYBE THE SLOPE parameters
+	* BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG 
+	* BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG
+	di as error "(warning: EstimateDoF is currently not working, needs to be fixed <`clustervars'>)"
+	if ("`clustervars'"!="") local clustervar1 : word 1 of `clustervars' // BUGBUG
+	c_local fe_nested_in_cluster1 0
+	c_local fe_nested_in_cluster2 0
+	c_local fe_nested_in_cluster3 0
+
+
 
 * Start conservatively, assuming M`g'=1 (or =0 if interacted with cont. var)
 	local g_list // List of FEs where M is still unknown

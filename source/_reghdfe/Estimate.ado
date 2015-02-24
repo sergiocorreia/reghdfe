@@ -16,7 +16,7 @@ program define Estimate, eclass
 	local sets depvar indepvars endogvars instruments // depvar MUST be first
 
 * 2) Parse identifiers (absorb variables, avge, clustervar)
-	reghdfe_absorb, step(start) absorb(`absorb') over(`over') avge(`avge') clustervar(`clustervar') weight(`weight') weightvar(`weightvar')
+	reghdfe_absorb, step(start) absorb(`absorb') over(`over') avge(`avge') clustervars(`clustervars') weight(`weight') weightvar(`weightvar')
 	// In this step, it doesn't matter if the weight is FW or AW
 	local N_hdfe = r(N_hdfe)
 	local N_avge = r(N_avge)
@@ -80,14 +80,16 @@ else {
 
 * 8) Fill Mata structures, create FE identifiers, avge vars and cluster if needed
 	reghdfe_absorb, step(precompute) keep(`uid' `expandedvars') depvar("`depvar'") `excludeself'
-	
-	* Cluster name to show in the regression table
-	*local original_clustervar1 `clustervar1'
-	mata: st_local("ivars_clustervar1", ivars_clustervar1)
-	local original_clustervar1 : subinstr local ivars_clustervar1 " " "#", all
-	
-	local clustervar1 "`r(clustervar1)'"
 
+	* Cluster name to show in the regression table
+	local clustervars
+	forval i = 1/`num_clusters' {
+		mata: st_local("ivars_clustervar`i'", ivars_clustervar`i')
+		local original_clustervar`i' : subinstr local ivars_clustervar`i' " " "#", all
+		local clustervar`i' "`r(clustervar`i')'"
+		local clustervars `clustervars' `clustervar`i'' // Overwrite it
+		local original_clustervars `original_clustervars' `original_clustervar`i''
+	}
 
 	Debug, level(2) msg("(dataset compacted: observations " as result "`RAW_N' -> `c(N)'" as text " ; variables " as result "`RAW_K' -> `c(k)'" as text ")")
 	local avgevars = cond("`avge'"=="", "", "__W*__")
@@ -133,14 +135,13 @@ else {
 		tempfile groupdta
 		local opt group(`group') groupdta(`groupdta') uid(`uid')
 	}
-	EstimateDoF, dofmethod(`dofmethod') clustervar1(`clustervar1') `opt'
+	EstimateDoF, dofmethod(`dofmethod') clustervars(`clustervars') `opt'
 	// For simplicity, -EstimateDoF- will save its results in locals HERE
 	// Locals saved are: Mg, Kg, Mg_exact for all g=1..N_hdfe
 	// and M (sum of Mg), kk (sum of Kg), fe_nested_in_cluster
 
 	* Sanity checks
 	Assert `kk'<.
-	Assert inlist(`fe_nested_in_cluster',0,1)
 	forv g=1/`N_hdfe' {
 		assert inlist(`M`g'_exact',0,1)
 		// 1 or 0 whether M`g' was calculated exactly or not
@@ -150,18 +151,23 @@ else {
 
 * 11) Drop IDs for the absorbed FEs (except if its the clustervar)
 * Useful b/c regr. w/cluster takes a lot of memory
-	if ( `fe_nested_in_cluster' | ("`clustervar1'"!="" & "`dofmethod'"=="naive") ) {
-		rename `clustervar1' __clustervar1__
-		local clustervar1 __clustervar1__
+	forval i = 1/`num_clusters' {
+		Assert inlist(`fe_nested_in_cluster`i'',0,1) // this local, injected by EstimateDoF, tells us if cluster`i' is nesting some FE
+		* Not sure if I need to keep it if its nested (i.e. not sure if we really needed the first part of the condition)
+		if ( `fe_nested_in_cluster`i'' | ("`clustervar`i''"!="" & "`dofmethod'"=="naive") ) {
+			rename `clustervar`i'' __clustervar`i'__
+			local clustervar`i' __clustervar`i'__
+		}
+		conf numeric var `clustervar`i''
+		local temp_clustervars `temp_clustervars' `clustervar`i''
 	}
-	if ("`vcetype'"=="cluster") {
-		conf numeric var `clustervar1'
-		local vceoption : subinstr local vceoption "<CLUSTERVAR1>" "`clustervar1'"
+
+	if (`num_clusters'>0) {
+		local vceoption : subinstr local vceoption "<CLUSTERVARS>" "`temp_clustervars'"
 	}
 	cap drop __FE*__ // FE IDs no longer needed (except if clustervar)
 	* cap is required in case there is only one FE which is the clustervar1
 }
-
 * 12) Save untransformed data.
 *	This allows us to:
 *	i) nested ftests for the FEs,
@@ -288,6 +294,7 @@ if (`savingcache') {
 		if (`alternative_ok') mata: st_local("avge_targets", strtrim(invtokens(avge_target)) )
 	}
 	if (`: word count `ivars_clustervar1''>1) {
+		* BUGBUG: This is no longer correct, and also we should just forget about all this "alternative cmd" thing
 		local alternative_ok 0
 	}
 
@@ -427,7 +434,10 @@ else {
 	ereturn local absvars = "`original_absvars'"
 	ereturn `hidden' local diopts = "`diopts'"
 
-	if ("`e(clustvar)'"!="") ereturn local clustvar "`original_clustervar1'"
+	if ("`e(clustvar)'"!="") {
+		ereturn local clustvar "`original_clustervars'"
+		ereturn scalar N_clustervars = `num_clusters'
+	}
 
 	* Besides each cmd's naming style (e.g. exogr, exexog, etc.) keep one common one
 	foreach cat in depvar indepvars endogvars instruments {
@@ -449,9 +459,8 @@ else {
 	ereturn local vcetype = proper("`vcetype'") //
 	if (e(vcetype)=="Cluster") ereturn local vcetype = "Robust"
 	if (e(vcetype)=="Unadjusted") ereturn local vcetype
-	ereturn local vce = "`vcetype'" // Not a mistake! Saves unadjusted,robust,cluster,etc. into e(vce)
+	if (e(vce)==".") ereturn local vce = "`vcetype'" // +-+-
 	Assert inlist("`e(vcetype)'", "", "Robust", "Jackknife", "Bootstrap")
-	Assert inlist(e(vce), "unadjusted", "robust", "cluster", "jacknife", "bootstrap") // Redundant, already checked in Parse.ado
 	
 	* Clear results that are wrong
 	ereturn local ll
@@ -463,7 +472,7 @@ else {
 * Absorbed-specific returns
 	ereturn scalar mobility = `M'
 	ereturn scalar df_a = `kk'
-	if ("`vcetype'"=="cluster") ereturn scalar fe_nested_in_cluster = `fe_nested_in_cluster'
+	if ("`vcetype'"=="cluster") ereturn scalar fe_nested_in_cluster = `fe_nested_in_cluster' // BUGBUG
 	forv g=1/`N_hdfe' {
 		ereturn scalar M`g' = `M`g''
 		ereturn scalar K`g' = `K`g''
@@ -509,7 +518,7 @@ else {
 	}
 
 	if (e(N_clust)<.) ereturn scalar df_r = e(N_clust) - 1
-	// There is a big assumption hre, that the number of other parameters does not increase asymptotically
+	// There is a big assumption here, that the number of other parameters does not increase asymptotically
 	// BUGBUG: We should allow the option to indicate what parameters do increase asympt.
 	// BUGBUG; xtreg does this: est scalar df_r = min(`df_r':=N-1-K, `df_cl') why was that?
 

@@ -39,7 +39,8 @@ else {
 	syntax anything(id="varlist" name=0 equalok) [if] [in] ///
 		[fweight aweight pweight/] , ///
 		Absorb(string) ///
-		[GROUP(name) VCE(string) Verbose(integer 0) CHECK NESTED FAST] ///
+		[VCE(string)] ///
+		[GROUP(name) Verbose(integer 0) CHECK NESTED FAST] ///
 		[avge(string) EXCLUDESELF] ///
 		[TOLerance(real 1e-7) MAXITerations(integer 1000) noACCELerate] /// See reghdfe_absorb.Annihilate
 		[noTRACK] /// Not used here but in -Track-
@@ -96,6 +97,12 @@ if (!`savingcache') {
 * Show raw output of called subcommand (e.g. ivreg2)
 	local showraw = ("`showraw'"!="")
 
+* tsset variables, if any
+	cap conf var `_dta[_TStvar]'
+	if (!_rc) local timevar `_dta[_TStvar]'
+	cap conf var `_dta[_TSpanel]'
+	if (!_rc) local panelvar `_dta[_TSpanel]'
+
 * Model settings
 if (!`savingcache') {
 
@@ -109,9 +116,9 @@ if (!`savingcache') {
 	}
 	
 
+	* For this, _iv_parse would have been useful, although I don't want to do factor expansions when parsing
 	if ("`model'"=="iv") {
-
-		// get part before parentheses
+		* get part before parentheses
 		local wrongparens 1
 		while (`wrongparens') {
 			gettoken tmp 0 : 0 ,p("(")
@@ -127,11 +134,11 @@ if (!`savingcache') {
 			}
 		}
 
-		// get part in parentheses
+		* get part in parentheses
 		gettoken right 0 : 0 ,bind match(parens)
 		Assert trim(`"`0'"')=="" , msg("error: remaining argument: `0'")
 
-		// now parse part in parentheses
+		* now parse part in parentheses
 		gettoken endogvars instruments : right ,p("=")
 		gettoken equalsign instruments : instruments ,p("=")
 
@@ -173,50 +180,66 @@ if (!`savingcache') {
 * Add back constants (place this *after* we define `model')
 	local addconstant = ("`constant'"!="noconstant") & !("`model'"=="iv" & "`ivsuite'"=="ivreg2")
 
-* VCE
-	gettoken vcetype vcerest : vce, parse(" ,")
-	if ("`vcetype'"=="") {
-		local vcetype unadjusted
-		if ("`ivsuite'"=="ivregress" & "`estimator'"=="gmm") local vcetype robust // Default for ivregress gmm
-		if ("`backupweight'"=="pweight") local vcetype robust // pweight requires robust
-	}
+* Parse VCE options:
+	* Note: bw=1 means just do HC instead of HAC
+	local 0 `vce'
+	syntax [anything(id="VCE type")] , [bw(integer 1)] [kernel(string)] [dkraay(integer 1)] [kiefer] [suite(string)]
+	if ("`anything'"=="") local anything unadjusted
+	Assert `bw'>0, msg("VCE bandwidth must be a positive integer")
+	gettoken vcetype clustervars : anything
+	local clustervars `clustervars' // Trim spaces
 
-	* Abbreviations:
+	* vcetype abbreviations:
 	if (substr("`vcetype'",1,2)=="un") local vcetype unadjusted
 	if (substr("`vcetype'",1,1)=="r") local vcetype robust
 	if (substr("`vcetype'",1,2)=="cl") local vcetype cluster
-	if (substr("`vcetype'",1,4)=="boot") local vcetype bootstrap
-	if (substr("`vcetype'",1,4)=="jack") local vcetype jackknife
 	if ("`vcetype'"=="conventional") local vcetype unadjusted // Conventional is the name given in e.g. xtreg
-	assert inlist("`vcetype'", "unadjusted", "robust", "cluster", "bootstrap", "jackknife")
+	Assert strpos("`vcetype'",",")==0, msg("Unexpected contents of VCE: <`vcetype'> has a comma")
+
+	* Sanity checks on vcetype
+	if ("`vcetype'"=="" & "`backupweight'"=="pweight") local vcetype robust
+	Assert !("`vcetype'"=="unadjusted" & "`backupweight'"=="pweight"), msg("pweights do not work with unadjusted errors, use a different vce()")
+	if ("`vcetype'"=="") local vcetype unadjusted
+	Assert inlist("`vcetype'", "unadjusted", "robust", "cluster"), msg("VCE type not supported: `vcetype'")
 
 	* Cluster vars
-	local num_clusters 0
-	if ("`vcetype'"=="cluster") {
-		local num_clusters = `: word count `vcerest''
-		assert inlist(`num_clusters', 1, 2)
-		gettoken clustervar1 clustervar2 : vcerest
-		cap unab clustervar1 : `clustervar1'
-		cap unab clustervar2 : `clustervar2'
-		local vcerest
+	local num_clusters : word count `clustervars'
+	Assert inlist( (`num_clusters'>0) + ("`vcetype'"=="cluster") , 0 , 2), msg("Can't specify cluster without clustervars and viceversa") // XOR
+
+	* VCE Suite
+	local vcesuite `suite'
+	if ("`vcesuite'"=="") {
+		if (`num_clusters'>2) {
+			local vcesuite default
+		}
+		else if (`bw'>1 | `dkraay'>1 | "`kiefer'"!="" | "`kernel'"!="") {
+			local vcesuite avar
+		}
+		else {
+			local vcesuite default
+		}
+	}
+	Assert inlist("`vcesuite'", "default", "avar")
+
+	* Some combinations are not coded
+	Assert !("`ivsuite'"=="ivregress" & (`num_clusters'>1 | `bw'>1 | `dkraay'>1 | "`kiefer'"!="" | "`kernel'"!="") ), msg("option vce(`vce') incompatible with ivregress")
+	Assert !("`ivsuite'"=="ivreg2" & (`num_clusters'>2) ), msg("ivreg2 doesn't allow more than two cluster variables")
+	Assert !("`model'"=="ols" & "`vcesuite'"=="avar" & (`num_clusters'>2) ), msg("avar doesn't allow more than two cluster variables")
+	Assert !("`model'"=="ols" & "`vcesuite'"=="default" & (`bw'>1 | `dkraay'>1 | "`kiefer'"!="" | "`kernel'"!="") ), msg("to use those vce options you need to use -avar- as the vce suite")
+
+	if ("`vcesuite'"=="avar") {
+		cap findfile `vcesuite'.ado
+		Assert !_rc , msg("error: -`vcesuite'- not installed, please run ssc install `vcesuite' or change the option -vcesuite-")
 	}
 
-	//local vceoption = trim("`vcetype' `clustervar1' `clustervar2' `vcerest'")
-	local temp_clustervar1 = cond("`clustervar1'"=="","","<CLUSTERVAR1>")
-	local vceoption = trim("`vcetype' `temp_clustervar1'`vcerest'")
-	local vceoption vce(`vceoption')
-	
-	if ("`model'"=="ols") {
-		local ok = inlist("`vcetype'", "unadjusted", "robust", "cluster") & (`num_clusters'<=1)
-	}
-	else if ("`ivsuite'"=="ivregress") {
-		local ok = inlist("`vcetype'", "unadjusted", "robust", "cluster", "bootstrap", "jackknife", "hac") & (`num_clusters'<=1)
-	}
-	else if ("`ivsuite'"=="ivreg2") {
-		local ok = inlist("`vcetype'", "unadjusted", "robust", "cluster", "bw") & (`num_clusters'<=2)
-	}
-	Assert `ok', msg("invalid vce type or number of clusters")
-}
+	if (`num_clusters'>0) local temp_clustervars " <CLUSTERVARS>"
+	local vceoption "vce(`vcetype'`temp_clustervars')"
+	if (`bw'>1) local vceextra `vceextra' bw(`bw') 
+	if (`dkraay'>1) local vceextra `vceextra' dkraay(`dkraay') 
+	if ("`kiefer'"!="") local vceextra `vceextra' kiefer 
+	if ("`kernel'"!="") local vceextra `vceextra' kernel(`kernel')
+
+} // End of !`savingcache'
 
 * Optimization
 	if (`maxiterations'==0) local maxiterations 1e7
@@ -275,12 +298,6 @@ if (!`savingcache') {
 	if ("`group'"!="") conf new var `group'
 }
 
-* tsset variables, if any
-	cap conf var `_dta[_TStvar]'
-	if (!_rc) local timevar `_dta[_TStvar]'
-	cap conf var `_dta[_TSpanel]'
-	if (!_rc) local panelvar `_dta[_TSpanel]'
-
 * Varnames underlying tsvars and fvvars (e.g. i.foo L(1/3).bar -> foo bar)
 	foreach vars in depvar indepvars endogvars instruments {
 		if ("``vars''"!="") {
@@ -308,7 +325,7 @@ if (!`savingcache') {
 	local names cmdline diopts model ///
 		ivsuite estimator showraw dofminus ///
 		depvar indepvars endogvars instruments savefirst first ///
-		vceoption vcetype num_clusters clustervar1 clustervar2 vcerest ///
+		vceoption vcetype vceextra vcesuite num_clusters clustervars ///
 		if in group dofmethod check fast nested fe_format ///
 		tolerance maxiterations accelerate maximize_options ///
 		subcmd suboptions ///
