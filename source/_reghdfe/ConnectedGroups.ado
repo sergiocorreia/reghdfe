@@ -13,7 +13,7 @@ syntax varlist(min=2 max=2) [, GENerate(name) CLEAR]
 
     if ("`generate'"!="") conf new var `generate'
     gettoken id1 id2 : varlist
-    Debug, level(2) msg(" - computing connected groups between `id1' and`id2'")
+    Debug, level(2) msg("    - computing connected groups between `id1' and`id2'")
     tempvar group copy
 
     tempfile backup

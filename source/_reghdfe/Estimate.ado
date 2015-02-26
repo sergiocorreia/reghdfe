@@ -81,16 +81,6 @@ else {
 * 8) Fill Mata structures, create FE identifiers, avge vars and cluster if needed
 	reghdfe_absorb, step(precompute) keep(`uid' `expandedvars') depvar("`depvar'") `excludeself'
 
-	* Cluster name to show in the regression table
-	local clustervars
-	forval i = 1/`num_clusters' {
-		mata: st_local("ivars_clustervar`i'", ivars_clustervar`i')
-		local original_clustervar`i' : subinstr local ivars_clustervar`i' " " "#", all
-		local clustervar`i' "`r(clustervar`i')'"
-		local clustervars `clustervars' `clustervar`i'' // Overwrite it
-		local original_clustervars `original_clustervars' `original_clustervar`i''
-	}
-
 	Debug, level(2) msg("(dataset compacted: observations " as result "`RAW_N' -> `c(N)'" as text " ; variables " as result "`RAW_K' -> `c(k)'" as text ")")
 	local avgevars = cond("`avge'"=="", "", "__W*__")
 	local vars `expandedvars' `avgevars'
@@ -135,39 +125,37 @@ else {
 		tempfile groupdta
 		local opt group(`group') groupdta(`groupdta') uid(`uid')
 	}
-	EstimateDoF, dofmethod(`dofmethod') clustervars(`clustervars') `opt'
-	// For simplicity, -EstimateDoF- will save its results in locals HERE
-	// Locals saved are: Mg, Kg, Mg_exact for all g=1..N_hdfe
-	// and M (sum of Mg), kk (sum of Kg), fe_nested_in_cluster
+	EstimateDoF, dofadjustments(`dofadjustments') `opt'
+	local kk = r(kk) // FEs that were not found to be redundant (= total FEs - redundant FEs)
+	local M = r(M) // FEs found to be redundant
+	local saved_group = r(saved_group)
 
-	* Sanity checks
 	Assert `kk'<.
+	Assert `M'>=0 & `M'<.
+	assert inlist(`saved_group', 0, 1)
+
 	forv g=1/`N_hdfe' {
-		assert inlist(`M`g'_exact',0,1)
-		// 1 or 0 whether M`g' was calculated exactly or not
+		local M`g' = r(M`g')
+		local K`g' = r(K`g')
+		local M`g'_exact = r(M`g'_exact)
+
+		assert inlist(`M`g'_exact',0,1) // 1 or 0 whether M`g' was calculated exactly or not
 		assert `M`g''<. & `K`g''<.
 		assert `M`g''>=0 & `K`g''>=0
-	}
+		assert inlist(r(drop`g'), 0, 1)
 
-* 11) Drop IDs for the absorbed FEs (except if its the clustervar)
-* Useful b/c regr. w/cluster takes a lot of memory
-	forval i = 1/`num_clusters' {
-		Assert inlist(`fe_nested_in_cluster`i'',0,1) // this local, injected by EstimateDoF, tells us if cluster`i' is nesting some FE
-		* Not sure if I need to keep it if its nested (i.e. not sure if we really needed the first part of the condition)
-		if ( `fe_nested_in_cluster`i'' | ("`clustervar`i''"!="" & "`dofmethod'"=="naive") ) {
-			rename `clustervar`i'' __clustervar`i'__
-			local clustervar`i' __clustervar`i'__
-		}
-		conf numeric var `clustervar`i''
-		local temp_clustervars `temp_clustervars' `clustervar`i''
+		* Drop IDs for the absorbed FEs (except if its the clustervar)
+		* Useful b/c regr. w/cluster takes a lot of memory
+		if (r(drop`g')==1) drop __FE`g'__
 	}
 
 	if (`num_clusters'>0) {
+		mata: mata: st_local("temp_clustervars", invtokens(clustervars))
 		local vceoption : subinstr local vceoption "<CLUSTERVARS>" "`temp_clustervars'"
 	}
-	cap drop __FE*__ // FE IDs no longer needed (except if clustervar)
-	* cap is required in case there is only one FE which is the clustervar1
+
 }
+
 * 12) Save untransformed data.
 *	This allows us to:
 *	i) nested ftests for the FEs,
@@ -282,21 +270,8 @@ if (`savingcache') {
 
 **** PART II - REGRESSION ****
 
-* 1) Cleanup
+* Cleanup
 	ereturn clear
-
-* 2) Debugging - This will allow to run an equivalent -regress- command with -reghdfe, alt-
-	
-	* If we didn't save (set a target) for all avge, we can't replicate the command
-	local alternative_ok 1
-	if (`N_avge'>0) {
-		mata: st_local("alternative_ok", strofreal(all(avge_target :!= "")) )
-		if (`alternative_ok') mata: st_local("avge_targets", strtrim(invtokens(avge_target)) )
-	}
-	if (`: word count `ivars_clustervar1''>1) {
-		* BUGBUG: This is no longer correct, and also we should just forget about all this "alternative cmd" thing
-		local alternative_ok 0
-	}
 
 * Add back constant
 	if (`addconstant') {
@@ -304,7 +279,7 @@ if (`savingcache') {
 		AddConstant `depvar' `indepvars' `avgevars' `endogvars' `instruments'
 	}
 
-* 3) Regression
+* Regression
 	Debug, level(2) msg("(running regresion: `model'.`ivsuite')")
 	local avge = cond(`N_avge'>0, "__W*__", "")
 	local options
@@ -312,7 +287,8 @@ if (`savingcache') {
 		depvar indepvars endogvars instruments avgevars ///
 		original_depvar original_indepvars original_endogvars ///
 		original_instruments original_absvars avge_targets ///
-		estimator vceoption vcetype kk suboptions showraw dofminus first  weightexp ///
+		vceoption vcetype vcesuite ///
+		kk suboptions showraw first weightexp ///
 		addconstant // tells -regress- to hide _cons
 	foreach opt of local option_list {
 		if ("``opt''"!="") local options `options' `opt'(``opt'')
@@ -422,10 +398,9 @@ else {
 	ereturn local cmd = "reghdfe"
 	ereturn local subcmd = "`subcmd'"
 	ereturn local cmdline `"`cmdline'"'
-	ereturn scalar alternative_ok = `alternative_ok'
 	if ("`e(model)'"!="" & "`e(model)'"!="`model'") di as error "`e(model) was <`e(model)'>" // ?
 	ereturn local model = "`model'"
-	ereturn local dofmethod = "`dofmethod'"
+	ereturn local dofadjustments = "`dofadjustments'"
 	ereturn local title = "HDFE " + e(title)
 	ereturn local subtitle =  "Absorbing `N_hdfe' HDFE " + plural(`N_hdfe', "indicator")
 	ereturn local predict = "reghdfe_p"
@@ -435,7 +410,8 @@ else {
 	ereturn `hidden' local diopts = "`diopts'"
 
 	if ("`e(clustvar)'"!="") {
-		ereturn local clustvar "`original_clustervars'"
+		mata: st_local("clustvar", invtokens(clustervars_original))
+		ereturn local clustvar "`clustvar'"
 		ereturn scalar N_clustervars = `num_clusters'
 	}
 
@@ -472,7 +448,6 @@ else {
 * Absorbed-specific returns
 	ereturn scalar mobility = `M'
 	ereturn scalar df_a = `kk'
-	if ("`vcetype'"=="cluster") ereturn scalar fe_nested_in_cluster = `fe_nested_in_cluster' // BUGBUG
 	forv g=1/`N_hdfe' {
 		ereturn scalar M`g' = `M`g''
 		ereturn scalar K`g' = `K`g''

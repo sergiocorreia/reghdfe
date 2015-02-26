@@ -1,187 +1,209 @@
-// -------------------------------------------------------------
-// Calculate DoF lost from the FEs
-// -------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
+// Calculate the degrees of freedom lost due to the absorbed fixed effects
+// -------------------------------------------------------------------------------------------------
+/*
+	In general, we can't know the exact number of DoF lost because we don't know when multiple FEs are collinear
+	When we have two pure FEs, we can use an existing algorithm, but besides that we'll just use an upper (conservative) bound
+
+	Features:
+	 - Save the first mobility group if asked
+	 - Within the pure FEs, we can use the existing algorithm pairwise (FE1 vs FE2, FE3, .., FE2 vs FE3, ..)
+	 - If there are n pure FEs, that means the algo gets called n! times, which may be kinda slow
+	 - With FEs interacted with continuous variables, we can't do this, but can do two things:
+		a) With i.a#c.b , whenever b==0 for all values of a group (of -a-), add one redundant
+		b) With i.a##c.b, do the same but whenever b==CONSTANT (so not just zero)
+     - With clusters, it gets trickier but in summary you don't need to penalize DoF for params that only exist within a cluster. This happens:
+		a) if absvar==clustervar
+		b) if absvar is nested within a clustervar. EG: if we do vce(cluster state), and -absorb(district)- or -absorb(state#year)
+		c) With cont. interactions, e.g. absorb(i.state##c.year) vce(cluster year), then i) state FE is redundant, but ii) also state#c.year
+		   The reason is that at the param for each "fixed slope" is shared only within a state
+
+	Procedure:
+	 - Go through all FEs and see if i) they share the same ivars as any clusters, and if not, ii) if they are nested within clusters
+	 - For each pure FE in the list, run the algorithm pairwise, BUT DO NOT RUN IT BEETWEEN TWO PAIRS OF redundant
+	   (since the redundants are on the left, we just need to check the rightmost FE for whether it was tagged)
+	 - For the ones with cont interactions, do either of the two tests depending on the case
+
+	Misc:
+	 - There are two places where DoFs enter in the results:
+		a) When computing e(V), we do a small sample adjustment (seen in Stata documentation as the -q-)
+		   Instead of doing V*q with q = N/(N-k), we use q = N / (N-k-kk), so THE PURPOSE OF THIS PROGRAM IS TO COMPUTE "kk"
+		   This kk will be used to adjust V and also stored in e(df_a)
+		   With clusters, q = (N-1) / (N-k-kk) * M / (M-1)
+		   With multiway clustering, we use the smallest N_clust as our M
+	    b) In the DoF of the F and t tests (not when doing chi/normal)
+	       When there are clusters, note that e(df_r) is M-1 instead of N-1-k
+	       Again, here we want to use the smallest M with multiway clustering
+
+	Inputs: +-+- if we just use -fe2local- we can avoid passing stuff around when building subroutines
+	 - We need the current name of the absvars and clustervars (remember a#b is replaced by something different)
+	 - Do a conf var at this point to be SURE that we didn't mess up before
+	 - We need the ivars and cvars in a list
+	 - For the c. interactions, we need to know if they are bivariate or univariate
+	 - SOLN -> reghdfe_absorb, fe2local(`g')  ; from mata: ivars_clustervar`i' (needed???) , and G
+	 - Thus, do we really needed the syntax part??
+	 - fe2local saves: ivars cvars target varname varlabel is_interaction is_cont_interaction is_bivariate is_mock levels // Z group_k weightvar
+
+	DOF Syntax:
+	 DOFadjustments(none | all | CLUSTERs | PAIRwise | FIRSTpair | CONTinuous)
+	 dof() = dof(all) = dof(cluster pairwise continuous)
+	 dof(none) -> do nothing; all Ms = 0 
+	 dof(first) dof(first cluster) dof(cluster) dof(continuous)
+
+	For this to work, the program MUST be modular
+*/
+
 cap pr drop EstimateDoF
-program define EstimateDoF
-syntax, dofmethod(string) [clustervars(string) group(name) uid(varname) groupdta(string)]
+program define EstimateDoF, rclass
+syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 	
-	Assert inlist("`dofmethod'", "bounds", "simple", "naive", "bootstrap")
-	Assert "`dofmethod'"!="bootstrap" , msg("DoF Bootstrap: not yet implemented!")
-	Debug, level(1) msg("(calculating degrees of freedom lost by the FEs)")
-	Debug, level(2) msg(" - dofmethod: `dofmethod'")
+	* Parse list of adjustments/tricks to do
+	Debug, level(1) msg("(calculating degrees of freedom lost due to the FEs)")
+	local adjustement_list firstpairs pairwise clusters continuous
+	* This allows doing things like <if (`adj_clusters') ..>
+	Debug, level(2) msg(`" - Adjustments:"')
+	foreach adj of local adjustement_list {
+		local adj_`adj' : list posof "`adj'" in dofadjustments
+		Debug, level(2) msg(`"    - `adj' {col 18}{res} `=cond(`adj_`adj'',"yes","no")'"')
+	}
+
+	* Assert that the clustervars exist
+	mata: st_local("clustervars", invtokens(clustervars))
+	conf variable `clustervars', exact
+
 	mata: st_local("G", strofreal(G))
-	local N_clustervars : word count `clustervars' // Could have gotten this from mata st_local N_clustervars
+	mata: st_local("N_clustervars", strofreal(length(clustervars)))
 
-	
+	if ("`group'"!="") {
+		local group_option ", gen(`group')"
+		Assert (`adj_firstpairs' | `adj_pairwise'), msg("Cannot save connected groups without options pairwise or firstpair")
+	}
 
-	* FOR NOW THIS IS COMPLETELY BROKEN, FIX THE ENTIRE CLUSTERVAR THING AND ALSO MAYBE THE SLOPE parameters
-	* BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG 
-	* BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG BUGBUG
-	di as error "(warning: EstimateDoF is currently not working, needs to be fixed <`clustervars'>)"
-	if ("`clustervars'"!="") local clustervar1 : word 1 of `clustervars' // BUGBUG
-	c_local fe_nested_in_cluster1 0
-	c_local fe_nested_in_cluster2 0
-	c_local fe_nested_in_cluster3 0
+	* Remember: fe2local stores the following:
+	* ivars cvars target varname varlabel is_interaction is_cont_interaction is_bivariate is_mock levels
 
-
-
-* Start conservatively, assuming M`g'=1 (or =0 if interacted with cont. var)
-	local g_list // List of FEs where M is still unknown
+* Starting point assumes no redundant parameters
 	forv g=1/`G' {
 		reghdfe_absorb, fe2local(`g')
-		// ivars cvars target varname varlabel is_interaction is_cont_interaction is_bivariate is_mock levels
-		local M`g' = ("`cvars'"=="") | (`is_bivariate' & !`is_mock')
-		* We know M1=1 and Mg=0 if g is has a continuous interaction. The others we don't
-		if (`M`g''==1 & `levels'>1) local g_list `g_list' `g'
-		// If the FE is just an intercept, it's redundant (useful with -over-)
+		local redundant`g' = 0 // will be 1 if we don't penalize at all for this absvar (i.e. if it's nested with cluster or collinear with another absvar)
+		local is_slope`g' = ("`cvars'"!="") & (!`is_bivariate' | `is_mock') // two cases: i.a#c.b , i.a##c.b (which expands to <i.a i.a#c.b> and we want the second part)
+		local M`g' = !`is_slope`g'' // Start with 0 with cont. interaction, 1 w/out cont interaction
+
+		*For each FE, only know exactly parameters are redundant in a few cases:
+		*i) nested in cluster, ii) first pure FE, iii) second pure FE if checked with connected groups
+		local exact`g' 0
+		local drop`g' = !(`is_bivariate' & `is_mock')
 	}
 
-* TODO: 
-* - the ADDENDUM, before checking if its nested, just see if if it's the same variable (i.e. step 1 later)
-* - With i.a#c.b , whenever b==0 for all values of a group (of -a-), add one redundant
-* - With i.a##c.b, do the same but whenever b==CONSTANT (so not just zero)
-* - Multiple clusters; what's the correct adjustment including nesting?
-
-* (ADDENDUM) Look for nested within cluster for the categorical components of a FE with cont. interaction
-	if ("`clustervar1'"!="" & "`dofmethod'"!="naive") {
+* Check if an absvar is a clustervar or is nested in a clustervar
+	if (`adj_clusters' & `N_clustervars'>0) {
+		mata: st_local("clustervars", invtokens(clustervars))
 		forv g=1/`G' {
 			reghdfe_absorb, fe2local(`g')
-			if (`M`g''==0) {
-				local gg = `g' - `is_mock'
-				cap _xtreg_chk_cl2 `clustervar1' __FE`gg'__
-				assert inlist(_rc, 0, 498)
-				if (!_rc) {
-					local prettyname : char __FE`gg'__[name]
-					Debug, msg("(Absorbed variable " as result "`prettyname'" ///
-							as text " is nested within cluster " ///
-							as result "`clustervar1'" as text ", adjusting DoF)")
-					local M`g' `levels'
+			local gg = `g' - `is_mock'
+			local absvar_in_clustervar 0 // 1 if absvar is nested in a clustervar
+			
+			* Trick: if the absvar is also a clustervar, then its name will be __FE*__
+			local absvar_is_clustervar : list varname in clustervars
+			if (`absvar_is_clustervar') {
+				Debug, level(1) msg("(categorical variable " as result "`varlabel'"as text " is also a cluster variable, so it doesn't count towards DoF)")
+			}
+			else {
+				forval i = 1/`N_clustervars' {
+					mata: st_local("clustervar", clustervars[`i'])
+					mata: st_local("clustervar_original", clustervars_original[`i'])
+					cap _xtreg_chk_cl2 `clustervar' __FE`gg'__
+					assert inlist(_rc, 0, 498)
+					if (!_rc) {
+						Debug, level(1) msg("(categorical variable " as result "`varlabel'" as text " is nested within cluster variable " as result "`clustervar_original'" as text ", so it doesn't count towards DoF)")
+						continue, break
+					}
 				}
 			}
+
+			if (`absvar_is_clustervar') local drop`g' 0
+
+			if (`absvar_is_clustervar' | `absvar_in_clustervar') {
+				local M`g' = `levels'
+				local redundant`g' 1
+				local exact`g' 1
+			}
+		} // end for over absvars
+	} // end cluster adjustment
+
+* Just indicate the first pure FE that is not nested in a cluster
+	forv g=1/`G' {
+		if (!`is_slope`g'' & !`redundant`g'') {
+			local exact`g' 1
+			continue, break
 		}
 	}
-
-* Is the cluster var one of the FEs, or contains one of the FEs?
-* Since the number of clusters is the effective "number of observations", 
-* we shouldn't penalize the DoF for estimating means within a cluster ("within an obs")
-	local g_cluster 0
-	if ("`clustervar1'"!="" & "`dofmethod'"!="naive") {
-	
-* 1) See if it's exactly the same variable
-		local regex = regexm("`clustervar1'","^__FE([0-9]+)__$")
-		if (`regex') {
-			local g_cluster = `=regexs(1)'
-			local prettyname : char __FE`g_cluster'__[name]
-			Debug, msg("(cluster variable " as result "`prettyname'" ///
-				as text " is also an absorbed variable, adjusting DoF)")
-		}
-* 2) If that failed, see if one of the panels is nested within cluster
-* i.e., if whenever two obs are in the same group (in the FE), 
-* they are also in the same cluster
-		else {
-			foreach g of local g_list {
-				reghdfe_absorb, fe2local(`g')
-				cap _xtreg_chk_cl2 `clustervar1' __FE`g'__
-				assert inlist(_rc, 0, 498)
-
-				if (!_rc) {
-					local g_cluster = `g'
-					local prettyname : char __FE`g'__[name]
-					Debug, msg("(Absorbed variable " as result "`prettyname'" ///
-							as text " is nested within cluster " ///
-							as result "`clustervar1'" as text ", adjusting DoF)")
-					continue, break
-				}
-			}
-		}
-
-		if (`g_cluster'>0) {
-			reghdfe_absorb, fe2local(`g_cluster')
-			local M`g_cluster' = `levels'
-			local g_list : list g_list - g_cluster
-		}
-	} // clustervar1
 
 * Compute connected groups for the remaining FEs (except those with cont interactions)
+	local dof_exact 0 // if this code never runs, it's not exact
+	if (`adj_firstpairs' | `adj_pairwise') {
+		Debug, level(3) msg(" - Calculating connected groups for DoF estimation")
+		local dof_exact 1
+		local i_comparison 0
+		forv g=1/`G' {
+			if (`is_slope`g'') local dof_exact 0 // We may not get all redundant vars with cont. interactions
+			if (`is_slope`g'') continue
+			local start_h = `g' + 1
+			forv h=`start_h'/`G' {
+				if (`is_slope`h'' | `redundant`h'') continue
+				local ++i_comparison
+				if (`i_comparison'>1) local dof_exact 0 // Only exact with one comparison
+				if (`i_comparison'>1 & `adj_firstpairs') continue // -firstpairs- will only run the first comparison
+				if (`i_comparison'==1) local exact`h' 1
+				ConnectedGroups __FE`g'__ __FE`h'__ `group_option'
+				local group_option // connected groups are only saved *once*
+				local candidate = r(groups)
+				local M`h' = max(`M`h'', `candidate')
+			}
+		}
+	} // end connected group comparisons
 
-	if ("`group'"!="") local group_option ", gen(`group')"
-	local length : list sizeof g_list
-	tokenize `g_list' // Saves g1 g2 .. into `1' `2' etc
+* Adjustment with cont. interactions
+	if (`adj_continuous') {
+		forv g=1/`G' {
+			reghdfe_absorb, fe2local(`g')
+			if (!`is_slope`g'') continue
+			CheckZerosByGroup, fe(`varname') cvars(`cvars') anyconstant(`is_mock')
+			local M`g' = r(redundant)
+		}
+	}
 
-	if (`length'==0) {
-		// pass
-	}
-	else if (`length'==1) {
-		local M`1' = 1
-		local g_list // Only one FE besides cont. interaction and clustervar
-	}
-	else if (`length'==2) {
-		Debug, level(1) msg(" - exact DoF computation using connected groups")
-		ConnectedGroups __FE`1'__ __FE`2'__ `group_option'
-		local M`1' = 1
-		local M`2' = r(groups)
-		local g_list
-		local label "`: char __FE`1'__[name]' and `: char __FE`2'__[name]'"
+	if (`dof_exact') {
+		Debug, level(1) msg(" - DoF computation is exact")
 	}
 	else {
-		ConnectedGroups __FE`1'__ __FE`2'__ `group_option'
-		local M`1' = 1
-		local M`2' = r(groups)
-		local g_list : list g_list - 1
-		local g_list : list g_list - 2
-
-		* Get a conservative bound for M3 M4, etc:
-		* Calculate the mobility group wrt M1 and M2 and use the max of both
-		* Of course, this excludes effects in FE3 that are collinear with FE1 and FE2 but not FE1 or FE2 separately (and also excludes searching for FE4 vs FE3, etc)
-
-		if ("`dofmethod'"=="bounds") {
-			local msg_done = 0
-			* Iterate over the remaining elements
-			foreach g of local g_list {
-				assert `1'!=`g' & `2'!=`g'
-				ConnectedGroups __FE`1'__ __FE`g'__
-				local candidate1 = r(groups)
-				ConnectedGroups __FE`2'__ __FE`g'__
-				local candidate2 = r(groups)
-				local M`g' = max(`candidate1', `candidate2')
-
-				reghdfe_absorb, fe2local(`g')
-				Assert (`M`g''<=`levels'), msg("Mg should be at most Kg: `M`g''<=`levels'")
-				
-				* If Mg==Kg , the bound is exact and the FE is redundant!
-				if (`M`g''==`levels') local g_list : list g_list - g
-			}
-			if ("`g_list'"!="") di in ye "(note: conservative DoF estimates; they do not account for all possible collinearities between FEs; dofmethod=`dofmethod')"
-		}
-		else if inlist("`dofmethod'","simple","naive") {
-			di in ye "(note: DoF estimates ignore most possible collinearities between FEs, as dofmethod=`dofmethod')"
-		}
-		else {
-			error 999
-		}
+		Debug, level(1) msg(" - DoF computation not exact; DoF may be higher than reported")	
 	}
 
 	local SumM 0
 	local SumK 0
+	Debug, level(2) msg(" - Results of DoF adjustments:")
 	forv g=1/`G' {
 		reghdfe_absorb, fe2local(`g')
-		// ivars cvars target varname varlabel is_interaction is_cont_interaction is_bivariate is_mock levels
 		assert !missing(`M`g'') & !missing(`levels')
 		local SumM = `SumM' + `M`g''
 		local SumK = `SumK' + `levels'
-		local is_exact = !`: list g in g_list'
 
-		c_local M`g' `M`g''
-		c_local K`g' `levels'
-		c_local M`g'_exact `is_exact'
-		Debug, level(2) msg(" - parameters of FE`g': K=`levels' M=`M`g'' is_exact=`is_exact'")
+		return scalar M`g' = `M`g''
+		return scalar K`g' = `levels'
+		return scalar M`g'_exact = `exact`g''
+		return scalar drop`g' = `drop`g''
+		Debug, level(2) msg("   - FE`g' ({res}`varlabel'{txt}): {col 40}K=`levels' {col 50}M=`M`g'' {col 60}is_exact=`exact`g''")
 	}
+	return scalar M = `SumM'
 	local NetSumK = `SumK' - `SumM'
 	Debug, level(2) msg(" - DoF loss due to FEs: Sum(Kg)=`SumK', M:Sum(Mg)=`SumM' --> KK:=SumK-SumM=`NetSumK'")
+	return scalar kk = `NetSumK'
 
 * Save mobility group if needed
-	c_local saved_group = 0
-	if ("`group'"!="" & `length'>=2) {
+	local saved_group = 0
+	if ("`group'"!="") {
+		conf var `group'
 		tempfile backup
 		qui save "`backup'"
 		
@@ -192,11 +214,22 @@ syntax, dofmethod(string) [clustervars(string) group(name) uid(varname) groupdta
 		Debug, level(2) msg(" - mobility group saved")
 		qui use "`backup'", clear
 		cap erase "`backup'"
-		c_local saved_group = 1
+		local saved_group = 1
 	}
+	return scalar saved_group = `saved_group'
+end
 
-	c_local M `SumM'
-	c_local kk `NetSumK'
-	local fe_nested_in_cluster = (`g_cluster'>0)
-	c_local fe_nested_in_cluster `fe_nested_in_cluster'
+capture program drop CheckZerosByGroup
+program define CheckZerosByGroup, rclass sortpreserve
+syntax, fe(varname numeric) cvars(varname numeric) anyconstant(integer)
+	tempvar redundant
+	assert inlist(`anyconstant', 0, 1)
+	if (`anyconstant') {
+		qui bys `fe' (`cvars'): gen byte `redundant' = (`cvars'[1]==`cvars'[_N]) if (_n==1)
+	}
+	else {
+		qui bys `fe' (`cvars'): gen byte `redundant' = (`cvars'[1]==0 & `cvars'[_N]==0) if (_n==1)
+	}
+	qui cou if `redundant'==1
+	return scalar redundant = r(N)
 end

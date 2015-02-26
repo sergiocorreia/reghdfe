@@ -9,15 +9,7 @@ program define reghdfe
 
 	if replay() {
 		if (`"`e(cmd)'"'!="reghdfe") error 301
-		* Undocumented feature for debugging
-		cap syntax, ALTernative
-		if ("`alternative'"!="") {
-			AlternativeCMD
-			exit
-		}
-		else {	
-			Replay `0'
-		}
+		Replay `0'
 	}
 	else {
 		* Estimate, and then clean up Mata in case of failure
@@ -42,6 +34,5 @@ include "_reghdfe/Estimate.ado"
 	include "_reghdfe/Wrapper_ivreg2.ado"
 	include "_reghdfe/AddConstant.ado"
 include "_reghdfe/Replay.ado"
-include "_reghdfe/AlternativeCMD.ado"
 include "_common/Assert.ado"
 include "_common/Debug.ado"

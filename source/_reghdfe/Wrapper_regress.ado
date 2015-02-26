@@ -14,7 +14,9 @@ cap pr drop Wrapper_regress
 program define Wrapper_regress, eclass
 	syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 		original_absvars(string) original_depvar(string) [original_indepvars(string) avge_targets(string)] ///
-		vceoption(string asis) kk(integer) vcetype(string) [weightexp(string)] ///
+		vceoption(string asis) vcetype(string) vcesuite(string) ///
+		kk(integer) ///
+		[weightexp(string)] ///
 		addconstant(integer) ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
@@ -92,8 +94,7 @@ program define Wrapper_regress, eclass
 	* _U: Unrestricted, _R: Restricted
 	* FStat = (RSS_R - RSS_U) / RSS * (N-K) / q
 	*       = (R2_U - R2_R) / (1 - R2_U) * DoF_U / (DoF_R - DoF_U)
-	Assert e(df_m)+1==e(rank) , rc(0) /// rc(322)
-		msg("Error: expected e(df_m)+1==e(rank), got (`=`e(df_m)'+1'!=`e(rank)')")
+	Assert e(df_m)+1==e(rank) , rc(0) msg("Error: expected e(df_m)+1==e(rank), got (`=`e(df_m)'+1'!=`e(rank)')")
 end
 
 * Cluster notes (see stata PDFs):

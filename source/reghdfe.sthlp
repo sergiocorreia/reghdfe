@@ -36,7 +36,9 @@
 {it:{weight}}
 {cmd:,}
 {opt a:bsorb(absvars)}
-[{it:options}]
+[{it:vce_options}]
+[{it:dof_options}]
+[{it:other_options}]
 
 {pstd}where each variable in {it:absvars} represents a fixed effect that you wish to absorb. To save the estimates of a particular fixed effect, write {newvar}{inp:={it:absvar}}.
 
@@ -73,8 +75,6 @@ but at most one continuous interaction
 
 {syntab:IV/2SLS}
 {synopt :{opth iv:suite(subcmd)}}package used in the IV/2SLS regressions; either {opt ivregress} or {opt ivreg2} (if installed){p_end}
-{synopt :{opth est:imator(est)}}for now only 2sls is allowed; efficient gmm estimators are not yet implemented{p_end}
-{synopt :}(not trivial, as the algebra is slightly different for an arbitrary GMM weight matrix){p_end}
 {synopt : {opt first}}report first stage regression (but sadly not first-stage summary results){p_end}
 {synopt : {opt showraw}}show the entire output of ivreg2 (if that's the ivsuite used); useful to see first-stage summary results{p_end}
 {synopt :}the downside is that it will have tempnames in place of meaningful names when factors and time-series operators are used{p_end}

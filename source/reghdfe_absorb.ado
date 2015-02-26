@@ -1,3 +1,4 @@
+* (This code has gotten -really- messy; needs to be refactored)
 //------------------------------------------------------------------------------
 // REGHDFE_ABSORB: Runs three steps required to demean wrt FEs
 //------------------------------------------------------------------------------
@@ -103,11 +104,6 @@ program define reghdfe_absorb, rclass
 	}
 	else if (`numstep'==2) {
 		Prepare, `options'
-		local N = r(N_clustervars)
-		forval i = 1/`N' {
-			assert "`r(clustervar`i')'"!=""
-			return local clustervar`i' "`r(clustervar`i')'"
-		}
 	}
 	else if (`numstep'==3 & `cores'==1) {
 		Annihilate, `options'
@@ -244,22 +240,24 @@ if ("`avge'"!="") {
 	mata: avge_num = `N_avge'
 
 *** CLUSTER PART ****
+* Create two string rowvectors, with the variables and ivars, and also add the ivars to keepvars
 * EG: If clustervar1=foreign, absorb=foreign, then clustervar1 -> __FE1__
-	local N_clustervars : word count `clustervars'
-	mata: N_clustervars = `N_clustervars'
-	forv i=1/`N_clustervars' {
-		local clustervar`i' : word `i' of `clustervars'
-		mata: ivars_clustervar`i' = ""
-		if ("`clustervar`i''"!="") {
-			Debug, level(3) msg(_n "Cluster by:")
-			ParseOneAbsvar, absvar(`clustervar`i'')
-			Assert "`r(cvars)'"=="", msg("clustervar cannot contain continuous interactions")
-			local ivars_clustervar`i' "`r(ivars)'"
-			local keepvars `keepvars' `r(ivars)'
-			mata: ivars_clustervar`i' = "`ivars_clustervar`i''"
-		}
+	mata: clustervars = tokens("`clustervars'")
+	mata: clustervars_ivars = J(1, length(clustervars), "")
+	mata: clustervars_original = J(1, length(clustervars), "")
+
+	local i 0
+	foreach var of local clustervars {
+		local ++i
+		Debug, level(3) msg(_n "Cluster by:")
+		ParseOneAbsvar, absvar(`var')
+		Assert "`r(cvars)'"=="", msg("clustervar cannot contain continuous interactions")
+		local ivars = r(ivars)
+		mata: clustervars_ivars[`i'] = "`ivars'"
+		mata: clustervars_original[`i'] = invtokens( clustervars_ivars[`i'] , "#")
+		local keepvars `keepvars' `ivars'
 	}
-	
+
 **** Returns ****
 	Debug, level(3) newline
 	local keepvars : list uniq keepvars
@@ -368,97 +366,87 @@ if (`N_avge'>0) {
 	Assert c(N)>1, rc(2001)
 
 **** ABSORB PART ****
-
-* Create compact IDs and store them into the __FE1__ (and so on)
-* Also structures the IDs in the 1..K sense, which is needed by mata:prepare
-* (b/c it uses the largest value of the ID as the number of categories)
 	mata: st_local("G", strofreal(G))
-	mata: st_local("N_clustervars", strofreal(N_clustervars))
+	mata: st_local("N_clustervars", strofreal(length(clustervars)))
+
+	* 1. Clustervars
+	local clustervars
 	forval i = 1/`N_clustervars' {
-		mata: st_local("ivars_clustervar`i'", ivars_clustervar`i')
-		local clustervar`i' `ivars_clustervar`i'' // Default if cluster not a FE
-	}
+		mata: st_local("cluster_ivars", clustervars_ivars[`i'])
 
-	* Get list of cvars to avoid this bug:
-	* i.t i.zipcode##c.t -> -t- is missing
-	forv g=1/`G' {
-		reghdfe_absorb, fe2local(`g') // Dump FEs[g] data into locals
-		local all_cvars `all_cvars' `cvars'
-	}
+		local newname
+		forv g=1/`G' {
+			reghdfe_absorb, fe2local(`g')
+			if (`is_mock') continue
+			
+			local match : list cluster_ivars === ivars
+			if (`match') local newname = "__FE`g'__"
+		}
 
-	
-	forv g=1/`G' {
-		reghdfe_absorb, fe2local(`g') // Dump FEs[g] data into locals
-		if (`is_mock') continue
-
-		Debug, level(2) msg(" - creating compact IDs for categories of `varlabel' -> " as result "__FE`g'__")
-
-		local ivar_is_cvar : list ivars & all_cvars
-		local ivar_is_cvar = ("`ivar_is_cvar'"!="")
-
-		if (`is_interaction' | `ivar_is_cvar') {
-			GenerateID `ivars',  gen(`varname')
+		* If clustervar is an interaction not found in absvars, create identifier variable
+		local num_ivars : word count `cluster_ivars'
+		if (`num_ivars'>1 & "`newname'"=="") {
+			local newname __clustervar`i'__
+			GenerateID `cluster_ivars',  gen(`newname')
+		}
+		
+		if ("`newname'"!="") {
+			mata: st_local("oldname", clustervars[`i'])
+			mata: clustervars[`i'] = "`newname'"
+			Debug, level(3) msg(" - clustervar`i' " as result "`cluster_ivars'" as text " -> " as result "`newname'")
 		}
 		else {
-			* Can't rename it now b/c it may be used in other absvars
-			GenerateID `ivars' , replace
-			local rename`g' rename `ivars' `varname'
+			mata: st_local("newname", clustervars[`i'])
 		}
-
-		local is_cluster 0
-		forval i = 1/`N_clustervars' {
-			if ("`ivars_clustervar`i''"!="") {
-				local is_cluster : list ivars_clustervar`i' === ivars
-				*di in red "`ivars_clustervar`i'' === `ivars'"
-				if (`is_cluster') {
-				 	Debug, level(3) msg(" - clustervar`i': " as result "`ivars_clustervar`i''" as text " -> " as result "`varname'")
-				 	local clustervar`i' `varname'
-				}			
-			}
-		}
-		local all_cvars `all_cvars' `cvars'
+		local clustervars `clustervars' `newname'
 	}
 
-* Create clustervar if needed
-	forval i = 1/`N_clustervars' {
-		if (!`is_cluster' & `: word count `ivars_clustervar`i'''>1) {
-			*local clustervar1 = subinstr("`ivars_clustervar1'", " ", "_", .)
-			*local clustervar1 : permname `clustervar1'
-			local clustervar`i' __clustervar`i'__
-			GenerateID `ivars_clustervar`i'',  gen(`clustervar`i'')
-			// Optional: Use GenerateID even with one ivar; will likely save space
-		}
-	}
+	* 2. Absvars
 
-* Rename all absvars into __FE1__ notation
+	* Get list of all cvars
+	forv g=1/`G' {
+		reghdfe_absorb, fe2local(`g')
+		local num_ivars : word count `ivars'
+		local all_cvars : list all_cvars | cvars
+	}
+	local all_cvars : list uniq all_cvars
+
+	* Create IDs for the absvars.
+	* Will replace the varname except if i) is interaction so we can't, and ii) it's not interaction but the ivar is the cvar of something else
 	forv g=1/`G' {
 		reghdfe_absorb, fe2local(`g')
 		if (`is_mock') continue
+		local num_ivars : word count `ivars'
+		local is_cvar : list ivars & all_cvars
+		local is_cvar = "`is_cvar'"!=""
 
-		`rename`g''
+		if (`num_ivars'>1 | `is_cvar') {
+			GenerateID `ivars',  gen(__FE`g'__)
+		}
+		else {
+			GenerateID `ivars' , replace
+			rename `ivars' __FE`g'__
+		}
+
 		qui su __FE`g'__, mean
-		local K`g' = r(max)
-		Assert `K`g''>0
+		local num_cats = r(max)
+		Assert `num_cats'>0
 		local name : char __FE`g'__[name]
-		local summarize_fe `"`summarize_fe' as text " `name'=" as result "`K`g''" "'
+		Debug, level(3) msg(as text " - absvar`g' " as result "`name'" as text " -> " as result "__FE`g'__")
+		Debug, level(1) msg(as text " - absvar`g' " as result "`name'" as text " has " as result "`num_cats'" as text " categories")
+
 	}
 
-	forval i = 1/`N_clustervars' {
-		assert "`clustervar`i''"!=""
-		return local clustervar`i' "`clustervar`i''"
-		local clustervars `clustervars' `clustervar`i''
-	}
-	return scalar N_clustervars = `N_clustervars'
+	* 3. Epilogue
+	
+	* Reduce dataset before preparing mata objects (which uses memory)
+	keep `keepvars' `weightvar' `clustervars' `all_cvars' __FE*__
 
-	keep __FE*__ `all_cvars' `clustervars' `keepvars' `weightvar'
-	Debug, level(1) msg("(number of categories by fixed effect:" `summarize_fe' as text ")") newline
-
-* Fill in auxiliary Mata structures
+	* Fill in auxiliary Mata structures
 	Debug, level(2) tic(20)
 	mata: prepare()
 	Debug, level(2) toc(20) msg("mata:prepare took")
 end
-
 
 //------------------------------------------------------------------------------
 cap pr drop program Annihilate
@@ -608,15 +596,11 @@ program Stop
 	cap mata: mata drop varlist_cache // Hash table with the names of the precomputed residuals
 	cap mata: mata drop avge_* // Drop AvgE structures
 	cap mata: mata drop weightexp weightvar
+
+	cap mata: mata drop clustervars
+	cap mata: mata drop clustervars_ivars
+	cap mata: mata drop clustervars_original
 	
-	local N_clustervars 0
-	cap mata: st_local("N_clustervars", strofreal(N_clustervars))
-	forval i = 1/`N_clustervars' {
-		cap mata: mata drop ivars_clustervar`i'
-	}
-	cap mata: mata drop N_clustervars
-
-
 	if ("${reghdfe_pwd}"!="") {
 		qui cd "${reghdfe_pwd}"
 		global reghdfe_pwd

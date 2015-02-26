@@ -1,4 +1,5 @@
-
+In the helpfile, carefully explain what goes in vce() and absorb()
+and *strongly* recommend people to use the interactions # as it's faster in several parts
 
 ## Options
 

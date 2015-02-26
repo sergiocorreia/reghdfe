@@ -94,7 +94,7 @@ q = N / (N-K)
 
 ### Stata Notation
 
-V := A = X'X without instruments, else = X'Z inv(Z'Z) (X'Z)' (another sandwich)
+inv V := A = X'X without instruments, else = X'Z inv(Z'Z) (X'Z)' (another sandwich)
 a = X'y without instruments or X'Z inv(Z'Z) (y'Z)' with instruments
 
 ### Stata Cases

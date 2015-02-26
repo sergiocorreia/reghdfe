@@ -40,17 +40,16 @@ else {
 		[fweight aweight pweight/] , ///
 		Absorb(string) ///
 		[VCE(string)] ///
-		[GROUP(name) Verbose(integer 0) CHECK NESTED FAST] ///
+		[DOFadjustments(string) GROUP(name)] ///
 		[avge(string) EXCLUDESELF] ///
+		[Verbose(integer 0) CHECK NESTED FAST] ///
 		[TOLerance(real 1e-7) MAXITerations(integer 1000) noACCELerate] /// See reghdfe_absorb.Annihilate
 		[noTRACK] /// Not used here but in -Track-
-		[IVsuite(string) ESTimator(string) SAVEFIRST FIRST SHOWRAW dofminus(string)] ///
-		[dofmethod(string)] ///
+		[IVsuite(string) SAVEFIRST FIRST SHOWRAW] /// ESTimator(string)
 		[SMALL Hascons TSSCONS] /// ignored options
 		[gmm2s liml kiefer cue] ///
 		[SUBOPTions(string)] /// Options to be passed to the estimation command (e.g . to regress)
-		[bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) ///
-		accel_freq(integer 3) accel_start(integer 6)] /// Advanced optimization options
+		[bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) accel_freq(integer 3) accel_start(integer 6)] /// Advanced optimization options
 		[CORES(integer 1)] [USEcache(string)] [OVER(varname numeric)] ///
 		[noCONstant] /// Disable adding back the intercept (mandatory with -ivreg2-)
 		[*] // For display options
@@ -233,11 +232,45 @@ if (!`savingcache') {
 	}
 
 	if (`num_clusters'>0) local temp_clustervars " <CLUSTERVARS>"
-	local vceoption "vce(`vcetype'`temp_clustervars')"
 	if (`bw'>1) local vceextra `vceextra' bw(`bw') 
 	if (`dkraay'>1) local vceextra `vceextra' dkraay(`dkraay') 
 	if ("`kiefer'"!="") local vceextra `vceextra' kiefer 
 	if ("`kernel'"!="") local vceextra `vceextra' kernel(`kernel')
+	if ("`vceextra'"!="") local vceextra , `vceextra'
+	local vceoption "vce(`vcetype'`temp_clustervars'`vceextra')"
+
+
+* DoF Adjustments
+	if ("`dofadjustments'"=="") local dofadjustments all
+	local 0 , `dofadjustments'
+	syntax, [ALL NONE] [PAIRwise FIRSTpair] [CLusters] [CONTinuous]
+	opts_exclusive "`all' `none'" dofadjustments
+	opts_exclusive "`pairwise' `firstpair'" dofadjustments
+	if ("`none'"!="") {
+		Assert "`pairwise'`firstpair'`clusters'`continuous'"=="", msg("option {bf:dofadjustments()} invalid; {bf:none} not allowed with other alternatives")
+		local dofadjustments
+	}
+	if ("`all'"!="") {
+		Assert "`pairwise'`firstpair'`clusters'`continuous'"=="", msg("option {bf:dofadjustments()} invalid; {bf:all} not allowed with other alternatives")
+		local dofadjustments pairwise clusters continuous
+	}
+	else {
+		local dofadjustments `pairwise' `firstpair' `clusters' `continuous'
+	}
+
+* Mobility groups
+	if ("`group'"!="") conf new var `group'
+
+* IV options
+	if ("`small'"!="") di in ye "(note: reghdfe will always use the option -small-, no need to specify it)"
+
+	Assert ("`gmm2s'`liml'`kiefer'`cue'"==""), msg("options gmm2s/liml/cue/kiefer not allowed")
+	
+	if ("`model'"=="iv") {
+		local savefirst = ("`savefirst'"!="")
+		local first = ("`first'"!="")
+		if (`savefirst') Assert `first', msg("Option -savefirst- requires -first-")
+	}
 
 } // End of !`savingcache'
 
@@ -258,45 +291,6 @@ if (!`savingcache') {
 	foreach opt of local opt_list {
 		if ("``opt''"!="") local maximize_options `maximize_options' `opt'(``opt'')
 	}
-
-* IV options
-if (!`savingcache') {
-	if ("`model'"=="iv" & "`ivsuite'"=="ivregress") {
-		if ("`estimator'"=="") local estimator 2sls
-		Assert inlist("`estimator'","2sls","gmm"), msg("liml estimator not allowed")
-		if ("`estimator'"!="2sls") di as error "WARNING! GMM not fully implemented, robust option gives wrong output"
-	}
-	else if ("`model'"=="iv" & "`ivsuite'"=="ivreg2") {
-		if ("`estimator'"=="") local estimator 2sls
-	Assert inlist("`estimator'","2sls","gmm2s") , msg("Estimator is `estimator', instead of empty (2sls/ols) or gmm2s")
-	* di in ye "WARNING: IV estimates not fully tested; methods like GMM2S will not work correctly"
-
-		Assert inlist("`dofminus'","","large","small"), msg("option -dofminus- is either -small- or -large-")
-		local dofminus = cond("`dofminus'"=="large", "dofminus", "sdofminus") // Default uses sdofminus
-	}
-	else {
-		local estimator
-	}
-	if ("`small'"!="") di in ye "(note: reghdfe will always use the option -small-, no need to specify it)"
-
-	Assert ("`gmm2s'`liml'`kiefer'`cue'"==""), msg("Please use estimator() option instead of gmm2s/liml/etc")
-	
-	if ("`model'"=="iv") {
-		local savefirst = ("`savefirst'"!="")
-		local first = ("`first'"!="")
-		if (`savefirst') Assert `first', msg("Option -savefirst- requires -first-")
-	}
-
-* DoF Estimation
-* For more than 2 FEs, no exact soln
-* Can estimate M3 and so on using
-* i) bounds using FE1 and FE2, ii) assuming M3=1 (fast), iii) bootstrap
-	if ("`dofmethod'"=="") local dofmethod bounds
-	assert inlist("`dofmethod'", "naive", "simple", "bounds", "bootstrap")
-
-* Mobility groups
-	if ("`group'"!="") conf new var `group'
-}
 
 * Varnames underlying tsvars and fvvars (e.g. i.foo L(1/3).bar -> foo bar)
 	foreach vars in depvar indepvars endogvars instruments {
@@ -323,10 +317,11 @@ if (!`savingcache') {
 
 * Return values
 	local names cmdline diopts model ///
-		ivsuite estimator showraw dofminus ///
+		ivsuite showraw ///
 		depvar indepvars endogvars instruments savefirst first ///
-		vceoption vcetype vceextra vcesuite num_clusters clustervars ///
-		if in group dofmethod check fast nested fe_format ///
+		vceoption vcetype vcesuite num_clusters clustervars /// vceextra
+		dofadjustments ///
+		if in group check fast nested fe_format ///
 		tolerance maxiterations accelerate maximize_options ///
 		subcmd suboptions ///
 		absorb avge excludeself ///

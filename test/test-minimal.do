@@ -30,6 +30,19 @@ pr drop _all
 	sysuse auto
 	drop if missing(rep)
 
+	replace length = 0 if rep==3
+	replace length = 5 if rep==1
+
+*reghdfe price weight disp, a(foreign#rep turn#rep) tol(1e-10) vce(cluster rep#foreign) verbose(3) dof(all)	
+*reghdfe price weight disp, a(rep#i.turn##c.length foreign) tol(1e-10) vce(cluster turn) verbose(3) dof(all)
+reghdfe price weight (disp=gear), a(rep#foreign##c.length turn)  vce(cluster turn foreign#head) ///, bw(2) kernel(tru)) ///
+	tol(1e-10) verbose(3) dof(all)
+	
+ahora_con_bw_y_avar_y_default_y_todo
+reghdfe price weight disp, a(rep foreign) tol(1e-10) vce(cluster turn#rep turn) verbose(3) dof(all)
+
+asd
+	
 * [TEST] Verify that it gives the same results as -areg- with one-way-clustering
 	reghdfe price weight disp, a(rep) tol(1e-10) vce(cluster turn#rep) verbose(3)
 	reghdfe price weight (disp=length), a(rep) tol(1e-10) vce(cluster turn foreign) verbose(3)

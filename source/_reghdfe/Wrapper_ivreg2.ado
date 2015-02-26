@@ -5,8 +5,9 @@ program define Wrapper_ivreg2, eclass
 		original_depvar(string) original_endogvars(string) original_instruments(string) ///
 		[original_indepvars(string) avge_targets(string)] ///
 		[original_absvars(string) avge_targets] ///
-		estimator(string) vceoption(string asis) KK(integer) ///
-		[SHOWRAW(integer 0) dofminus(string)] first(integer) [weightexp(string)] ///
+		vceoption(string asis) vcesuite(string) /// vcetype(string) -> not used
+		KK(integer) ///
+		[SHOWRAW(integer 0)] first(integer) [weightexp(string)] ///
 		addconstant(integer) ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
@@ -17,8 +18,6 @@ program define Wrapper_ivreg2, eclass
 	syntax , [SAVEFPrefix(name)] [*] // Will ignore SAVEFPREFIX
 	local suboptions `options'
 	assert (`addconstant'==0)
-
-	if ("`estimator'"=="2sls") local estimator
 
 	if strpos("`vceoption'","unadj") {
 		local vceoption
@@ -38,10 +37,9 @@ program define Wrapper_ivreg2, eclass
 	if (`first') {
 		local firstoption "first savefirst"
 	}
-	Assert inlist("`dofminus'","dofminus","sdofminus")
 
 	* Variables have already been demeaned, so we need to add -nocons- or the matrix of orthog conditions will be singular
-	local subcmd ivreg2 `vars' `weightexp', `estimator' `vceoption' `firstoption' small `dofminus'(`=`kk'+1') `suboptions' nocons
+	local subcmd ivreg2 `vars' `weightexp', `vceoption' `firstoption' small dofminus(`=`kk'+1') `suboptions' nocons
 	Debug, level(3) msg(_n "call to subcommand: " _n as result "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'
@@ -90,7 +88,4 @@ program define Wrapper_ivreg2, eclass
 
 	* ereturns specific to this command
 	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars' (`original_endogvars'=`original_instruments')" )) )
-	ereturn local alternative_cmd ivreg2 `original_vars', small `vceoption' `options' `estimator'
-	***if ("`estimator'"!="gmm") ereturn scalar F = e(F) * `CorrectDoF' / `WrongDoF'
-
 end
