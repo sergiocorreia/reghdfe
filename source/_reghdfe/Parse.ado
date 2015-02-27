@@ -225,14 +225,14 @@ if (!`savingcache') {
 	Assert !("`ivsuite'"=="ivreg2" & (`num_clusters'>2) ), msg("ivreg2 doesn't allow more than two cluster variables")
 	Assert !("`model'"=="ols" & "`vcesuite'"=="avar" & (`num_clusters'>2) ), msg("avar doesn't allow more than two cluster variables")
 	Assert !("`model'"=="ols" & "`vcesuite'"=="default" & (`bw'>1 | `dkraay'>1 | "`kiefer'"!="" | "`kernel'"!="") ), msg("to use those vce options you need to use -avar- as the vce suite")
-
+	
 	if ("`vcesuite'"=="avar") {
 		cap findfile `vcesuite'.ado
 		Assert !_rc , msg("error: -`vcesuite'- not installed, please run ssc install `vcesuite' or change the option -vcesuite-")
 	}
 
 	if (`num_clusters'>0) local temp_clustervars " <CLUSTERVARS>"
-	if (`bw'>1) local vceextra `vceextra' bw(`bw') 
+	if (`bw'>1 | "`kernel'"!="") local vceextra `vceextra' bw(`bw') 
 	if (`dkraay'>1) local vceextra `vceextra' dkraay(`dkraay') 
 	if ("`kiefer'"!="") local vceextra `vceextra' kiefer 
 	if ("`kernel'"!="") local vceextra `vceextra' kernel(`kernel')

@@ -55,9 +55,10 @@ else {
 	Debug, msg("(dataset preserved)") level(2)
 
 * 4) Drop unused variables
+	if ("`vceextra'"!="") local tsvars `panelvar' `timevar' // We need to keep these when using an autoco-robust VCE
 	local exp "= `weightvar'"
 	marksample touse, novar // Uses -if- , -in- ; -weight-? and -exp- ; can't drop any var until this
-	keep `uid' `touse' `timevar' `panelvar' `absorb_keepvars' `basevars' `over' `weightvar'
+	keep `uid' `touse' `timevar' `panelvar' `absorb_keepvars' `basevars' `over' `weightvar' `tsvars'
 
 * 5) Expand factor and time-series variables
 	local expandedvars
@@ -71,8 +72,8 @@ else {
 		local expandedvars `expandedvars' ``set''
 	} 
 
-* 6) Drop unused basevars and tsset vars (no longer needed)
-	keep `uid' `touse' `absorb_keepvars' `expandedvars' `over' `weightvar'
+* 6) Drop unused basevars and tsset vars (usually no longer needed)
+	keep `uid' `touse' `absorb_keepvars' `expandedvars' `over' `weightvar' `tsvars'
 * 7) Drop all observations with missing values (before creating the FE ids!)
 	markout `touse' `expandedvars'
 	markout `touse' `expandedvars' `absorb_keepvars'
@@ -82,11 +83,8 @@ else {
 	if ("`over'"!="" & `savingcache') qui levelsof `over', local(levels_over)
 
 * 8) Fill Mata structures, create FE identifiers, avge vars and clustervars if needed
-	if ("`vceextra'"!="") local tsvars `panelvar' `timevar'
-	de
+	
 	reghdfe_absorb, step(precompute) keep(`uid' `expandedvars' `tsvars') depvar("`depvar'") `excludeself'
-	de
-	PUTA
 	Debug, level(2) msg("(dataset compacted: observations " as result "`RAW_N' -> `c(N)'" as text " ; variables " as result "`RAW_K' -> `c(k)'" as text ")")
 	local avgevars = cond("`avge'"=="", "", "__W*__")
 	local vars `expandedvars' `avgevars'

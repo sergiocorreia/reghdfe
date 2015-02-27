@@ -39,9 +39,16 @@ bys foreign: gen t = _n
 tsset foreign t
 
 *reghdfe price weight (disp=gear), a(rep#foreign##c.length turn) vce(cluster foreign t, bw(2) kernel(tru))
+*reghdfe price weight (displacement=gear_ratio), a(rep78#foreign##c.length turn) vce(, kernel(par))
+*reghdfe price weight (displacement=gear_ratio), a(rep78#foreign##c.length turn) vce(, dkraay(3))
+*reghdfe price weight (displacement=gear_ratio), a(rep78#foreign##c.length turn) vce(, kiefer)
+reghdfe price weight (displacement=gear_ratio), a(foreign) vce(cluster t, dkraay(2))
+
+
+asd
 set varabbrev off
-set trace on
-reghdfe price weight (displacement=gear_ratio), a(rep78#foreign##c.length turn) vce(, kiefer) verbose(3)
+set trace off
+reghdfe price weight (displacement=gear_ratio), a(rep78#foreign##c.length turn) vce(, kernel(par)) verbose(3)
 set varabbrev on
 asd
 reghdfe price weight (disp=gear), a(rep#foreign##c.length turn) vce(cluster foreign t, bw(2) kernel(tru))
