@@ -42,7 +42,10 @@ tsset foreign t
 *reghdfe price weight (displacement=gear_ratio), a(rep78#foreign##c.length turn) vce(, kernel(par))
 *reghdfe price weight (displacement=gear_ratio), a(rep78#foreign##c.length turn) vce(, dkraay(3))
 *reghdfe price weight (displacement=gear_ratio), a(rep78#foreign##c.length turn) vce(, kiefer)
-reghdfe price weight (displacement=gear_ratio), a(foreign) vce(cluster t, dkraay(2))
+*reghdfe price weight (displacement=gear_ratio), a(foreign) vce(cluster t, dkraay(2))
+
+*reghdfe price weight (displacement=gear_ratio), a(foreign) vce(cluster t, dkraay(2)) ivsuite(ivregress)
+reghdfe price weight (displacement=gear_ratio), a(foreign) vce(cluster t) ivsuite(ivregress)
 
 
 asd

@@ -4,7 +4,7 @@ program define Wrapper_ivregress, eclass
 		[indepvars(varlist) avgevars(varlist)] ///
 		original_depvar(string) original_endogvars(string) original_instruments(string) ///
 		[original_indepvars(string) avge_targets(string)] ///
-		vceoption(string asis) vcetype(string) vcesuite(string) ///
+		vceoption(string asis) /// vcetype(string) vcesuite(string)
 		KK(integer) ///
 		[weightexp(string)] ///
 		addconstant(integer) ///
@@ -13,6 +13,14 @@ program define Wrapper_ivregress, eclass
 
 	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars' (`endogvars'=`instruments')" )) )
 	
+	* Convert -vceoption- to what -ivreg2- expects
+	local 0 `vceoption'
+	syntax namelist(max=2)
+	gettoken vceoption clustervars : namelist
+	local clustervars `clustervars' // Trim
+	Assert inlist("`vceoption'", "unadjusted", "robust", "cluster")
+	if ("`clustervars'"!="") local vceoption `vceoption'(`clustervars')
+
 	local estimator 2sls
 	*if ("`estimator'"=="gmm") local vceoption = "`vceoption' " + subinstr("`vceoption'", "vce(", "wmatrix(", .)
 	

@@ -413,14 +413,18 @@ if (`N_avge'>0) {
 
 	* Create IDs for the absvars.
 	* Will replace the varname except if i) is interaction so we can't, and ii) it's not interaction but the ivar is the cvar of something else
+	* Also, if its in keepvars we can't replace it
 	forv g=1/`G' {
 		reghdfe_absorb, fe2local(`g')
 		if (`is_mock') continue
 		local num_ivars : word count `ivars'
 		local is_cvar : list ivars & all_cvars
 		local is_cvar = "`is_cvar'"!=""
+		
+		local in_keepvars 0
+		if (`num_ivars'==1) local in_keepvars : list ivars in keepvars
 
-		if (`num_ivars'>1 | `is_cvar') {
+		if (`num_ivars'>1 | `is_cvar' | `in_keepvars') {
 			GenerateID `ivars',  gen(__FE`g'__)
 		}
 		else {
@@ -440,7 +444,6 @@ if (`N_avge'>0) {
 	* 3. Epilogue
 	
 	* Reduce dataset before preparing mata objects (which uses memory)
-	di as error `"keep `keepvars' | `weightvar' | `clustervars' | `all_cvars' | __FE*__"'
 	keep `keepvars' `weightvar' `clustervars' `all_cvars' __FE*__
 
 	* Fill in auxiliary Mata structures
