@@ -237,7 +237,7 @@ if (!`savingcache') {
 	if ("`kiefer'"!="") local vceextra `vceextra' kiefer 
 	if ("`kernel'"!="") local vceextra `vceextra' kernel(`kernel')
 	if ("`vceextra'"!="") local vceextra , `vceextra'
-	local vceoption "vce(`vcetype'`temp_clustervars'`vceextra')"
+	local vceoption "`vcetype'`temp_clustervars'`vceextra'" // this excludes "vce(", only has the contents
 
 
 * DoF Adjustments
@@ -264,7 +264,7 @@ if (!`savingcache') {
 * IV options
 	if ("`small'"!="") di in ye "(note: reghdfe will always use the option -small-, no need to specify it)"
 
-	Assert ("`gmm2s'`liml'`kiefer'`cue'"==""), msg("options gmm2s/liml/cue/kiefer not allowed")
+	Assert ("`gmm2s'`liml'`cue'"==""), msg("options gmm2s/liml/cue not allowed")
 	
 	if ("`model'"=="iv") {
 		local savefirst = ("`savefirst'"!="")
@@ -319,7 +319,7 @@ if (!`savingcache') {
 	local names cmdline diopts model ///
 		ivsuite showraw ///
 		depvar indepvars endogvars instruments savefirst first ///
-		vceoption vcetype vcesuite num_clusters clustervars /// vceextra
+		vceoption vcetype vcesuite vceextra num_clusters clustervars /// vceextra
 		dofadjustments ///
 		if in group check fast nested fe_format ///
 		tolerance maxiterations accelerate maximize_options ///

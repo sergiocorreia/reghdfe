@@ -1,14 +1,17 @@
-// -------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
 // Transform data and run the regression
-// -------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
 cap pr drop Estimate
 program define Estimate, eclass
-/* Notation
-	__FE1__   Fixed effect categories
-	__Z1__    Fixed effect coefficients (estimates)
-	__W1__    AvgE transformed variables (avg of depvar by category) */
 
-**** PART I - PREPARE DATASET FOR REGRESSION ****
+/* Notation of created variables
+	__FE1__        		Fixed effect categories
+	__Z1__         		Fixed effect coefficients (estimates)
+	__clustervar1__		Categories for the clusters that had to be generated
+	__W1__         		AvgE transformed variables (avg of depvar by category)
+*/
+
+// PART I - PREPARE DATASET FOR REGRESSION
 
 * 1) Parse main options
 	reghdfe_absorb, step(stop) // clean Mata leftovers before running -Parse-
@@ -17,14 +20,15 @@ program define Estimate, eclass
 
 * 2) Parse identifiers (absorb variables, avge, clustervar)
 	reghdfe_absorb, step(start) absorb(`absorb') over(`over') avge(`avge') clustervars(`clustervars') weight(`weight') weightvar(`weightvar')
-	// In this step, it doesn't matter if the weight is FW or AW
+	* Note: In this step, it doesn't matter if the weight is FW or AW
 	local N_hdfe = r(N_hdfe)
 	local N_avge = r(N_avge)
-	local absorb_keepvars "`r(keepvars)'" // Vars used in hdfe,avge,cluster
 	local RAW_N = c(N)
 	local RAW_K = c(k)
+	local absorb_keepvars = r(keepvars) // Vars used in hdfe,avge,cluster
+	
 	qui de, simple
-	local old_mem = string(r(width) * r(N)  / 2^20, "%6.2f") // In MBs
+	local old_mem = string(r(width) * r(N)  / 2^20, "%6.2f") // This is just for debugging; measured in MBs
 
 * 3) Preserve
 if ("`usecache'"!="") {
@@ -69,7 +73,6 @@ else {
 
 * 6) Drop unused basevars and tsset vars (no longer needed)
 	keep `uid' `touse' `absorb_keepvars' `expandedvars' `over' `weightvar'
-
 * 7) Drop all observations with missing values (before creating the FE ids!)
 	markout `touse' `expandedvars'
 	markout `touse' `expandedvars' `absorb_keepvars'
@@ -78,9 +81,12 @@ else {
 	drop `touse'
 	if ("`over'"!="" & `savingcache') qui levelsof `over', local(levels_over)
 
-* 8) Fill Mata structures, create FE identifiers, avge vars and cluster if needed
-	reghdfe_absorb, step(precompute) keep(`uid' `expandedvars') depvar("`depvar'") `excludeself'
-
+* 8) Fill Mata structures, create FE identifiers, avge vars and clustervars if needed
+	if ("`vceextra'"!="") local tsvars `panelvar' `timevar'
+	de
+	reghdfe_absorb, step(precompute) keep(`uid' `expandedvars' `tsvars') depvar("`depvar'") `excludeself'
+	de
+	PUTA
 	Debug, level(2) msg("(dataset compacted: observations " as result "`RAW_N' -> `c(N)'" as text " ; variables " as result "`RAW_K' -> `c(k)'" as text ")")
 	local avgevars = cond("`avge'"=="", "", "__W*__")
 	local vars `expandedvars' `avgevars'
@@ -90,7 +96,7 @@ else {
 	local new_mem = string(r(width) * r(N) / 2^20, "%6.2f")
 	Debug, level(2) msg("(dataset compacted, c(memory): " as result "`old_mem'" as text "M -> " as result "`new_mem'" as text "M)")
 
-* ?) Check that weights have acceptable values
+* 9) Check that weights have acceptable values
 if ("`weightvar'"!="") {
 	local require_integer = ("`weight'"=="fweight")
 	local num_type = cond(`require_integer', "integers", "reals")
@@ -108,7 +114,7 @@ if ("`weightvar'"!="") {
 	}
 }
 
-* 9) Save the statistics we need before transforming the variables
+* 10) Save the statistics we need before transforming the variables
 if (`savingcache') {
 	cap drop __FE*__
 	cap drop __clustervar*__
@@ -120,7 +126,7 @@ else {
 	local tss = r(Var)*(r(N)-1)
 	assert `tss'<.
 
-* 10) Calculate the degrees of freedom lost due to the FEs
+* 11) Calculate the degrees of freedom lost due to the FEs
 	if ("`group'"!="") {
 		tempfile groupdta
 		local opt group(`group') groupdta(`groupdta') uid(`uid')
@@ -158,8 +164,8 @@ else {
 
 * 12) Save untransformed data.
 *	This allows us to:
-*	i) nested ftests for the FEs,
-*	ii) to recover the FEs, compute their correlations with xb, check that FE==1
+*	i) do nested ftests for the FEs,
+*	ii) recover the FEs, compute their correlations with xb, check that FE==1
 
 	* We can avoid this if i) nested=check=0 ii) targets={} iii) fast=1
 	mata: st_local("any_target_avge", strofreal(any(avge_target :!= "")) ) // saving avge?
@@ -268,7 +274,7 @@ if (`savingcache') {
 	exit
 }
 
-**** PART II - REGRESSION ****
+// PART II - REGRESSION
 
 * Cleanup
 	ereturn clear
@@ -279,7 +285,7 @@ if (`savingcache') {
 		AddConstant `depvar' `indepvars' `avgevars' `endogvars' `instruments'
 	}
 
-* Regression
+* Regress
 	Debug, level(2) msg("(running regresion: `model'.`ivsuite')")
 	local avge = cond(`N_avge'>0, "__W*__", "")
 	local options
@@ -302,7 +308,7 @@ if (`savingcache') {
 		local sumweights = r(sum)
 	}
 
-**** PART III - RECOVER FEs AND SAVE RESULTS ****
+// PART III - RECOVER FEs AND SAVE RESULTS 
 
 if (`fast') {
 	* Copy pasted from below
@@ -390,7 +396,7 @@ else {
 		*cap tsset, noquery // we changed -sortby- when we merged (even if we didn't really resort)
 	}
 
-**** PART IV - ERETURN OUTPUT ****
+// PART IV - ERETURN OUTPUT
 
 	if (`c(version)'>=12) local hidden hidden // ereturn hidden requires v12+
 
@@ -435,7 +441,7 @@ else {
 	ereturn local vcetype = proper("`vcetype'") //
 	if (e(vcetype)=="Cluster") ereturn local vcetype = "Robust"
 	if (e(vcetype)=="Unadjusted") ereturn local vcetype
-	if (e(vce)==".") ereturn local vce = "`vcetype'" // +-+-
+	if ("`e(vce)'"=="." | "`e(vce)'"=="") ereturn local vce = "`vcetype'" // +-+-
 	Assert inlist("`e(vcetype)'", "", "Robust", "Jackknife", "Bootstrap")
 	
 	* Clear results that are wrong

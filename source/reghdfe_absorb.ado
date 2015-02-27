@@ -440,6 +440,7 @@ if (`N_avge'>0) {
 	* 3. Epilogue
 	
 	* Reduce dataset before preparing mata objects (which uses memory)
+	di as error `"keep `keepvars' | `weightvar' | `clustervars' | `all_cvars' | __FE*__"'
 	keep `keepvars' `weightvar' `clustervars' `all_cvars' __FE*__
 
 	* Fill in auxiliary Mata structures

@@ -19,18 +19,18 @@ program define Wrapper_ivreg2, eclass
 	local suboptions `options'
 	assert (`addconstant'==0)
 
-	if strpos("`vceoption'","unadj") {
-		local vceoption
-	}
-	else if strpos("`vceoption'","robust")>0 {
-		local vceoption "robust" 
-	}
-	else {
-		local vceoption = substr(trim("`vceoption'"), 5, strlen("`vceoption'")-5)
-		gettoken vcefirst vceoption : vceoption
-		local vceoption = trim("`vceoption'")
-		local vceoption `vcefirst'(`vceoption')
-	}
+	* Convert -vceoption- to what -ivreg2- expects
+	local 0 `vceoption'
+	syntax namelist(max=3) , [bw(string) dkraay(string) kernel(string) kiefer]
+	gettoken vcetype clustervars : namelist
+	local clustervars `clustervars' // Trim
+	Assert inlist("`vcetype'", "unadjusted", "robust", "cluster")
+	local vceoption = cond("`vcetype'"=="unadjusted", "", "`vcetype'")
+	if ("`clustervars'"!="") local vceoption `vceoption'(`clustervars')
+	if ("`bw'"!="") local vceoption `vceoption' bw(`bw')
+	if ("`dkraay'"!="") local vceoption `vceoption' dkraay(`dkraay')
+	if ("`kernel'"!="") local vceoption `vceoption' kernel(`kernel')
+	if ("`kiefer'"!="") local vceoption `vceoption' kiefer
 	
 	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars' (`endogvars'=`instruments')" )) )
 	
