@@ -297,8 +297,13 @@ if (`savingcache') {
 	foreach opt of local option_list {
 		if ("``opt''"!="") local options `options' `opt'(``opt'')
 	}
-	Debug, level(3) msg(_n "call to wrapper:" _n as result "Wrapper_`subcmd', `options'")
-	Wrapper_`subcmd', `options' 
+
+	* Five wrappers in total, two for iv (ivreg2, ivregress), three for ols (regress, avar, mwc)
+	local wrapper "Wrapper_`subcmd'" // regress ivreg2 ivregress
+	if ("`subcmd'"=="regress" & "`vcesuite'"=="default" & `N_clustervars'>2) local wrapper "Wrapper_mwc"
+	if ("`subcmd'"=="regress" & "`vcesuite'"=="avar") local wrapper "Wrapper_avar"
+	Debug, level(3) msg(_n "call to wrapper:" _n as result "`wrapper', `options'")
+	`wrapper', `options'
 	local subpredict = e(predict) // used to recover the FEs
 
 	if ("`weightvar'"!="") {
@@ -401,6 +406,7 @@ else {
 * Ereturns common to all commands
 	ereturn local cmd = "reghdfe"
 	ereturn local subcmd = "`subcmd'"
+	ereturn local vcesuite = "`vcesuite'"
 	ereturn local cmdline `"`cmdline'"'
 	if ("`e(model)'"!="" & "`e(model)'"!="`model'") di as error "`e(model) was <`e(model)'>" // ?
 	ereturn local model = "`model'"

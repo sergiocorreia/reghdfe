@@ -4,7 +4,7 @@ program define Wrapper_ivregress, eclass
 		[indepvars(varlist) avgevars(varlist)] ///
 		original_depvar(string) original_endogvars(string) original_instruments(string) ///
 		[original_indepvars(string) avge_targets(string)] ///
-		vceoption(string asis) /// vcetype(string) vcesuite(string)
+		vceoption(string asis) ///
 		KK(integer) ///
 		[weightexp(string)] ///
 		addconstant(integer) ///

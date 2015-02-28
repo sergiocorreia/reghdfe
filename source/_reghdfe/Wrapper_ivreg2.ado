@@ -5,7 +5,7 @@ program define Wrapper_ivreg2, eclass
 		original_depvar(string) original_endogvars(string) original_instruments(string) ///
 		[original_indepvars(string) avge_targets(string)] ///
 		[original_absvars(string) avge_targets] ///
-		vceoption(string asis) vcesuite(string) /// vcetype(string) -> not used
+		vceoption(string asis) ///
 		KK(integer) ///
 		[SHOWRAW(integer 0)] first(integer) [weightexp(string)] ///
 		addconstant(integer) ///

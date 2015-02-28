@@ -1,17 +1,5 @@
-/* Notes:
-- For -cluster- I need to run two regressions as in xtreg; the first one is to get the df_m
-
-- El FTEST es distinto entre areg/reg y xtreg porque xtreg hace un ajuste extra
-para pasar de areg a xtreg, multiplicar el F por Q^2
-Donde Q =  (e(N) - e(rank)) / (e(N) - e(rank) - e(df_a))
-Es decir, en vez de dividir entre N-K-KK, me basta con dividir entre N-K
-Asi que me bastaria usar -test- despues de correr la regresion y deberia salir igual que el FTEST ajustado del areg!!!
-(tambien igual al del xreg pero eso es mas limitante , aunq igual probar para 1 HDFE creando t=_n a nivel del ID1)
-*/
-*/
-
-cap pr drop Wrapper_regress
-program define Wrapper_regress, eclass
+cap pr drop Wrapper_avar
+program define Wrapper_avar, eclass
 	syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 		original_absvars(string) original_depvar(string) [original_indepvars(string) avge_targets(string)] ///
 		vceoption(string asis) vcetype(string) ///
@@ -21,9 +9,63 @@ program define Wrapper_regress, eclass
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
+	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars'" )) ) // Just for esthetic purposes
+
+	* Convert -vceoption- to what -avar- expects
+	local 0 `vceoption'
+	syntax namelist(max=3) , [bw(string) dkraay(string) kernel(string) kiefer]
+	gettoken vcetype clustervars : namelist
+	local clustervars `clustervars' // Trim
+	Assert inlist("`vcetype'", "unadjusted", "robust", "cluster")
+	local vceoption = cond("`vcetype'"=="unadjusted", "", "`vcetype'")
+	if ("`clustervars'"!="") local vceoption `vceoption'(`clustervars')
+	if ("`bw'"!="") local vceoption `vceoption' bw(`bw')
+	if ("`dkraay'"!="") local vceoption `vceoption' dkraay(`dkraay')
+	if ("`kernel'"!="") local vceoption `vceoption' kernel(`kernel')
+	if ("`kiefer'"!="") local vceoption `vceoption' kiefer
+
+// -------------------------------------------------------------------------------------------------
+* Before -avar- we need i) inv(X'X) ii) DoF lost due to included indepvars, iii) resids
+* Note: It would be shorter to use -mse1- (b/c then invSxx==e(V)*e(N)) but then I don't know e(df_r)
+	reg `y' `x', noconstant
+
+	* Compute the bread of the sandwich inv(X'X/N)
+	tempname XX invSxx
+	mat accum `XX' = `x', noconstant
+	mat `invSxx' = syminv(`XX' * 1/r(N))
+	mat list `invSxx'
+
+	* Resids
+	tempvar resid
+	predict double `resid', resid
+	
+	* DoF
+	local df_r = e(df_r) - 1 - `kk'
+	
+* Use -avar- to get meat of sandwich
+	avar `resid' (`x'), dofminus(0) `opt' noconstant
+	assert r(N)==e(N)
+	
+* Get the entire sandwich
+	* Without clusters it's as if every obs. is is own cluster
+	local M = cond( r(N_clust) < . , r(N_clust) , r(N) )
+	local q = ( e(N) - 1 ) / `df_r' * `M' / (`M' - 1) // General formula, from Stata PDF
+	tempname V
+	mat li `invSxx'
+	mat li r(S)
+	mat `V' = `invSxx' * r(S) * `invSxx' / r(N) // Large-sample version
+	mat `V' = `V' * `q' // Small-sample adjustments
+
+
+
+
+
+// -------------------------------------------------------------------------------------------------
+
+
+	
 
 	local vceoption = regexr("`vceoption'", "vce\( *unadjusted *\)", "vce(ols)")
-	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars'" )) ) // Just for esthetic purposes
 
 * Hide constant
 	if (!`addconstant') {
