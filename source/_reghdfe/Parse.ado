@@ -193,6 +193,7 @@ if (!`savingcache') {
 	}
 
 	* vcetype abbreviations:
+	if (substr("`vcetype'",1,3)=="ols") local vcetype unadjusted
 	if (substr("`vcetype'",1,2)=="un") local vcetype unadjusted
 	if (substr("`vcetype'",1,1)=="r") local vcetype robust
 	if (substr("`vcetype'",1,2)=="cl") local vcetype cluster

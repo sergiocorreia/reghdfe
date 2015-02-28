@@ -39,8 +39,48 @@ bys turn: gen t = _n
 tsset turn t
 gen byte one = 1
 
-* Testing avar
+* Testing regress+avar
 set trace off
+
+
+* Testing regress+default
+reghdfe price weight gear length, a(foreign) vce(unadjusted, suite(default))
+reghdfe price weight gear length, a(foreign) vce(robust, suite(default))
+reghdfe price weight gear length, a(foreign) vce(cluster turn, suite(default))
+reghdfe price weight gear length, a(foreign) vce(cluster foreign, suite(default))
+cap reghdfe price weight gear length, a(foreign) vce(cluster foreign turn, suite(default))
+assert _rc!=0
+
+
+
+exit
+* BUGS
+
+* I Need to add a test suite for singleton cases
+gen byte singleton = _n==10
+gen cl = _n
+ivreg2 price weight gear singleton foreign, cluster(cl) small
+areg price weight gear singleton, absorb(foreign) vce(cluster cl)
+reghdfe price weight gear singleton, a(foreign) vce(cluster cl, suite(avar))
+reghdfe price weight gear singleton, a(foreign) vce(cluster cl)
+
+asd
+
+ivreg2 price weight gear foreign, cluster(rep turn) small
+reghdfe price weight gear, a(foreign) vce(cluster foreign turn, suite(avar)) nocons // verbose(3)
+--> error en VCV... DoF cagado??
+
+reghdfe price weight gear, a(turn t) vce(cluster turn t, bw(2)) verbose(3)
+--> el tsset se mantiene con renames.. bajarme a las tsvars
+
+
+asd
+
+
+
+
+
+asd
 
 areg price weight gear [fw=one], abs(rep) cluster(turn)
 *xtreg price weight gear [fw=one], cluster(turn) fe

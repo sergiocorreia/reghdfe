@@ -81,11 +81,16 @@ program define Wrapper_avar, eclass
 	mat `V' = `invSxx' * r(S) * `invSxx' / r(N) // Large-sample version
 	mat `V' = `V' * `q' // Small-sample adjustments
 	* At this point, we have the true V and just need to add it to e()
-
 * Avoid corner case error when all the RHS vars are collinear with the FEs
 	if ("`clustervars'"!="") local df_r = `M' - 1
-	di as error "`posted_dof'"
+
+*di as error "`posted_dof'"
+*matrix list `V'
+*matrix puta = invsym(`V')
+*matrix list puta
+*di as error "capture ereturn post `b' `V' `weightexp', dep(`depvar') obs(`N'0) dof(`df_r'0) properties(b V)"
 	capture ereturn post `b' `V' `weightexp', dep(`depvar') obs(`N') dof(`df_r') properties(b V)
+*matrix list e(V)
 	local rc = _rc
 	Assert inlist(_rc,0,504), msg("error `=_rc' when adjusting the VCV") // 504 = Matrix has MVs
 	Assert `rc'==0, msg("Error: estimated variance-covariance matrix has missing values")
@@ -99,7 +104,7 @@ program define Wrapper_avar, eclass
 
 * Compute model F-test
 	if (`K'>0) {
-		qui test `indepvars' `avge' // Wald test
+		test `indepvars' `avge' // Wald test
 		ereturn scalar F = r(F)
 		ereturn scalar df_m = r(df)
 		ereturn scalar rank = r(df)+1 // Add constant

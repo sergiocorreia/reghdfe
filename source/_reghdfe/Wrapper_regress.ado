@@ -22,7 +22,8 @@ program define Wrapper_regress, eclass
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
 
-	local vceoption = regexr("`vceoption'", "vce\( *unadjusted *\)", "vce(ols)")
+	local vceoption : subinstr local vceoption "unadjusted" "ols"
+	local vceoption "vce(`vceoption')"
 	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars'" )) ) // Just for esthetic purposes
 
 * Hide constant
@@ -43,7 +44,10 @@ program define Wrapper_regress, eclass
 	Assert !missing(`CorrectDoF')
 	
 * Now run intended regression and fix VCV
-	qui regress `vars' `weightexp', `vceoption' noheader notable `suboptions' `nocons'
+	local subcmd regress `vars' `weightexp', `vceoption' noheader notable `suboptions' `nocons'
+	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
+	qui `subcmd'
+	
 	* Fix DoF
 	tempname V
 	cap matrix `V' = e(V) * (`WrongDoF' / `CorrectDoF')

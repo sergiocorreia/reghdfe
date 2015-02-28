@@ -334,7 +334,8 @@ else {
 * 2) Recover the FEs
 	* Predict will get (e+d) from the equation y=xb+d+e
 	tempvar resid_d
-	`subpredict' double `resid_d', score // Auto-selects the program based on the estimation method
+	local score = cond("`vcesuite'"=="avar", "score", "resid")
+	`subpredict' double `resid_d', `score' // Auto-selects the program based on the estimation method
 	Debug, level(2) msg("(loaded untransformed variables, predicted residuals)")
 
 	* Absorb the residuals to obtain the FEs (i.e. run a regression on just the resids)
