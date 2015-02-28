@@ -186,7 +186,11 @@ if (!`savingcache') {
 	if ("`anything'"=="") local anything unadjusted
 	Assert `bw'>0, msg("VCE bandwidth must be a positive integer")
 	gettoken vcetype clustervars : anything
-	local clustervars `clustervars' // Trim spaces
+	* Expand variable abbreviations; but this adds unwanted i. prefixes
+	if ("`clustervars'"!="") {
+		fvunab clustervars : `clustervars'
+		local clustervars : subinstr local clustervars "i." "", all
+	}
 
 	* vcetype abbreviations:
 	if (substr("`vcetype'",1,2)=="un") local vcetype unadjusted

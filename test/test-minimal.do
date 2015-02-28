@@ -35,9 +35,30 @@ pr drop _all
 	replace length = 0 if rep==3
 	replace length = 5 if rep==1
 
-bys foreign: gen t = _n
-tsset foreign t
+bys turn: gen t = _n
+tsset turn t
+gen byte one = 1
 
+* Testing avar
+set trace off
+
+areg price weight gear [fw=one], abs(rep) cluster(turn)
+*xtreg price weight gear [fw=one], cluster(turn) fe
+
+matrix list e(V)
+local F1 = e(F)
+test weight gear
+local F2 = r(F)
+reghdfe price weight gear [fw=one], a(rep) vce(cluster turn, suite(avar)) // verbose(3)
+matrix list e(V)
+local F3 = e(F)
+
+di `F1'/`F3'
+di `F2'/`F3'
+
+
+asd
+* Testing ivreg2
 *reghdfe price weight (disp=gear), a(rep#foreign##c.length turn) vce(cluster foreign t, bw(2) kernel(tru))
 *reghdfe price weight (displacement=gear_ratio), a(rep78#foreign##c.length turn) vce(, kernel(par))
 *reghdfe price weight (displacement=gear_ratio), a(rep78#foreign##c.length turn) vce(, dkraay(3))
@@ -45,7 +66,7 @@ tsset foreign t
 *reghdfe price weight (displacement=gear_ratio), a(foreign) vce(cluster t, dkraay(2))
 
 *reghdfe price weight (displacement=gear_ratio), a(foreign) vce(cluster t, dkraay(2)) ivsuite(ivregress)
-reghdfe price weight (displacement=gear_ratio), a(foreign) vce(cluster t) ivsuite(ivregress)
+*reghdfe price weight (displacement=gear_ratio), a(foreign) vce(cluster t) ivsuite(ivregress)
 
 
 asd

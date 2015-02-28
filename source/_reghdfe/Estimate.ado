@@ -300,7 +300,7 @@ if (`savingcache') {
 
 	* Five wrappers in total, two for iv (ivreg2, ivregress), three for ols (regress, avar, mwc)
 	local wrapper "Wrapper_`subcmd'" // regress ivreg2 ivregress
-	if ("`subcmd'"=="regress" & "`vcesuite'"=="default" & `N_clustervars'>2) local wrapper "Wrapper_mwc"
+	if ("`subcmd'"=="regress" & "`vcesuite'"=="default" & `num_clusters'>2) local wrapper "Wrapper_mwc"
 	if ("`subcmd'"=="regress" & "`vcesuite'"=="avar") local wrapper "Wrapper_avar"
 	Debug, level(3) msg(_n "call to wrapper:" _n as result "`wrapper', `options'")
 	`wrapper', `options'
@@ -332,10 +332,9 @@ else {
 	qui use "`original_vars'", clear
 
 * 2) Recover the FEs
-
 	* Predict will get (e+d) from the equation y=xb+d+e
 	tempvar resid_d
-	`subpredict' double `resid_d', resid // Auto-selects the program based on the estimation method
+	`subpredict' double `resid_d', score // Auto-selects the program based on the estimation method
 	Debug, level(2) msg("(loaded untransformed variables, predicted residuals)")
 
 	* Absorb the residuals to obtain the FEs (i.e. run a regression on just the resids)
@@ -406,7 +405,6 @@ else {
 * Ereturns common to all commands
 	ereturn local cmd = "reghdfe"
 	ereturn local subcmd = "`subcmd'"
-	ereturn local vcesuite = "`vcesuite'"
 	ereturn local cmdline `"`cmdline'"'
 	if ("`e(model)'"!="" & "`e(model)'"!="`model'") di as error "`e(model) was <`e(model)'>" // ?
 	ereturn local model = "`model'"
@@ -417,6 +415,7 @@ else {
 	ereturn local estat_cmd = "reghdfe_estat"
 	ereturn local footnote = "reghdfe_footnote"
 	ereturn local absvars = "`original_absvars'"
+	ereturn local vcesuite = "`vcesuite'"
 	ereturn `hidden' local diopts = "`diopts'"
 
 	if ("`e(clustvar)'"!="") {
