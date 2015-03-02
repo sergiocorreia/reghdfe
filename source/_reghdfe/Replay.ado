@@ -73,7 +73,7 @@ cap pr drop Replay
 		}
 		_coef_table_header
 		di
-		local plus = cond(e(model)=="ols" & e(vce)=="unadjusted", "plus", "")
+		local plus = cond(e(model)=="ols" & inlist("`e(vce)'", "unadjusted", "ols"), "plus", "")
 		_coef_table, `plus' `diopts' bmatrix(`b') vmatrix(e(V))
 	}
 

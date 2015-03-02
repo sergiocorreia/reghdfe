@@ -509,6 +509,9 @@ else {
 
 	if ("`savefirst'"!="") ereturn `hidden' scalar savefirst = `savefirst'
 
+	* We have to replace -unadjusted- or else subsequent calls to -suest- will fail
+	if (e(vce)=="unadjusted") ereturn local vce = "ols"
+
 * Show table and clean up
 	ereturn repost b=`b', rename // why here???
 	Replay
