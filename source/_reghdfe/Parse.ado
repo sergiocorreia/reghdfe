@@ -155,7 +155,7 @@ if (!`savingcache') {
 		if ("`ivsuite'"=="") local ivsuite ivreg2
 		Assert inlist("`ivsuite'","ivreg2","ivregress") , msg("error: wrong IV routine (`ivsuite'), valid options are -ivreg2- and -ivregress-")
 		cap findfile `ivsuite'.ado
-		Assert !_rc , msg("error: -`ivsuite'- not installed, please run ssc install `ivsuite' or change the option -ivsuite-")
+		Assert !_rc , msg("error: -`ivsuite'- not installed, please run {stata ssc install `ivsuite'} or change the option -ivsuite-")
 	}
 
 * OLS varlist
@@ -212,29 +212,34 @@ if (!`savingcache') {
 
 	* VCE Suite
 	local vcesuite `suite'
-	if ("`vcesuite'"=="") {
-		if (`num_clusters'>2) {
-			local vcesuite default
-		}
-		else if (`bw'>1 | `dkraay'>1 | "`kiefer'"!="" | "`kernel'"!="") {
+	if ("`vcesuite'"=="") local vcesuite default
+	if ("`vcesuite'"=="default") {
+		if (`bw'>1 | `dkraay'>1 | "`kiefer'"!="" | "`kernel'"!="") {
 			local vcesuite avar
 		}
-		else {
-			local vcesuite default
+		else if (`num_clusters'>1) {
+			local vcesuite mwc
 		}
 	}
-	Assert inlist("`vcesuite'", "default", "avar")
+	
+	Assert inlist("`vcesuite'", "default", "mwc", "avar"), msg("Wrong vce suite: `vcesuite'")
+	if (inlist("`vcesuite'", "avar", "mwc")) local addconstant 0 // The constant messes up the VCV
+
+	if ("`vcesuite'"=="mwc") {
+		cap findfile tuples.ado
+		Assert !_rc , msg("error: -tuples- not installed, please run {stata ssc install tuples} to estimate multi-way clusters.")
+	}
+	
+	if ("`vcesuite'"=="avar") {
+		cap findfile `vcesuite'.ado
+		Assert !_rc , msg("error: -`vcesuite'- not installed, please run {stata ssc install `vcesuite'} or change the option -vcesuite-")
+	}
 
 	* Some combinations are not coded
 	Assert !("`ivsuite'"=="ivregress" & (`num_clusters'>1 | `bw'>1 | `dkraay'>1 | "`kiefer'"!="" | "`kernel'"!="") ), msg("option vce(`vce') incompatible with ivregress")
 	Assert !("`ivsuite'"=="ivreg2" & (`num_clusters'>2) ), msg("ivreg2 doesn't allow more than two cluster variables")
 	Assert !("`model'"=="ols" & "`vcesuite'"=="avar" & (`num_clusters'>2) ), msg("avar doesn't allow more than two cluster variables")
 	Assert !("`model'"=="ols" & "`vcesuite'"=="default" & (`bw'>1 | `dkraay'>1 | "`kiefer'"!="" | "`kernel'"!="") ), msg("to use those vce options you need to use -avar- as the vce suite")
-	
-	if ("`vcesuite'"=="avar") {
-		cap findfile `vcesuite'.ado
-		Assert !_rc , msg("error: -`vcesuite'- not installed, please run ssc install `vcesuite' or change the option -vcesuite-")
-	}
 
 	if (`num_clusters'>0) local temp_clustervars " <CLUSTERVARS>"
 	if (`bw'>1 | "`kernel'"!="") local vceextra `vceextra' bw(`bw') 
@@ -289,7 +294,7 @@ if (!`savingcache') {
 	Assert `cores'<=32 & `cores'>0 , msg("At most 32 cores supported")
 	if (`cores'>1) {
 		cap findfile parallel.ado
-		Assert !_rc , msg("error: -parallel- not installed, please run {cmd:ssc install parallel}")
+		Assert !_rc , msg("error: -parallel- not installed, please run {stata ssc install parallel}")
 	}
 	local opt_list tolerance maxiterations check accelerate ///
 		bad_loop_threshold stuck_threshold pause_length accel_freq accel_start

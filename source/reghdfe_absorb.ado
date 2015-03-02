@@ -48,8 +48,6 @@
  (-)		Restore, merge sample(), report tables
 //----------------------------------------------------------------------------*/
 
-
-*clear mata
 include _mata/reghdfe.mata
 
 //------------------------------------------------------------------------------
@@ -97,19 +95,19 @@ program define reghdfe_absorb, rclass
 
 * Call subroutine and return results
 	if (`numstep'==1) {
-		Initialize, `options'
+		Start, `options'
 		return local keepvars "`r(keepvars)'"
 		return scalar N_hdfe = r(N_hdfe)
 		return scalar N_avge = r(N_avge)
 	}
 	else if (`numstep'==2) {
-		Prepare, `options'
+		Precompute, `options'
 	}
 	else if (`numstep'==3 & `cores'==1) {
-		Annihilate, `options'
+		Demean, `options'
 	}
 	else if (`numstep'==3 & `cores'>1) {
-		AnnihilateParallel, numcores(`cores') `options'
+		DemeanParallel, numcores(`cores') `options'
 	}
 	else if (`numstep'==4) {
 		Save, `options'
@@ -124,8 +122,8 @@ program define reghdfe_absorb, rclass
 end
 
 //------------------------------------------------------------------------------
-cap pr drop Initialize
-program define Initialize, rclass
+cap pr drop Start
+program define Start, rclass
 //------------------------------------------------------------------------------
 syntax, Absorb(string) [AVGE(string)] [CLUSTERVARS(string)] [OVER(varname numeric)] [WEIGHT(string) WEIGHTVAR(varname numeric)]
 	Assert !regexm("`absorb'","[*?-]"), ///
@@ -254,7 +252,7 @@ if ("`avge'"!="") {
 		Assert "`r(cvars)'"=="", msg("clustervar cannot contain continuous interactions")
 		local ivars = r(ivars)
 		mata: clustervars_ivars[`i'] = "`ivars'"
-		mata: clustervars_original[`i'] = invtokens( clustervars_ivars[`i'] , "#")
+		mata: clustervars_original[`i'] = invtokens( tokens(clustervars_ivars[`i']) , "#")
 		local keepvars `keepvars' `ivars'
 	}
 
@@ -329,10 +327,10 @@ end
 
 
 //------------------------------------------------------------------------------
-cap pr drop Prepare
-program define Prepare, rclass
+cap pr drop Precompute
+program define Precompute, rclass
 //------------------------------------------------------------------------------
-syntax, KEEPvars(varlist) [DEPVAR(varname numeric) EXCLUDESELF]
+syntax, KEEPvars(varlist) [DEPVAR(varname numeric) EXCLUDESELF] [TSVARS(varlist)]
 
 **** AVGE PART ****
 mata: st_local("N_avge", strofreal(avge_num))
@@ -370,9 +368,15 @@ if (`N_avge'>0) {
 	mata: st_local("N_clustervars", strofreal(length(clustervars)))
 
 	* 1. Clustervars
+	* Corner case: if panelvar or timevar are clustervars, we can't touch them, because
+	* i) the bandwidth calculation would be wrong if we have time holes, ii) -avar- and -ivreg2- will complain
+
 	local clustervars
 	forval i = 1/`N_clustervars' {
 		mata: st_local("cluster_ivars", clustervars_ivars[`i'])
+
+		* if clustervar is a panel/time var *AND* we are using a HAC VCE, then we can't touch it
+		local is_tsvar : list cluster_ivars in tsvars
 
 		local newname
 		forv g=1/`G' {
@@ -380,7 +384,7 @@ if (`N_avge'>0) {
 			if (`is_mock') continue
 			
 			local match : list cluster_ivars === ivars
-			if (`match') local newname = "__FE`g'__"
+			if (`match' & !`is_tsvar') local newname = "__FE`g'__"
 		}
 
 		* If clustervar is an interaction not found in absvars, create identifier variable
@@ -389,11 +393,10 @@ if (`N_avge'>0) {
 			local newname __clustervar`i'__
 			GenerateID `cluster_ivars',  gen(`newname')
 		}
-		
 		if ("`newname'"!="") {
 			mata: st_local("oldname", clustervars[`i'])
 			mata: clustervars[`i'] = "`newname'"
-			Debug, level(3) msg(" - clustervar`i' " as result "`cluster_ivars'" as text " -> " as result "`newname'")
+			Debug, level(3) msg(" - clustervar `oldname' (" as result "`cluster_ivars'" as text ") -> " as result "`newname'")
 		}
 		else {
 			mata: st_local("newname", clustervars[`i'])
@@ -414,6 +417,7 @@ if (`N_avge'>0) {
 	* Create IDs for the absvars.
 	* Will replace the varname except if i) is interaction so we can't, and ii) it's not interaction but the ivar is the cvar of something else
 	* Also, if its in keepvars we can't replace it
+
 	forv g=1/`G' {
 		reghdfe_absorb, fe2local(`g')
 		if (`is_mock') continue
@@ -453,8 +457,8 @@ if (`N_avge'>0) {
 end
 
 //------------------------------------------------------------------------------
-cap pr drop program Annihilate
-program Annihilate
+cap pr drop program Demean
+program Demean
 //------------------------------------------------------------------------------
 syntax , VARlist(varlist numeric) ///
 	[TOLerance(real 1e-7) MAXITerations(integer 1000) ACCELerate(integer 1) /// See reghdfe.Parse
@@ -539,7 +543,7 @@ syntax , VARlist(varlist numeric) ///
 
 		qui replace `var' = `resid' // This way I keep labels and so on
 		drop `resid'
-		Assert !missing(`var'), msg("REGHDFE.Annihilate: `var' has missing values after transformation")
+		Assert !missing(`var'), msg("REGHDFE.Demean: `var' has missing values after transformation")
 	}
 	Debug, level(2) toc(30) msg("(timer for calls to mata:make_residual)")
 end
@@ -549,7 +553,7 @@ end
 cap pr drop Save
 program Save, rclass
 //------------------------------------------------------------------------------
-// Run this after -Annihilate .. , save_fe(1)-
+// Run this after -Demean .. , save_fe(1)-
 // For each FE, if it has a -target-, add label, chars, and demean or divide
 syntax , original_depvar(string)
 
@@ -604,7 +608,7 @@ program Stop
 	cap mata: mata drop clustervars
 	cap mata: mata drop clustervars_ivars
 	cap mata: mata drop clustervars_original
-	
+
 	if ("${reghdfe_pwd}"!="") {
 		qui cd "${reghdfe_pwd}"
 		global reghdfe_pwd
@@ -691,8 +695,8 @@ program ParallelInstance
 end
 
 //------------------------------------------------------------------------------
-cap pr drop AnnihilateParallel
-program AnnihilateParallel
+cap pr drop DemeanParallel
+program DemeanParallel
 //------------------------------------------------------------------------------
 // Notes:
 // First cluster is taking by this stata instance, to save HDD/memory/merge time

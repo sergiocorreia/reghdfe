@@ -60,7 +60,7 @@ else {
 	marksample touse, novar // Uses -if- , -in- ; -weight-? and -exp- ; can't drop any var until this
 	keep `uid' `touse' `timevar' `panelvar' `absorb_keepvars' `basevars' `over' `weightvar' `tsvars'
 
-* 5) Expand factor and time-series variables
+* 5) Expand factor and time-series variables (this *must* happen before reghdfe precompute is called!)
 	local expandedvars
 	foreach set of local sets {
 		local varlist ``set''
@@ -74,6 +74,7 @@ else {
 
 * 6) Drop unused basevars and tsset vars (usually no longer needed)
 	keep `uid' `touse' `absorb_keepvars' `expandedvars' `over' `weightvar' `tsvars'
+
 * 7) Drop all observations with missing values (before creating the FE ids!)
 	markout `touse' `expandedvars'
 	markout `touse' `expandedvars' `absorb_keepvars'
@@ -83,8 +84,7 @@ else {
 	if ("`over'"!="" & `savingcache') qui levelsof `over', local(levels_over)
 
 * 8) Fill Mata structures, create FE identifiers, avge vars and clustervars if needed
-	
-	reghdfe_absorb, step(precompute) keep(`uid' `expandedvars' `tsvars') depvar("`depvar'") `excludeself'
+	reghdfe_absorb, step(precompute) keep(`uid' `expandedvars' `tsvars') depvar("`depvar'") `excludeself' tsvars(`tsvars')
 	Debug, level(2) msg("(dataset compacted: observations " as result "`RAW_N' -> `c(N)'" as text " ; variables " as result "`RAW_K' -> `c(k)'" as text ")")
 	local avgevars = cond("`avge'"=="", "", "__W*__")
 	local vars `expandedvars' `avgevars'
@@ -133,6 +133,7 @@ else {
 	local kk = r(kk) // FEs that were not found to be redundant (= total FEs - redundant FEs)
 	local M = r(M) // FEs found to be redundant
 	local saved_group = r(saved_group)
+	local M_due_to_nested = r(M_due_to_nested)
 
 	Assert `kk'<.
 	Assert `M'>=0 & `M'<.
@@ -300,8 +301,8 @@ if (`savingcache') {
 
 	* Five wrappers in total, two for iv (ivreg2, ivregress), three for ols (regress, avar, mwc)
 	local wrapper "Wrapper_`subcmd'" // regress ivreg2 ivregress
-	if ("`subcmd'"=="regress" & "`vcesuite'"=="default" & `num_clusters'>2) local wrapper "Wrapper_mwc"
 	if ("`subcmd'"=="regress" & "`vcesuite'"=="avar") local wrapper "Wrapper_avar"
+	if ("`subcmd'"=="regress" & "`vcesuite'"=="mwc") local wrapper "Wrapper_mwc"
 	Debug, level(3) msg(_n "call to wrapper:" _n as result "`wrapper', `options'")
 	`wrapper', `options'
 	local subpredict = e(predict) // used to recover the FEs
@@ -334,7 +335,7 @@ else {
 * 2) Recover the FEs
 	* Predict will get (e+d) from the equation y=xb+d+e
 	tempvar resid_d
-	local score = cond("`vcesuite'"=="avar", "score", "resid")
+	local score = cond(inlist("`vcesuite'", "avar", "mwc"), "score", "resid")
 	`subpredict' double `resid_d', `score' // Auto-selects the program based on the estimation method
 	Debug, level(2) msg("(loaded untransformed variables, predicted residuals)")
 
@@ -478,12 +479,25 @@ else {
 		ereturn scalar r2u = .
 	}
 
-	ereturn scalar r2_a = 1 - (e(rss)/e(df_r)) / (`tss' / (e(N)-1) ) // After fixing e(df_r)
-	ereturn scalar rmse = sqrt( e(rss) / e(df_r) )
+	* Computing Adj R2 with custered SEs is tricky because it doesn't use the adjusted inputs:
+	* 1) It uses N instead of N_clust
+	* 2) For the DoFs, it uses N - Parameters instead of N_clust-1
+	* 3) Further, to compute the parameters, it includes those nested within clusters
+	
+	* Note that this adjustment is NOT PERFECT because we won't compute the mobility groups just for improving the r2a
+	* (when a FE is nested within a cluster, we don't need to compute mobilty groups; but to get the same R2a as other estimators we may want to do it)
+	* Instead, you can set by hand the dof() argument and remove -cluster- from the list
+
+	if ("`model'"=="ols" & `num_clusters'>0) Assert e(unclustered_df_r)<., msg("wtf-`vcesuite'")
+	local used_df_r = cond(e(unclustered_df_r)<., e(unclustered_df_r), e(df_r)) - `M_due_to_nested'
+	ereturn scalar r2_a = 1 - (e(rss)/`used_df_r') / (`tss' / (e(N)-1) )
+
+	ereturn scalar rmse = sqrt( e(rss) / `used_df_r' )
+	if (e(N_clust)<.) ereturn scalar df_r = e(N_clust) - 1
 
 	if ("`weightvar'"!="") ereturn scalar sumweights = `sumweights'
 
-	if ("`model'"=="ols" & "`vcetype'"=="unadjusted") {
+	if ("`model'"=="ols" & inlist("`vcetype'", "unadjusted", "ols")) {
 		ereturn scalar F_absorb = (e(r2)-`r2c') / (1-e(r2)) * e(df_r) / `kk'
 		if (`nested') {
 			local rss`N_hdfe' = e(rss)
@@ -502,7 +516,6 @@ else {
 		}
 	}
 
-	if (e(N_clust)<.) ereturn scalar df_r = e(N_clust) - 1
 	// There is a big assumption here, that the number of other parameters does not increase asymptotically
 	// BUGBUG: We should allow the option to indicate what parameters do increase asympt.
 	// BUGBUG; xtreg does this: est scalar df_r = min(`df_r':=N-1-K, `df_cl') why was that?

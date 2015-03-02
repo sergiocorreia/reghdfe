@@ -1,5 +1,5 @@
 cd "D:/Github/reghdfe/source"
-cscript "reghdfe with weights" adofile reghdfe
+cscript "reghdfe with robust VCV" adofile reghdfe
 
 * Setup
 	discard
@@ -29,9 +29,7 @@ cscript "reghdfe with weights" adofile reghdfe
 	bys turn: gen t = _n
 	tsset turn t
 
-* [TEST] Simple example
-	
-	noi di as text " -  description of test"
+* [TEST] Robust
 	local lhs price
 	local rhs weight length
 	local absvars turn
@@ -40,22 +38,24 @@ cscript "reghdfe with weights" adofile reghdfe
 
 	* Custom adjustment: in this simple case we can compare _cons
 	local K = `K' + 1
+	drop if missing(rep)
 
 	* 1. Run benchmark
-	areg `lhs' `rhs', absorb(`absvars')
+	areg `lhs' `rhs', absorb(`absvars') robust
 	TrimMatrix `K'
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe
-	reghdfe `lhs' `rhs', absorb(`absvars')
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(robust)
 	TrimMatrix `K'
 	
 	* 3. Compare
 	storedresults compare benchmark e(), tol(1e-12) include( ///
-		scalar: N rmse tss rss mss r2 r2_a F df_r df_a df_m F_absorb ///
+		scalar: N rmse tss rss r2 r2_a F df_r df_a df_m /// F_absorb 
 		matrix: trim_b trim_V ///
 		macros: wexp wtype )
 	storedresults drop benchmark
+	* NOTE: What should I use to build F_absorb in this case?
 
 cd "D:/Github/reghdfe/test"
 exit

@@ -16,6 +16,15 @@ cap pr drop Replay
 	local savefirst = e(savefirst)
 	local suboptions = e(suboptions)
 
+	di as error "We need to add something like ivreg2 for the clusters.."
+	di as error "We can use the LHS of header: Number of clusters (turn) = as result 18"
+	
+	di as error "Same for explaining unusual SEs with -avar- and -mwc-"
+	di as error "like <Statistics robust to heteroskedasticity and clustering on turn and t>"
+	di as error "like <and kernel-robust to common correlated disturbances (Driscoll-Kraay)>"
+	di as error "<  kernel=Bartlett; bandwidth=2>"
+	di as error "<  time variable (t):  t>"
+	di as error "<  group variable (i): turn>"
 
 	local diopts = "`e(diopts)'"
 	if ("`options'"!="") { // Override

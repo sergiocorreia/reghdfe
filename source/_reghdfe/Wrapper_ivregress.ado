@@ -19,7 +19,8 @@ program define Wrapper_ivregress, eclass
 	gettoken vceoption clustervars : namelist
 	local clustervars `clustervars' // Trim
 	Assert inlist("`vceoption'", "unadjusted", "robust", "cluster")
-	if ("`clustervars'"!="") local vceoption `vceoption'(`clustervars')
+	if ("`clustervars'"!="") local vceoption `vceoption' `clustervars'
+	local vceoption "vce(`vceoption')"
 
 	local estimator 2sls
 	*if ("`estimator'"=="gmm") local vceoption = "`vceoption' " + subinstr("`vceoption'", "vce(", "wmatrix(", .)

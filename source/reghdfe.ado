@@ -1,4 +1,4 @@
-*! reghdfe 1.3.0 10Dec2014
+*! reghdfe 1.4.0 03Mar2015
 *! By Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 
@@ -23,6 +23,7 @@ program define reghdfe
 	}
 end
 
+include "_mata/fix_psd.mata"
 include "_reghdfe/Estimate.ado"
 	include "_reghdfe/Parse.ado"
 	include "_reghdfe/ExpandFactorVariables.ado"
@@ -38,3 +39,5 @@ include "_reghdfe/Estimate.ado"
 include "_reghdfe/Replay.ado"
 include "_common/Assert.ado"
 include "_common/Debug.ado"
+
+include "_reghdfe_absorb/GenerateID.ado"

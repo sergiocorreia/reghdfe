@@ -2,7 +2,7 @@ cap pr drop Wrapper_avar
 program define Wrapper_avar, eclass
 	syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 		original_absvars(string) original_depvar(string) [original_indepvars(string) avge_targets(string)] ///
-		vceoption(string asis) vcetype(string) ///
+		vceoption(string asis) ///
 		kk(integer) ///
 		[weightexp(string)] ///
 		addconstant(integer) ///
@@ -10,6 +10,7 @@ program define Wrapper_avar, eclass
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
 	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars'" )) ) // Just for esthetic purposes
+	if (`c(version)'>=12) local hidden hidden
 
 * Convert -vceoption- to what -avar- expects
 	local 0 `vceoption'
@@ -51,6 +52,7 @@ program define Wrapper_avar, eclass
 	local marginsok = e(marginsok)
 	local rmse = e(rmse)
 	local rss = e(rss)
+
 	local predict = e(predict)
 	local cmd = e(cmd)
 	local cmdline = e(cmdline)
@@ -78,19 +80,15 @@ program define Wrapper_avar, eclass
 	local M = cond( r(N_clust) < . , r(N_clust) , r(N) )
 	local q = ( `N' - 1 ) / `df_r' * `M' / (`M' - 1) // General formula, from Stata PDF
 	tempname V
-	mat `V' = `invSxx' * r(S) * `invSxx' / r(N) // Large-sample version
-	mat `V' = `V' * `q' // Small-sample adjustments
+	matrix `V' = `invSxx' * r(S) * `invSxx' / r(N) // Large-sample version
+	matrix `V' = `V' * `q' // Small-sample adjustments
 	* At this point, we have the true V and just need to add it to e()
+
 * Avoid corner case error when all the RHS vars are collinear with the FEs
+	local unclustered_df_r = `df_r' // Used later in R2 adj
 	if ("`clustervars'"!="") local df_r = `M' - 1
 
-*di as error "`posted_dof'"
-*matrix list `V'
-*matrix puta = invsym(`V')
-*matrix list puta
-*di as error "capture ereturn post `b' `V' `weightexp', dep(`depvar') obs(`N'0) dof(`df_r'0) properties(b V)"
 	capture ereturn post `b' `V' `weightexp', dep(`depvar') obs(`N') dof(`df_r') properties(b V)
-*matrix list e(V)
 	local rc = _rc
 	Assert inlist(_rc,0,504), msg("error `=_rc' when adjusting the VCV") // 504 = Matrix has MVs
 	Assert `rc'==0, msg("Error: estimated variance-covariance matrix has missing values")
@@ -101,10 +99,11 @@ program define Wrapper_avar, eclass
 	ereturn local title = "`title'"
 	ereturn scalar rmse = `rmse'
 	ereturn scalar rss = `rss'
+	ereturn `hidden' scalar unclustered_df_r = `unclustered_df_r'
 
 * Compute model F-test
 	if (`K'>0) {
-		test `indepvars' `avge' // Wald test
+		qui test `indepvars' `avge' // Wald test
 		ereturn scalar F = r(F)
 		ereturn scalar df_m = r(df)
 		ereturn scalar rank = r(df)+1 // Add constant

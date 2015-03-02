@@ -21,6 +21,7 @@ program define Wrapper_regress, eclass
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
+	if (`c(version)'>=12) local hidden hidden
 
 	local vceoption : subinstr local vceoption "unadjusted" "ols"
 	local vceoption "vce(`vceoption')"
@@ -67,11 +68,14 @@ program define Wrapper_regress, eclass
 * ereturns specific to this command
 	ereturn scalar df_r = max(`CorrectDoF', 0)
 	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars'" )) )
-	ereturn local alternative_cmd regress `original_vars', `vceoption' `options'
 
 	if ("`vcetype'"!="cluster") { // ("`vcetype'"=="unadjusted")
 		ereturn scalar F = e(F) * `CorrectDoF' / `WrongDoF'
 		if missing(e(F)) di as error "WARNING! Missing FStat"
+	}
+	else {
+		ereturn `hidden' scalar unclustered_df_r = `CorrectDoF'
+		assert e(N_clust)<.
 	}
 
 

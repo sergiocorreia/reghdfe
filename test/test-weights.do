@@ -25,7 +25,7 @@ cscript "reghdfe with weights" adofile reghdfe
 	
 * [TEST] Freq. weight
 	noi di as text " - freq. weight"
-	areg price weight disp turn#foreign [fw=n], a(turn)
+	qui areg price weight disp turn#foreign [fw=n], a(turn)
 	TrimMatrix 2
 	storedresults save areg e()
 
@@ -44,7 +44,7 @@ cscript "reghdfe with weights" adofile reghdfe
 	cap drop n
 	gen double n = 100000
 	
-	areg price weight disp turn#foreign [fw=n], a(turn)
+	qui areg price weight disp turn#foreign [fw=n], a(turn)
 	TrimMatrix 2
 	storedresults save areg e()
 	
@@ -57,11 +57,11 @@ cscript "reghdfe with weights" adofile reghdfe
 	noi di as text " - analitic weight"
 	cap drop n
 	gen n = 1 + (10 * uniform())
-	reg price weight disp trunk turn##foreign [aw=n] // , a(turn)
+	qui reg price weight disp trunk turn##foreign [aw=n] , robust
 	TrimMatrix 3
 	storedresults save areg e()
 	
-	reghdfe price weight disp trunk [aw=n], a(turn#foreign) tol(1e-10) dofmethod(bounds)
+	reghdfe price weight disp trunk [aw=n], a(turn#foreign) tol(1e-10) dof(none) vce(robust)
 	TrimMatrix 3
 	storedresults compare areg e(), tol(1e-10) include(scalar: N r2 matrix: trim_b trim_V macros: wexp wtype)
 	storedresults drop areg
@@ -76,18 +76,23 @@ cscript "reghdfe with weights" adofile reghdfe
 	noi di as text " - probability weight"
 	cap drop n
 	gen n = 1 + (10 * uniform())
-	reg price weight disp trunk turn##foreign [pw=n] // , a(turn)
+	qui reg price weight disp trunk turn##foreign [pw=n] , robust
 	TrimMatrix 3
 	storedresults save areg e()
 	
-	reghdfe price weight disp trunk [pw=n], a(turn#foreign) tol(1e-10) dofmethod(bounds)
+	reghdfe price weight disp trunk [pw=n], a(turn#foreign) tol(1e-10) dof(none) vce(robust)
 	TrimMatrix 3
 	storedresults compare areg e(), tol(1e-10) include(scalar: N r2 matrix: trim_b trim_V macros: wexp wtype)
 	storedresults drop areg
 	
 	
-	
-	exit
+cd "D:/Github/reghdfe/test"
+exit
+
+
+
+
+
 /*
 clear all
 discard

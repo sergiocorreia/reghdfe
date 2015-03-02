@@ -96,7 +96,11 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 	}
 
 * Check if an absvar is a clustervar or is nested in a clustervar
-	if (`adj_clusters' & `N_clustervars'>0) {
+* We *always* check if absvar is a clustervar, to prevent deleting its __FE__ variable by mistake
+* But we only update the DoF if `adj_clusters' is true.
+
+	local M_due_to_nested 0 // Redundant DoFs due to nesting within clusters
+	if (`N_clustervars'>0) {
 		mata: st_local("clustervars", invtokens(clustervars))
 		forv g=1/`G' {
 			reghdfe_absorb, fe2local(`g')
@@ -105,10 +109,10 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 			
 			* Trick: if the absvar is also a clustervar, then its name will be __FE*__
 			local absvar_is_clustervar : list varname in clustervars
-			if (`absvar_is_clustervar') {
+			if (`adj_clusters' & `absvar_is_clustervar') {
 				Debug, level(1) msg("(categorical variable " as result "`varlabel'"as text " is also a cluster variable, so it doesn't count towards DoF)")
 			}
-			else {
+			else if (`adj_clusters') {
 				forval i = 1/`N_clustervars' {
 					mata: st_local("clustervar", clustervars[`i'])
 					mata: st_local("clustervar_original", clustervars_original[`i'])
@@ -123,10 +127,11 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 
 			if (`absvar_is_clustervar') local drop`g' 0
 
-			if (`absvar_is_clustervar' | `absvar_in_clustervar') {
+			if ( `adj_clusters' & (`absvar_is_clustervar' | `absvar_in_clustervar') ) {
 				local M`g' = `levels'
 				local redundant`g' 1
 				local exact`g' 1
+				local M_due_to_nested = `M_due_to_nested' + `levels' - 1
 			}
 		} // end for over absvars
 	} // end cluster adjustment
@@ -217,6 +222,7 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 		local saved_group = 1
 	}
 	return scalar saved_group = `saved_group'
+	return scalar M_due_to_nested = `M_due_to_nested'
 end
 
 capture program drop CheckZerosByGroup
