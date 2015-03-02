@@ -1,5 +1,5 @@
 cd "D:/Github/reghdfe/source"
-cscript "reghdfe with robust VCV" adofile reghdfe
+cscript "reghdfe with unadjusted/ols VCV" adofile reghdfe
 
 * Setup
 	discard
@@ -30,7 +30,7 @@ cscript "reghdfe with robust VCV" adofile reghdfe
 	tsset turn t
 	drop if missing(rep)
 	
-	local included_e scalar: N rmse tss rss r2 r2_a F df_r df_a df_m /// F_absorb
+	local included_e scalar: N rmse tss rss r2 r2_a F df_r df_a df_m F_absorb ///
 		matrix: trim_b trim_V ///
 		macros: wexp wtype
 
@@ -42,23 +42,22 @@ cscript "reghdfe with robust VCV" adofile reghdfe
 	local K : list sizeof tmp
 	
 	* 1. Run benchmark
-	areg `lhs' `rhs', absorb(`absvars') robust
+	areg `lhs' `rhs', absorb(`absvars')
 	TrimMatrix `K'
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe-avar and compare
-	reghdfe `lhs' `rhs', absorb(`absvars') vce(robust, suite(avar))
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(unadjusted, suite(avar))
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-12) include(`included_e')
 
 	* 3. Run reghdfe-default and compare
-	reghdfe `lhs' `rhs', absorb(`absvars') vce(robust, suite(default))
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(unadjusted, suite(default))
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-12) include(`included_e')
 
+
 	storedresults drop benchmark
-	
-	* NOTE: What should I use to build F_absorb in this case?
 
 cd "D:/Github/reghdfe/test"
 exit

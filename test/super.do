@@ -7,9 +7,10 @@
 	
 * Run scripts
 	*run test-minimal
-	run test-ivreg2
+	run test-unadjusted
 	run test-robust
 	run test-cluster
+	run test-ivreg2
 	run test-cluster-same-as-absvar
 	run test-vce-complex-bw
 	run test-weights

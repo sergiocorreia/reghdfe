@@ -43,11 +43,15 @@ cscript "reghdfe with clusters" adofile reghdfe
 
 	* 1. Run benchmark
 	areg `lhs' `rhs', absorb(`absvars') cluster(`clustervar')
+	di as result "areg `lhs' `rhs', absorb(`absvars') cluster(`clustervar')"
+	matrix list e(V)
 	TrimMatrix `K'
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe
+	di as result "reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervar')"
 	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervar') // dof(none)
+	matrix list e(V)
 	TrimMatrix `K'
 	
 	* 3. Compare

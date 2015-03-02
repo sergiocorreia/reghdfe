@@ -497,7 +497,8 @@ else {
 	ereturn scalar r2_a = 1 - (e(rss)/`used_df_r') / (`tss' / (e(N)-1) )
 
 	ereturn scalar rmse = sqrt( e(rss) / `used_df_r' )
-	if (e(N_clust)<.) ereturn scalar df_r = e(N_clust) - 1
+	if (e(N_clust)<.) Assert e(df_r) == e(N_clust) - 1, msg("Error, `wrapper' should have made sure that N_clust-1==df_r")
+	*if (e(N_clust)<.) ereturn scalar df_r = e(N_clust) - 1
 
 	if ("`weightvar'"!="") ereturn scalar sumweights = `sumweights'
 

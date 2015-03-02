@@ -1,31 +1,20 @@
-/* Notes:
-- For -cluster- I need to run two regressions as in xtreg; the first one is to get the df_m
-
-- El FTEST es distinto entre areg/reg y xtreg porque xtreg hace un ajuste extra
-para pasar de areg a xtreg, multiplicar el F por Q^2
-Donde Q =  (e(N) - e(rank)) / (e(N) - e(rank) - e(df_a))
-Es decir, en vez de dividir entre N-K-KK, me basta con dividir entre N-K
-Asi que me bastaria usar -test- despues de correr la regresion y deberia salir igual que el FTEST ajustado del areg!!!
-(tambien igual al del xreg pero eso es mas limitante , aunq igual probar para 1 HDFE creando t=_n a nivel del ID1)
-*/
-*/
-
 cap pr drop Wrapper_regress
 program define Wrapper_regress, eclass
 	syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 		original_absvars(string) original_depvar(string) [original_indepvars(string) avge_targets(string)] ///
-		vceoption(string asis) vcetype(string) ///
+		vceoption(string asis) ///
 		kk(integer) ///
 		[weightexp(string)] ///
 		addconstant(integer) ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
+	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars'" )) ) // Just for esthetic purposes
 	if (`c(version)'>=12) local hidden hidden
 
+* Convert unadjusted into ols so -regress- can handle it
 	local vceoption : subinstr local vceoption "unadjusted" "ols"
 	local vceoption "vce(`vceoption')"
-	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars'" )) ) // Just for esthetic purposes
 
 * Hide constant
 	if (!`addconstant') {
@@ -33,25 +22,44 @@ program define Wrapper_regress, eclass
 		local kk = `kk' + 1
 	}
 
-* Run regression just to compute true DoF
-	local subcmd _regress `vars' `weightexp', noheader notable `suboptions'
+* Obtain e(df_m)
+	_rmcoll `vars' `weightexp', forcedrop
+	local varlist = r(varlist)
+	local df_m : list sizeof varlist
+	
+	
+
+	local subcmd regress `vars' `weightexp', noheader notable `suboptions'
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	qui `subcmd'
-	local N = e(N)
-	local K = e(df_m) // Should also be equal to e(rank)+1
-	*** scalar `sse' = e(rss)
+
+	local K = e(df_m)
 	local WrongDoF = `N' - `addconstant' - `K'
+	assert `WrongDoF'==e(df_r) // DoF should equal N-K-1
+	
 	local CorrectDoF = `WrongDoF' - `kk' // kk = Absorbed DoF
 	Assert !missing(`CorrectDoF')
 	
 * Now run intended regression and fix VCV
-	local subcmd regress `vars' `weightexp', `vceoption' noheader notable `suboptions' `nocons'
+	local new_df_r = max(`CorrectDoF', 0)
+	local subcmd regress `vars' `weightexp', `vceoption' `suboptions' `nocons' dof(`new_df_r') // noheader notable
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	qui `subcmd'
+
+	* When vcetype -unadjusted-, setting the dof() option is enough
+	* But with -robust-, 
 	
 	* Fix DoF
 	tempname V
+
 	cap matrix `V' = e(V) * (`WrongDoF' / `CorrectDoF')
+	ereturn scalar F = e(F) / (`WrongDoF' / `CorrectDoF')
+	ereturn scalar df_r = `new_df_r'
+	if ("`vcetype'"=="cluster")  ereturn scalar df_r = e(N_clust) - 1
+	* unadj: dof(new_df_r) ; no ajustar V luego
+	* robust: si anhado el ajuste a V() se arregla V ; pero ademas tengo que arreglar el df_r y el F porque EL PUTO REGRESS AJUSTA MAL EL DOF!!!!!!!!!!
+	di as error e(df_r)
+	di as error `new_df_r'
 
 	* Avoid corner case error when all the RHS vars are collinear with the FEs
 	if (`K'>0) {
@@ -62,15 +70,12 @@ program define Wrapper_regress, eclass
 		ereturn scalar rank = 1 // Set e(rank)==1 when e(df_m)=0 , due to the constant
 		* (will not be completely correct if model is already demeaned?)
 	}
-	
-	*** if ("`vcetype'"!="cluster") ereturn scalar rank = e(rank) + `kk'
 
 * ereturns specific to this command
-	ereturn scalar df_r = max(`CorrectDoF', 0)
 	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars'" )) )
 
 	if ("`vcetype'"!="cluster") { // ("`vcetype'"=="unadjusted")
-		ereturn scalar F = e(F) * `CorrectDoF' / `WrongDoF'
+		ereturn scalar F = e(F) // * `CorrectDoF' / `WrongDoF'
 		if missing(e(F)) di as error "WARNING! Missing FStat"
 	}
 	else {
