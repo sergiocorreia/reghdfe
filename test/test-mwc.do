@@ -120,13 +120,13 @@ cscript "reghdfe with multi-way clustering" adofile reghdfe
 	ivreg2 `lhs' `rhs' ABS_* , cluster(`clustervars') small nocons partial(ABS_*)
 	drop ABS_*
 	TrimMatrix `K'
+	local ivreg2_r2 = e(r2) // Within R2
 	storedresults save bench_ivreg2 e()
 	
 	* Run and test reghdfe-mwc
 	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervars', suite(mwc))
 	TrimMatrix `K'
-	*mat li e(V)
-	
+
 	* Compare
 	
 	storedresults compare bench_def e(), tol(1e-12) include( ///
@@ -157,6 +157,10 @@ cscript "reghdfe with multi-way clustering" adofile reghdfe
 		macros: wexp wtype )
 	storedresults drop bench_ivreg2
 	assert "`e(N_clustervars)'"!="" & "`e(N_clustervars)'"!="."
+	if abs(e(within_r2)-`ivreg2_r2')>1e8 {
+		di as error "Within R2 doesn't match ivreg2 (`e(within_r2)' vs (`ivreg2_r2')"
+		exit 9
+	}
 	
 * [TEST] Three Clustervars
 	local clustervars turn trunk mpg

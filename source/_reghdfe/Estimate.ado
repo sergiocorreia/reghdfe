@@ -305,6 +305,9 @@ if (`savingcache') {
 	if ("`subcmd'"=="regress" & "`vcesuite'"=="mwc") local wrapper "Wrapper_mwc"
 	Debug, level(3) msg(_n "call to wrapper:" _n as result "`wrapper', `options'")
 	`wrapper', `options'
+	
+	Assert e(tss)<., msg("within tss is missing (wrapper=`wrapper')")
+	
 	local subpredict = e(predict) // used to recover the FEs
 
 	if ("`weightvar'"!="") {
@@ -469,6 +472,7 @@ else {
 	}
 
 	Assert e(df_r)<. , msg("e(df_r) is missing")
+	ereturn scalar within_r2 = 1 - e(rss) / e(tss)
 	ereturn scalar tss = `tss'
 	ereturn scalar mss = e(tss) - e(rss)
 	ereturn scalar r2 = 1 - e(rss) / `tss'

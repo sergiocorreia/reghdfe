@@ -44,6 +44,7 @@ program define Wrapper_ivreg2, eclass
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'
 	if ("`noise'"=="noi") di in red "{hline 64}" _n "{hline 64}"
+	ereturn scalar tss = e(mss) + e(rss) // ivreg2 doesn't report e(tss)
 
 	if !missing(e(ecollin)) {
 		di as error "endogenous covariate <`e(ecollin)'> was perfectly predicted by the instruments!"
@@ -84,6 +85,7 @@ program define Wrapper_ivreg2, eclass
 		}
 		qui estimates restore `hold'
 		estimates drop `hold'
+
 	}
 
 	* ereturns specific to this command

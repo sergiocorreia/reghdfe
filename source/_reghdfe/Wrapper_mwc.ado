@@ -41,6 +41,7 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 	local marginsok = e(marginsok)
 	local rmse = e(rmse)
 	local rss = e(rss)
+	local tss = e(mss) + e(rss) // Regress doesn't report e(tss)
 
 	local predict = e(predict)
 	local cmd = e(cmd)
@@ -127,6 +128,7 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 	ereturn local title = "`title'"
 	ereturn scalar rmse = `rmse'
 	ereturn scalar rss = `rss'
+	ereturn scalar tss = `tss'
 	ereturn `hidden' scalar unclustered_df_r = `unclustered_df_r'
 
 	ereturn local clustvar = "`clustervars'"

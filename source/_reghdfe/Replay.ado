@@ -25,6 +25,8 @@ cap pr drop Replay
 	di as error "<  kernel=Bartlett; bandwidth=2>"
 	di as error "<  time variable (t):  t>"
 	di as error "<  group variable (i): turn>"
+	
+	di as error "How can I tell I'm showing within R2 instead of standard R2?"
 
 	local diopts = "`e(diopts)'"
 	if ("`options'"!="") { // Override

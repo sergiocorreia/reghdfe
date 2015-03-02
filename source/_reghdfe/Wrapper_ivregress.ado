@@ -66,4 +66,6 @@ program define Wrapper_ivregress, eclass
 	* ereturns specific to this command
 	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars' (`original_endogvars'=`original_instruments')" )) )
 	if ("`estimator'"!="gmm") ereturn scalar F = e(F) * `CorrectDoF' / `WrongDoF'
+
+	ereturn scalar tss = e(mss) + e(rss) // ivreg2 doesn't report e(tss)
 end

@@ -98,6 +98,8 @@ program define Wrapper_regress, eclass
 		}
 	}
 
+	ereturn scalar tss = e(mss) + e(rss) // Regress doesn't report e(tss)
+
 * Fstat
 	* _U: Unrestricted, _R: Restricted
 	* FStat = (RSS_R - RSS_U) / RSS * (N-K) / q
