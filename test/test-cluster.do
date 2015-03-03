@@ -50,7 +50,7 @@ cscript "reghdfe with clusters" adofile reghdfe
 	
 	* 2. Run reghdfe
 	di as result "reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervar')"
-	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervar') // dof(none)
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervar') // dof(none)	
 	matrix list e(V)
 	TrimMatrix `K'
 	

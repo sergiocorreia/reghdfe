@@ -157,8 +157,8 @@ cscript "reghdfe with multi-way clustering" adofile reghdfe
 		macros: wexp wtype )
 	storedresults drop bench_ivreg2
 	assert "`e(N_clustervars)'"!="" & "`e(N_clustervars)'"!="."
-	if abs(e(within_r2)-`ivreg2_r2')>1e8 {
-		di as error "Within R2 doesn't match ivreg2 (`e(within_r2)' vs (`ivreg2_r2')"
+	if abs(e(r2_within)-`ivreg2_r2')>1e8 {
+		di as error "Within R2 doesn't match ivreg2 (`e(r2_within)' vs (`ivreg2_r2')"
 		exit 9
 	}
 	

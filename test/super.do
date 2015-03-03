@@ -16,6 +16,9 @@
 	run test-weights
 	run test-mwc
 	run test-ivreg2-nocons
+	
+	run test-postestimation-test
+	run test-postestimation-predict
 
 * Success
 	di as text "No errors found!"

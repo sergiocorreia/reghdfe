@@ -43,35 +43,6 @@ cscript "reghdfe postestimation: test" adofile reghdfe
 
 	local testvars length gear
 
-* [TEST] Robust
-
-	* 1. Run benchmark
-	areg `lhs' `rhs', absorb(`absvars') robust
-	TrimMatrix `K'
-	test `testvars'
-	storedresults save bench_r r()
-	storedresults save bench_e e()
-
-	* 2. Run reghdfe and compare
-	
-	* 2a) vce suite = avar
-	reghdfe `lhs' `rhs', absorb(`absvars') vce(robust, suite(avar))
-	TrimMatrix `K'
-	storedresults compare bench_e e(), tol(1e-10) include(`included_e') // Note the lowered tol
-	test `testvars'
-	storedresults compare bench_r r(), tol(1e-12) // include(scalar: drop df_r F df p)
-
-	* 2a) vce suite = default
-	reghdfe `lhs' `rhs', absorb(`absvars') vce(robust, suite(default))
-	TrimMatrix `K'
-	storedresults compare bench_e e(), tol(1e-10) include(`included_e') // Note the lowered tol
-	test `testvars'
-	storedresults compare bench_r r(), tol(1e-12) // include(scalar: drop df_r F df p)
-
-	storedresults drop bench_e bench_r
-
-asd
-
 * [TEST] Unadjusted
 
 	* 1. Run benchmark
@@ -99,5 +70,60 @@ asd
 
 	storedresults drop bench_e bench_r
 
+
+* [TEST] Robust
+
+	* 1. Run benchmark
+	areg `lhs' `rhs', absorb(`absvars') robust
+	TrimMatrix `K'
+	test `testvars'
+	storedresults save bench_r r()
+	storedresults save bench_e e()
+
+	* 2. Run reghdfe and compare
+	
+	* 2a) vce suite = avar
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(robust, suite(avar))
+	TrimMatrix `K'
+	storedresults compare bench_e e(), tol(1e-10) include(`included_e') // Note the lowered tol
+	test `testvars'
+	storedresults compare bench_r r(), tol(1e-12) // include(scalar: drop df_r F df p)
+
+	* 2a) vce suite = default
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(robust, suite(default))
+	TrimMatrix `K'
+	storedresults compare bench_e e(), tol(1e-10) include(`included_e') // Note the lowered tol
+	test `testvars'
+	storedresults compare bench_r r(), tol(1e-12) // include(scalar: drop df_r F df p)
+
+	storedresults drop bench_e bench_r
+	
+
+* [TEST] Cluster
+
+	* 1. Run benchmark
+	areg `lhs' `rhs', absorb(`absvars') cluster(trunk)
+	TrimMatrix `K'
+	test `testvars'
+	storedresults save bench_r r()
+	storedresults save bench_e e()
+
+	* 2. Run reghdfe and compare
+	
+	* 2a) vce suite = avar
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster trunk, suite(avar))
+	TrimMatrix `K'
+	storedresults compare bench_e e(), tol(1e-10) include(`included_e') // Note the lowered tol
+	test `testvars'
+	storedresults compare bench_r r(), tol(1e-12) // include(scalar: drop df_r F df p)
+
+	* 2a) vce suite = default
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster trunk, suite(default))
+	TrimMatrix `K'
+	storedresults compare bench_e e(), tol(1e-10) include(`included_e') // Note the lowered tol
+	test `testvars'
+	storedresults compare bench_r r(), tol(1e-12) // include(scalar: drop df_r F df p)
+
+	storedresults drop bench_e bench_r
 cd "D:/Github/reghdfe/test"
 exit

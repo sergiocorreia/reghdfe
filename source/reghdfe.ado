@@ -37,6 +37,7 @@ include "_reghdfe/Estimate.ado"
 	include "_reghdfe/Wrapper_ivreg2.ado"
 	include "_reghdfe/AddConstant.ado"
 include "_reghdfe/Replay.ado"
+include "_reghdfe/Header.ado"
 include "_common/Assert.ado"
 include "_common/Debug.ado"
 

@@ -74,8 +74,18 @@ program define Wrapper_avar, eclass
 * Use -avar- to get meat of sandwich
 	local subcmd avar `resid' (`indepvars' `avgevars'), `vceoption' `nocons' // dofminus(0)
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
-	qui `subcmd'
-	
+	cap `subcmd'
+	local rc = _rc
+	if (`rc') {
+		di as error "Error in -avar- module:"
+		noi `subcmd'
+		exit 198
+	}
+
+	local N_clust = r(N_clust)
+	local N_clust1 = cond(r(N_clust1)<., r(N_clust1), r(N_clust))
+	local N_clust2 = r(N_clust2)
+
 * Get the entire sandwich
 	* Without clusters it's as if every obs. is is own cluster
 	local M = cond( r(N_clust) < . , r(N_clust) , r(N) )
@@ -98,9 +108,13 @@ program define Wrapper_avar, eclass
 	ereturn local cmd = "`cmd'"
 	ereturn local cmdline = "`cmdline'"
 	ereturn local title = "`title'"
+	ereturn local clustvar = "`clustervars'"
 	ereturn scalar rmse = `rmse'
 	ereturn scalar rss = `rss'
 	ereturn scalar tss = `tss'
+	if ("`N_clust'"!="") ereturn scalar N_clust = `N_clust'
+	if ("`N_clust1'"!="") ereturn scalar N_clust1 = `N_clust1'
+	if ("`N_clust2'"!="") ereturn scalar N_clust2 = `N_clust2'
 	ereturn `hidden' scalar unclustered_df_r = `unclustered_df_r'
 
 * Compute model F-test

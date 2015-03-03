@@ -336,10 +336,23 @@ else {
 	qui use "`original_vars'", clear
 
 * 2) Recover the FEs
+
 	* Predict will get (e+d) from the equation y=xb+d+e
 	tempvar resid_d
-	local score = cond(inlist("`vcesuite'", "avar", "mwc"), "score", "resid")
-	`subpredict' double `resid_d', `score' // Auto-selects the program based on the estimation method
+	if e(df_m)>0 {
+		local score = cond("`model'"=="ols", "score", "resid")
+		`subpredict' double `resid_d', `score' // Auto-selects the program based on the estimation method		
+	}
+	else {
+		gen double `resid_d' = `depvar'
+	}
+
+	* If the eqn doesn't have a constant, we need to save the mean of the resid in order to add it when predicting xb
+	if (!`addconstant') {
+		su `resid_d', mean
+		ereturn `hidden' scalar _cons = r(mean)
+	}
+
 	Debug, level(2) msg("(loaded untransformed variables, predicted residuals)")
 
 	* Absorb the residuals to obtain the FEs (i.e. run a regression on just the resids)
@@ -374,7 +387,6 @@ else {
 	reghdfe_absorb, step(save) original_depvar(`original_depvar')
 	local keepvars `r(keepvars)'
 	if ("`keepvars'"!="") format `fe_format' `keepvars'
-
 * 6) Save AvgEs
 	forv g=1/`N_avge' {
 		local var __W`g'__
@@ -415,7 +427,7 @@ else {
 	ereturn local model = "`model'"
 	ereturn local dofadjustments = "`dofadjustments'"
 	ereturn local title = "HDFE " + e(title)
-	ereturn local subtitle =  "Absorbing `N_hdfe' HDFE " + plural(`N_hdfe', "indicator")
+	ereturn local title2 =  "Absorbing `N_hdfe' HDFE " + plural(`N_hdfe', "indicator")
 	ereturn local predict = "reghdfe_p"
 	ereturn local estat_cmd = "reghdfe_estat"
 	ereturn local footnote = "reghdfe_footnote"
@@ -472,7 +484,7 @@ else {
 	}
 
 	Assert e(df_r)<. , msg("e(df_r) is missing")
-	ereturn scalar within_r2 = 1 - e(rss) / e(tss)
+	ereturn scalar r2_within = 1 - e(rss) / e(tss)
 	ereturn scalar tss = `tss'
 	ereturn scalar mss = e(tss) - e(rss)
 	ereturn scalar r2 = 1 - e(rss) / `tss'
@@ -528,6 +540,7 @@ else {
 	if ("`savefirst'"!="") ereturn `hidden' scalar savefirst = `savefirst'
 
 	* We have to replace -unadjusted- or else subsequent calls to -suest- will fail
+	Subtitle `vceoption' // will set title2, etc. Run after all the other e() are settled?
 	if (e(vce)=="unadjusted") ereturn local vce = "ols"
 
 * Show table and clean up
@@ -556,3 +569,26 @@ syntax, uid(varname numeric) file(string) [groupdta(string)]
 	if ("`groupdta'"!="") merge 1:1 `uid' using "`groupdta'", assert(master match) nogen nolabel nonotes noreport sorted
 end
 
+capture program drop Subtitle
+program define Subtitle, eclass
+	syntax namelist(max=11) , [bw(string) dkraay(string) kernel(string) kiefer]
+	gettoken vcetype clustervars : namelist
+	* Fill e(title3) and e(title4)
+	*ereturn local title3 = ..
+
+	if (inlist("`vcetype'", "robust", "cluster")) local hacsubtitle1 "heteroskedasticity"
+	if ("`kernel'"!="" & "`clustervars'"=="") local hacsubtitle3 "autocorrelation"
+	if ("`kiefer'"!="") local hacsubtitle3 "within-cluster autocorrelation (Kiefer)"
+	if ("`hacsubtitle1'"!="" & "`hacsubtitle3'" != "") local hacsubtitle2 " and "
+	local hacsubtitle "`hacsubtitle1'`hacsubtitle2'`hacsubtitle3'"
+	if ("`hacsubtitle'"!="") {
+		ereturn local title3 = "Statistics robust to `hacsubtitle'"
+		
+		local notes
+		foreach param in bw dkraay kernel  {
+			if ("``param''"!="") local notes " `notes' `param'=``param''"
+		}
+		local notes `notes' // remove initial space
+		if ("`notes'"!="") ereturn local title4 = " (`notes')"
+	}
+end

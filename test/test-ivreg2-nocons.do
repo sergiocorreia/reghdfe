@@ -65,5 +65,5 @@ set trace off
 	
 	reghdfe price weight (length=disp), a(turn) vce(cluster rep)
 	
-* [TEST] with cache
+cd "D:/Github/reghdfe/test"
 exit

@@ -16,18 +16,6 @@ cap pr drop Replay
 	local savefirst = e(savefirst)
 	local suboptions = e(suboptions)
 
-	di as error "We need to add something like ivreg2 for the clusters.."
-	di as error "We can use the LHS of header: Number of clusters (turn) = as result 18"
-	
-	di as error "Same for explaining unusual SEs with -avar- and -mwc-"
-	di as error "like <Statistics robust to heteroskedasticity and clustering on turn and t>"
-	di as error "like <and kernel-robust to common correlated disturbances (Driscoll-Kraay)>"
-	di as error "<  kernel=Bartlett; bandwidth=2>"
-	di as error "<  time variable (t):  t>"
-	di as error "<  group variable (i): turn>"
-	
-	di as error "How can I tell I'm showing within R2 instead of standard R2?"
-
 	local diopts = "`e(diopts)'"
 	if ("`options'"!="") { // Override
 		_get_diopts diopts /* options */, `options'
@@ -82,7 +70,11 @@ cap pr drop Replay
 			_prefix_display, `diopts'
 			exit
 		}
-		_coef_table_header
+		
+
+		*_coef_table_header
+		Header
+
 		di
 		local plus = cond(e(model)=="ols" & inlist("`e(vce)'", "unadjusted", "ols"), "plus", "")
 		_coef_table, `plus' `diopts' bmatrix(`b') vmatrix(e(V))

@@ -11,8 +11,10 @@ program define Wrapper_ivregress, eclass
 		SHOWRAW(integer) first(integer) ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
+	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
 	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars' (`endogvars'=`instruments')" )) )
-	
+	if (`c(version)'>=12) local hidden hidden
+
 	* Convert -vceoption- to what -ivreg2- expects
 	local 0 `vceoption'
 	syntax namelist(max=2)
@@ -23,12 +25,10 @@ program define Wrapper_ivregress, eclass
 	local vceoption "vce(`vceoption')"
 
 	local estimator 2sls
-	*if ("`estimator'"=="gmm") local vceoption = "`vceoption' " + subinstr("`vceoption'", "vce(", "wmatrix(", .)
 	
 	* Note: the call to -ivregress- could be optimized.
 	* EG: -ivregress- calls ereturn post .. ESAMPLE(..) but we overwrite the esample and its SLOW
 	* But it's a 1700 line program so let's not worry about it
-	*profiler on
 
 * Hide constant
 	if (!`addconstant') {
@@ -47,9 +47,6 @@ program define Wrapper_ivregress, eclass
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'
 	
-	*profiler off
-	*profiler report
-	
 	* Fix DoF if needed
 	local N = e(N)
 	local K = e(df_m)
@@ -61,11 +58,13 @@ program define Wrapper_ivregress, eclass
 		matrix `V' = e(V) * (`WrongDoF' / `CorrectDoF')
 		ereturn repost V=`V'
 	}
-	ereturn scalar df_r = `CorrectDoF'
+	
+	if ("`clustervars'"=="") ereturn scalar df_r = `CorrectDoF'
 
 	* ereturns specific to this command
 	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars' (`original_endogvars'=`original_instruments')" )) )
-	if ("`estimator'"!="gmm") ereturn scalar F = e(F) * `CorrectDoF' / `WrongDoF'
+	ereturn scalar F = e(F) * `CorrectDoF' / `WrongDoF'
 
 	ereturn scalar tss = e(mss) + e(rss) // ivreg2 doesn't report e(tss)
+	ereturn `hidden' scalar unclustered_df_r = `CorrectDoF' // Used later in R2 adj
 end

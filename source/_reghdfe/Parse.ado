@@ -52,7 +52,6 @@ else {
 		[bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) accel_freq(integer 3) accel_start(integer 6)] /// Advanced optimization options
 		[CORES(integer 1)] [USEcache(string)] [OVER(varname numeric)] ///
 		[noCONstant] /// Disable adding back the intercept (mandatory with -ivreg2-)
-		[WITHINR2] /// Display within-R2 instead of standard R2 (i.e. do what xtreg does instead of what areg does)
 		[*] // For display options
 }
 
@@ -178,7 +177,7 @@ if (!`savingcache') {
 	*Debug, msg("{hline 64}")
 
 * Add back constants (place this *after* we define `model')
-	local addconstant = ("`constant'"!="noconstant") & !("`model'"=="iv" & "`ivsuite'"=="ivreg2")
+	local addconstant = ("`constant'"!="noconstant") & !("`model'"=="iv" & "`ivsuite'"=="ivreg2") // also see below
 
 * Parse VCE options:
 	* Note: bw=1 means just do HC instead of HAC

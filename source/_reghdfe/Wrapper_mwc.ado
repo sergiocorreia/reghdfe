@@ -81,7 +81,10 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 		
 		if (`numvars'==1) {
 			su `group', mean
-			local N_clust`++j' = r(max)
+			local ++j
+			local h : list posof "`vars'" in clustervars
+			local N_clust`h' = r(max)
+
 			local N_clust = min(`N_clust', r(max))
 			Debug, level(2) msg(" - multi-way-clustering: `vars' has `r(max)' groups")
 		}
