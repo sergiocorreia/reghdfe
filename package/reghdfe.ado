@@ -769,7 +769,7 @@ if (!inlist("`stage'","none", "iv")) {
 	}
 	local estimate_name reghdfe_`stage'`i_endogvar'
 	local stored_estimates `stored_estimates' `estimate_name'
-	local cmd estimates store `estimate_name'
+	local cmd estimates store `estimate_name', nocopy
 	Debug, level(2) msg(" - Storing estimate: `cmd'")
 	`cmd'
 }
