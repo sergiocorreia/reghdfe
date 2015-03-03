@@ -23,8 +23,10 @@ program define reghdfe
 	}
 end
 
+* Note: Assert and Debug must go first
 include "_common/Assert.ado"
 include "_common/Debug.ado"
+
 include "_mata/fix_psd.mata"
 include "_reghdfe/Estimate.ado"
 	include "_reghdfe/Parse.ado"

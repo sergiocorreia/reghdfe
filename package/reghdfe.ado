@@ -21,6 +21,7 @@ program define reghdfe
 	}
 end
 
+* Note: Assert and Debug must go first
 
 // -------------------------------------------------------------
 // Simple assertions
@@ -78,6 +79,7 @@ program define Debug
 		if ("`newline'"!="") di
 	}
 end
+
 
 
 mata:
