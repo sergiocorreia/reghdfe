@@ -23,6 +23,8 @@ program define reghdfe
 	}
 end
 
+include "_common/Assert.ado"
+include "_common/Debug.ado"
 include "_mata/fix_psd.mata"
 include "_reghdfe/Estimate.ado"
 	include "_reghdfe/Parse.ado"
@@ -38,7 +40,5 @@ include "_reghdfe/Estimate.ado"
 	include "_reghdfe/AddConstant.ado"
 include "_reghdfe/Replay.ado"
 include "_reghdfe/Header.ado"
-include "_common/Assert.ado"
-include "_common/Debug.ado"
 
 include "_reghdfe_absorb/GenerateID.ado"
