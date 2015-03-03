@@ -124,6 +124,13 @@ else {
 	local tss = r(Var)*(r(N)-1)
 	assert `tss'<.
 
+	if (`: list posof "first" in stages') {
+		foreach var of varlist `endogvars' {
+			qui su `var' `tmpweightexp' // BUGBUG: Is this correct?!
+			local tss_`var' = r(Var)*(r(N)-1)
+		}
+	}
+
 * 11) Calculate the degrees of freedom lost due to the FEs
 	if ("`group'"!="") {
 		tempfile groupdta
@@ -275,6 +282,96 @@ if (`savingcache') {
 
 // PART II - REGRESSION
 
+**** <<< START OF UGLY -stages- CODE
+assert "`stages'"!=""
+if ("`stages'"!="none") {
+	Debug, level(2) msg(_n " {title:Stages to run}: " as result "`stages'" _n)
+	local backup_fast `fast'
+	local num_stages : word count `stages'
+	local last_stage : word `num_stages' of `stages'
+	assert "`last_stage'"=="iv"
+	foreach vargroup in depvar indepvars endogvars instruments {
+		local backup_`vargroup' ``vargroup''
+		local backup_original_`vargroup' `original_`vargroup''
+	}
+	local backup_tss = `tss'
+}
+
+foreach stage of local stages {
+local lhs_endogvars = cond("`stage'"=="first", "`backup_endogvars'", "<none>")
+
+if ("`stage'"=="first") {
+	local i_endogvar 0
+}
+else {
+	local i_endogvar
+}
+
+foreach lhs_endogvar of local lhs_endogvars {
+Assert inlist("`stage'", "none", "iv", "first", "ols", "reduced", "acid")
+
+if ("`stage'"=="iv") {
+	local tss = `backup_tss'
+	local fast `backup_fast'
+	local depvar `backup_depvar'
+	local indepvars `backup_indepvars'
+	local endogvars `backup_endogvars'
+	local instruments `backup_instruments'
+	local original_depvar `backup_original_depvar'
+	local original_indepvars `backup_original_indepvars'
+	local original_endogvars `backup_original_endogvars'
+	local original_instruments `backup_original_instruments'
+}
+else if ("`stage'"=="ols") {
+	local tss = `backup_tss'
+	local fast 1
+	local depvar `backup_depvar'
+	local endogvars
+	local indepvars `backup_indepvars' `backup_endogvars'
+	local instruments
+	local original_depvar `backup_original_depvar'
+	local original_endogvars
+	local original_indepvars `backup_original_indepvars' `backup_original_endogvars'
+	local original_instruments
+}
+else if ("`stage'"=="reduced") {
+	local tss = `backup_tss'
+	local fast 1
+	local depvar `backup_depvar'
+	local indepvars `backup_indepvars' `backup_instruments'
+	local endogvars
+	local instruments
+	local original_depvar `backup_original_depvar'
+	local original_indepvars `backup_original_indepvars' `backup_original_instruments'
+	local original_endogvars
+	local original_instruments
+}
+else if ("`stage'"=="acid") {
+	local tss = `backup_tss'
+	local fast 1
+	local depvar `backup_depvar'
+	local indepvars `backup_indepvars' `backup_endogvars' `backup_instruments'
+	local endogvars
+	local instruments
+	local original_depvar `backup_original_depvar'
+	local original_indepvars `backup_original_indepvars' `backup_original_endogvars' `backup_original_instruments'
+	local original_endogvars
+	local original_instruments
+}
+else if ("`stage'"=="first") {
+	local tss = `tss_`lhs_endogvar''
+	local fast 1
+	local depvar `lhs_endogvar'
+	local indepvars `backup_indepvars' `backup_instruments'
+	local endogvars
+	local instruments
+	local original_depvar `backup_original_depvar'
+	local original_indepvars `backup_original_indepvars' `backup_original_endogvars' `backup_original_instruments'
+	local original_endogvars
+	local original_instruments
+}
+**** END OF UGLY -stages- CODE >>>> 
+
 * Cleanup
 	ereturn clear
 
@@ -284,8 +381,9 @@ if (`savingcache') {
 		AddConstant `depvar' `indepvars' `avgevars' `endogvars' `instruments'
 	}
 
+
 * Regress
-	Debug, level(2) msg("(running regresion: `model'.`ivsuite')")
+	if ("`stage'"=="none") Debug, level(2) msg("(running regresion: `model'.`ivsuite')")
 	local avge = cond(`N_avge'>0, "__W*__", "")
 	local options
 	local option_list ///
@@ -303,6 +401,8 @@ if (`savingcache') {
 	local wrapper "Wrapper_`subcmd'" // regress ivreg2 ivregress
 	if ("`subcmd'"=="regress" & "`vcesuite'"=="avar") local wrapper "Wrapper_avar"
 	if ("`subcmd'"=="regress" & "`vcesuite'"=="mwc") local wrapper "Wrapper_mwc"
+
+	if (!inlist("`stage'","none", "iv")) local wrapper "Wrapper_avar" // Compatible with ivreg2
 	Debug, level(3) msg(_n "call to wrapper:" _n as result "`wrapper', `options'")
 	`wrapper', `options'
 	
@@ -319,7 +419,7 @@ if (`savingcache') {
 
 if (`fast') {
 	* Copy pasted from below
-	Debug, level(3) msg("(avoiding -use- of temporary dataset")
+	Debug, level(3) msg("(avoiding -use- of temporary dataset)")
 	tempname b
 	matrix `b' = e(b)
 	local backup_colnames : colnames `b'
@@ -327,11 +427,9 @@ if (`fast') {
 	local newnames "`r(newnames)'"
 	local prettynames "`r(prettynames)'"
 	matrix colnames `b' = `newnames'
-
-	clear // can comment out after debugging
 }
 else {
-
+	assert inlist("`stage'", "iv", "none")
 * 1) Restore untransformed dataset
 	qui use "`original_vars'", clear
 
@@ -407,7 +505,7 @@ else {
 } // fast
 
 * 8) Restore original dataset and merge
-	restore // Restore user-provided dataset
+	if (inlist("`stage'","none", "iv")) restore // Restore user-provided dataset
 	if (!`fast') {
 		// `saved_group' was created by EstimateDoF.ado
 		if (!`saved_group')  local groupdta
@@ -421,7 +519,7 @@ else {
 
 * Ereturns common to all commands
 	ereturn local cmd = "reghdfe"
-	ereturn local subcmd = "`subcmd'"
+	ereturn local subcmd = cond(inlist("`stage'", "none", "iv"), "`subcmd'", "regress")
 	ereturn local cmdline `"`cmdline'"'
 	if ("`e(model)'"!="" & "`e(model)'"!="`model'") di as error "`e(model) was <`e(model)'>" // ?
 	ereturn local model = "`model'"
@@ -545,14 +643,31 @@ else {
 
 * Show table and clean up
 	ereturn repost b=`b', rename // why here???
+
+	Debug, level(0) msg(_n "{title:Stage: `stage'}" _n)
+	if ("`lhs_endogvar'"!="<none>") Debug, level(0) msg("{title:Endogvar: `lhs_endogvar'}")
 	Replay
+	Attach, post(`postestimation') notes(`notes')
+
+*** <<<< LAST PART OF UGLY STAGE <<<<	
+if (!inlist("`stage'","none", "iv")) {
+	if ("`i_endogvar'"!="") {
+		local ++ i_endogvar
+	}
+	local cmd estimates store reghdfe_`stage'`i_endogvar'
+	Debug, level(2) msg(" - Storing estimate: `cmd'")
+	`cmd'
+}
+
+} // lhs_endogvar
+} // stage
+*** >>>> LAST PART OF UGLY STAGE >>>>
+
 	reghdfe_absorb, step(stop)
 
-	Attach, post(`postestimation') notes(`notes')
 end
 
 // -------------------------------------------------------------------------------------------------
-
 
 * The idea of this program is to keep the sort order when doing the merges
 cap pr drop SafeMerge

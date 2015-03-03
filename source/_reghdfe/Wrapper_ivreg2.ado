@@ -39,7 +39,7 @@ program define Wrapper_ivreg2, eclass
 	}
 
 	* Variables have already been demeaned, so we need to add -nocons- or the matrix of orthog conditions will be singular
-	local subcmd ivreg2 `vars' `weightexp', `vceoption' `firstoption' small dofminus(`=`kk'+1') `suboptions' nocons
+	local subcmd ivreg2 `vars' `weightexp', `vceoption' `firstoption' small sdofminus(`=`kk'+1') `suboptions' nocons
 	Debug, level(3) msg(_n "call to subcommand: " _n as result "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'
