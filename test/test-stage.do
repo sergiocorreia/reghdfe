@@ -55,7 +55,7 @@ cls
 	storedresults save b_iv e()
 
 	* OLS
-	areg `lhs' `rhs', abs(`absvars') cluster(`clustervar')
+	areg `lhs' `rhs' `endogvar', abs(`absvars') cluster(`clustervar')
 	fvunab tmp : `rhs'
 	local K_ols : list sizeof tmp
 	TrimMatrix `K_ols'
@@ -78,26 +78,29 @@ cls
 	* First stage
 	areg `endogvar' `rhs' `iv', abs(`absvars') cluster(`clustervar')
 	fvunab tmp : `rhs' `iv'
-	local K_first : list sizeof tmp
-	TrimMatrix `K_first'
-	storedresults save b_first e()
+	local K_first1 : list sizeof tmp
+	TrimMatrix `K_first1'
+	storedresults save b_first1 e()
 
 	* 2. Run reghdfe
-	reghdfe `lhs' `rhs' (`endogvar'=`iv'), absorb(`absvars') stages(ols first acid reduced) vce(cluster `clustervar')  // will be saved as reghdfe_`stage'
+	set trace off
+	set tracedepth 4
+	reghdfe `lhs' `rhs' (`endogvar'=`iv'), absorb(`absvars') stages(ols first acid reduced) vce(cluster `clustervar') // will be saved as reghdfe_`stage'
 	estimates store reghdfe_iv
 
 	* Compare
-	foreach stage in iv ols first acid reduced  {
+	foreach stage in iv ols first1 acid reduced  {
 		estimates restore reghdfe_`stage'
 		TrimMatrix `K_`stage''
 		storedresults compare b_`stage' e(), tol(1e-6) include( ///
-			scalar: N rss df_r /// rmse
+			scalar: N rss df_r `extra' /// rmse
 			matrix: trim_b trim_V ///
 			macros: wexp wtype )
+		local extra r2 // Activate after comparing IV
 		
 	}
 	
-	storedresults drop b_iv b_ols b_acid b_reduced b_first
+	storedresults drop b_iv b_ols b_acid b_reduced b_first1
 	estimates drop reghdfe_* // accepts wildchars? or just -estimates clear-?
 
 cd "D:/Github/reghdfe/test"

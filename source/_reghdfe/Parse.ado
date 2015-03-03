@@ -180,10 +180,19 @@ if (!`savingcache') {
 
 * Stages
 	assert "`model'"!="" // just to be sure this goes after `model' is set
-	local valid_stages iv ols first acid reduced
+	local iv_stage iv
+	local stages : list stages - iv_stage
+	local valid_stages ols first acid reduced
 	local wrong_stages : list stages - valid_stages
 	Assert "`wrong_stages'"=="", msg("Error, invalid stages(): `wrong_stages'")
-	if ("`stages'"!="") Assert "`model'"=="iv", msg("Error, stages() only valid with an IV regression")
+	if ("`stages'"!="") {
+		Assert "`model'"=="iv", msg("Error, stages() only valid with an IV regression")
+		local stages `stages' `iv_stage' // Put -iv- *last* (so it does the -restore-; note that we don't need it first to trim MVs b/c that's done earlier)
+		Assert "`avge'"=="", msg("Error, avge not allowed with stages()")
+	}
+	else {
+		local stages none // So we can loop over stages
+	}
 
 * Add back constants (place this *after* we define `model')
 	local addconstant = ("`constant'"!="noconstant") & !("`model'"=="iv" & "`ivsuite'"=="ivreg2") // also see below
@@ -348,7 +357,7 @@ if (!`savingcache') {
 		addconstant ///
 		weight weightvar exp weightexp /// type of weight (fw,aw,pw), weight var., and full expr. ([fw=n])
 		cores savingcache usecache over ///
-		postestimation notes
+		postestimation notes stages
 }
 
 if (`savingcache') {
