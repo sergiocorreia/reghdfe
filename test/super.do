@@ -3,10 +3,15 @@
 	clear all
 	discard
 	cap cls
+	set more off
 	cd "D:/Github/reghdfe/test"
 	
 * Run scripts
 	*run test-minimal
+	set trace off
+	set tracedepth 5
+	set varabbrev on
+
 	run test-unadjusted
 	run test-robust
 	run test-cluster
