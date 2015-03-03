@@ -52,6 +52,7 @@ else {
 		[bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) accel_freq(integer 3) accel_start(integer 6)] /// Advanced optimization options
 		[CORES(integer 1)] [USEcache(string)] [OVER(varname numeric)] ///
 		[POSTestimation(string) NOTES(string)] /// (Quipu) postestimation([SUmmarize QUIetly]) NOTES(key=value ..)
+		[STAGEs(string)] ///
 		[noCONstant] /// Disable adding back the intercept (mandatory with -ivreg2-)
 		[*] // For display options
 }
@@ -176,6 +177,13 @@ if (!`savingcache') {
 
 	Debug, msg(_n " {title:REGHDFE} Verbose level = `verbose'")
 	*Debug, msg("{hline 64}")
+
+* Stages
+	assert "`model'"!="" // just to be sure this goes after `model' is set
+	local valid_stages iv ols first acid reduced
+	local wrong_stages : list stages - valid_stages
+	Assert "`wrong_stages'"=="", msg("Error, invalid stages(): `wrong_stages'")
+	if ("`stages'"!="") Assert "`model'"=="iv", msg("Error, stages() only valid with an IV regression")
 
 * Add back constants (place this *after* we define `model')
 	local addconstant = ("`constant'"!="noconstant") & !("`model'"=="iv" & "`ivsuite'"=="ivreg2") // also see below

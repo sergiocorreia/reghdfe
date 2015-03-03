@@ -553,7 +553,6 @@ end
 
 // -------------------------------------------------------------------------------------------------
 
-
 * The idea of this program is to keep the sort order when doing the merges
 cap pr drop SafeMerge
 program define SafeMerge, eclass sortpreserve
