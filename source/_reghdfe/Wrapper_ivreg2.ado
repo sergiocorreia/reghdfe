@@ -5,8 +5,9 @@ program define Wrapper_ivreg2, eclass
 		original_depvar(string) original_endogvars(string) original_instruments(string) ///
 		[original_indepvars(string) avge_targets(string)] ///
 		[original_absvars(string) avge_targets] ///
-		estimator(string) vceoption(string asis) KK(integer) ///
-		[SHOWRAW(integer 0) dofminus(string)] first(integer) [weightexp(string)] ///
+		vceoption(string asis) ///
+		KK(integer) ///
+		[SHOWRAW(integer 0)] first(integer) [weightexp(string)] ///
 		addconstant(integer) ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
@@ -18,34 +19,32 @@ program define Wrapper_ivreg2, eclass
 	local suboptions `options'
 	assert (`addconstant'==0)
 
-	if ("`estimator'"=="2sls") local estimator
-
-	if strpos("`vceoption'","unadj") {
-		local vceoption
-	}
-	else if strpos("`vceoption'","robust")>0 {
-		local vceoption "robust" 
-	}
-	else {
-		local vceoption = substr(trim("`vceoption'"), 5, strlen("`vceoption'")-5)
-		gettoken vcefirst vceoption : vceoption
-		local vceoption = trim("`vceoption'")
-		local vceoption `vcefirst'(`vceoption')
-	}
+	* Convert -vceoption- to what -ivreg2- expects
+	local 0 `vceoption'
+	syntax namelist(max=3) , [bw(string) dkraay(string) kernel(string) kiefer]
+	gettoken vcetype clustervars : namelist
+	local clustervars `clustervars' // Trim
+	Assert inlist("`vcetype'", "unadjusted", "robust", "cluster")
+	local vceoption = cond("`vcetype'"=="unadjusted", "", "`vcetype'")
+	if ("`clustervars'"!="") local vceoption `vceoption'(`clustervars')
+	if ("`bw'"!="") local vceoption `vceoption' bw(`bw')
+	if ("`dkraay'"!="") local vceoption `vceoption' dkraay(`dkraay')
+	if ("`kernel'"!="") local vceoption `vceoption' kernel(`kernel')
+	if ("`kiefer'"!="") local vceoption `vceoption' kiefer
 	
 	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars' (`endogvars'=`instruments')" )) )
 	
 	if (`first') {
 		local firstoption "first savefirst"
 	}
-	Assert inlist("`dofminus'","dofminus","sdofminus")
 
 	* Variables have already been demeaned, so we need to add -nocons- or the matrix of orthog conditions will be singular
-	local subcmd ivreg2 `vars' `weightexp', `estimator' `vceoption' `firstoption' small `dofminus'(`=`kk'+1') `suboptions' nocons
+	local subcmd ivreg2 `vars' `weightexp', `vceoption' `firstoption' small dofminus(`=`kk'+1') `suboptions' nocons
 	Debug, level(3) msg(_n "call to subcommand: " _n as result "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'
 	if ("`noise'"=="noi") di in red "{hline 64}" _n "{hline 64}"
+	ereturn scalar tss = e(mss) + e(rss) // ivreg2 doesn't report e(tss)
 
 	if !missing(e(ecollin)) {
 		di as error "endogenous covariate <`e(ecollin)'> was perfectly predicted by the instruments!"
@@ -86,11 +85,9 @@ program define Wrapper_ivreg2, eclass
 		}
 		qui estimates restore `hold'
 		estimates drop `hold'
+
 	}
 
 	* ereturns specific to this command
 	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars' (`original_endogvars'=`original_instruments')" )) )
-	ereturn local alternative_cmd ivreg2 `original_vars', small `vceoption' `options' `estimator'
-	***if ("`estimator'"!="gmm") ereturn scalar F = e(F) * `CorrectDoF' / `WrongDoF'
-
 end

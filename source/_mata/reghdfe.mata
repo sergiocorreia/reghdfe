@@ -68,7 +68,7 @@ void function add_fe(
 	FEs[g].is_mock = is_mock
 	FEs[g].K = 1 + length(tokens(cvars)) // 1 w/out cvars, 2 with bivariate, +2 with multivariate within the group
 	FEs[g].is_cont_interaction = is_cont_interaction
-	FEs[g].varname = "__FE" + strofreal(g) + "__"
+	FEs[g].varname = "__FE" + strofreal(g-is_mock) + "__"
 	FEs[g].Z = "__Z" + strofreal(g) + "__"
 	FEs[g].varlabel = varlabel
 	FEs[g].levels = -1 // Not yet filled

@@ -16,7 +16,6 @@ cap pr drop Replay
 	local savefirst = e(savefirst)
 	local suboptions = e(suboptions)
 
-
 	local diopts = "`e(diopts)'"
 	if ("`options'"!="") { // Override
 		_get_diopts diopts /* options */, `options'
@@ -71,9 +70,13 @@ cap pr drop Replay
 			_prefix_display, `diopts'
 			exit
 		}
-		_coef_table_header
+		
+
+		*_coef_table_header
+		Header
+
 		di
-		local plus = cond(e(model)=="ols" & e(vce)=="unadjusted", "plus", "")
+		local plus = cond(e(model)=="ols" & inlist("`e(vce)'", "unadjusted", "ols"), "plus", "")
 		_coef_table, `plus' `diopts' bmatrix(`b') vmatrix(e(V))
 	}
 

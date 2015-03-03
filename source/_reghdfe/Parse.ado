@@ -39,17 +39,17 @@ else {
 	syntax anything(id="varlist" name=0 equalok) [if] [in] ///
 		[fweight aweight pweight/] , ///
 		Absorb(string) ///
-		[GROUP(name) VCE(string) Verbose(integer 0) CHECK NESTED FAST] ///
+		[VCE(string)] ///
+		[DOFadjustments(string) GROUP(name)] ///
 		[avge(string) EXCLUDESELF] ///
+		[Verbose(integer 0) CHECK NESTED FAST] ///
 		[TOLerance(real 1e-7) MAXITerations(integer 1000) noACCELerate] /// See reghdfe_absorb.Annihilate
 		[noTRACK] /// Not used here but in -Track-
-		[IVsuite(string) ESTimator(string) SAVEFIRST FIRST SHOWRAW dofminus(string)] ///
-		[dofmethod(string)] ///
+		[IVsuite(string) SAVEFIRST FIRST SHOWRAW] /// ESTimator(string)
 		[SMALL Hascons TSSCONS] /// ignored options
 		[gmm2s liml kiefer cue] ///
 		[SUBOPTions(string)] /// Options to be passed to the estimation command (e.g . to regress)
-		[bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) ///
-		accel_freq(integer 3) accel_start(integer 6)] /// Advanced optimization options
+		[bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) accel_freq(integer 3) accel_start(integer 6)] /// Advanced optimization options
 		[CORES(integer 1)] [USEcache(string)] [OVER(varname numeric)] ///
 		[noCONstant] /// Disable adding back the intercept (mandatory with -ivreg2-)
 		[*] // For display options
@@ -96,6 +96,12 @@ if (!`savingcache') {
 * Show raw output of called subcommand (e.g. ivreg2)
 	local showraw = ("`showraw'"!="")
 
+* tsset variables, if any
+	cap conf var `_dta[_TStvar]'
+	if (!_rc) local timevar `_dta[_TStvar]'
+	cap conf var `_dta[_TSpanel]'
+	if (!_rc) local panelvar `_dta[_TSpanel]'
+
 * Model settings
 if (!`savingcache') {
 
@@ -109,9 +115,9 @@ if (!`savingcache') {
 	}
 	
 
+	* For this, _iv_parse would have been useful, although I don't want to do factor expansions when parsing
 	if ("`model'"=="iv") {
-
-		// get part before parentheses
+		* get part before parentheses
 		local wrongparens 1
 		while (`wrongparens') {
 			gettoken tmp 0 : 0 ,p("(")
@@ -127,11 +133,11 @@ if (!`savingcache') {
 			}
 		}
 
-		// get part in parentheses
+		* get part in parentheses
 		gettoken right 0 : 0 ,bind match(parens)
 		Assert trim(`"`0'"')=="" , msg("error: remaining argument: `0'")
 
-		// now parse part in parentheses
+		* now parse part in parentheses
 		gettoken endogvars instruments : right ,p("=")
 		gettoken equalsign instruments : instruments ,p("=")
 
@@ -149,7 +155,7 @@ if (!`savingcache') {
 		if ("`ivsuite'"=="") local ivsuite ivreg2
 		Assert inlist("`ivsuite'","ivreg2","ivregress") , msg("error: wrong IV routine (`ivsuite'), valid options are -ivreg2- and -ivregress-")
 		cap findfile `ivsuite'.ado
-		Assert !_rc , msg("error: -`ivsuite'- not installed, please run ssc install `ivsuite' or change the option -ivsuite-")
+		Assert !_rc , msg("error: -`ivsuite'- not installed, please run {stata ssc install `ivsuite'} or change the option -ivsuite-")
 	}
 
 * OLS varlist
@@ -171,52 +177,112 @@ if (!`savingcache') {
 	*Debug, msg("{hline 64}")
 
 * Add back constants (place this *after* we define `model')
-	local addconstant = ("`constant'"!="noconstant") & !("`model'"=="iv" & "`ivsuite'"=="ivreg2")
+	local addconstant = ("`constant'"!="noconstant") & !("`model'"=="iv" & "`ivsuite'"=="ivreg2") // also see below
 
-* VCE
-	gettoken vcetype vcerest : vce, parse(" ,")
-	if ("`vcetype'"=="") {
-		local vcetype unadjusted
-		if ("`ivsuite'"=="ivregress" & "`estimator'"=="gmm") local vcetype robust // Default for ivregress gmm
-		if ("`backupweight'"=="pweight") local vcetype robust // pweight requires robust
+* Parse VCE options:
+	* Note: bw=1 means just do HC instead of HAC
+	local 0 `vce'
+	syntax [anything(id="VCE type")] , [bw(integer 1)] [kernel(string)] [dkraay(integer 1)] [kiefer] [suite(string)]
+	if ("`anything'"=="") local anything unadjusted
+	Assert `bw'>0, msg("VCE bandwidth must be a positive integer")
+	gettoken vcetype clustervars : anything
+	* Expand variable abbreviations; but this adds unwanted i. prefixes
+	if ("`clustervars'"!="") {
+		fvunab clustervars : `clustervars'
+		local clustervars : subinstr local clustervars "i." "", all
 	}
 
-	* Abbreviations:
+	* vcetype abbreviations:
+	if (substr("`vcetype'",1,3)=="ols") local vcetype unadjusted
 	if (substr("`vcetype'",1,2)=="un") local vcetype unadjusted
 	if (substr("`vcetype'",1,1)=="r") local vcetype robust
 	if (substr("`vcetype'",1,2)=="cl") local vcetype cluster
-	if (substr("`vcetype'",1,4)=="boot") local vcetype bootstrap
-	if (substr("`vcetype'",1,4)=="jack") local vcetype jackknife
 	if ("`vcetype'"=="conventional") local vcetype unadjusted // Conventional is the name given in e.g. xtreg
-	assert inlist("`vcetype'", "unadjusted", "robust", "cluster", "bootstrap", "jackknife")
+	Assert strpos("`vcetype'",",")==0, msg("Unexpected contents of VCE: <`vcetype'> has a comma")
+
+	* Sanity checks on vcetype
+	if ("`vcetype'"=="" & "`backupweight'"=="pweight") local vcetype robust
+	Assert !("`vcetype'"=="unadjusted" & "`backupweight'"=="pweight"), msg("pweights do not work with unadjusted errors, use a different vce()")
+	if ("`vcetype'"=="") local vcetype unadjusted
+	Assert inlist("`vcetype'", "unadjusted", "robust", "cluster"), msg("VCE type not supported: `vcetype'")
 
 	* Cluster vars
-	local num_clusters 0
-	if ("`vcetype'"=="cluster") {
-		local num_clusters = `: word count `vcerest''
-		assert inlist(`num_clusters', 1, 2)
-		gettoken clustervar1 clustervar2 : vcerest
-		cap unab clustervar1 : `clustervar1'
-		cap unab clustervar2 : `clustervar2'
-		local vcerest
+	local num_clusters : word count `clustervars'
+	Assert inlist( (`num_clusters'>0) + ("`vcetype'"=="cluster") , 0 , 2), msg("Can't specify cluster without clustervars and viceversa") // XOR
+
+	* VCE Suite
+	local vcesuite `suite'
+	if ("`vcesuite'"=="") local vcesuite default
+	if ("`vcesuite'"=="default") {
+		if (`bw'>1 | `dkraay'>1 | "`kiefer'"!="" | "`kernel'"!="") {
+			local vcesuite avar
+		}
+		else if (`num_clusters'>1) {
+			local vcesuite mwc
+		}
+	}
+	
+	Assert inlist("`vcesuite'", "default", "mwc", "avar"), msg("Wrong vce suite: `vcesuite'")
+	if (inlist("`vcesuite'", "avar", "mwc")) local addconstant 0 // The constant messes up the VCV
+
+	if ("`vcesuite'"=="mwc") {
+		cap findfile tuples.ado
+		Assert !_rc , msg("error: -tuples- not installed, please run {stata ssc install tuples} to estimate multi-way clusters.")
+	}
+	
+	if ("`vcesuite'"=="avar") {
+		cap findfile `vcesuite'.ado
+		Assert !_rc , msg("error: -`vcesuite'- not installed, please run {stata ssc install `vcesuite'} or change the option -vcesuite-")
 	}
 
-	//local vceoption = trim("`vcetype' `clustervar1' `clustervar2' `vcerest'")
-	local temp_clustervar1 = cond("`clustervar1'"=="","","<CLUSTERVAR1>")
-	local vceoption = trim("`vcetype' `temp_clustervar1'`vcerest'")
-	local vceoption vce(`vceoption')
+	* Some combinations are not coded
+	Assert !("`ivsuite'"=="ivregress" & (`num_clusters'>1 | `bw'>1 | `dkraay'>1 | "`kiefer'"!="" | "`kernel'"!="") ), msg("option vce(`vce') incompatible with ivregress")
+	Assert !("`ivsuite'"=="ivreg2" & (`num_clusters'>2) ), msg("ivreg2 doesn't allow more than two cluster variables")
+	Assert !("`model'"=="ols" & "`vcesuite'"=="avar" & (`num_clusters'>2) ), msg("avar doesn't allow more than two cluster variables")
+	Assert !("`model'"=="ols" & "`vcesuite'"=="default" & (`bw'>1 | `dkraay'>1 | "`kiefer'"!="" | "`kernel'"!="") ), msg("to use those vce options you need to use -avar- as the vce suite")
+
+	if (`num_clusters'>0) local temp_clustervars " <CLUSTERVARS>"
+	if (`bw'>1 | "`kernel'"!="") local vceextra `vceextra' bw(`bw') 
+	if (`dkraay'>1) local vceextra `vceextra' dkraay(`dkraay') 
+	if ("`kiefer'"!="") local vceextra `vceextra' kiefer 
+	if ("`kernel'"!="") local vceextra `vceextra' kernel(`kernel')
+	if ("`vceextra'"!="") local vceextra , `vceextra'
+	local vceoption "`vcetype'`temp_clustervars'`vceextra'" // this excludes "vce(", only has the contents
+
+
+* DoF Adjustments
+	if ("`dofadjustments'"=="") local dofadjustments all
+	local 0 , `dofadjustments'
+	syntax, [ALL NONE] [PAIRwise FIRSTpair] [CLusters] [CONTinuous]
+	opts_exclusive "`all' `none'" dofadjustments
+	opts_exclusive "`pairwise' `firstpair'" dofadjustments
+	if ("`none'"!="") {
+		Assert "`pairwise'`firstpair'`clusters'`continuous'"=="", msg("option {bf:dofadjustments()} invalid; {bf:none} not allowed with other alternatives")
+		local dofadjustments
+	}
+	if ("`all'"!="") {
+		Assert "`pairwise'`firstpair'`clusters'`continuous'"=="", msg("option {bf:dofadjustments()} invalid; {bf:all} not allowed with other alternatives")
+		local dofadjustments pairwise clusters continuous
+	}
+	else {
+		local dofadjustments `pairwise' `firstpair' `clusters' `continuous'
+	}
+
+* Mobility groups
+	if ("`group'"!="") conf new var `group'
+
+* IV options
+	if ("`small'"!="") di in ye "(note: reghdfe will always use the option -small-, no need to specify it)"
+
+	Assert ("`gmm2s'`liml'`cue'"==""), msg("options gmm2s/liml/cue not allowed")
 	
-	if ("`model'"=="ols") {
-		local ok = inlist("`vcetype'", "unadjusted", "robust", "cluster") & (`num_clusters'<=1)
+	if ("`model'"=="iv") {
+		local savefirst = ("`savefirst'"!="")
+		local first = ("`first'"!="")
+		if (`savefirst') Assert `first', msg("Option -savefirst- requires -first-")
 	}
-	else if ("`ivsuite'"=="ivregress") {
-		local ok = inlist("`vcetype'", "unadjusted", "robust", "cluster", "bootstrap", "jackknife", "hac") & (`num_clusters'<=1)
-	}
-	else if ("`ivsuite'"=="ivreg2") {
-		local ok = inlist("`vcetype'", "unadjusted", "robust", "cluster", "bw") & (`num_clusters'<=2)
-	}
-	Assert `ok', msg("invalid vce type or number of clusters")
-}
+
+} // End of !`savingcache'
 
 * Optimization
 	if (`maxiterations'==0) local maxiterations 1e7
@@ -228,58 +294,13 @@ if (!`savingcache') {
 	Assert `cores'<=32 & `cores'>0 , msg("At most 32 cores supported")
 	if (`cores'>1) {
 		cap findfile parallel.ado
-		Assert !_rc , msg("error: -parallel- not installed, please run {cmd:ssc install parallel}")
+		Assert !_rc , msg("error: -parallel- not installed, please run {stata ssc install parallel}")
 	}
 	local opt_list tolerance maxiterations check accelerate ///
 		bad_loop_threshold stuck_threshold pause_length accel_freq accel_start
 	foreach opt of local opt_list {
 		if ("``opt''"!="") local maximize_options `maximize_options' `opt'(``opt'')
 	}
-
-* IV options
-if (!`savingcache') {
-	if ("`model'"=="iv" & "`ivsuite'"=="ivregress") {
-		if ("`estimator'"=="") local estimator 2sls
-		Assert inlist("`estimator'","2sls","gmm"), msg("liml estimator not allowed")
-		if ("`estimator'"!="2sls") di as error "WARNING! GMM not fully implemented, robust option gives wrong output"
-	}
-	else if ("`model'"=="iv" & "`ivsuite'"=="ivreg2") {
-		if ("`estimator'"=="") local estimator 2sls
-	Assert inlist("`estimator'","2sls","gmm2s") , msg("Estimator is `estimator', instead of empty (2sls/ols) or gmm2s")
-	* di in ye "WARNING: IV estimates not fully tested; methods like GMM2S will not work correctly"
-
-		Assert inlist("`dofminus'","","large","small"), msg("option -dofminus- is either -small- or -large-")
-		local dofminus = cond("`dofminus'"=="large", "dofminus", "sdofminus") // Default uses sdofminus
-	}
-	else {
-		local estimator
-	}
-	if ("`small'"!="") di in ye "(note: reghdfe will always use the option -small-, no need to specify it)"
-
-	Assert ("`gmm2s'`liml'`kiefer'`cue'"==""), msg("Please use estimator() option instead of gmm2s/liml/etc")
-	
-	if ("`model'"=="iv") {
-		local savefirst = ("`savefirst'"!="")
-		local first = ("`first'"!="")
-		if (`savefirst') Assert `first', msg("Option -savefirst- requires -first-")
-	}
-
-* DoF Estimation
-* For more than 2 FEs, no exact soln
-* Can estimate M3 and so on using
-* i) bounds using FE1 and FE2, ii) assuming M3=1 (fast), iii) bootstrap
-	if ("`dofmethod'"=="") local dofmethod bounds
-	assert inlist("`dofmethod'", "naive", "simple", "bounds", "bootstrap")
-
-* Mobility groups
-	if ("`group'"!="") conf new var `group'
-}
-
-* tsset variables, if any
-	cap conf var `_dta[_TStvar]'
-	if (!_rc) local timevar `_dta[_TStvar]'
-	cap conf var `_dta[_TSpanel]'
-	if (!_rc) local panelvar `_dta[_TSpanel]'
 
 * Varnames underlying tsvars and fvvars (e.g. i.foo L(1/3).bar -> foo bar)
 	foreach vars in depvar indepvars endogvars instruments {
@@ -306,10 +327,11 @@ if (!`savingcache') {
 
 * Return values
 	local names cmdline diopts model ///
-		ivsuite estimator showraw dofminus ///
+		ivsuite showraw ///
 		depvar indepvars endogvars instruments savefirst first ///
-		vceoption vcetype num_clusters clustervar1 clustervar2 vcerest ///
-		if in group dofmethod check fast nested fe_format ///
+		vceoption vcetype vcesuite vceextra num_clusters clustervars /// vceextra
+		dofadjustments ///
+		if in group check fast nested fe_format ///
 		tolerance maxiterations accelerate maximize_options ///
 		subcmd suboptions ///
 		absorb avge excludeself ///

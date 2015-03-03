@@ -1,4 +1,4 @@
-*! version 1.3.1 20feb2015
+*! version 1.4.1 03mar2015
 *! By Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 program define reghdfe
@@ -7,15 +7,7 @@ program define reghdfe
 
 	if replay() {
 		if (`"`e(cmd)'"'!="reghdfe") error 301
-		* Undocumented feature for debugging
-		cap syntax, ALTernative
-		if ("`alternative'"!="") {
-			AlternativeCMD
-			exit
-		}
-		else {	
-			Replay `0'
-		}
+		Replay `0'
 	}
 	else {
 		* Estimate, and then clean up Mata in case of failure
@@ -30,16 +22,44 @@ program define reghdfe
 end
 
 
-// -------------------------------------------------------------
-// Transform data and run the regression
-// -------------------------------------------------------------
-program define Estimate, eclass
-/* Notation
-	__FE1__   Fixed effect categories
-	__Z1__    Fixed effect coefficients (estimates)
-	__W1__    AvgE transformed variables (avg of depvar by category) */
+mata:
+mata set matastrict on
 
-**** PART I - PREPARE DATASET FOR REGRESSION ****
+// -------------------------------------------------------------------------------------------------
+// Fix nonpositive VCV; called from Wrapper_mwc.ado 
+// -------------------------------------------------------------------------------------------------
+void function fix_psd(string scalar Vname) {
+	real matrix V, U, lambda
+
+	V = st_matrix(Vname)
+	if (!issymmetric(V)) exit(error(505))
+	symeigensystem(V, U=., lambda=.)
+	st_local("eigenfix", "0")
+	if (min(lambda)<0) {
+		lambda = lambda :* (lambda :>= 0)
+		// V = U * diag(lambda) * U'
+		V = quadcross(U', lambda, U')
+		st_local("eigenfix", "1")
+	}
+	st_replacematrix(Vname, V)
+}
+
+end
+
+
+// -------------------------------------------------------------------------------------------------
+// Transform data and run the regression
+// -------------------------------------------------------------------------------------------------
+program define Estimate, eclass
+
+/* Notation of created variables
+	__FE1__        		Fixed effect categories
+	__Z1__         		Fixed effect coefficients (estimates)
+	__clustervar1__		Categories for the clusters that had to be generated
+	__W1__         		AvgE transformed variables (avg of depvar by category)
+*/
+
+// PART I - PREPARE DATASET FOR REGRESSION
 
 * 1) Parse main options
 	reghdfe_absorb, step(stop) // clean Mata leftovers before running -Parse-
@@ -47,15 +67,16 @@ program define Estimate, eclass
 	local sets depvar indepvars endogvars instruments // depvar MUST be first
 
 * 2) Parse identifiers (absorb variables, avge, clustervar)
-	reghdfe_absorb, step(start) absorb(`absorb') over(`over') avge(`avge') clustervar1(`clustervar1') weight(`weight') weightvar(`weightvar')
-	// In this step, it doesn't matter if the weight is FW or AW
+	reghdfe_absorb, step(start) absorb(`absorb') over(`over') avge(`avge') clustervars(`clustervars') weight(`weight') weightvar(`weightvar')
+	* Note: In this step, it doesn't matter if the weight is FW or AW
 	local N_hdfe = r(N_hdfe)
 	local N_avge = r(N_avge)
-	local absorb_keepvars "`r(keepvars)'" // Vars used in hdfe,avge,cluster
 	local RAW_N = c(N)
 	local RAW_K = c(k)
+	local absorb_keepvars = r(keepvars) // Vars used in hdfe,avge,cluster
+	
 	qui de, simple
-	local old_mem = string(r(width) * r(N)  / 2^20, "%6.2f") // In MBs
+	local old_mem = string(r(width) * r(N)  / 2^20, "%6.2f") // This is just for debugging; measured in MBs
 
 * 3) Preserve
 if ("`usecache'"!="") {
@@ -82,11 +103,12 @@ else {
 	Debug, msg("(dataset preserved)") level(2)
 
 * 4) Drop unused variables
+	if ("`vceextra'"!="") local tsvars `panelvar' `timevar' // We need to keep these when using an autoco-robust VCE
 	local exp "= `weightvar'"
 	marksample touse, novar // Uses -if- , -in- ; -weight-? and -exp- ; can't drop any var until this
-	keep `uid' `touse' `timevar' `panelvar' `absorb_keepvars' `basevars' `over' `weightvar'
+	keep `uid' `touse' `timevar' `panelvar' `absorb_keepvars' `basevars' `over' `weightvar' `tsvars'
 
-* 5) Expand factor and time-series variables
+* 5) Expand factor and time-series variables (this *must* happen before reghdfe precompute is called!)
 	local expandedvars
 	foreach set of local sets {
 		local varlist ``set''
@@ -98,8 +120,8 @@ else {
 		local expandedvars `expandedvars' ``set''
 	} 
 
-* 6) Drop unused basevars and tsset vars (no longer needed)
-	keep `uid' `touse' `absorb_keepvars' `expandedvars' `over' `weightvar'
+* 6) Drop unused basevars and tsset vars (usually no longer needed)
+	keep `uid' `touse' `absorb_keepvars' `expandedvars' `over' `weightvar' `tsvars'
 
 * 7) Drop all observations with missing values (before creating the FE ids!)
 	markout `touse' `expandedvars'
@@ -109,17 +131,8 @@ else {
 	drop `touse'
 	if ("`over'"!="" & `savingcache') qui levelsof `over', local(levels_over)
 
-* 8) Fill Mata structures, create FE identifiers, avge vars and cluster if needed
-	reghdfe_absorb, step(precompute) keep(`uid' `expandedvars') depvar("`depvar'") `excludeself'
-	
-	* Cluster name to show in the regression table
-	*local original_clustervar1 `clustervar1'
-	mata: st_local("ivars_clustervar1", ivars_clustervar1)
-	local original_clustervar1 : subinstr local ivars_clustervar1 " " "#", all
-	
-	local clustervar1 "`r(clustervar1)'"
-
-
+* 8) Fill Mata structures, create FE identifiers, avge vars and clustervars if needed
+	reghdfe_absorb, step(precompute) keep(`uid' `expandedvars' `tsvars') depvar("`depvar'") `excludeself' tsvars(`tsvars')
 	Debug, level(2) msg("(dataset compacted: observations " as result "`RAW_N' -> `c(N)'" as text " ; variables " as result "`RAW_K' -> `c(k)'" as text ")")
 	local avgevars = cond("`avge'"=="", "", "__W*__")
 	local vars `expandedvars' `avgevars'
@@ -129,7 +142,7 @@ else {
 	local new_mem = string(r(width) * r(N) / 2^20, "%6.2f")
 	Debug, level(2) msg("(dataset compacted, c(memory): " as result "`old_mem'" as text "M -> " as result "`new_mem'" as text "M)")
 
-* ?) Check that weights have acceptable values
+* 9) Check that weights have acceptable values
 if ("`weightvar'"!="") {
 	local require_integer = ("`weight'"=="fweight")
 	local num_type = cond(`require_integer', "integers", "reals")
@@ -147,7 +160,7 @@ if ("`weightvar'"!="") {
 	}
 }
 
-* 9) Save the statistics we need before transforming the variables
+* 10) Save the statistics we need before transforming the variables
 if (`savingcache') {
 	cap drop __FE*__
 	cap drop __clustervar*__
@@ -159,44 +172,47 @@ else {
 	local tss = r(Var)*(r(N)-1)
 	assert `tss'<.
 
-* 10) Calculate the degrees of freedom lost due to the FEs
+* 11) Calculate the degrees of freedom lost due to the FEs
 	if ("`group'"!="") {
 		tempfile groupdta
 		local opt group(`group') groupdta(`groupdta') uid(`uid')
 	}
-	EstimateDoF, dofmethod(`dofmethod') clustervar1(`clustervar1') `opt'
-	// For simplicity, -EstimateDoF- will save its results in locals HERE
-	// Locals saved are: Mg, Kg, Mg_exact for all g=1..N_hdfe
-	// and M (sum of Mg), kk (sum of Kg), fe_nested_in_cluster
+	EstimateDoF, dofadjustments(`dofadjustments') `opt'
+	local kk = r(kk) // FEs that were not found to be redundant (= total FEs - redundant FEs)
+	local M = r(M) // FEs found to be redundant
+	local saved_group = r(saved_group)
+	local M_due_to_nested = r(M_due_to_nested)
 
-	* Sanity checks
 	Assert `kk'<.
-	Assert inlist(`fe_nested_in_cluster',0,1)
+	Assert `M'>=0 & `M'<.
+	assert inlist(`saved_group', 0, 1)
+
 	forv g=1/`N_hdfe' {
-		assert inlist(`M`g'_exact',0,1)
-		// 1 or 0 whether M`g' was calculated exactly or not
+		local M`g' = r(M`g')
+		local K`g' = r(K`g')
+		local M`g'_exact = r(M`g'_exact)
+
+		assert inlist(`M`g'_exact',0,1) // 1 or 0 whether M`g' was calculated exactly or not
 		assert `M`g''<. & `K`g''<.
 		assert `M`g''>=0 & `K`g''>=0
+		assert inlist(r(drop`g'), 0, 1)
+
+		* Drop IDs for the absorbed FEs (except if its the clustervar)
+		* Useful b/c regr. w/cluster takes a lot of memory
+		if (r(drop`g')==1) drop __FE`g'__
 	}
 
-* 11) Drop IDs for the absorbed FEs (except if its the clustervar)
-* Useful b/c regr. w/cluster takes a lot of memory
-	if ( `fe_nested_in_cluster' | ("`clustervar1'"!="" & "`dofmethod'"=="naive") ) {
-		rename `clustervar1' __clustervar1__
-		local clustervar1 __clustervar1__
+	if (`num_clusters'>0) {
+		mata: mata: st_local("temp_clustervars", invtokens(clustervars))
+		local vceoption : subinstr local vceoption "<CLUSTERVARS>" "`temp_clustervars'"
 	}
-	if ("`vcetype'"=="cluster") {
-		conf numeric var `clustervar1'
-		local vceoption : subinstr local vceoption "<CLUSTERVAR1>" "`clustervar1'"
-	}
-	cap drop __FE*__ // FE IDs no longer needed (except if clustervar)
-	* cap is required in case there is only one FE which is the clustervar1
+
 }
 
 * 12) Save untransformed data.
 *	This allows us to:
-*	i) nested ftests for the FEs,
-*	ii) to recover the FEs, compute their correlations with xb, check that FE==1
+*	i) do nested ftests for the FEs,
+*	ii) recover the FEs, compute their correlations with xb, check that FE==1
 
 	* We can avoid this if i) nested=check=0 ii) targets={} iii) fast=1
 	mata: st_local("any_target_avge", strofreal(any(avge_target :!= "")) ) // saving avge?
@@ -305,22 +321,10 @@ if (`savingcache') {
 	exit
 }
 
-**** PART II - REGRESSION ****
+// PART II - REGRESSION
 
-* 1) Cleanup
+* Cleanup
 	ereturn clear
-
-* 2) Debugging - This will allow to run an equivalent -regress- command with -reghdfe, alt-
-	
-	* If we didn't save (set a target) for all avge, we can't replicate the command
-	local alternative_ok 1
-	if (`N_avge'>0) {
-		mata: st_local("alternative_ok", strofreal(all(avge_target :!= "")) )
-		if (`alternative_ok') mata: st_local("avge_targets", strtrim(invtokens(avge_target)) )
-	}
-	if (`: word count `ivars_clustervar1''>1) {
-		local alternative_ok 0
-	}
 
 * Add back constant
 	if (`addconstant') {
@@ -328,7 +332,7 @@ if (`savingcache') {
 		AddConstant `depvar' `indepvars' `avgevars' `endogvars' `instruments'
 	}
 
-* 3) Regression
+* Regress
 	Debug, level(2) msg("(running regresion: `model'.`ivsuite')")
 	local avge = cond(`N_avge'>0, "__W*__", "")
 	local options
@@ -336,13 +340,22 @@ if (`savingcache') {
 		depvar indepvars endogvars instruments avgevars ///
 		original_depvar original_indepvars original_endogvars ///
 		original_instruments original_absvars avge_targets ///
-		estimator vceoption vcetype kk suboptions showraw dofminus first  weightexp ///
+		vceoption vcetype vcesuite ///
+		kk suboptions showraw first weightexp ///
 		addconstant // tells -regress- to hide _cons
 	foreach opt of local option_list {
 		if ("``opt''"!="") local options `options' `opt'(``opt'')
 	}
-	Debug, level(3) msg(_n "call to wrapper:" _n as result "Wrapper_`subcmd', `options'")
-	Wrapper_`subcmd', `options' 
+
+	* Five wrappers in total, two for iv (ivreg2, ivregress), three for ols (regress, avar, mwc)
+	local wrapper "Wrapper_`subcmd'" // regress ivreg2 ivregress
+	if ("`subcmd'"=="regress" & "`vcesuite'"=="avar") local wrapper "Wrapper_avar"
+	if ("`subcmd'"=="regress" & "`vcesuite'"=="mwc") local wrapper "Wrapper_mwc"
+	Debug, level(3) msg(_n "call to wrapper:" _n as result "`wrapper', `options'")
+	`wrapper', `options'
+	
+	Assert e(tss)<., msg("within tss is missing (wrapper=`wrapper')")
+	
 	local subpredict = e(predict) // used to recover the FEs
 
 	if ("`weightvar'"!="") {
@@ -350,7 +363,7 @@ if (`savingcache') {
 		local sumweights = r(sum)
 	}
 
-**** PART III - RECOVER FEs AND SAVE RESULTS ****
+// PART III - RECOVER FEs AND SAVE RESULTS 
 
 if (`fast') {
 	* Copy pasted from below
@@ -374,7 +387,20 @@ else {
 
 	* Predict will get (e+d) from the equation y=xb+d+e
 	tempvar resid_d
-	`subpredict' double `resid_d', resid // Auto-selects the program based on the estimation method
+	if e(df_m)>0 {
+		local score = cond("`model'"=="ols", "score", "resid")
+		`subpredict' double `resid_d', `score' // Auto-selects the program based on the estimation method		
+	}
+	else {
+		gen double `resid_d' = `depvar'
+	}
+
+	* If the eqn doesn't have a constant, we need to save the mean of the resid in order to add it when predicting xb
+	if (!`addconstant') {
+		su `resid_d', mean
+		ereturn `hidden' scalar _cons = r(mean)
+	}
+
 	Debug, level(2) msg("(loaded untransformed variables, predicted residuals)")
 
 	* Absorb the residuals to obtain the FEs (i.e. run a regression on just the resids)
@@ -409,7 +435,6 @@ else {
 	reghdfe_absorb, step(save) original_depvar(`original_depvar')
 	local keepvars `r(keepvars)'
 	if ("`keepvars'"!="") format `fe_format' `keepvars'
-
 * 6) Save AvgEs
 	forv g=1/`N_avge' {
 		local var __W`g'__
@@ -438,7 +463,7 @@ else {
 		*cap tsset, noquery // we changed -sortby- when we merged (even if we didn't really resort)
 	}
 
-**** PART IV - ERETURN OUTPUT ****
+// PART IV - ERETURN OUTPUT
 
 	if (`c(version)'>=12) local hidden hidden // ereturn hidden requires v12+
 
@@ -446,19 +471,23 @@ else {
 	ereturn local cmd = "reghdfe"
 	ereturn local subcmd = "`subcmd'"
 	ereturn local cmdline `"`cmdline'"'
-	ereturn scalar alternative_ok = `alternative_ok'
 	if ("`e(model)'"!="" & "`e(model)'"!="`model'") di as error "`e(model) was <`e(model)'>" // ?
 	ereturn local model = "`model'"
-	ereturn local dofmethod = "`dofmethod'"
+	ereturn local dofadjustments = "`dofadjustments'"
 	ereturn local title = "HDFE " + e(title)
-	ereturn local subtitle =  "Absorbing `N_hdfe' HDFE " + plural(`N_hdfe', "indicator")
+	ereturn local title2 =  "Absorbing `N_hdfe' HDFE " + plural(`N_hdfe', "indicator")
 	ereturn local predict = "reghdfe_p"
 	ereturn local estat_cmd = "reghdfe_estat"
 	ereturn local footnote = "reghdfe_footnote"
 	ereturn local absvars = "`original_absvars'"
+	ereturn local vcesuite = "`vcesuite'"
 	ereturn `hidden' local diopts = "`diopts'"
 
-	if ("`e(clustvar)'"!="") ereturn local clustvar "`original_clustervar1'"
+	if ("`e(clustvar)'"!="") {
+		mata: st_local("clustvar", invtokens(clustervars_original))
+		ereturn local clustvar "`clustvar'"
+		ereturn scalar N_clustervars = `num_clusters'
+	}
 
 	* Besides each cmd's naming style (e.g. exogr, exexog, etc.) keep one common one
 	foreach cat in depvar indepvars endogvars instruments {
@@ -480,9 +509,8 @@ else {
 	ereturn local vcetype = proper("`vcetype'") //
 	if (e(vcetype)=="Cluster") ereturn local vcetype = "Robust"
 	if (e(vcetype)=="Unadjusted") ereturn local vcetype
-	ereturn local vce = "`vcetype'" // Not a mistake! Saves unadjusted,robust,cluster,etc. into e(vce)
+	if ("`e(vce)'"=="." | "`e(vce)'"=="") ereturn local vce = "`vcetype'" // +-+-
 	Assert inlist("`e(vcetype)'", "", "Robust", "Jackknife", "Bootstrap")
-	Assert inlist(e(vce), "unadjusted", "robust", "cluster", "jacknife", "bootstrap") // Redundant, already checked in Parse.ado
 	
 	* Clear results that are wrong
 	ereturn local ll
@@ -494,7 +522,6 @@ else {
 * Absorbed-specific returns
 	ereturn scalar mobility = `M'
 	ereturn scalar df_a = `kk'
-	if ("`vcetype'"=="cluster") ereturn scalar fe_nested_in_cluster = `fe_nested_in_cluster'
 	forv g=1/`N_hdfe' {
 		ereturn scalar M`g' = `M`g''
 		ereturn scalar K`g' = `K`g''
@@ -505,6 +532,7 @@ else {
 	}
 
 	Assert e(df_r)<. , msg("e(df_r) is missing")
+	ereturn scalar r2_within = 1 - e(rss) / e(tss)
 	ereturn scalar tss = `tss'
 	ereturn scalar mss = e(tss) - e(rss)
 	ereturn scalar r2 = 1 - e(rss) / `tss'
@@ -515,12 +543,26 @@ else {
 		ereturn scalar r2u = .
 	}
 
-	ereturn scalar r2_a = 1 - (e(rss)/e(df_r)) / (`tss' / (e(N)-1) ) // After fixing e(df_r)
-	ereturn scalar rmse = sqrt( e(rss) / e(df_r) )
+	* Computing Adj R2 with custered SEs is tricky because it doesn't use the adjusted inputs:
+	* 1) It uses N instead of N_clust
+	* 2) For the DoFs, it uses N - Parameters instead of N_clust-1
+	* 3) Further, to compute the parameters, it includes those nested within clusters
+	
+	* Note that this adjustment is NOT PERFECT because we won't compute the mobility groups just for improving the r2a
+	* (when a FE is nested within a cluster, we don't need to compute mobilty groups; but to get the same R2a as other estimators we may want to do it)
+	* Instead, you can set by hand the dof() argument and remove -cluster- from the list
+
+	if ("`model'"=="ols" & `num_clusters'>0) Assert e(unclustered_df_r)<., msg("wtf-`vcesuite'")
+	local used_df_r = cond(e(unclustered_df_r)<., e(unclustered_df_r), e(df_r)) - `M_due_to_nested'
+	ereturn scalar r2_a = 1 - (e(rss)/`used_df_r') / (`tss' / (e(N)-1) )
+
+	ereturn scalar rmse = sqrt( e(rss) / `used_df_r' )
+	if (e(N_clust)<.) Assert e(df_r) == e(N_clust) - 1, msg("Error, `wrapper' should have made sure that N_clust-1==df_r")
+	*if (e(N_clust)<.) ereturn scalar df_r = e(N_clust) - 1
 
 	if ("`weightvar'"!="") ereturn scalar sumweights = `sumweights'
 
-	if ("`model'"=="ols" & "`vcetype'"=="unadjusted") {
+	if ("`model'"=="ols" & inlist("`vcetype'", "unadjusted", "ols")) {
 		ereturn scalar F_absorb = (e(r2)-`r2c') / (1-e(r2)) * e(df_r) / `kk'
 		if (`nested') {
 			local rss`N_hdfe' = e(rss)
@@ -539,12 +581,15 @@ else {
 		}
 	}
 
-	if (e(N_clust)<.) ereturn scalar df_r = e(N_clust) - 1
-	// There is a big assumption hre, that the number of other parameters does not increase asymptotically
+	// There is a big assumption here, that the number of other parameters does not increase asymptotically
 	// BUGBUG: We should allow the option to indicate what parameters do increase asympt.
 	// BUGBUG; xtreg does this: est scalar df_r = min(`df_r':=N-1-K, `df_cl') why was that?
 
 	if ("`savefirst'"!="") ereturn `hidden' scalar savefirst = `savefirst'
+
+	* We have to replace -unadjusted- or else subsequent calls to -suest- will fail
+	Subtitle `vceoption' // will set title2, etc. Run after all the other e() are settled?
+	if (e(vce)=="unadjusted") ereturn local vce = "ols"
 
 * Show table and clean up
 	ereturn repost b=`b', rename // why here???
@@ -571,6 +616,29 @@ syntax, uid(varname numeric) file(string) [groupdta(string)]
 	if ("`groupdta'"!="") merge 1:1 `uid' using "`groupdta'", assert(master match) nogen nolabel nonotes noreport sorted
 end
 
+capture program drop Subtitle
+program define Subtitle, eclass
+	syntax namelist(max=11) , [bw(string) dkraay(string) kernel(string) kiefer]
+	gettoken vcetype clustervars : namelist
+	* Fill e(title3) and e(title4)
+	*ereturn local title3 = ..
+
+	if (inlist("`vcetype'", "robust", "cluster")) local hacsubtitle1 "heteroskedasticity"
+	if ("`kernel'"!="" & "`clustervars'"=="") local hacsubtitle3 "autocorrelation"
+	if ("`kiefer'"!="") local hacsubtitle3 "within-cluster autocorrelation (Kiefer)"
+	if ("`hacsubtitle1'"!="" & "`hacsubtitle3'" != "") local hacsubtitle2 " and "
+	local hacsubtitle "`hacsubtitle1'`hacsubtitle2'`hacsubtitle3'"
+	if ("`hacsubtitle'"!="") {
+		ereturn local title3 = "Statistics robust to `hacsubtitle'"
+		
+		local notes
+		foreach param in bw dkraay kernel  {
+			if ("``param''"!="") local notes " `notes' `param'=``param''"
+		}
+		local notes `notes' // remove initial space
+		if ("`notes'"!="") ereturn local title4 = " (`notes')"
+	}
+end
 
 	
 // -------------------------------------------------------------
@@ -612,17 +680,17 @@ else {
 	syntax anything(id="varlist" name=0 equalok) [if] [in] ///
 		[fweight aweight pweight/] , ///
 		Absorb(string) ///
-		[GROUP(name) VCE(string) Verbose(integer 0) CHECK NESTED FAST] ///
+		[VCE(string)] ///
+		[DOFadjustments(string) GROUP(name)] ///
 		[avge(string) EXCLUDESELF] ///
+		[Verbose(integer 0) CHECK NESTED FAST] ///
 		[TOLerance(real 1e-7) MAXITerations(integer 1000) noACCELerate] /// See reghdfe_absorb.Annihilate
 		[noTRACK] /// Not used here but in -Track-
-		[IVsuite(string) ESTimator(string) SAVEFIRST FIRST SHOWRAW dofminus(string)] ///
-		[dofmethod(string)] ///
+		[IVsuite(string) SAVEFIRST FIRST SHOWRAW] /// ESTimator(string)
 		[SMALL Hascons TSSCONS] /// ignored options
 		[gmm2s liml kiefer cue] ///
 		[SUBOPTions(string)] /// Options to be passed to the estimation command (e.g . to regress)
-		[bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) ///
-		accel_freq(integer 3) accel_start(integer 6)] /// Advanced optimization options
+		[bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) accel_freq(integer 3) accel_start(integer 6)] /// Advanced optimization options
 		[CORES(integer 1)] [USEcache(string)] [OVER(varname numeric)] ///
 		[noCONstant] /// Disable adding back the intercept (mandatory with -ivreg2-)
 		[*] // For display options
@@ -669,6 +737,12 @@ if (!`savingcache') {
 * Show raw output of called subcommand (e.g. ivreg2)
 	local showraw = ("`showraw'"!="")
 
+* tsset variables, if any
+	cap conf var `_dta[_TStvar]'
+	if (!_rc) local timevar `_dta[_TStvar]'
+	cap conf var `_dta[_TSpanel]'
+	if (!_rc) local panelvar `_dta[_TSpanel]'
+
 * Model settings
 if (!`savingcache') {
 
@@ -682,9 +756,9 @@ if (!`savingcache') {
 	}
 	
 
+	* For this, _iv_parse would have been useful, although I don't want to do factor expansions when parsing
 	if ("`model'"=="iv") {
-
-		// get part before parentheses
+		* get part before parentheses
 		local wrongparens 1
 		while (`wrongparens') {
 			gettoken tmp 0 : 0 ,p("(")
@@ -700,11 +774,11 @@ if (!`savingcache') {
 			}
 		}
 
-		// get part in parentheses
+		* get part in parentheses
 		gettoken right 0 : 0 ,bind match(parens)
 		Assert trim(`"`0'"')=="" , msg("error: remaining argument: `0'")
 
-		// now parse part in parentheses
+		* now parse part in parentheses
 		gettoken endogvars instruments : right ,p("=")
 		gettoken equalsign instruments : instruments ,p("=")
 
@@ -722,7 +796,7 @@ if (!`savingcache') {
 		if ("`ivsuite'"=="") local ivsuite ivreg2
 		Assert inlist("`ivsuite'","ivreg2","ivregress") , msg("error: wrong IV routine (`ivsuite'), valid options are -ivreg2- and -ivregress-")
 		cap findfile `ivsuite'.ado
-		Assert !_rc , msg("error: -`ivsuite'- not installed, please run ssc install `ivsuite' or change the option -ivsuite-")
+		Assert !_rc , msg("error: -`ivsuite'- not installed, please run {stata ssc install `ivsuite'} or change the option -ivsuite-")
 	}
 
 * OLS varlist
@@ -744,52 +818,112 @@ if (!`savingcache') {
 	*Debug, msg("{hline 64}")
 
 * Add back constants (place this *after* we define `model')
-	local addconstant = ("`constant'"!="noconstant") & !("`model'"=="iv" & "`ivsuite'"=="ivreg2")
+	local addconstant = ("`constant'"!="noconstant") & !("`model'"=="iv" & "`ivsuite'"=="ivreg2") // also see below
 
-* VCE
-	gettoken vcetype vcerest : vce, parse(" ,")
-	if ("`vcetype'"=="") {
-		local vcetype unadjusted
-		if ("`ivsuite'"=="ivregress" & "`estimator'"=="gmm") local vcetype robust // Default for ivregress gmm
-		if ("`backupweight'"=="pweight") local vcetype robust // pweight requires robust
+* Parse VCE options:
+	* Note: bw=1 means just do HC instead of HAC
+	local 0 `vce'
+	syntax [anything(id="VCE type")] , [bw(integer 1)] [kernel(string)] [dkraay(integer 1)] [kiefer] [suite(string)]
+	if ("`anything'"=="") local anything unadjusted
+	Assert `bw'>0, msg("VCE bandwidth must be a positive integer")
+	gettoken vcetype clustervars : anything
+	* Expand variable abbreviations; but this adds unwanted i. prefixes
+	if ("`clustervars'"!="") {
+		fvunab clustervars : `clustervars'
+		local clustervars : subinstr local clustervars "i." "", all
 	}
 
-	* Abbreviations:
+	* vcetype abbreviations:
+	if (substr("`vcetype'",1,3)=="ols") local vcetype unadjusted
 	if (substr("`vcetype'",1,2)=="un") local vcetype unadjusted
 	if (substr("`vcetype'",1,1)=="r") local vcetype robust
 	if (substr("`vcetype'",1,2)=="cl") local vcetype cluster
-	if (substr("`vcetype'",1,4)=="boot") local vcetype bootstrap
-	if (substr("`vcetype'",1,4)=="jack") local vcetype jackknife
 	if ("`vcetype'"=="conventional") local vcetype unadjusted // Conventional is the name given in e.g. xtreg
-	assert inlist("`vcetype'", "unadjusted", "robust", "cluster", "bootstrap", "jackknife")
+	Assert strpos("`vcetype'",",")==0, msg("Unexpected contents of VCE: <`vcetype'> has a comma")
+
+	* Sanity checks on vcetype
+	if ("`vcetype'"=="" & "`backupweight'"=="pweight") local vcetype robust
+	Assert !("`vcetype'"=="unadjusted" & "`backupweight'"=="pweight"), msg("pweights do not work with unadjusted errors, use a different vce()")
+	if ("`vcetype'"=="") local vcetype unadjusted
+	Assert inlist("`vcetype'", "unadjusted", "robust", "cluster"), msg("VCE type not supported: `vcetype'")
 
 	* Cluster vars
-	local num_clusters 0
-	if ("`vcetype'"=="cluster") {
-		local num_clusters = `: word count `vcerest''
-		assert inlist(`num_clusters', 1, 2)
-		gettoken clustervar1 clustervar2 : vcerest
-		cap unab clustervar1 : `clustervar1'
-		cap unab clustervar2 : `clustervar2'
-		local vcerest
+	local num_clusters : word count `clustervars'
+	Assert inlist( (`num_clusters'>0) + ("`vcetype'"=="cluster") , 0 , 2), msg("Can't specify cluster without clustervars and viceversa") // XOR
+
+	* VCE Suite
+	local vcesuite `suite'
+	if ("`vcesuite'"=="") local vcesuite default
+	if ("`vcesuite'"=="default") {
+		if (`bw'>1 | `dkraay'>1 | "`kiefer'"!="" | "`kernel'"!="") {
+			local vcesuite avar
+		}
+		else if (`num_clusters'>1) {
+			local vcesuite mwc
+		}
+	}
+	
+	Assert inlist("`vcesuite'", "default", "mwc", "avar"), msg("Wrong vce suite: `vcesuite'")
+	if (inlist("`vcesuite'", "avar", "mwc")) local addconstant 0 // The constant messes up the VCV
+
+	if ("`vcesuite'"=="mwc") {
+		cap findfile tuples.ado
+		Assert !_rc , msg("error: -tuples- not installed, please run {stata ssc install tuples} to estimate multi-way clusters.")
+	}
+	
+	if ("`vcesuite'"=="avar") {
+		cap findfile `vcesuite'.ado
+		Assert !_rc , msg("error: -`vcesuite'- not installed, please run {stata ssc install `vcesuite'} or change the option -vcesuite-")
 	}
 
-	//local vceoption = trim("`vcetype' `clustervar1' `clustervar2' `vcerest'")
-	local temp_clustervar1 = cond("`clustervar1'"=="","","<CLUSTERVAR1>")
-	local vceoption = trim("`vcetype' `temp_clustervar1'`vcerest'")
-	local vceoption vce(`vceoption')
+	* Some combinations are not coded
+	Assert !("`ivsuite'"=="ivregress" & (`num_clusters'>1 | `bw'>1 | `dkraay'>1 | "`kiefer'"!="" | "`kernel'"!="") ), msg("option vce(`vce') incompatible with ivregress")
+	Assert !("`ivsuite'"=="ivreg2" & (`num_clusters'>2) ), msg("ivreg2 doesn't allow more than two cluster variables")
+	Assert !("`model'"=="ols" & "`vcesuite'"=="avar" & (`num_clusters'>2) ), msg("avar doesn't allow more than two cluster variables")
+	Assert !("`model'"=="ols" & "`vcesuite'"=="default" & (`bw'>1 | `dkraay'>1 | "`kiefer'"!="" | "`kernel'"!="") ), msg("to use those vce options you need to use -avar- as the vce suite")
+
+	if (`num_clusters'>0) local temp_clustervars " <CLUSTERVARS>"
+	if (`bw'>1 | "`kernel'"!="") local vceextra `vceextra' bw(`bw') 
+	if (`dkraay'>1) local vceextra `vceextra' dkraay(`dkraay') 
+	if ("`kiefer'"!="") local vceextra `vceextra' kiefer 
+	if ("`kernel'"!="") local vceextra `vceextra' kernel(`kernel')
+	if ("`vceextra'"!="") local vceextra , `vceextra'
+	local vceoption "`vcetype'`temp_clustervars'`vceextra'" // this excludes "vce(", only has the contents
+
+
+* DoF Adjustments
+	if ("`dofadjustments'"=="") local dofadjustments all
+	local 0 , `dofadjustments'
+	syntax, [ALL NONE] [PAIRwise FIRSTpair] [CLusters] [CONTinuous]
+	opts_exclusive "`all' `none'" dofadjustments
+	opts_exclusive "`pairwise' `firstpair'" dofadjustments
+	if ("`none'"!="") {
+		Assert "`pairwise'`firstpair'`clusters'`continuous'"=="", msg("option {bf:dofadjustments()} invalid; {bf:none} not allowed with other alternatives")
+		local dofadjustments
+	}
+	if ("`all'"!="") {
+		Assert "`pairwise'`firstpair'`clusters'`continuous'"=="", msg("option {bf:dofadjustments()} invalid; {bf:all} not allowed with other alternatives")
+		local dofadjustments pairwise clusters continuous
+	}
+	else {
+		local dofadjustments `pairwise' `firstpair' `clusters' `continuous'
+	}
+
+* Mobility groups
+	if ("`group'"!="") conf new var `group'
+
+* IV options
+	if ("`small'"!="") di in ye "(note: reghdfe will always use the option -small-, no need to specify it)"
+
+	Assert ("`gmm2s'`liml'`cue'"==""), msg("options gmm2s/liml/cue not allowed")
 	
-	if ("`model'"=="ols") {
-		local ok = inlist("`vcetype'", "unadjusted", "robust", "cluster") & (`num_clusters'<=1)
+	if ("`model'"=="iv") {
+		local savefirst = ("`savefirst'"!="")
+		local first = ("`first'"!="")
+		if (`savefirst') Assert `first', msg("Option -savefirst- requires -first-")
 	}
-	else if ("`ivsuite'"=="ivregress") {
-		local ok = inlist("`vcetype'", "unadjusted", "robust", "cluster", "bootstrap", "jackknife", "hac") & (`num_clusters'<=1)
-	}
-	else if ("`ivsuite'"=="ivreg2") {
-		local ok = inlist("`vcetype'", "unadjusted", "robust", "cluster", "bw") & (`num_clusters'<=2)
-	}
-	Assert `ok', msg("invalid vce type or number of clusters")
-}
+
+} // End of !`savingcache'
 
 * Optimization
 	if (`maxiterations'==0) local maxiterations 1e7
@@ -801,58 +935,13 @@ if (!`savingcache') {
 	Assert `cores'<=32 & `cores'>0 , msg("At most 32 cores supported")
 	if (`cores'>1) {
 		cap findfile parallel.ado
-		Assert !_rc , msg("error: -parallel- not installed, please run {cmd:ssc install parallel}")
+		Assert !_rc , msg("error: -parallel- not installed, please run {stata ssc install parallel}")
 	}
 	local opt_list tolerance maxiterations check accelerate ///
 		bad_loop_threshold stuck_threshold pause_length accel_freq accel_start
 	foreach opt of local opt_list {
 		if ("``opt''"!="") local maximize_options `maximize_options' `opt'(``opt'')
 	}
-
-* IV options
-if (!`savingcache') {
-	if ("`model'"=="iv" & "`ivsuite'"=="ivregress") {
-		if ("`estimator'"=="") local estimator 2sls
-		Assert inlist("`estimator'","2sls","gmm"), msg("liml estimator not allowed")
-		if ("`estimator'"!="2sls") di as error "WARNING! GMM not fully implemented, robust option gives wrong output"
-	}
-	else if ("`model'"=="iv" & "`ivsuite'"=="ivreg2") {
-		if ("`estimator'"=="") local estimator 2sls
-	Assert inlist("`estimator'","2sls","gmm2s") , msg("Estimator is `estimator', instead of empty (2sls/ols) or gmm2s")
-	* di in ye "WARNING: IV estimates not fully tested; methods like GMM2S will not work correctly"
-
-		Assert inlist("`dofminus'","","large","small"), msg("option -dofminus- is either -small- or -large-")
-		local dofminus = cond("`dofminus'"=="large", "dofminus", "sdofminus") // Default uses sdofminus
-	}
-	else {
-		local estimator
-	}
-	if ("`small'"!="") di in ye "(note: reghdfe will always use the option -small-, no need to specify it)"
-
-	Assert ("`gmm2s'`liml'`kiefer'`cue'"==""), msg("Please use estimator() option instead of gmm2s/liml/etc")
-	
-	if ("`model'"=="iv") {
-		local savefirst = ("`savefirst'"!="")
-		local first = ("`first'"!="")
-		if (`savefirst') Assert `first', msg("Option -savefirst- requires -first-")
-	}
-
-* DoF Estimation
-* For more than 2 FEs, no exact soln
-* Can estimate M3 and so on using
-* i) bounds using FE1 and FE2, ii) assuming M3=1 (fast), iii) bootstrap
-	if ("`dofmethod'"=="") local dofmethod bounds
-	assert inlist("`dofmethod'", "naive", "simple", "bounds", "bootstrap")
-
-* Mobility groups
-	if ("`group'"!="") conf new var `group'
-}
-
-* tsset variables, if any
-	cap conf var `_dta[_TStvar]'
-	if (!_rc) local timevar `_dta[_TStvar]'
-	cap conf var `_dta[_TSpanel]'
-	if (!_rc) local panelvar `_dta[_TSpanel]'
 
 * Varnames underlying tsvars and fvvars (e.g. i.foo L(1/3).bar -> foo bar)
 	foreach vars in depvar indepvars endogvars instruments {
@@ -879,10 +968,11 @@ if (!`savingcache') {
 
 * Return values
 	local names cmdline diopts model ///
-		ivsuite estimator showraw dofminus ///
+		ivsuite showraw ///
 		depvar indepvars endogvars instruments savefirst first ///
-		vceoption vcetype num_clusters clustervar1 clustervar2 vcerest ///
-		if in group dofmethod check fast nested fe_format ///
+		vceoption vcetype vcesuite vceextra num_clusters clustervars /// vceextra
+		dofadjustments ///
+		if in group check fast nested fe_format ///
 		tolerance maxiterations accelerate maximize_options ///
 		subcmd suboptions ///
 		absorb avge excludeself ///
@@ -1008,170 +1098,215 @@ syntax varlist(min=1 numeric fv ts) [if] [,setname(string)] [CACHE]
 end
 
 	
-// -------------------------------------------------------------
-// Calculate DoF lost from the FEs
-// -------------------------------------------------------------
-program define EstimateDoF
-syntax, dofmethod(string) [clustervar1(string) group(name) uid(varname) groupdta(string)]
-	
-	Assert inlist("`dofmethod'", "bounds", "simple", "naive", "bootstrap")
-	Assert "`dofmethod'"!="bootstrap" , msg("DoF Bootstrap: not yet implemented!")
-	Debug, level(1) msg("(calculating degrees of freedom lost by the FEs)")
-	Debug, level(2) msg(" - dofmethod: `dofmethod'")
-	mata: st_local("G", strofreal(G))
+// -------------------------------------------------------------------------------------------------
+// Calculate the degrees of freedom lost due to the absorbed fixed effects
+// -------------------------------------------------------------------------------------------------
+/*
+	In general, we can't know the exact number of DoF lost because we don't know when multiple FEs are collinear
+	When we have two pure FEs, we can use an existing algorithm, but besides that we'll just use an upper (conservative) bound
 
-* Start conservatively, assuming M`g'=1 (or =0 if interacted with cont. var)
-	local g_list // List of FEs where M is still unknown
+	Features:
+	 - Save the first mobility group if asked
+	 - Within the pure FEs, we can use the existing algorithm pairwise (FE1 vs FE2, FE3, .., FE2 vs FE3, ..)
+	 - If there are n pure FEs, that means the algo gets called n! times, which may be kinda slow
+	 - With FEs interacted with continuous variables, we can't do this, but can do two things:
+		a) With i.a#c.b , whenever b==0 for all values of a group (of -a-), add one redundant
+		b) With i.a##c.b, do the same but whenever b==CONSTANT (so not just zero)
+     - With clusters, it gets trickier but in summary you don't need to penalize DoF for params that only exist within a cluster. This happens:
+		a) if absvar==clustervar
+		b) if absvar is nested within a clustervar. EG: if we do vce(cluster state), and -absorb(district)- or -absorb(state#year)
+		c) With cont. interactions, e.g. absorb(i.state##c.year) vce(cluster year), then i) state FE is redundant, but ii) also state#c.year
+		   The reason is that at the param for each "fixed slope" is shared only within a state
+
+	Procedure:
+	 - Go through all FEs and see if i) they share the same ivars as any clusters, and if not, ii) if they are nested within clusters
+	 - For each pure FE in the list, run the algorithm pairwise, BUT DO NOT RUN IT BEETWEEN TWO PAIRS OF redundant
+	   (since the redundants are on the left, we just need to check the rightmost FE for whether it was tagged)
+	 - For the ones with cont interactions, do either of the two tests depending on the case
+
+	Misc:
+	 - There are two places where DoFs enter in the results:
+		a) When computing e(V), we do a small sample adjustment (seen in Stata documentation as the -q-)
+		   Instead of doing V*q with q = N/(N-k), we use q = N / (N-k-kk), so THE PURPOSE OF THIS PROGRAM IS TO COMPUTE "kk"
+		   This kk will be used to adjust V and also stored in e(df_a)
+		   With clusters, q = (N-1) / (N-k-kk) * M / (M-1)
+		   With multiway clustering, we use the smallest N_clust as our M
+	    b) In the DoF of the F and t tests (not when doing chi/normal)
+	       When there are clusters, note that e(df_r) is M-1 instead of N-1-k
+	       Again, here we want to use the smallest M with multiway clustering
+
+	Inputs: +-+- if we just use -fe2local- we can avoid passing stuff around when building subroutines
+	 - We need the current name of the absvars and clustervars (remember a#b is replaced by something different)
+	 - Do a conf var at this point to be SURE that we didn't mess up before
+	 - We need the ivars and cvars in a list
+	 - For the c. interactions, we need to know if they are bivariate or univariate
+	 - SOLN -> reghdfe_absorb, fe2local(`g')  ; from mata: ivars_clustervar`i' (needed???) , and G
+	 - Thus, do we really needed the syntax part??
+	 - fe2local saves: ivars cvars target varname varlabel is_interaction is_cont_interaction is_bivariate is_mock levels // Z group_k weightvar
+
+	DOF Syntax:
+	 DOFadjustments(none | all | CLUSTERs | PAIRwise | FIRSTpair | CONTinuous)
+	 dof() = dof(all) = dof(cluster pairwise continuous)
+	 dof(none) -> do nothing; all Ms = 0 
+	 dof(first) dof(first cluster) dof(cluster) dof(continuous)
+
+	For this to work, the program MUST be modular
+*/
+program define EstimateDoF, rclass
+syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
+	
+	* Parse list of adjustments/tricks to do
+	Debug, level(1) msg("(calculating degrees of freedom lost due to the FEs)")
+	local adjustement_list firstpairs pairwise clusters continuous
+	* This allows doing things like <if (`adj_clusters') ..>
+	Debug, level(2) msg(`" - Adjustments:"')
+	foreach adj of local adjustement_list {
+		local adj_`adj' : list posof "`adj'" in dofadjustments
+		Debug, level(2) msg(`"    - `adj' {col 18}{res} `=cond(`adj_`adj'',"yes","no")'"')
+	}
+
+	* Assert that the clustervars exist
+	mata: st_local("clustervars", invtokens(clustervars))
+	conf variable `clustervars', exact
+
+	mata: st_local("G", strofreal(G))
+	mata: st_local("N_clustervars", strofreal(length(clustervars)))
+
+	if ("`group'"!="") {
+		local group_option ", gen(`group')"
+		Assert (`adj_firstpairs' | `adj_pairwise'), msg("Cannot save connected groups without options pairwise or firstpair")
+	}
+
+	* Remember: fe2local stores the following:
+	* ivars cvars target varname varlabel is_interaction is_cont_interaction is_bivariate is_mock levels
+
+* Starting point assumes no redundant parameters
 	forv g=1/`G' {
 		reghdfe_absorb, fe2local(`g')
-		// ivars cvars target varname varlabel is_interaction is_cont_interaction is_bivariate is_mock levels
-		local M`g' = ("`cvars'"=="") | (`is_bivariate' & !`is_mock')
-		* We know M1=1 and Mg=0 if g is has a continuous interaction. The others we don't
-		if (`M`g''==1 & `levels'>1) local g_list `g_list' `g'
-		// If the FE is just an intercept, it's redundant (useful with -over-)
+		local redundant`g' = 0 // will be 1 if we don't penalize at all for this absvar (i.e. if it's nested with cluster or collinear with another absvar)
+		local is_slope`g' = ("`cvars'"!="") & (!`is_bivariate' | `is_mock') // two cases: i.a#c.b , i.a##c.b (which expands to <i.a i.a#c.b> and we want the second part)
+		local M`g' = !`is_slope`g'' // Start with 0 with cont. interaction, 1 w/out cont interaction
+
+		*For each FE, only know exactly parameters are redundant in a few cases:
+		*i) nested in cluster, ii) first pure FE, iii) second pure FE if checked with connected groups
+		local exact`g' 0
+		local drop`g' = !(`is_bivariate' & `is_mock')
 	}
 
+* Check if an absvar is a clustervar or is nested in a clustervar
+* We *always* check if absvar is a clustervar, to prevent deleting its __FE__ variable by mistake
+* But we only update the DoF if `adj_clusters' is true.
 
-* (ADDENDUM) Look for nested within cluster for the categorical components of a FE with cont. interaction
-	if ("`clustervar1'"!="" & "`dofmethod'"!="naive") {
+	local M_due_to_nested 0 // Redundant DoFs due to nesting within clusters
+	if (`N_clustervars'>0) {
+		mata: st_local("clustervars", invtokens(clustervars))
 		forv g=1/`G' {
 			reghdfe_absorb, fe2local(`g')
-			if (`M`g''==0) {
-				local gg = `g' - `is_mock'
-				cap _xtreg_chk_cl2 `clustervar1' __FE`gg'__
-				assert inlist(_rc, 0, 498)
-				if (!_rc) {
-					local prettyname : char __FE`gg'__[name]
-					Debug, msg("(Absorbed variable " as result "`prettyname'" ///
-							as text " is nested within cluster " ///
-							as result "`clustervar1'" as text ", adjusting DoF)")
-					local M`g' `levels'
+			local gg = `g' - `is_mock'
+			local absvar_in_clustervar 0 // 1 if absvar is nested in a clustervar
+			
+			* Trick: if the absvar is also a clustervar, then its name will be __FE*__
+			local absvar_is_clustervar : list varname in clustervars
+			if (`adj_clusters' & `absvar_is_clustervar') {
+				Debug, level(1) msg("(categorical variable " as result "`varlabel'"as text " is also a cluster variable, so it doesn't count towards DoF)")
+			}
+			else if (`adj_clusters') {
+				forval i = 1/`N_clustervars' {
+					mata: st_local("clustervar", clustervars[`i'])
+					mata: st_local("clustervar_original", clustervars_original[`i'])
+					cap _xtreg_chk_cl2 `clustervar' __FE`gg'__
+					assert inlist(_rc, 0, 498)
+					if (!_rc) {
+						Debug, level(1) msg("(categorical variable " as result "`varlabel'" as text " is nested within cluster variable " as result "`clustervar_original'" as text ", so it doesn't count towards DoF)")
+						continue, break
+					}
 				}
 			}
+
+			if (`absvar_is_clustervar') local drop`g' 0
+
+			if ( `adj_clusters' & (`absvar_is_clustervar' | `absvar_in_clustervar') ) {
+				local M`g' = `levels'
+				local redundant`g' 1
+				local exact`g' 1
+				local M_due_to_nested = `M_due_to_nested' + `levels' - 1
+			}
+		} // end for over absvars
+	} // end cluster adjustment
+
+* Just indicate the first pure FE that is not nested in a cluster
+	forv g=1/`G' {
+		if (!`is_slope`g'' & !`redundant`g'') {
+			local exact`g' 1
+			continue, break
 		}
 	}
-
-* Is the cluster var one of the FEs, or contains one of the FEs?
-* Since the number of clusters is the effective "number of observations", 
-* we shouldn't penalize the DoF for estimating means within a cluster ("within an obs")
-	local g_cluster 0
-	if ("`clustervar1'"!="" & "`dofmethod'"!="naive") {
-	
-* 1) See if it's exactly the same variable
-		local regex = regexm("`clustervar1'","^__FE([0-9]+)__$")
-		if (`regex') {
-			local g_cluster = `=regexs(1)'
-			local prettyname : char __FE`g_cluster'__[name]
-			Debug, msg("(cluster variable " as result "`prettyname'" ///
-				as text " is also an absorbed variable, adjusting DoF)")
-		}
-* 2) If that failed, see if one of the panels is nested within cluster
-* i.e., if whenever two obs are in the same group (in the FE), 
-* they are also in the same cluster
-		else {
-			foreach g of local g_list {
-				reghdfe_absorb, fe2local(`g')
-				cap _xtreg_chk_cl2 `clustervar1' __FE`g'__
-				assert inlist(_rc, 0, 498)
-
-				if (!_rc) {
-					local g_cluster = `g'
-					local prettyname : char __FE`g'__[name]
-					Debug, msg("(Absorbed variable " as result "`prettyname'" ///
-							as text " is nested within cluster " ///
-							as result "`clustervar1'" as text ", adjusting DoF)")
-					continue, break
-				}
-			}
-		}
-
-		if (`g_cluster'>0) {
-			reghdfe_absorb, fe2local(`g_cluster')
-			local M`g_cluster' = `levels'
-			local g_list : list g_list - g_cluster
-		}
-	} // clustervar1
 
 * Compute connected groups for the remaining FEs (except those with cont interactions)
+	local dof_exact 0 // if this code never runs, it's not exact
+	if (`adj_firstpairs' | `adj_pairwise') {
+		Debug, level(3) msg(" - Calculating connected groups for DoF estimation")
+		local dof_exact 1
+		local i_comparison 0
+		forv g=1/`G' {
+			if (`is_slope`g'') local dof_exact 0 // We may not get all redundant vars with cont. interactions
+			if (`is_slope`g'') continue
+			local start_h = `g' + 1
+			forv h=`start_h'/`G' {
+				if (`is_slope`h'' | `redundant`h'') continue
+				local ++i_comparison
+				if (`i_comparison'>1) local dof_exact 0 // Only exact with one comparison
+				if (`i_comparison'>1 & `adj_firstpairs') continue // -firstpairs- will only run the first comparison
+				if (`i_comparison'==1) local exact`h' 1
+				ConnectedGroups __FE`g'__ __FE`h'__ `group_option'
+				local group_option // connected groups are only saved *once*
+				local candidate = r(groups)
+				local M`h' = max(`M`h'', `candidate')
+			}
+		}
+	} // end connected group comparisons
 
-	if ("`group'"!="") local group_option ", gen(`group')"
-	local length : list sizeof g_list
-	tokenize `g_list' // Saves g1 g2 .. into `1' `2' etc
+* Adjustment with cont. interactions
+	if (`adj_continuous') {
+		forv g=1/`G' {
+			reghdfe_absorb, fe2local(`g')
+			if (!`is_slope`g'') continue
+			CheckZerosByGroup, fe(`varname') cvars(`cvars') anyconstant(`is_mock')
+			local M`g' = r(redundant)
+		}
+	}
 
-	if (`length'==0) {
-		// pass
-	}
-	else if (`length'==1) {
-		local M`1' = 1
-		local g_list // Only one FE besides cont. interaction and clustervar
-	}
-	else if (`length'==2) {
-		Debug, level(1) msg(" - exact DoF computation using connected groups")
-		ConnectedGroups __FE`1'__ __FE`2'__ `group_option'
-		local M`1' = 1
-		local M`2' = r(groups)
-		local g_list
-		local label "`: char __FE`1'__[name]' and `: char __FE`2'__[name]'"
+	if (`dof_exact') {
+		Debug, level(1) msg(" - DoF computation is exact")
 	}
 	else {
-		ConnectedGroups __FE`1'__ __FE`2'__ `group_option'
-		local M`1' = 1
-		local M`2' = r(groups)
-		local g_list : list g_list - 1
-		local g_list : list g_list - 2
-
-		* Get a conservative bound for M3 M4, etc:
-		* Calculate the mobility group wrt M1 and M2 and use the max of both
-		* Of course, this excludes effects in FE3 that are collinear with FE1 and FE2 but not FE1 or FE2 separately (and also excludes searching for FE4 vs FE3, etc)
-
-		if ("`dofmethod'"=="bounds") {
-			local msg_done = 0
-			* Iterate over the remaining elements
-			foreach g of local g_list {
-				assert `1'!=`g' & `2'!=`g'
-				ConnectedGroups __FE`1'__ __FE`g'__
-				local candidate1 = r(groups)
-				ConnectedGroups __FE`2'__ __FE`g'__
-				local candidate2 = r(groups)
-				local M`g' = max(`candidate1', `candidate2')
-
-				reghdfe_absorb, fe2local(`g')
-				Assert (`M`g''<=`levels'), msg("Mg should be at most Kg: `M`g''<=`levels'")
-				
-				* If Mg==Kg , the bound is exact and the FE is redundant!
-				if (`M`g''==`levels') local g_list : list g_list - g
-			}
-			if ("`g_list'"!="") di in ye "(note: conservative DoF estimates; they do not account for all possible collinearities between FEs; dofmethod=`dofmethod')"
-		}
-		else if inlist("`dofmethod'","simple","naive") {
-			di in ye "(note: DoF estimates ignore most possible collinearities between FEs, as dofmethod=`dofmethod')"
-		}
-		else {
-			error 999
-		}
+		Debug, level(1) msg(" - DoF computation not exact; DoF may be higher than reported")	
 	}
 
 	local SumM 0
 	local SumK 0
+	Debug, level(2) msg(" - Results of DoF adjustments:")
 	forv g=1/`G' {
 		reghdfe_absorb, fe2local(`g')
-		// ivars cvars target varname varlabel is_interaction is_cont_interaction is_bivariate is_mock levels
 		assert !missing(`M`g'') & !missing(`levels')
 		local SumM = `SumM' + `M`g''
 		local SumK = `SumK' + `levels'
-		local is_exact = !`: list g in g_list'
 
-		c_local M`g' `M`g''
-		c_local K`g' `levels'
-		c_local M`g'_exact `is_exact'
-		Debug, level(2) msg(" - parameters of FE`g': K=`levels' M=`M`g'' is_exact=`is_exact'")
+		return scalar M`g' = `M`g''
+		return scalar K`g' = `levels'
+		return scalar M`g'_exact = `exact`g''
+		return scalar drop`g' = `drop`g''
+		Debug, level(2) msg("   - FE`g' ({res}`varlabel'{txt}): {col 40}K=`levels' {col 50}M=`M`g'' {col 60}is_exact=`exact`g''")
 	}
+	return scalar M = `SumM'
 	local NetSumK = `SumK' - `SumM'
 	Debug, level(2) msg(" - DoF loss due to FEs: Sum(Kg)=`SumK', M:Sum(Mg)=`SumM' --> KK:=SumK-SumM=`NetSumK'")
+	return scalar kk = `NetSumK'
 
 * Save mobility group if needed
-	c_local saved_group = 0
-	if ("`group'"!="" & `length'>=2) {
+	local saved_group = 0
+	if ("`group'"!="") {
+		conf var `group'
 		tempfile backup
 		qui save "`backup'"
 		
@@ -1182,13 +1317,25 @@ syntax, dofmethod(string) [clustervar1(string) group(name) uid(varname) groupdta
 		Debug, level(2) msg(" - mobility group saved")
 		qui use "`backup'", clear
 		cap erase "`backup'"
-		c_local saved_group = 1
+		local saved_group = 1
 	}
+	return scalar saved_group = `saved_group'
+	return scalar M_due_to_nested = `M_due_to_nested'
+end
 
-	c_local M `SumM'
-	c_local kk `NetSumK'
-	local fe_nested_in_cluster = (`g_cluster'>0)
-	c_local fe_nested_in_cluster `fe_nested_in_cluster'
+capture program drop CheckZerosByGroup
+program define CheckZerosByGroup, rclass sortpreserve
+syntax, fe(varname numeric) cvars(varname numeric) anyconstant(integer)
+	tempvar redundant
+	assert inlist(`anyconstant', 0, 1)
+	if (`anyconstant') {
+		qui bys `fe' (`cvars'): gen byte `redundant' = (`cvars'[1]==`cvars'[_N]) if (_n==1)
+	}
+	else {
+		qui bys `fe' (`cvars'): gen byte `redundant' = (`cvars'[1]==0 & `cvars'[_N]==0) if (_n==1)
+	}
+	qui cou if `redundant'==1
+	return scalar redundant = r(N)
 end
 
 		
@@ -1205,7 +1352,7 @@ syntax varlist(min=2 max=2) [, GENerate(name) CLEAR]
 
     if ("`generate'"!="") conf new var `generate'
     gettoken id1 id2 : varlist
-    Debug, level(2) msg(" - computing connected groups between `id1' and`id2'")
+    Debug, level(2) msg("    - computing connected groups between `id1' and`id2'")
     tempvar group copy
 
     tempfile backup
@@ -1313,30 +1460,24 @@ local vars `0'
 	return local newnames "`newnames'"
 	return local prettynames "`prettynames'"
 end
-
-	
-/* Notes:
-- For -cluster- I need to run two regressions as in xtreg; the first one is to get the df_m
-
-- El FTEST es distinto entre areg/reg y xtreg porque xtreg hace un ajuste extra
-para pasar de areg a xtreg, multiplicar el F por Q^2
-Donde Q =  (e(N) - e(rank)) / (e(N) - e(rank) - e(df_a))
-Es decir, en vez de dividir entre N-K-KK, me basta con dividir entre N-K
-Asi que me bastaria usar -test- despues de correr la regresion y deberia salir igual que el FTEST ajustado del areg!!!
-(tambien igual al del xreg pero eso es mas limitante , aunq igual probar para 1 HDFE creando t=_n a nivel del ID1)
-*/
-*/
 program define Wrapper_regress, eclass
 	syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 		original_absvars(string) original_depvar(string) [original_indepvars(string) avge_targets(string)] ///
-		vceoption(string asis) kk(integer) vcetype(string) [weightexp(string)] ///
+		vceoption(string asis) ///
+		kk(integer) ///
+		[weightexp(string)] ///
 		addconstant(integer) ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
-
-	local vceoption = regexr("`vceoption'", "vce\( *unadjusted *\)", "vce(ols)")
 	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars'" )) ) // Just for esthetic purposes
+	if (`c(version)'>=12) local hidden hidden
+
+* Convert -vceoption- to what -regress- expects
+	gettoken vcetype clustervars : vceoption
+	local clustervars `clustervars' // Trim
+	local vceoption : subinstr local vceoption "unadjusted" "ols"
+	local vceoption "vce(`vceoption')"
 
 * Hide constant
 	if (!`addconstant') {
@@ -1344,99 +1485,414 @@ program define Wrapper_regress, eclass
 		local kk = `kk' + 1
 	}
 
-* Run regression just to compute true DoF
-	local subcmd _regress `vars' `weightexp', noheader notable `suboptions'
+* Note: the dof() option of regress is *useless* with robust errors,
+* and overriding e(df_r) is also useless because -test- ignores it,
+* so we have to go all the way and do a -post- from scratch
+
+* Obtain K so we can obtain DoF = N - K - kk
+* This is already done by regress EXCEPT when clustering
+* (but we still need the unclustered version for r2_a, etc.)
+	_rmcoll `indepvars' `avgevars' `weightexp', forcedrop
+	local varlist = r(varlist)
+	if ("`varlist'"==".") local varlist
+	local K : list sizeof varlist
+
+* Run -regress-
+	local subcmd regress `vars' `weightexp', `vceoption' `suboptions' `nocons' noheader notable
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	qui `subcmd'
-	local N = e(N)
-	local K = e(df_m) // Should also be equal to e(rank)+1
-	*** scalar `sse' = e(rss)
+	
+	local N = e(N) // We couldn't just use c(N) due to possible frequency weights
 	local WrongDoF = `N' - `addconstant' - `K'
 	local CorrectDoF = `WrongDoF' - `kk' // kk = Absorbed DoF
-	Assert !missing(`CorrectDoF')
-	
-* Now run intended regression and fix VCV
-	qui regress `vars' `weightexp', `vceoption' noheader notable `suboptions' `nocons'
-	* Fix DoF
-	tempname V
-	cap matrix `V' = e(V) * (`WrongDoF' / `CorrectDoF')
+	if ("`vcetype'"!="cluster") Assert e(df_r)==`WrongDoF', msg("e(df_r) doesn't match: `e(df_r)'!=`WrongDoF'")
 
-	* Avoid corner case error when all the RHS vars are collinear with the FEs
+
+* Store results for the -ereturn post-
+	tempname b V
+	matrix `b' = e(b)
+	matrix `V' = e(V)
+	local N = e(N)
+	local marginsok = e(marginsok)
+	local rmse = e(rmse)
+	local rss = e(rss)
+	local tss = e(mss) + e(rss) // Regress doesn't report e(tss)
+	local N_clust = e(N_clust)
+
+	local predict = e(predict)
+	local cmd = e(cmd)
+	local cmdline = e(cmdline)
+	local title = e(title)
+
+	* Fix V
+	if (`K'>0) matrix `V' = `V' * (`WrongDoF' / `CorrectDoF')
+
+	* DoF
+	if ("`vcetype'"=="cluster") Assert e(df_r) == e(N_clust) - 1
+	local df_r = cond( "`vcetype'"=="cluster" , e(df_r) , max( `CorrectDoF' , 0 ) )
+
+	capture ereturn post `b' `V' `weightexp', dep(`depvar') obs(`N') dof(`df_r') properties(b V)
+	local rc = _rc
+	Assert inlist(_rc,0,504), msg("error `=_rc' when adjusting the VCV") // 504 = Matrix has MVs
+	Assert `rc'==0, msg("Error: estimated variance-covariance matrix has missing values")
+	ereturn local marginsok = "`marginsok'"
+	ereturn local predict = "`predict'"
+	ereturn local cmd = "`cmd'"
+	ereturn local cmdline = "`cmdline'"
+	ereturn local title = "`title'"
+	ereturn local clustvar = "`clustervars'"
+	ereturn scalar rmse = `rmse'
+	ereturn scalar rss = `rss'
+	ereturn scalar tss = `tss'
+	ereturn scalar N_clust = `N_clust'
+	ereturn scalar N_clust1 = `N_clust'
+	ereturn `hidden' scalar unclustered_df_r = `CorrectDoF' // Used later in R2 adj
+
+* Compute model F-test
 	if (`K'>0) {
-		cap ereturn repost V=`V' // Else the fix would create MVs and we can't post
-		Assert inlist(_rc,0,504), msg("error `=_rc' when adjusting the VCV")
-	}
-	else {
-		ereturn scalar rank = 1 // Set e(rank)==1 when e(df_m)=0 , due to the constant
-		* (will not be completely correct if model is already demeaned?)
-	}
-	
-	*** if ("`vcetype'"!="cluster") ereturn scalar rank = e(rank) + `kk'
-
-* ereturns specific to this command
-	ereturn scalar df_r = max(`CorrectDoF', 0)
-	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars'" )) )
-	ereturn local alternative_cmd regress `original_vars', `vceoption' `options'
-
-	if ("`vcetype'"!="cluster") { // ("`vcetype'"=="unadjusted")
-		ereturn scalar F = e(F) * `CorrectDoF' / `WrongDoF'
+		qui test `indepvars' `avge' // Wald test
+		ereturn scalar F = r(F)
+		ereturn scalar df_m = r(df)
+		ereturn scalar rank = r(df)+1 // Add constant
 		if missing(e(F)) di as error "WARNING! Missing FStat"
 	}
-
-
-	local run_test = ("`vcetype'"=="cluster") | ( e(df_m)+1!=e(rank) )
-	if (`run_test') {
-		if ("`vcetype'"!="cluster") {
-			Debug, level(0) msg("Note: equality df_m+1==rank failed (is there a collinear variable in the RHS?), running -test- to get correct values")
-		}
-		return clear
-		if (`K'>0) {
-			qui test `indepvars' `avge' // Wald test
-			ereturn scalar F = r(F)
-			ereturn scalar df_m = r(df)
-			ereturn scalar rank = r(df)+1 // Add constant
-		}
-		else {
-			ereturn scalar F = 0
-			ereturn scalar df_m = 0
-			ereturn scalar rank = 1
-		}
+	else {
+		ereturn scalar F = 0
+		ereturn scalar df_m = 0
+		ereturn scalar rank = 1
 	}
 
-* Fstat
-	* _U: Unrestricted, _R: Restricted
-	* FStat = (RSS_R - RSS_U) / RSS * (N-K) / q
-	*       = (R2_U - R2_R) / (1 - R2_U) * DoF_U / (DoF_R - DoF_U)
-	Assert e(df_m)+1==e(rank) , rc(0) /// rc(322)
-		msg("Error: expected e(df_m)+1==e(rank), got (`=`e(df_m)'+1'!=`e(rank)')")
+	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars'" )) )
+
 end
 
-* Cluster notes (see stata PDFs):
-* We don't really have "N" indep observations but "M" (aka `N_clust') superobservations,
-* and we are replacing (N-K) DoF with (M-1) (used when computing the T and F tests)
+	
+capture program drop Wrapper_mwc
+program define Wrapper_mwc, eclass
+* This will compute an ols regression with 2+ clusters
+syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
+	original_absvars(string) original_depvar(string) [original_indepvars(string) avge_targets(string)] ///
+	vceoption(string asis) ///
+	kk(integer) ///
+	[weightexp(string)] ///
+	addconstant(integer) ///
+	[SUBOPTions(string)] [*] // [*] are ignored!
+
+	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
+	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars'" )) ) // Just for esthetic purposes
+	if (`c(version)'>=12) local hidden hidden
+
+* Parse contents of VCE()
+	local 0 `vceoption'
+	syntax namelist(max=11) // Of course clustering by anything beyond 2-3 is insane
+	gettoken vcetype clustervars : namelist
+	assert "`vcetype'"=="cluster"
+	local clustervars `clustervars' // Trim
+
+* Hide constant
+	if (!`addconstant') {
+		local nocons noconstant
+		local kk = `kk' + 1
+	}
+
+* Obtain e(b), e(df_m), and resids
+	local subcmd regress `depvar' `indepvars' `avgevars' `weightexp', `nocons'
+	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
+	qui `subcmd'
+
+	local K = e(df_m)
+	local WrongDoF = e(df_r)
+
+	* Store some results for the -ereturn post-
+	tempname b
+	matrix `b' = e(b)
+	local N = e(N)
+	local marginsok = e(marginsok)
+	local rmse = e(rmse)
+	local rss = e(rss)
+	local tss = e(mss) + e(rss) // Regress doesn't report e(tss)
+
+	local predict = e(predict)
+	local cmd = e(cmd)
+	local cmdline = e(cmdline)
+	local title = e(title)
+
+	* Compute the bread of the sandwich D := inv(X'X/N)
+	tempname XX invSxx
+	qui mat accum `XX' = `indepvars' `avgevars', `nocons'
+	mat `invSxx' = syminv(`XX') // This line is different from <Wrapper_avar>
+
+	* Resids
+	tempvar resid
+	predict double `resid', resid
+
+	* DoF
+	local df_r = max( `WrongDoF' - `kk' , 0 )
+
+* Use MWC to get meat of sandwich "M" (notation: V = DMD)
+	local size = rowsof(`invSxx')
+	tempname M V // Will store the Meat and the final Variance
+	matrix `V' = J(`size', `size', 0)
+
+* This gives all the required combinations of clustervars (ssc install tuples)
+	tuples `clustervars' // create locals i) ntuples, ii) tuple1 .. tuple#
+	tempvar group
+	local N_clust = .
+	local j 0
+
+	forval i = 1/`ntuples' {
+		matrix `M' =  `invSxx'
+		local vars `tuple`i''
+		local numvars : word count `vars'
+		local sign = cond(mod(`numvars', 2), "+", "-") // + with odd number of variables, - with even
+
+		GenerateID `vars', gen(`group')
 		
-* For the VCV matrix, the multiplier (small sample adjustement) is q := (N-1)/(N-K) * M / (M-1)
-* Notice that if every obs is its own cluster, M=N and q = N/(N-K) (the usual multiplier for -ols- and -robust-)
+		if (`numvars'==1) {
+			su `group', mean
+			local ++j
+			local h : list posof "`vars'" in clustervars
+			local N_clust`h' = r(max)
+
+			local N_clust = min(`N_clust', r(max))
+			Debug, level(2) msg(" - multi-way-clustering: `vars' has `r(max)' groups")
+		}
 		
-* Also, if one of the absorbed FEs is nested within the cluster variable, then we don't need to include that variable in K
-* (this is the adjustment that xtreg makes that areg doesn't)
+		* Compute the full sandwich (will be saved in `M')
+
+		_robust `resid', variance(`M') minus(0) cluster(`group') // Use minus==1 b/c we adjust the q later
+		Debug, level(3) msg(as result "`sign' `vars'")
+		* Add it to the other sandwiches
+		matrix `V' = `V' `sign' `M'
+		drop `group'
+	}
+
+	local N_clustervars = `j'
+
+* If the VCV matrix is not positive-semidefinite, use the fix from
+* Cameron, Gelbach & Miller - Robust Inference with Multi-way Clustering (JBES 2011)
+* 1) Use eigendecomposition V = U Lambda U' where U are the eigenvectors and Lambda = diag(eigenvalues)
+* 2) Replace negative eigenvalues into zero and obtain FixedLambda
+* 3) Recover FixedV = U * FixedLambda * U'
+* This will fail if V is not symmetric (we could use -mata makesymmetric- to deal with numerical precision errors)
+	mata: fix_psd("`V'") // This will update `V' making it PSD
+	assert inlist(`eigenfix', 0, 1)
+	if (`eigenfix') Debug, level(0) msg("VCV matrix was non-positive semi-definite; adjustment from Cameron, Gelbach & Miller applied.")
+
+	local M = `N_clust' // cond( `N_clust' < . , `N_clust' , `N' )
+	local q = ( `N' - 1 ) / `df_r' * `M' / (`M' - 1) // General formula, from Stata PDF
+	matrix `V' = `V' * `q'
+
+	* At this point, we have the true V and just need to add it to e()
+
+	local unclustered_df_r = `df_r' // Used later in R2 adj
+	local df_r = `M' - 1 // Cluster adjustment
+
+	capture ereturn post `b' `V' `weightexp', dep(`depvar') obs(`N') dof(`df_r') properties(b V)
+
+	local rc = _rc
+	Assert inlist(_rc,0,504), msg("error `=_rc' when adjusting the VCV") // 504 = Matrix has MVs
+	Assert `rc'==0, msg("Error: estimated variance-covariance matrix has missing values")
+	ereturn local marginsok = "`marginsok'"
+	ereturn local predict = "`predict'"
+	ereturn local cmd = "`cmd'"
+	ereturn local cmdline = "`cmdline'"
+	ereturn local title = "`title'"
+	ereturn scalar rmse = `rmse'
+	ereturn scalar rss = `rss'
+	ereturn scalar tss = `tss'
+	ereturn `hidden' scalar unclustered_df_r = `unclustered_df_r'
+
+	ereturn local clustvar = "`clustervars'"
+	assert `N_clust'<.
+	ereturn scalar N_clust = `N_clust'
+	forval i = 1/`N_clustervars' {
+		ereturn scalar N_clust`i' = `N_clust`i''
+	}
+
+* Compute model F-test
+	if (`K'>0) {
+		qui test `indepvars' `avge' // Wald test
+		ereturn scalar F = r(F)
+		ereturn scalar df_m = r(df)
+		ereturn scalar rank = r(df)+1 // Add constant
+		if missing(e(F)) di as error "WARNING! Missing FStat"
+	}
+	else {
+		ereturn scalar F = 0
+		ereturn df_m = 0
+		ereturn scalar rank = 1
+	}
+
+* ereturns specific to this command
+	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars'" )) )
+
+end
+program define Wrapper_avar, eclass
+	syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
+		original_absvars(string) original_depvar(string) [original_indepvars(string) avge_targets(string)] ///
+		vceoption(string asis) ///
+		kk(integer) ///
+		[weightexp(string)] ///
+		addconstant(integer) ///
+		[SUBOPTions(string)] [*] // [*] are ignored!
+
+	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
+	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars'" )) ) // Just for esthetic purposes
+	if (`c(version)'>=12) local hidden hidden
+
+* Convert -vceoption- to what -avar- expects
+	local 0 `vceoption'
+	syntax namelist(max=3) , [bw(string) dkraay(string) kernel(string) kiefer]
+	gettoken vcetype clustervars : namelist
+	local clustervars `clustervars' // Trim
+	Assert inlist("`vcetype'", "unadjusted", "robust", "cluster")
+	local vceoption = cond("`vcetype'"=="unadjusted", "", "`vcetype'")
+	if ("`clustervars'"!="") local vceoption `vceoption'(`clustervars')
+	if ("`bw'"!="") local vceoption `vceoption' bw(`bw')
+	if ("`dkraay'"!="") local vceoption `vceoption' dkraay(`dkraay')
+	if ("`kernel'"!="") local vceoption `vceoption' kernel(`kernel')
+	if ("`kiefer'"!="") local vceoption `vceoption' kiefer
+
+* Hide constant
+	if (!`addconstant') {
+		local nocons noconstant
+		local kk = `kk' + 1
+	}
+
+* Before -avar- we need:
+*	i) inv(X'X)
+*	ii) DoF lost due to included indepvars
+*	iii) resids
+* Note: It would be shorter to use -mse1- (b/c then invSxx==e(V)*e(N)) but then I don't know e(df_r)
+	local subcmd regress `depvar' `indepvars' `avgevars' `weightexp', `nocons'
+	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
+	qui `subcmd'
+	qui cou if !e(sample)
+	assert r(N)==0
+
+	local K = e(df_m) // Should also be equal to e(rank)+1
+	local WrongDoF = e(df_r)
+
+	* Store some results for the -ereturn post-
+	tempname b
+	matrix `b' = e(b)
+	local N = e(N)
+	local marginsok = e(marginsok)
+	local rmse = e(rmse)
+	local rss = e(rss)
+	local tss = e(mss) + e(rss) // Regress doesn't report e(tss)
+
+	local predict = e(predict)
+	local cmd = e(cmd)
+	local cmdline = e(cmdline)
+	local title = e(title)
+
+	* Compute the bread of the sandwich inv(X'X/N)
+	tempname XX invSxx
+	qui mat accum `XX' = `indepvars' `avgevars', `nocons'
+	mat `invSxx' = syminv(`XX' * 1/r(N))
+	
+	* Resids
+	tempvar resid
+	predict double `resid', resid
+
+	* DoF
+	local df_r = max( `WrongDoF' - `kk' , 0 )
+
+* Use -avar- to get meat of sandwich
+	local subcmd avar `resid' (`indepvars' `avgevars'), `vceoption' `nocons' // dofminus(0)
+	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
+	cap `subcmd'
+	local rc = _rc
+	if (`rc') {
+		di as error "Error in -avar- module:"
+		noi `subcmd'
+		exit 198
+	}
+
+	local N_clust = r(N_clust)
+	local N_clust1 = cond(r(N_clust1)<., r(N_clust1), r(N_clust))
+	local N_clust2 = r(N_clust2)
+
+* Get the entire sandwich
+	* Without clusters it's as if every obs. is is own cluster
+	local M = cond( r(N_clust) < . , r(N_clust) , r(N) )
+	local q = ( `N' - 1 ) / `df_r' * `M' / (`M' - 1) // General formula, from Stata PDF
+	tempname V
+	matrix `V' = `invSxx' * r(S) * `invSxx' / r(N) // Large-sample version
+	matrix `V' = `V' * `q' // Small-sample adjustments
+	* At this point, we have the true V and just need to add it to e()
+
+* Avoid corner case error when all the RHS vars are collinear with the FEs
+	local unclustered_df_r = `df_r' // Used later in R2 adj
+	if ("`clustervars'"!="") local df_r = `M' - 1
+
+	capture ereturn post `b' `V' `weightexp', dep(`depvar') obs(`N') dof(`df_r') properties(b V)
+	local rc = _rc
+	Assert inlist(_rc,0,504), msg("error `=_rc' when adjusting the VCV") // 504 = Matrix has MVs
+	Assert `rc'==0, msg("Error: estimated variance-covariance matrix has missing values")
+	ereturn local marginsok = "`marginsok'"
+	ereturn local predict = "`predict'"
+	ereturn local cmd = "`cmd'"
+	ereturn local cmdline = "`cmdline'"
+	ereturn local title = "`title'"
+	ereturn local clustvar = "`clustervars'"
+	ereturn scalar rmse = `rmse'
+	ereturn scalar rss = `rss'
+	ereturn scalar tss = `tss'
+	if ("`N_clust'"!="") ereturn scalar N_clust = `N_clust'
+	if ("`N_clust1'"!="") ereturn scalar N_clust1 = `N_clust1'
+	if ("`N_clust2'"!="") ereturn scalar N_clust2 = `N_clust2'
+	ereturn `hidden' scalar unclustered_df_r = `unclustered_df_r'
+
+* Compute model F-test
+	if (`K'>0) {
+		qui test `indepvars' `avge' // Wald test
+		ereturn scalar F = r(F)
+		ereturn scalar df_m = r(df)
+		ereturn scalar rank = r(df)+1 // Add constant
+		if missing(e(F)) di as error "WARNING! Missing FStat"
+	}
+	else {
+		ereturn scalar F = 0
+		ereturn df_m = 0
+		ereturn scalar rank = 1
+	}
+
+* ereturns specific to this command
+	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars'" )) )
+end
 program define Wrapper_ivregress, eclass
 	syntax , depvar(varname) endogvars(varlist) instruments(varlist) ///
 		[indepvars(varlist) avgevars(varlist)] ///
 		original_depvar(string) original_endogvars(string) original_instruments(string) ///
 		[original_indepvars(string) avge_targets(string)] ///
-		estimator(string) vceoption(string asis) KK(integer) [weightexp(string)] ///
+		vceoption(string asis) ///
+		KK(integer) ///
+		[weightexp(string)] ///
 		addconstant(integer) ///
 		SHOWRAW(integer) first(integer) ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
+	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
 	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars' (`endogvars'=`instruments')" )) )
-	if ("`estimator'"=="gmm") local vceoption = "`vceoption' " + subinstr("`vceoption'", "vce(", "wmatrix(", .)
+	if (`c(version)'>=12) local hidden hidden
+
+	* Convert -vceoption- to what -ivreg2- expects
+	local 0 `vceoption'
+	syntax namelist(max=2)
+	gettoken vceoption clustervars : namelist
+	local clustervars `clustervars' // Trim
+	Assert inlist("`vceoption'", "unadjusted", "robust", "cluster")
+	if ("`clustervars'"!="") local vceoption `vceoption' `clustervars'
+	local vceoption "vce(`vceoption')"
+
+	local estimator 2sls
 	
 	* Note: the call to -ivregress- could be optimized.
 	* EG: -ivregress- calls ereturn post .. ESAMPLE(..) but we overwrite the esample and its SLOW
 	* But it's a 1700 line program so let's not worry about it
-	*profiler on
 
 * Hide constant
 	if (!`addconstant') {
@@ -1455,9 +1911,6 @@ program define Wrapper_ivregress, eclass
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'
 	
-	*profiler off
-	*profiler report
-	
 	* Fix DoF if needed
 	local N = e(N)
 	local K = e(df_m)
@@ -1469,13 +1922,15 @@ program define Wrapper_ivregress, eclass
 		matrix `V' = e(V) * (`WrongDoF' / `CorrectDoF')
 		ereturn repost V=`V'
 	}
-	ereturn scalar df_r = `CorrectDoF'
+	
+	if ("`clustervars'"=="") ereturn scalar df_r = `CorrectDoF'
 
 	* ereturns specific to this command
 	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars' (`original_endogvars'=`original_instruments')" )) )
-	ereturn local alternative_cmd ivregress `estimator' `original_vars', small `vceoption' `options'
-	if ("`estimator'"!="gmm") ereturn scalar F = e(F) * `CorrectDoF' / `WrongDoF'
+	ereturn scalar F = e(F) * `CorrectDoF' / `WrongDoF'
 
+	ereturn scalar tss = e(mss) + e(rss) // ivreg2 doesn't report e(tss)
+	ereturn `hidden' scalar unclustered_df_r = `CorrectDoF' // Used later in R2 adj
 end
 program define Wrapper_ivreg2, eclass
 	syntax , depvar(varname) endogvars(varlist) instruments(varlist) ///
@@ -1483,8 +1938,9 @@ program define Wrapper_ivreg2, eclass
 		original_depvar(string) original_endogvars(string) original_instruments(string) ///
 		[original_indepvars(string) avge_targets(string)] ///
 		[original_absvars(string) avge_targets] ///
-		estimator(string) vceoption(string asis) KK(integer) ///
-		[SHOWRAW(integer 0) dofminus(string)] first(integer) [weightexp(string)] ///
+		vceoption(string asis) ///
+		KK(integer) ///
+		[SHOWRAW(integer 0)] first(integer) [weightexp(string)] ///
 		addconstant(integer) ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
@@ -1496,34 +1952,32 @@ program define Wrapper_ivreg2, eclass
 	local suboptions `options'
 	assert (`addconstant'==0)
 
-	if ("`estimator'"=="2sls") local estimator
-
-	if strpos("`vceoption'","unadj") {
-		local vceoption
-	}
-	else if strpos("`vceoption'","robust")>0 {
-		local vceoption "robust" 
-	}
-	else {
-		local vceoption = substr(trim("`vceoption'"), 5, strlen("`vceoption'")-5)
-		gettoken vcefirst vceoption : vceoption
-		local vceoption = trim("`vceoption'")
-		local vceoption `vcefirst'(`vceoption')
-	}
+	* Convert -vceoption- to what -ivreg2- expects
+	local 0 `vceoption'
+	syntax namelist(max=3) , [bw(string) dkraay(string) kernel(string) kiefer]
+	gettoken vcetype clustervars : namelist
+	local clustervars `clustervars' // Trim
+	Assert inlist("`vcetype'", "unadjusted", "robust", "cluster")
+	local vceoption = cond("`vcetype'"=="unadjusted", "", "`vcetype'")
+	if ("`clustervars'"!="") local vceoption `vceoption'(`clustervars')
+	if ("`bw'"!="") local vceoption `vceoption' bw(`bw')
+	if ("`dkraay'"!="") local vceoption `vceoption' dkraay(`dkraay')
+	if ("`kernel'"!="") local vceoption `vceoption' kernel(`kernel')
+	if ("`kiefer'"!="") local vceoption `vceoption' kiefer
 	
 	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars' (`endogvars'=`instruments')" )) )
 	
 	if (`first') {
 		local firstoption "first savefirst"
 	}
-	Assert inlist("`dofminus'","dofminus","sdofminus")
 
 	* Variables have already been demeaned, so we need to add -nocons- or the matrix of orthog conditions will be singular
-	local subcmd ivreg2 `vars' `weightexp', `estimator' `vceoption' `firstoption' small `dofminus'(`=`kk'+1') `suboptions' nocons
+	local subcmd ivreg2 `vars' `weightexp', `vceoption' `firstoption' small dofminus(`=`kk'+1') `suboptions' nocons
 	Debug, level(3) msg(_n "call to subcommand: " _n as result "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'
 	if ("`noise'"=="noi") di in red "{hline 64}" _n "{hline 64}"
+	ereturn scalar tss = e(mss) + e(rss) // ivreg2 doesn't report e(tss)
 
 	if !missing(e(ecollin)) {
 		di as error "endogenous covariate <`e(ecollin)'> was perfectly predicted by the instruments!"
@@ -1564,13 +2018,11 @@ program define Wrapper_ivreg2, eclass
 		}
 		qui estimates restore `hold'
 		estimates drop `hold'
+
 	}
 
 	* ereturns specific to this command
 	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars' (`original_endogvars'=`original_instruments')" )) )
-	ereturn local alternative_cmd ivreg2 `original_vars', small `vceoption' `options' `estimator'
-	***if ("`estimator'"!="gmm") ereturn scalar F = e(F) * `CorrectDoF' / `WrongDoF'
-
 end
 
 	
@@ -1602,7 +2054,6 @@ end
 	matrix colnames `b' = `e(prettynames)'
 	local savefirst = e(savefirst)
 	local suboptions = e(suboptions)
-
 
 	local diopts = "`e(diopts)'"
 	if ("`options'"!="") { // Override
@@ -1658,9 +2109,13 @@ end
 			_prefix_display, `diopts'
 			exit
 		}
-		_coef_table_header
+		
+
+		*_coef_table_header
+		Header
+
 		di
-		local plus = cond(e(model)=="ols" & e(vce)=="unadjusted", "plus", "")
+		local plus = cond(e(model)=="ols" & inlist("`e(vce)'", "unadjusted", "ols"), "plus", "")
 		_coef_table, `plus' `diopts' bmatrix(`b') vmatrix(e(V))
 	}
 
@@ -1671,23 +2126,186 @@ end
 end
 
 
-// -------------------------------------------------------------
-// Standard version of the HDFE command
-// -------------------------------------------------------------
-program define AlternativeCMD
+* (Modified from _coef_table_header.ado)
 
-    di in ye _n "[Running standard alternative to the HDFE command]"
-    if !e(alternative_ok) di as error "Note: the command will be approximate only (e.g. wrong SDs, ommited AvgE)"
-    di as text "[CMD] " as result "`e(alternative_cmd)'"
-    local rhs `e(indepvars)' `e(endogvars)' `e(AvgE_Ws)'
-    `e(alternative_cmd)'
-    
-    if ("`rhs'"!="") {
-        di in ye _n "(Joint test on non-FE regressors)"
-        testparm `rhs'
-    }
+capture program drop Header
+program define Header
+	if !c(noisily) exit
 
+	tempname left right
+	.`left' = {}
+	.`right' = {}
+
+	local width 78
+	local colwidths 1 30 51 67
+	local i 0
+	foreach c of local colwidths {
+		local ++i
+		local c`i' `c'
+		local C`i' _col(`c')
+	}
+
+	local c2wfmt 10
+	local c4wfmt 10
+	local max_len_title = `c3' - 2
+	local c4wfmt1 = `c4wfmt' + 1
+	local title  `"`e(title)'"'
+	local title2 `"`e(title2)'"'
+	local title3 `"`e(title3)'"'
+	local title4 `"`e(title4)'"'
+
+	// Right hand header ************************************************
+
+	*N obs
+	.`right'.Arrpush `C3' "Number of obs" `C4' "= " as res %`c4wfmt'.0f e(N)
+
+	* Ftest
+	if `"`e(chi2)'"' != "" | "`e(df_r)'" == "" {
+		Chi2test `right' `C3' `C4' `c4wfmt'
+	}
+	else {
+		Ftest `right' `C3' `C4' `c4wfmt'
+	}
+
+	* display R-squared
+	if !missing(e(r2)) {
+		.`right'.Arrpush `C3' "R-squared" `C4' "= " as res %`c4wfmt'.4f e(r2)
+	}
+	*if !missing(e(r2_p)) {
+	*	.`right'.Arrpush `C3' "Pseudo R2" `C4' "= " as res %`c4wfmt'.4f e(r2_p)
+	*}
+	if !missing(e(r2_a)) {
+		.`right'.Arrpush `C3' "Adj R-squared" `C4' "= " as res %`c4wfmt'.4f e(r2_a)
+	}
+	if !missing(e(r2_within)) {
+		.`right'.Arrpush `C3' "Within R-squared" `C4' "= " as res %`c4wfmt'.4f e(r2_within)
+	}
+	if !missing(e(rmse)) {
+		.`right'.Arrpush `C3' "Root MSE" `C4' "= " as res %`c4wfmt'.4f e(rmse)
+	}
+
+	// Left hand header *************************************************
+
+	* make title line part of the header if it fits
+	local len_title : length local title
+	forv i=2/4 {
+		if (`"`title`i''"'!="") {
+			local len_title = max(`len_title',`:length local title`i'')
+		}
+	}
+	
+	if `len_title' < `max_len_title' {
+		.`left'.Arrpush `"`"`title'"'"'
+		local title
+		forv i=2/4 {
+			if `"`title`i''"' != "" {
+					.`left'.Arrpush `"`"`title`i''"'"'
+					local title`i'
+			}
+		}
+		.`left'.Arrpush "" // Empty
+	}
+
+	* Clusters
+	local kr = `.`right'.arrnels' // number of elements in the right header
+	local kl = `.`left'.arrnels' // number of elements in the left header
+	local N_clustervars = e(N_clustervars)
+	if (`N_clustervars'==.) local N_clustervars 0
+	local space = `kr' - `kl' - `N_clustervars'
+	local clustvar = e(clustvar)
+	forv i=1/`space' {
+		.`left'.Arrpush ""
+	}
+	forval i = 1/`N_clustervars' {
+		gettoken cluster clustvar : clustvar
+		local num = e(N_clust`i')
+		.`left'.Arrpush `C1' "Number of clusters (" as res "`cluster'" as text  ") " `C2' as text "= " as res %`c2wfmt'.0f `num'
+	}
+
+	Display `left' `right' `"`title'"' `"`title2'"'
 end
+
+program Display
+		args left right title title2
+
+		local nl = `.`left'.arrnels'
+		local nr = `.`right'.arrnels'
+		local K = max(`nl',`nr')
+
+		di
+		if `"`title'"' != "" {
+				di as txt `"`title'"'
+				if `"`title2'"' != "" {
+						di as txt `"`title2'"'
+				}
+				if `K' {
+						di
+				}
+		}
+
+		local c _c
+		forval i = 1/`K' {
+				di as txt `.`left'[`i']' as txt `.`right'[`i']'
+		}
+end
+
+program Ftest
+		args right C3 C4 c4wfmt is_svy
+
+		local df = e(df_r)
+		if !missing(e(F)) {
+				.`right'.Arrpush                                ///
+						 `C3' "F("                              ///
+				   as res %4.0f e(df_m)                         ///
+				   as txt ","                                   ///
+				   as res %7.0f `df' as txt ")" `C4' "= "       ///
+				   as res %`c4wfmt'.2f e(F)
+				.`right'.Arrpush                                ///
+						 `C3' "Prob > F" `C4' "= "              ///
+				   as res %`c4wfmt'.4f Ftail(e(df_m),`df',e(F))
+		}
+		else {
+				local dfm_l : di %4.0f e(df_m)
+				local dfm_l2: di %7.0f `df'
+				local j_robust "{help j_robustsingular##|_new:F(`dfm_l',`dfm_l2')}"
+				.`right'.Arrpush                                ///
+						  `C3' "`j_robust'"                     ///
+				   as txt `C4' "= " as result %`c4wfmt's "."
+				.`right'.Arrpush                                ///
+						  `C3' "Prob > F" `C4' "= " as res %`c4wfmt's "."
+		}
+end
+
+program Chi2test
+		args right C3 C4 c4wfmt
+
+		local type `e(chi2type)'
+		if `"`type'"' == "" {
+				local type Wald
+		}
+		if !missing(e(chi2)) {
+				.`right'.Arrpush                                ///
+						  `C3' "`type' chi2("                   ///
+				   as res e(df_m)                               ///
+				   as txt ")" `C4' "= "                         ///
+				   as res %`c4wfmt'.2f e(chi2)
+				.`right'.Arrpush                                ///
+						  `C3' "Prob > chi2" `C4' "= "          ///
+				   as res %`c4wfmt'.4f chi2tail(e(df_m),e(chi2))
+		}
+		else {
+				local j_robust                                  ///
+				"{help j_robustsingular##|_new:`type' chi2(`e(df_m)')}"
+				.`right'.Arrpush                                ///
+						  `C3' "`j_robust'"                     ///
+				   as txt `C4' "= " as res %`c4wfmt's "."
+				.`right'.Arrpush                                ///
+						  `C3' "Prob > chi2" `C4' "= "          ///
+				   as res %`c4wfmt's "."
+		}
+end
+
+exit
 
 
 // -------------------------------------------------------------
@@ -1745,5 +2363,45 @@ program define Debug
 		if (`"`msg'"'!="") di as `color' `msg'`time'
 		if ("`newline'"!="") di
 	}
+end
+
+
+
+// -------------------------------------------------------------
+// Faster alternative to -egen group-. MVs, IF, etc not allowed!
+// -------------------------------------------------------------
+program define GenerateID, sortpreserve
+syntax varlist(numeric) , [REPLACE Generate(name)]
+
+	assert ("`replace'"!="") + ("`generate'"!="") == 1
+	// replace XOR generate, could also use -opts_exclusive -
+	foreach var of varlist `varlist' {
+		assert !missing(`var')
+	}
+
+	local numvars : word count `varlist'
+	if ("`replace'"!="") assert `numvars'==1 // Can't replace more than one var!
+	
+	// Create ID
+	tempvar new_id
+	sort `varlist'
+	by `varlist': gen long `new_id' = (_n==1)
+	qui replace `new_id' = sum(`new_id')
+	qui compress `new_id'
+	assert !missing(`new_id')
+	
+	local name = "i." + subinstr("`varlist'", " ", "#i.", .)
+	char `new_id'[name] `name'
+	la var `new_id' "[ID] `name'"
+
+	// Either replace or generate
+	if ("`replace'"!="") {
+		drop `varlist'
+		rename `new_id' `varlist'
+	}
+	else {
+		rename `new_id' `generate'
+	}
+
 end
 

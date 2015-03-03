@@ -5,7 +5,7 @@ program reghdfe_footnote
 syntax [, linesize(int 79)]
 
 
-if (e(model)=="ols" & e(vce)=="unadjusted") {
+if ("`e(model)'"=="ols" & inlist("`e(vce)'", "unadjusted", "ols")) {
 	local dfa1  = e(df_a) + 1
 	local todisp `"F(`e(df_a)', `e(df_r)') = "'
 	local skip3 = max(23-length(`"`todisp'"')-2,0)

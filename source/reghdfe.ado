@@ -1,4 +1,4 @@
-*! reghdfe 1.3.0 10Dec2014
+*! reghdfe 1.4.0 03Mar2015
 *! By Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 
@@ -9,15 +9,7 @@ program define reghdfe
 
 	if replay() {
 		if (`"`e(cmd)'"'!="reghdfe") error 301
-		* Undocumented feature for debugging
-		cap syntax, ALTernative
-		if ("`alternative'"!="") {
-			AlternativeCMD
-			exit
-		}
-		else {	
-			Replay `0'
-		}
+		Replay `0'
 	}
 	else {
 		* Estimate, and then clean up Mata in case of failure
@@ -31,6 +23,7 @@ program define reghdfe
 	}
 end
 
+include "_mata/fix_psd.mata"
 include "_reghdfe/Estimate.ado"
 	include "_reghdfe/Parse.ado"
 	include "_reghdfe/ExpandFactorVariables.ado"
@@ -38,10 +31,14 @@ include "_reghdfe/Estimate.ado"
 		include "_reghdfe/ConnectedGroups.ado"
 	include "_reghdfe/FixVarnames.ado"
 	include "_reghdfe/Wrapper_regress.ado"
+	include "_reghdfe/Wrapper_mwc.ado"
+	include "_reghdfe/Wrapper_avar.ado"
 	include "_reghdfe/Wrapper_ivregress.ado"
 	include "_reghdfe/Wrapper_ivreg2.ado"
 	include "_reghdfe/AddConstant.ado"
 include "_reghdfe/Replay.ado"
-include "_reghdfe/AlternativeCMD.ado"
+include "_reghdfe/Header.ado"
 include "_common/Assert.ado"
 include "_common/Debug.ado"
+
+include "_reghdfe_absorb/GenerateID.ado"

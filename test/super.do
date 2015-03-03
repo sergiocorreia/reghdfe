@@ -3,9 +3,22 @@
 	clear all
 	discard
 	cap cls
+	cd "D:/Github/reghdfe/test"
 	
 * Run scripts
+	*run test-minimal
+	run test-unadjusted
+	run test-robust
+	run test-cluster
+	run test-ivreg2
+	run test-cluster-same-as-absvar
+	run test-vce-complex-bw
 	run test-weights
-	* Asegurarme que falle con fw y noninteger!
+	run test-mwc
+	run test-ivreg2-nocons
+	
+	run test-postestimation-test
+	run test-postestimation-predict
+
 * Success
 	di as text "No errors found!"

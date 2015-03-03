@@ -17,4 +17,6 @@
 
 ## New
 
-* Add option -DROPSINGLETONs- so we drop cases where an ID only spans one observation (after accounting for MVs).
+* Allow for -suest-
+* Fix -test- bug when running vce(ols)
+* (Done?) Add option -DROPSINGLETONs- so we drop cases where an ID only spans one observation (after accounting for MVs).

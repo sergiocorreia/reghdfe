@@ -60,3 +60,67 @@ SMALL: V = VBASE / (N-dofminus)
 
 LARGE CLUSTER: V = VBASE / (N-K-dofminus-sdofminus)??????????
 SMALL CLUSTER: V = VBASE / (N-dofminus)????????????????
+
+
+## Robust Variance Notes (disregard)
+
+VCV = q * V * S * V
+S := \sum_k=1^M U_k(G) ' U_k(G)
+U_k(G) := \sum_{i \in G_k} w_i u_i
+
+Basically, each observation gives you a "score vector" which is typically the residual times the Xs
+
+Within each cluster G_k, scores are allowed to be perfectly correlated so we just "add them up" into one "superobservation"
+
+Then, to compute S (the ham of the sandwich), we add up all the cross product of the superobservations
+Note that since u_j and u_k(G) are *row* vectors, u'u will be square matrices.
+
+### Simplest case
+
+In the simplest case, w = 1 (no weights), each observation is one cluster (i.e. no clusters), and u = e * x (e is the residual of a regression)
+Then, S = \sum u_i ' u_i = \sum e_i^2 * x_i ' x_i
+Under the usual iid assumptions for the error, we can further split S into (\sum e_i^2) and (X'X=\sum x_i ' x_i)
+
+### Finite Sample adjustement through -q-
+
+Usually q = [ (N-1)/(N-K) ] * [ M / (M-1) ]
+As the number of clusters M grows, the second part becomes irrelevant
+Similarly, if the number of parameters is fixed, the first part also becomes irrelevant
+Under HDFE, the later is false, so we need to be very careful with our -q- adjustment
+
+Notice that WITHOUT CLUSTERING, M=N and therefore q collapses to the usual:
+q = N / (N-K)
+
+
+### Stata Notation
+
+inv V := A = X'X without instruments, else = X'Z inv(Z'Z) (X'Z)' (another sandwich)
+a = X'y without instruments or X'Z inv(Z'Z) (y'Z)' with instruments
+
+### Stata Cases
+
+For `regress`, 
+V = inv(A)
+
+`vce(robust)` without instruments
+u_i = (y_i - x_i b) x_i (so u = resid .* X)
+
+
+`vce(unadjusted)` with instruments
+Still use s^2 * inv(A), but A is the sandwich version
+
+`vce(robust)` with instruments
+u = (y-Xb) .* Xhat
+Notice that we obtain the "true" residuals (wrt the true value of the endogvars), but multiply them by the predicted RHS
+
+
+Therefore, to get the VCV for IV we need to:
+Regress first stage and obtain Xhat
+
+`matrix accum A = varlist` creates X'X
+To create the sandwich version, we need to do ??
+
+ If noconstant is not specified, it is as if a column of 1s is added to X before the accumulation begins.
+group(clusterid) 
+
+_robust varlist

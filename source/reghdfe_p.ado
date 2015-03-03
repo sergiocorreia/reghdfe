@@ -22,7 +22,7 @@ program define reghdfe_p, // sortpreserve properties(default_xb)
 	if ("`option'"=="scores") local option residuals
 
 	local fixed_effects = e(absvars)
-	
+
 	* We need to have saved FEs and AvgEs for every option except -xb-
 	if ("`option'"!="xb") {
 		
@@ -63,11 +63,17 @@ program define reghdfe_p, // sortpreserve properties(default_xb)
 		}
 	} // Finished creating `d' if needed
 	
+	
 	* Construct -xb- if needed
 	if ("`option'"!="d") {
 		tempvar xb
 		_predict double `xb' `if' `in', xb
 	}
+	
+	* Adjusting for -noconstant- option
+	local adj_cons = cond(e(_cons)<., e(_cons), 0)
+	cap replace `xb' = `xb' + `adj_cons'
+	cap replace `d' = `d' - `adj_cons'
 	
 	if ("`option'"=="xb") {
 		rename `xb' `varlist'
