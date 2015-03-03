@@ -232,6 +232,13 @@ else {
 	local tss = r(Var)*(r(N)-1)
 	assert `tss'<.
 
+	if (`: list posof "first" in stages') {
+		foreach var of varlist `endogvars' {
+			qui su `var' `tmpweightexp' // BUGBUG: Is this correct?!
+			local tss_`var' = r(Var)*(r(N)-1)
+		}
+	}
+
 * 11) Calculate the degrees of freedom lost due to the FEs
 	if ("`group'"!="") {
 		tempfile groupdta
@@ -286,8 +293,8 @@ else {
 	}
 
 	if (`fast') {
-		if (`nested' | `check' | `any_target_hdfe' | `any_target_avge' | "`group'"!="" | `cores'>1) {
-			Debug, msg(as text "(option {it:fast} not compatible with other options; disabled)") level(0) // {opt ..} is too boldy
+		if (`nested' | `check' | `any_target_hdfe' | `any_target_avge' | "`group'"!="") {
+			Debug, msg(as text "(option {it:fast} not compatible with other options; disabled)") level(0)
 			local fast 0
 		}
 		else {
@@ -295,7 +302,7 @@ else {
 		}
 	}
 
-	if (!`fast') {
+	if (!`fast' | `cores'>1) {
 		sort `uid'
 		tempfile original_vars
 		qui save "`original_vars'"
@@ -383,6 +390,96 @@ if (`savingcache') {
 
 // PART II - REGRESSION
 
+**** <<< START OF UGLY -stages- CODE
+assert "`stages'"!=""
+if ("`stages'"!="none") {
+	Debug, level(2) msg(_n " {title:Stages to run}: " as result "`stages'" _n)
+	local backup_fast `fast'
+	local num_stages : word count `stages'
+	local last_stage : word `num_stages' of `stages'
+	assert "`last_stage'"=="iv"
+	foreach vargroup in depvar indepvars endogvars instruments {
+		local backup_`vargroup' ``vargroup''
+		local backup_original_`vargroup' `original_`vargroup''
+	}
+	local backup_tss = `tss'
+}
+
+foreach stage of local stages {
+local lhs_endogvars = cond("`stage'"=="first", "`backup_endogvars'", "<none>")
+
+if ("`stage'"=="first") {
+	local i_endogvar 0
+}
+else {
+	local i_endogvar
+}
+
+foreach lhs_endogvar of local lhs_endogvars {
+Assert inlist("`stage'", "none", "iv", "first", "ols", "reduced", "acid")
+
+if ("`stage'"=="iv") {
+	local tss = `backup_tss'
+	local fast `backup_fast'
+	local depvar `backup_depvar'
+	local indepvars `backup_indepvars'
+	local endogvars `backup_endogvars'
+	local instruments `backup_instruments'
+	local original_depvar `backup_original_depvar'
+	local original_indepvars `backup_original_indepvars'
+	local original_endogvars `backup_original_endogvars'
+	local original_instruments `backup_original_instruments'
+}
+else if ("`stage'"=="ols") {
+	local tss = `backup_tss'
+	local fast 1
+	local depvar `backup_depvar'
+	local endogvars
+	local indepvars `backup_indepvars' `backup_endogvars'
+	local instruments
+	local original_depvar `backup_original_depvar'
+	local original_endogvars
+	local original_indepvars `backup_original_indepvars' `backup_original_endogvars'
+	local original_instruments
+}
+else if ("`stage'"=="reduced") {
+	local tss = `backup_tss'
+	local fast 1
+	local depvar `backup_depvar'
+	local indepvars `backup_indepvars' `backup_instruments'
+	local endogvars
+	local instruments
+	local original_depvar `backup_original_depvar'
+	local original_indepvars `backup_original_indepvars' `backup_original_instruments'
+	local original_endogvars
+	local original_instruments
+}
+else if ("`stage'"=="acid") {
+	local tss = `backup_tss'
+	local fast 1
+	local depvar `backup_depvar'
+	local indepvars `backup_indepvars' `backup_endogvars' `backup_instruments'
+	local endogvars
+	local instruments
+	local original_depvar `backup_original_depvar'
+	local original_indepvars `backup_original_indepvars' `backup_original_endogvars' `backup_original_instruments'
+	local original_endogvars
+	local original_instruments
+}
+else if ("`stage'"=="first") {
+	local tss = `tss_`lhs_endogvar''
+	local fast 1
+	local depvar `lhs_endogvar'
+	local indepvars `backup_indepvars' `backup_instruments'
+	local endogvars
+	local instruments
+	local original_depvar `backup_original_depvar'
+	local original_indepvars `backup_original_indepvars' `backup_original_endogvars' `backup_original_instruments'
+	local original_endogvars
+	local original_instruments
+}
+**** END OF UGLY -stages- CODE >>>> 
+
 * Cleanup
 	ereturn clear
 
@@ -392,8 +489,9 @@ if (`savingcache') {
 		AddConstant `depvar' `indepvars' `avgevars' `endogvars' `instruments'
 	}
 
+
 * Regress
-	Debug, level(2) msg("(running regresion: `model'.`ivsuite')")
+	if ("`stage'"=="none") Debug, level(2) msg("(running regresion: `model'.`ivsuite')")
 	local avge = cond(`N_avge'>0, "__W*__", "")
 	local options
 	local option_list ///
@@ -411,6 +509,8 @@ if (`savingcache') {
 	local wrapper "Wrapper_`subcmd'" // regress ivreg2 ivregress
 	if ("`subcmd'"=="regress" & "`vcesuite'"=="avar") local wrapper "Wrapper_avar"
 	if ("`subcmd'"=="regress" & "`vcesuite'"=="mwc") local wrapper "Wrapper_mwc"
+
+	if (!inlist("`stage'","none", "iv")) local wrapper "Wrapper_avar" // Compatible with ivreg2
 	Debug, level(3) msg(_n "call to wrapper:" _n as result "`wrapper', `options'")
 	`wrapper', `options'
 	
@@ -427,7 +527,7 @@ if (`savingcache') {
 
 if (`fast') {
 	* Copy pasted from below
-	Debug, level(3) msg("(avoiding -use- of temporary dataset")
+	Debug, level(3) msg("(avoiding -use- of temporary dataset)")
 	tempname b
 	matrix `b' = e(b)
 	local backup_colnames : colnames `b'
@@ -435,11 +535,9 @@ if (`fast') {
 	local newnames "`r(newnames)'"
 	local prettynames "`r(prettynames)'"
 	matrix colnames `b' = `newnames'
-
-	clear // can comment out after debugging
 }
 else {
-
+	assert inlist("`stage'", "iv", "none")
 * 1) Restore untransformed dataset
 	qui use "`original_vars'", clear
 
@@ -515,7 +613,7 @@ else {
 } // fast
 
 * 8) Restore original dataset and merge
-	restore // Restore user-provided dataset
+	if (inlist("`stage'","none", "iv")) restore // Restore user-provided dataset
 	if (!`fast') {
 		// `saved_group' was created by EstimateDoF.ado
 		if (!`saved_group')  local groupdta
@@ -529,7 +627,7 @@ else {
 
 * Ereturns common to all commands
 	ereturn local cmd = "reghdfe"
-	ereturn local subcmd = "`subcmd'"
+	ereturn local subcmd = cond(inlist("`stage'", "none", "iv"), "`subcmd'", "regress")
 	ereturn local cmdline `"`cmdline'"'
 	if ("`e(model)'"!="" & "`e(model)'"!="`model'") di as error "`e(model) was <`e(model)'>" // ?
 	ereturn local model = "`model'"
@@ -653,10 +751,31 @@ else {
 
 * Show table and clean up
 	ereturn repost b=`b', rename // why here???
+
+	Debug, level(0) msg(_n "{title:Stage: `stage'}" _n)
+	if ("`lhs_endogvar'"!="<none>") Debug, level(0) msg("{title:Endogvar: `lhs_endogvar'}")
 	Replay
+	Attach, post(`postestimation') notes(`notes')
+
+*** <<<< LAST PART OF UGLY STAGE <<<<	
+if (!inlist("`stage'","none", "iv")) {
+	if ("`i_endogvar'"!="") {
+		local ++ i_endogvar
+	}
+	local cmd estimates store reghdfe_`stage'`i_endogvar'
+	Debug, level(2) msg(" - Storing estimate: `cmd'")
+	`cmd'
+}
+
+} // lhs_endogvar
+} // stage
+*** >>>> LAST PART OF UGLY STAGE >>>>
+
 	reghdfe_absorb, step(stop)
 
 end
+
+// -------------------------------------------------------------------------------------------------
 
 * The idea of this program is to keep the sort order when doing the merges
 program define SafeMerge, eclass sortpreserve
@@ -698,6 +817,35 @@ program define Subtitle, eclass
 		local notes `notes' // remove initial space
 		if ("`notes'"!="") ereturn local title4 = " (`notes')"
 	}
+end
+
+capture program drop Attach
+program define Attach, eclass
+syntax, [POSTestimation(string) NOTES(string)]
+	
+	* Postestimation
+	local 0, `postestimation'
+	syntax, [SUmmarize] [QUIetly]
+	if ("`summarize'"!="") {
+		`quietly' reghdfe_estat summarize
+		tempname stats
+		matrix `stats' = r(stats)
+		ereturn matrix summarize = `stats'
+	}
+
+	* Parse key=value options and append to ereturn as hidden
+	mata: st_local("notes", strtrim(`"`notes'"')) // trim (supports large strings)
+	local keys
+	while (`"`notes'"'!="") {
+		gettoken key notes : notes, parse(" =")
+		Assert !inlist("`key'","sample","time"), msg("Key cannot be -sample- or -time-") // Else -estimates- will fail
+		gettoken _ notes : notes, parse("=")
+		gettoken value notes : notes, quotes
+		local keys `keys' `key'
+		ereturn hidden local `key' `value'
+	}
+	if ("`keys'"!="") ereturn hidden local keys `keys'
+
 end
 
 	
@@ -752,6 +900,8 @@ else {
 		[SUBOPTions(string)] /// Options to be passed to the estimation command (e.g . to regress)
 		[bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) accel_freq(integer 3) accel_start(integer 6)] /// Advanced optimization options
 		[CORES(integer 1)] [USEcache(string)] [OVER(varname numeric)] ///
+		[POSTestimation(string) NOTES(string)] /// (Quipu) postestimation([SUmmarize QUIetly]) NOTES(key=value ..)
+		[STAGEs(string)] ///
 		[noCONstant] /// Disable adding back the intercept (mandatory with -ivreg2-)
 		[*] // For display options
 }
@@ -876,6 +1026,22 @@ if (!`savingcache') {
 
 	Debug, msg(_n " {title:REGHDFE} Verbose level = `verbose'")
 	*Debug, msg("{hline 64}")
+
+* Stages
+	assert "`model'"!="" // just to be sure this goes after `model' is set
+	local iv_stage iv
+	local stages : list stages - iv_stage
+	local valid_stages ols first acid reduced
+	local wrong_stages : list stages - valid_stages
+	Assert "`wrong_stages'"=="", msg("Error, invalid stages(): `wrong_stages'")
+	if ("`stages'"!="") {
+		Assert "`model'"=="iv", msg("Error, stages() only valid with an IV regression")
+		local stages `stages' `iv_stage' // Put -iv- *last* (so it does the -restore-; note that we don't need it first to trim MVs b/c that's done earlier)
+		Assert "`avge'"=="", msg("Error, avge not allowed with stages()")
+	}
+	else {
+		local stages none // So we can loop over stages
+	}
 
 * Add back constants (place this *after* we define `model')
 	local addconstant = ("`constant'"!="noconstant") & !("`model'"=="iv" & "`ivsuite'"=="ivreg2") // also see below
@@ -1039,7 +1205,8 @@ if (!`savingcache') {
 		timevar panelvar basevars ///
 		addconstant ///
 		weight weightvar exp weightexp /// type of weight (fw,aw,pw), weight var., and full expr. ([fw=n])
-		cores savingcache usecache over
+		cores savingcache usecache over ///
+		postestimation notes stages
 }
 
 if (`savingcache') {
@@ -1604,8 +1771,8 @@ program define Wrapper_regress, eclass
 	ereturn scalar rmse = `rmse'
 	ereturn scalar rss = `rss'
 	ereturn scalar tss = `tss'
-	ereturn scalar N_clust = `N_clust'
-	ereturn scalar N_clust1 = `N_clust'
+	if (`N_clust'<.) ereturn scalar N_clust = `N_clust'
+	if (`N_clust'<.) ereturn scalar N_clust1 = `N_clust'
 	ereturn `hidden' scalar unclustered_df_r = `CorrectDoF' // Used later in R2 adj
 
 * Compute model F-test
@@ -2032,7 +2199,7 @@ program define Wrapper_ivreg2, eclass
 	}
 
 	* Variables have already been demeaned, so we need to add -nocons- or the matrix of orthog conditions will be singular
-	local subcmd ivreg2 `vars' `weightexp', `vceoption' `firstoption' small dofminus(`=`kk'+1') `suboptions' nocons
+	local subcmd ivreg2 `vars' `weightexp', `vceoption' `firstoption' small sdofminus(`=`kk'+1') `suboptions' nocons
 	Debug, level(3) msg(_n "call to subcommand: " _n as result "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'

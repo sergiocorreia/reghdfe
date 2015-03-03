@@ -22,6 +22,7 @@
 
 	run test-cores
 	run test-attach
+	run test-stage
 
 * Success
 	di as text "No errors found!"

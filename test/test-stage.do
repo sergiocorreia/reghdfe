@@ -44,7 +44,7 @@ cscript "reghdfe with clusters" adofile reghdfe
 
 	* 1. Run benchmarks
 	qui tab `absvars', gen(ABS_)
-cls	
+	
 	* IV
 	local cmd ivreg2 `lhs' `rhs' (`endogvar'=`iv') ABS_* , small partial(ABS_*) cluster(`clustervar') 
 	di as input "`cmd'"
