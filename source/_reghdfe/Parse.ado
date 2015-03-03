@@ -51,6 +51,7 @@ else {
 		[SUBOPTions(string)] /// Options to be passed to the estimation command (e.g . to regress)
 		[bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) accel_freq(integer 3) accel_start(integer 6)] /// Advanced optimization options
 		[CORES(integer 1)] [USEcache(string)] [OVER(varname numeric)] ///
+		[POSTestimation(string) NOTES(string)] /// (Quipu) postestimation([SUmmarize QUIetly]) NOTES(key=value ..)
 		[noCONstant] /// Disable adding back the intercept (mandatory with -ivreg2-)
 		[*] // For display options
 }
@@ -338,7 +339,8 @@ if (!`savingcache') {
 		timevar panelvar basevars ///
 		addconstant ///
 		weight weightvar exp weightexp /// type of weight (fw,aw,pw), weight var., and full expr. ([fw=n])
-		cores savingcache usecache over
+		cores savingcache usecache over ///
+		postestimation notes
 }
 
 if (`savingcache') {

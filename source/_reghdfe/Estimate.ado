@@ -178,8 +178,8 @@ else {
 	}
 
 	if (`fast') {
-		if (`nested' | `check' | `any_target_hdfe' | `any_target_avge' | "`group'"!="" | `cores'>1) {
-			Debug, msg(as text "(option {it:fast} not compatible with other options; disabled)") level(0) // {opt ..} is too boldy
+		if (`nested' | `check' | `any_target_hdfe' | `any_target_avge' | "`group'"!="") {
+			Debug, msg(as text "(option {it:fast} not compatible with other options; disabled)") level(0)
 			local fast 0
 		}
 		else {
@@ -187,7 +187,7 @@ else {
 		}
 	}
 
-	if (!`fast') {
+	if (!`fast' | `cores'>1) {
 		sort `uid'
 		tempfile original_vars
 		qui save "`original_vars'"
@@ -548,7 +548,11 @@ else {
 	Replay
 	reghdfe_absorb, step(stop)
 
+	Attach, post(`postestimation') notes(`notes')
 end
+
+// -------------------------------------------------------------------------------------------------
+
 
 * The idea of this program is to keep the sort order when doing the merges
 cap pr drop SafeMerge
@@ -591,4 +595,33 @@ program define Subtitle, eclass
 		local notes `notes' // remove initial space
 		if ("`notes'"!="") ereturn local title4 = " (`notes')"
 	}
+end
+
+capture program drop Attach
+program define Attach, eclass
+syntax, [POSTestimation(string) NOTES(string)]
+	
+	* Postestimation
+	local 0, `postestimation'
+	syntax, [SUmmarize] [QUIetly]
+	if ("`summarize'"!="") {
+		`quietly' reghdfe_estat summarize
+		tempname stats
+		matrix `stats' = r(stats)
+		ereturn matrix summarize = `stats'
+	}
+
+	* Parse key=value options and append to ereturn as hidden
+	mata: st_local("notes", strtrim(`"`notes'"')) // trim (supports large strings)
+	local keys
+	while (`"`notes'"'!="") {
+		gettoken key notes : notes, parse(" =")
+		Assert !inlist("`key'","sample","time"), msg("Key cannot be -sample- or -time-") // Else -estimates- will fail
+		gettoken _ notes : notes, parse("=")
+		gettoken value notes : notes, quotes
+		local keys `keys' `key'
+		ereturn hidden local `key' `value'
+	}
+	if ("`keys'"!="") ereturn hidden local keys `keys'
+
 end

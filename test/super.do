@@ -20,5 +20,8 @@
 	run test-postestimation-test
 	run test-postestimation-predict
 
+	run test-cores
+	run test-attach
+
 * Success
 	di as text "No errors found!"

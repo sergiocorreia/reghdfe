@@ -83,8 +83,8 @@ program define Wrapper_regress, eclass
 	ereturn scalar rmse = `rmse'
 	ereturn scalar rss = `rss'
 	ereturn scalar tss = `tss'
-	ereturn scalar N_clust = `N_clust'
-	ereturn scalar N_clust1 = `N_clust'
+	if (`N_clust'<.) ereturn scalar N_clust = `N_clust'
+	if (`N_clust'<.) ereturn scalar N_clust1 = `N_clust'
 	ereturn `hidden' scalar unclustered_df_r = `CorrectDoF' // Used later in R2 adj
 
 * Compute model F-test
