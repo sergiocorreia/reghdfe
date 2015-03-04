@@ -641,6 +641,11 @@ else {
 	Subtitle `vceoption' // will set title2, etc. Run after all the other e() are settled?
 	if (e(vce)=="unadjusted") ereturn local vce = "ols"
 
+	if ("`stages'"!="none") {
+		ereturn local stage = "`stage'"
+		ereturn `hidden' local stages = "`stages'"
+	}
+
 * Show table and clean up
 	ereturn repost b=`b', rename // why here???
 
@@ -654,9 +659,16 @@ if (!inlist("`stage'","none", "iv")) {
 	if ("`i_endogvar'"!="") {
 		local ++ i_endogvar
 	}
-	local cmd estimates store reghdfe_`stage'`i_endogvar'
+	local estimate_name reghdfe_`stage'`i_endogvar'
+	local stored_estimates `stored_estimates' `estimate_name'
+	local cmd estimates store `estimate_name', nocopy
 	Debug, level(2) msg(" - Storing estimate: `cmd'")
 	`cmd'
+}
+else if ("`stage'"=="iv") {
+	* On the last stage, save list of all stored estimates
+	assert "`stored_estimates'"!=""
+	ereturn `hidden' local stored_estimates = "`stored_estimates'"
 }
 
 } // lhs_endogvar
