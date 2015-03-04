@@ -1,5 +1,5 @@
 cd "D:/Github/reghdfe/source"
-cscript "reghdfe postestimation: test" adofile reghdfe
+cscript "reghdfe postestimation: predict" adofile reghdfe
 
 * Setup
 	discard
@@ -91,6 +91,15 @@ cscript "reghdfe postestimation: test" adofile reghdfe
 	drop *_test FE
 
 	storedresults drop bench_e
+
+	* 3) Check that we can run with score
+	qui reghdfe `lhs' `rhs', absorb(FE=`absvars')
+	predict score*, score
+	predict alt, resid
+	su score* alt
+	_vassert alt score, tol(1e-12)
+	drop FE alt resid
+
 
 cd "D:/Github/reghdfe/test"
 exit
