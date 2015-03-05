@@ -23,6 +23,7 @@ cscript "reghdfe with cache" adofile reghdfe
 * Create fake dataset
 	sysuse auto
 	replace foreign = foreign + 10
+	label define origin 10 "Local" 11 "It's foreign", add
 	*gen n = int(uniform()*10+3) // used for weights
 	*replace length = 0 if rep==3 // used for DoF adjustment of cont var
 	*replace length = 5 if rep==1
@@ -82,18 +83,19 @@ cscript "reghdfe with cache" adofile reghdfe
 	areg `lhs' `rhs' if foreign==11, absorb(`absvars')
 	TrimMatrix `K'
 	storedresults save benchmark1 e()
+
 	
 	* 2. Save cache
 	local fn "D:/Github/tmp/thecache"
 	set trace off
-	reghdfe `lhs' `othervar' `rhs', absorb(`absvars') savecache("`fn'") over(foreign)
+	reghdfe `lhs' `othervar' `rhs', absorb(`absvars') savecache("`fn'") over(fore)
 
 	* 3. Use cache and compare
-	reghdfe `lhs' `rhs' if foreign==10, absorb(`absvars') usecache("`fn'") over(foreign) nocons
+	reghdfe `lhs' `rhs' if for==10, absorb(`absvars') usecache("`fn'") over(foreig) nocons
 	TrimMatrix `K'
 	storedresults compare benchmark0 e(), tol(1e-12) include(`include')
 
-	reghdfe `lhs' `rhs' if foreign==11, absorb(`absvars') usecache("`fn'") over(foreign) nocons
+	reghdfe `lhs' `rhs' if foreig==11, absorb(`absvars') usecache("`fn'") over(fo) nocons
 	TrimMatrix `K'
 	storedresults compare benchmark1 e(), tol(1e-12) include(`include')
 

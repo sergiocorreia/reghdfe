@@ -33,6 +33,17 @@ program define Estimate, eclass
 * 3) Preserve
 if ("`usecache'"!="") {
 	local uid __uid__
+	if ("`over'"!="") {
+		gettoken ifword ifexp : if
+		expr_query `ifexp'
+		local vars_in_if = r(varnames)
+		Assert `: list over in vars_in_if', msg("Error: since you are using over(`over'), you need to include {it:`over'}=={it:value} to your -if- condition.")
+		
+		cap local regex = regexm("`if'", "(^| )`over'==([0-9.e-]+)")
+		Assert `regex', rc(0) msg("Warning: {it:`over'}=={it:value} not found in -if- (perhaps was abbreviated); e(over_value) and e(over_label) will not be stored.")
+		cap local over_value = regexs(2)
+		cap local over_label : label (__uid__) `over_value'
+	}
 }
 else {
 	tempvar uid
@@ -49,6 +60,10 @@ else {
 		char __uid__[handshake] `handshake'
 		char __uid__[tolerance] `tolerance'
 		char __uid__[maxiterations] `maxiterations'
+		if ("`over'"!="") {
+			local label : value label `over'
+			label value __uid__ `label', nofix // Trick, attach label to __uid__
+		}
 	}
 
 	preserve
@@ -79,7 +94,7 @@ else {
 	markout `touse' `expandedvars'
 	markout `touse' `expandedvars' `absorb_keepvars'
 	qui keep if `touse'
-	Assert c(N)>0, rc(2000)
+	Assert c(N)>0, rc(2000) msg("Empty sample, check for missing values or an always-false if statement")
 	drop `touse'
 	if ("`over'"!="" & `savingcache') qui levelsof `over', local(levels_over)
 
@@ -532,6 +547,16 @@ else {
 	ereturn local absvars = "`original_absvars'"
 	ereturn local vcesuite = "`vcesuite'"
 	ereturn `hidden' local diopts = "`diopts'"
+	if ("`over'"!="") {
+		ereturn local over = "`over'"
+		if ("`over_value'"!="") ereturn local over_value = "`over_value'"
+		if ("`over_label'"!="") ereturn local over_label = "`over_label'"
+		local fixed_absvars = e(absvars)
+		local fixed_absvars : subinstr local fixed_absvars "i.`over'#" "", all
+		local fixed_absvars : subinstr local fixed_absvars "i.`over'" "", all
+		local fixed_absvars `fixed_absvars' // Trim
+		ereturn local absvars = "`fixed_absvars'"
+	}
 
 	if ("`e(clustvar)'"!="") {
 		mata: st_local("clustvar", invtokens(clustervars_original))
