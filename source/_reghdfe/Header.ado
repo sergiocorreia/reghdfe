@@ -25,6 +25,7 @@ program define Header
 	local title2 `"`e(title2)'"'
 	local title3 `"`e(title3)'"'
 	local title4 `"`e(title4)'"'
+	local title5 `"`e(title5)'"'
 
 	// Right hand header ************************************************
 
@@ -50,7 +51,7 @@ program define Header
 		.`right'.Arrpush `C3' "Adj R-squared" `C4' "= " as res %`c4wfmt'.4f e(r2_a)
 	}
 	if !missing(e(r2_within)) {
-		.`right'.Arrpush `C3' "Within R-squared" `C4' "= " as res %`c4wfmt'.4f e(r2_within)
+		.`right'.Arrpush `C3' "Within R-sq." `C4' "= " as res %`c4wfmt'.4f e(r2_within)
 	}
 	if !missing(e(rmse)) {
 		.`right'.Arrpush `C3' "Root MSE" `C4' "= " as res %`c4wfmt'.4f e(rmse)
@@ -60,7 +61,7 @@ program define Header
 
 	* make title line part of the header if it fits
 	local len_title : length local title
-	forv i=2/4 {
+	forv i=2/5 {
 		if (`"`title`i''"'!="") {
 			local len_title = max(`len_title',`:length local title`i'')
 		}
@@ -69,7 +70,7 @@ program define Header
 	if `len_title' < `max_len_title' {
 		.`left'.Arrpush `"`"`title'"'"'
 		local title
-		forv i=2/4 {
+		forv i=2/5 {
 			if `"`title`i''"' != "" {
 					.`left'.Arrpush `"`"`title`i''"'"'
 					local title`i'
@@ -93,22 +94,24 @@ program define Header
 		local num = e(N_clust`i')
 		.`left'.Arrpush `C1' "Number of clusters (" as res "`cluster'" as text  ") " `C2' as text "= " as res %`c2wfmt'.0f `num'
 	}
-
-	Display `left' `right' `"`title'"' `"`title2'"'
+	
+	Display `left' `right' `"`title'"' `"`title2'"' `"`title3'"' `"`title4'"' `"`title5'"'
 end
 
 program Display
-		args left right title title2
+		args left right title1 title2 title3 title4 title5
 
 		local nl = `.`left'.arrnels'
 		local nr = `.`right'.arrnels'
 		local K = max(`nl',`nr')
 
 		di
-		if `"`title'"' != "" {
+		if `"`title1'"' != "" {
 				di as txt `"`title'"'
-				if `"`title2'"' != "" {
-						di as txt `"`title2'"'
+				forval i = 2/5 {
+					if `"`title`i''"' != "" {
+							di as txt `"`title`i''"'
+					}
 				}
 				if `K' {
 						di

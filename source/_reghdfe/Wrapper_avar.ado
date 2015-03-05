@@ -14,14 +14,14 @@ program define Wrapper_avar, eclass
 
 * Convert -vceoption- to what -avar- expects
 	local 0 `vceoption'
-	syntax namelist(max=3) , [bw(string) dkraay(string) kernel(string) kiefer]
+	syntax namelist(max=3) , [bw(integer 1) dkraay(integer 1) kernel(string) kiefer]
 	gettoken vcetype clustervars : namelist
 	local clustervars `clustervars' // Trim
 	Assert inlist("`vcetype'", "unadjusted", "robust", "cluster")
 	local vceoption = cond("`vcetype'"=="unadjusted", "", "`vcetype'")
 	if ("`clustervars'"!="") local vceoption `vceoption'(`clustervars')
-	if ("`bw'"!="") local vceoption `vceoption' bw(`bw')
-	if ("`dkraay'"!="") local vceoption `vceoption' dkraay(`dkraay')
+	if (`bw'>1) local vceoption `vceoption' bw(`bw')
+	if (`dkraay'>1) local vceoption `vceoption' dkraay(`dkraay')
 	if ("`kernel'"!="") local vceoption `vceoption' kernel(`kernel')
 	if ("`kiefer'"!="") local vceoption `vceoption' kiefer
 
@@ -116,6 +116,14 @@ program define Wrapper_avar, eclass
 	if ("`N_clust1'"!="") ereturn scalar N_clust1 = `N_clust1'
 	if ("`N_clust2'"!="") ereturn scalar N_clust2 = `N_clust2'
 	ereturn `hidden' scalar unclustered_df_r = `unclustered_df_r'
+
+	if (`bw'>1) {
+		ereturn scalar bw = `bw'
+		if ("`kernel'"=="") local kernel Bartlett // Default
+	}
+	if ("`kernel'"!="") ereturn local kernel = "`kernel'"
+	if ("`kiefer'"!="") ereturn local kiefer = "`kiefer'"
+	if (`dkraay'>1) ereturn scalar dkraay = `dkraay'
 
 * Compute model F-test
 	if (`K'>0) {

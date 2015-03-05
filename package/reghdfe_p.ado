@@ -6,11 +6,19 @@ program define reghdfe_p, // sortpreserve properties(default_xb)
 	local version `clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
 	qui version `version'
 	
-	if "`e(cmd)'" != "reghdfe" {
-		error 301
-	}
+	*if "`e(cmd)'" != "reghdfe" {
+	*	error 301
+	*}
 
-	syntax newvarname [if] [in] , [XB XBD D Residuals SCores]
+	syntax anything [if] [in] , [XB XBD D Residuals SCores]
+	if (`"`scores'"' != "") {
+		_score_spec	`anything'
+		local varlist `s(varlist)'
+	}
+	else {
+		local 0 `anything'
+		syntax newvarname  // [if] [in] , [XB XBD D Residuals SCores]
+	}
 
 	local option `xb' `xbd' `d' `residuals' `scores'
 	if ("`option'"=="") local option xb // The default, as in -areg-

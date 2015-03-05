@@ -198,9 +198,13 @@ if (!`savingcache') {
 	local addconstant = ("`constant'"!="noconstant") & !("`model'"=="iv" & "`ivsuite'"=="ivreg2") // also see below
 
 * Parse VCE options:
-	* Note: bw=1 means just do HC instead of HAC
+	
+	* Note: bw=1 *usually* means just do HC instead of HAC
+	* BUGBUG: It is not correct to ignore the case with "bw(1) kernel(Truncated)"
+	* but it's too messy to add -if-s everywhere just for this rare case (see also Mark Schaffer's email)
+
 	local 0 `vce'
-	syntax [anything(id="VCE type")] , [bw(integer 1)] [kernel(string)] [dkraay(integer 1)] [kiefer] [suite(string)]
+	syntax [anything(id="VCE type")] , [bw(integer 1)] [KERnel(string)] [dkraay(integer 1)] [kiefer] [suite(string)]
 	if ("`anything'"=="") local anything unadjusted
 	Assert `bw'>0, msg("VCE bandwidth must be a positive integer")
 	gettoken vcetype clustervars : anything
@@ -239,7 +243,7 @@ if (!`savingcache') {
 			local vcesuite mwc
 		}
 	}
-	
+
 	Assert inlist("`vcesuite'", "default", "mwc", "avar"), msg("Wrong vce suite: `vcesuite'")
 	if (inlist("`vcesuite'", "avar", "mwc")) local addconstant 0 // The constant messes up the VCV
 
@@ -258,15 +262,14 @@ if (!`savingcache') {
 	Assert !("`ivsuite'"=="ivreg2" & (`num_clusters'>2) ), msg("ivreg2 doesn't allow more than two cluster variables")
 	Assert !("`model'"=="ols" & "`vcesuite'"=="avar" & (`num_clusters'>2) ), msg("avar doesn't allow more than two cluster variables")
 	Assert !("`model'"=="ols" & "`vcesuite'"=="default" & (`bw'>1 | `dkraay'>1 | "`kiefer'"!="" | "`kernel'"!="") ), msg("to use those vce options you need to use -avar- as the vce suite")
-
 	if (`num_clusters'>0) local temp_clustervars " <CLUSTERVARS>"
+	if (`bw'==1 & `dkraay'==1 & "`kernel'"!="") local kernel // No point in setting kernel here 
 	if (`bw'>1 | "`kernel'"!="") local vceextra `vceextra' bw(`bw') 
 	if (`dkraay'>1) local vceextra `vceextra' dkraay(`dkraay') 
 	if ("`kiefer'"!="") local vceextra `vceextra' kiefer 
 	if ("`kernel'"!="") local vceextra `vceextra' kernel(`kernel')
 	if ("`vceextra'"!="") local vceextra , `vceextra'
 	local vceoption "`vcetype'`temp_clustervars'`vceextra'" // this excludes "vce(", only has the contents
-
 
 * DoF Adjustments
 	if ("`dofadjustments'"=="") local dofadjustments all
@@ -347,7 +350,7 @@ if (!`savingcache') {
 	local names cmdline diopts model ///
 		ivsuite showraw ///
 		depvar indepvars endogvars instruments savefirst first ///
-		vceoption vcetype vcesuite vceextra num_clusters clustervars /// vceextra
+		vceoption vcetype vcesuite vceextra num_clusters clustervars bw kernel dkraay /// vceextra
 		dofadjustments ///
 		if in group check fast nested fe_format ///
 		tolerance maxiterations accelerate maximize_options ///

@@ -1,4 +1,4 @@
-*! version 1.4.1 03mar2015
+*! reghdfe 1.4.58 04mar2015
 *! By Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 program define reghdfe
@@ -746,7 +746,7 @@ else {
 	if ("`savefirst'"!="") ereturn `hidden' scalar savefirst = `savefirst'
 
 	* We have to replace -unadjusted- or else subsequent calls to -suest- will fail
-	Subtitle `vceoption' // will set title2, etc. Run after all the other e() are settled?
+	Subtitle `vceoption' // will set title2, etc. Run after e(bw) and all the others are set!
 	if (e(vce)=="unadjusted") ereturn local vce = "ols"
 
 	if ("`stages'"!="none") {
@@ -757,7 +757,7 @@ else {
 * Show table and clean up
 	ereturn repost b=`b', rename // why here???
 
-	Debug, level(0) msg(_n "{title:Stage: `stage'}" _n)
+	if ("`stage'"!="none") Debug, level(0) msg(_n "{title:Stage: `stage'}" _n)
 	if ("`lhs_endogvar'"!="<none>") Debug, level(0) msg("{title:Endogvar: `lhs_endogvar'}")
 	Replay
 	Attach, post(`postestimation') notes(`notes')
@@ -809,25 +809,31 @@ end
 
 capture program drop Subtitle
 program define Subtitle, eclass
-	syntax namelist(max=11) , [bw(string) dkraay(string) kernel(string) kiefer]
-	gettoken vcetype clustervars : namelist
-	* Fill e(title3) and e(title4)
-	*ereturn local title3 = ..
+	* Fill e(title3/4/5) based on the info of the other e(..)
 
-	if (inlist("`vcetype'", "robust", "cluster")) local hacsubtitle1 "heteroskedasticity"
-	if ("`kernel'"!="" & "`clustervars'"=="") local hacsubtitle3 "autocorrelation"
-	if ("`kiefer'"!="") local hacsubtitle3 "within-cluster autocorrelation (Kiefer)"
+	if (inlist("`e(vcetype)'", "Robust", "Cluster")) local hacsubtitle1 "heteroskedasticity"
+	if ("`e(kernel)'"!="" & "`e(clustvar)'"=="") local hacsubtitle3 "autocorrelation"
+	if ("`e(kiefer)'"!="") local hacsubtitle3 "within-cluster autocorrelation (Kiefer)"
 	if ("`hacsubtitle1'"!="" & "`hacsubtitle3'" != "") local hacsubtitle2 " and "
 	local hacsubtitle "`hacsubtitle1'`hacsubtitle2'`hacsubtitle3'"
+	if strlen("`hacsubtitle'")>30 {
+		local hacsubtitle : subinstr local hacsubtitle "heteroskedasticity" "heterosk.", all word
+		local hacsubtitle : subinstr local hacsubtitle "autocorrelation" "autocorr.", all word
+	}
 	if ("`hacsubtitle'"!="") {
 		ereturn local title3 = "Statistics robust to `hacsubtitle'"
 		
-		local notes
-		foreach param in bw dkraay kernel  {
-			if ("``param''"!="") local notes " `notes' `param'=``param''"
-		}
+		if ("`e(kernel)'"!="") local notes " `notes' kernel=`e(kernel)'"
+		if ("`e(bw)'"!="") local notes " `notes' bw=`e(bw)'"
+		if ("`e(dkraay)'"!="") local notes " `notes' dkraay=`e(dkraay)'"
 		local notes `notes' // remove initial space
 		if ("`notes'"!="") ereturn local title4 = " (`notes')"
+		if ("`notes'"!="") {
+			if ("`_dta[_TSpanel]'"!="") local tsset panel=`_dta[_TSpanel]'
+			if ("`_dta[_TStvar]'"!="") local tsset `tsset' time=`_dta[_TStvar]'
+			local tsset `tsset'
+			ereturn local title5 = " (`tsset')"
+		}
 	}
 end
 
@@ -1059,9 +1065,13 @@ if (!`savingcache') {
 	local addconstant = ("`constant'"!="noconstant") & !("`model'"=="iv" & "`ivsuite'"=="ivreg2") // also see below
 
 * Parse VCE options:
-	* Note: bw=1 means just do HC instead of HAC
+	
+	* Note: bw=1 *usually* means just do HC instead of HAC
+	* BUGBUG: It is not correct to ignore the case with "bw(1) kernel(Truncated)"
+	* but it's too messy to add -if-s everywhere just for this rare case (see also Mark Schaffer's email)
+
 	local 0 `vce'
-	syntax [anything(id="VCE type")] , [bw(integer 1)] [kernel(string)] [dkraay(integer 1)] [kiefer] [suite(string)]
+	syntax [anything(id="VCE type")] , [bw(integer 1)] [KERnel(string)] [dkraay(integer 1)] [kiefer] [suite(string)]
 	if ("`anything'"=="") local anything unadjusted
 	Assert `bw'>0, msg("VCE bandwidth must be a positive integer")
 	gettoken vcetype clustervars : anything
@@ -1100,7 +1110,7 @@ if (!`savingcache') {
 			local vcesuite mwc
 		}
 	}
-	
+
 	Assert inlist("`vcesuite'", "default", "mwc", "avar"), msg("Wrong vce suite: `vcesuite'")
 	if (inlist("`vcesuite'", "avar", "mwc")) local addconstant 0 // The constant messes up the VCV
 
@@ -1119,15 +1129,14 @@ if (!`savingcache') {
 	Assert !("`ivsuite'"=="ivreg2" & (`num_clusters'>2) ), msg("ivreg2 doesn't allow more than two cluster variables")
 	Assert !("`model'"=="ols" & "`vcesuite'"=="avar" & (`num_clusters'>2) ), msg("avar doesn't allow more than two cluster variables")
 	Assert !("`model'"=="ols" & "`vcesuite'"=="default" & (`bw'>1 | `dkraay'>1 | "`kiefer'"!="" | "`kernel'"!="") ), msg("to use those vce options you need to use -avar- as the vce suite")
-
 	if (`num_clusters'>0) local temp_clustervars " <CLUSTERVARS>"
+	if (`bw'==1 & `dkraay'==1 & "`kernel'"!="") local kernel // No point in setting kernel here 
 	if (`bw'>1 | "`kernel'"!="") local vceextra `vceextra' bw(`bw') 
 	if (`dkraay'>1) local vceextra `vceextra' dkraay(`dkraay') 
 	if ("`kiefer'"!="") local vceextra `vceextra' kiefer 
 	if ("`kernel'"!="") local vceextra `vceextra' kernel(`kernel')
 	if ("`vceextra'"!="") local vceextra , `vceextra'
 	local vceoption "`vcetype'`temp_clustervars'`vceextra'" // this excludes "vce(", only has the contents
-
 
 * DoF Adjustments
 	if ("`dofadjustments'"=="") local dofadjustments all
@@ -1208,7 +1217,7 @@ if (!`savingcache') {
 	local names cmdline diopts model ///
 		ivsuite showraw ///
 		depvar indepvars endogvars instruments savefirst first ///
-		vceoption vcetype vcesuite vceextra num_clusters clustervars /// vceextra
+		vceoption vcetype vcesuite vceextra num_clusters clustervars bw kernel dkraay /// vceextra
 		dofadjustments ///
 		if in group check fast nested fe_format ///
 		tolerance maxiterations accelerate maximize_options ///
@@ -1982,14 +1991,14 @@ program define Wrapper_avar, eclass
 
 * Convert -vceoption- to what -avar- expects
 	local 0 `vceoption'
-	syntax namelist(max=3) , [bw(string) dkraay(string) kernel(string) kiefer]
+	syntax namelist(max=3) , [bw(integer 1) dkraay(integer 1) kernel(string) kiefer]
 	gettoken vcetype clustervars : namelist
 	local clustervars `clustervars' // Trim
 	Assert inlist("`vcetype'", "unadjusted", "robust", "cluster")
 	local vceoption = cond("`vcetype'"=="unadjusted", "", "`vcetype'")
 	if ("`clustervars'"!="") local vceoption `vceoption'(`clustervars')
-	if ("`bw'"!="") local vceoption `vceoption' bw(`bw')
-	if ("`dkraay'"!="") local vceoption `vceoption' dkraay(`dkraay')
+	if (`bw'>1) local vceoption `vceoption' bw(`bw')
+	if (`dkraay'>1) local vceoption `vceoption' dkraay(`dkraay')
 	if ("`kernel'"!="") local vceoption `vceoption' kernel(`kernel')
 	if ("`kiefer'"!="") local vceoption `vceoption' kiefer
 
@@ -2084,6 +2093,14 @@ program define Wrapper_avar, eclass
 	if ("`N_clust1'"!="") ereturn scalar N_clust1 = `N_clust1'
 	if ("`N_clust2'"!="") ereturn scalar N_clust2 = `N_clust2'
 	ereturn `hidden' scalar unclustered_df_r = `unclustered_df_r'
+
+	if (`bw'>1) {
+		ereturn scalar bw = `bw'
+		if ("`kernel'"=="") local kernel Bartlett // Default
+	}
+	if ("`kernel'"!="") ereturn local kernel = "`kernel'"
+	if ("`kiefer'"!="") ereturn local kiefer = "`kiefer'"
+	if (`dkraay'>1) ereturn scalar dkraay = `dkraay'
 
 * Compute model F-test
 	if (`K'>0) {
@@ -2392,6 +2409,7 @@ program define Header
 	local title2 `"`e(title2)'"'
 	local title3 `"`e(title3)'"'
 	local title4 `"`e(title4)'"'
+	local title5 `"`e(title5)'"'
 
 	// Right hand header ************************************************
 
@@ -2417,7 +2435,7 @@ program define Header
 		.`right'.Arrpush `C3' "Adj R-squared" `C4' "= " as res %`c4wfmt'.4f e(r2_a)
 	}
 	if !missing(e(r2_within)) {
-		.`right'.Arrpush `C3' "Within R-squared" `C4' "= " as res %`c4wfmt'.4f e(r2_within)
+		.`right'.Arrpush `C3' "Within R-sq." `C4' "= " as res %`c4wfmt'.4f e(r2_within)
 	}
 	if !missing(e(rmse)) {
 		.`right'.Arrpush `C3' "Root MSE" `C4' "= " as res %`c4wfmt'.4f e(rmse)
@@ -2427,7 +2445,7 @@ program define Header
 
 	* make title line part of the header if it fits
 	local len_title : length local title
-	forv i=2/4 {
+	forv i=2/5 {
 		if (`"`title`i''"'!="") {
 			local len_title = max(`len_title',`:length local title`i'')
 		}
@@ -2436,7 +2454,7 @@ program define Header
 	if `len_title' < `max_len_title' {
 		.`left'.Arrpush `"`"`title'"'"'
 		local title
-		forv i=2/4 {
+		forv i=2/5 {
 			if `"`title`i''"' != "" {
 					.`left'.Arrpush `"`"`title`i''"'"'
 					local title`i'
@@ -2460,22 +2478,24 @@ program define Header
 		local num = e(N_clust`i')
 		.`left'.Arrpush `C1' "Number of clusters (" as res "`cluster'" as text  ") " `C2' as text "= " as res %`c2wfmt'.0f `num'
 	}
-
-	Display `left' `right' `"`title'"' `"`title2'"'
+	
+	Display `left' `right' `"`title'"' `"`title2'"' `"`title3'"' `"`title4'"' `"`title5'"'
 end
 
 program Display
-		args left right title title2
+		args left right title1 title2 title3 title4 title5
 
 		local nl = `.`left'.arrnels'
 		local nr = `.`right'.arrnels'
 		local K = max(`nl',`nr')
 
 		di
-		if `"`title'"' != "" {
+		if `"`title1'"' != "" {
 				di as txt `"`title'"'
-				if `"`title2'"' != "" {
-						di as txt `"`title2'"'
+				forval i = 2/5 {
+					if `"`title`i''"' != "" {
+							di as txt `"`title`i''"'
+					}
 				}
 				if `K' {
 						di

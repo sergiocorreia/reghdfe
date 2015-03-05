@@ -638,7 +638,7 @@ else {
 	if ("`savefirst'"!="") ereturn `hidden' scalar savefirst = `savefirst'
 
 	* We have to replace -unadjusted- or else subsequent calls to -suest- will fail
-	Subtitle `vceoption' // will set title2, etc. Run after all the other e() are settled?
+	Subtitle `vceoption' // will set title2, etc. Run after e(bw) and all the others are set!
 	if (e(vce)=="unadjusted") ereturn local vce = "ols"
 
 	if ("`stages'"!="none") {
@@ -649,7 +649,7 @@ else {
 * Show table and clean up
 	ereturn repost b=`b', rename // why here???
 
-	Debug, level(0) msg(_n "{title:Stage: `stage'}" _n)
+	if ("`stage'"!="none") Debug, level(0) msg(_n "{title:Stage: `stage'}" _n)
 	if ("`lhs_endogvar'"!="<none>") Debug, level(0) msg("{title:Endogvar: `lhs_endogvar'}")
 	Replay
 	Attach, post(`postestimation') notes(`notes')
@@ -702,25 +702,31 @@ end
 
 capture program drop Subtitle
 program define Subtitle, eclass
-	syntax namelist(max=11) , [bw(string) dkraay(string) kernel(string) kiefer]
-	gettoken vcetype clustervars : namelist
-	* Fill e(title3) and e(title4)
-	*ereturn local title3 = ..
+	* Fill e(title3/4/5) based on the info of the other e(..)
 
-	if (inlist("`vcetype'", "robust", "cluster")) local hacsubtitle1 "heteroskedasticity"
-	if ("`kernel'"!="" & "`clustervars'"=="") local hacsubtitle3 "autocorrelation"
-	if ("`kiefer'"!="") local hacsubtitle3 "within-cluster autocorrelation (Kiefer)"
+	if (inlist("`e(vcetype)'", "Robust", "Cluster")) local hacsubtitle1 "heteroskedasticity"
+	if ("`e(kernel)'"!="" & "`e(clustvar)'"=="") local hacsubtitle3 "autocorrelation"
+	if ("`e(kiefer)'"!="") local hacsubtitle3 "within-cluster autocorrelation (Kiefer)"
 	if ("`hacsubtitle1'"!="" & "`hacsubtitle3'" != "") local hacsubtitle2 " and "
 	local hacsubtitle "`hacsubtitle1'`hacsubtitle2'`hacsubtitle3'"
+	if strlen("`hacsubtitle'")>30 {
+		local hacsubtitle : subinstr local hacsubtitle "heteroskedasticity" "heterosk.", all word
+		local hacsubtitle : subinstr local hacsubtitle "autocorrelation" "autocorr.", all word
+	}
 	if ("`hacsubtitle'"!="") {
 		ereturn local title3 = "Statistics robust to `hacsubtitle'"
 		
-		local notes
-		foreach param in bw dkraay kernel  {
-			if ("``param''"!="") local notes " `notes' `param'=``param''"
-		}
+		if ("`e(kernel)'"!="") local notes " `notes' kernel=`e(kernel)'"
+		if ("`e(bw)'"!="") local notes " `notes' bw=`e(bw)'"
+		if ("`e(dkraay)'"!="") local notes " `notes' dkraay=`e(dkraay)'"
 		local notes `notes' // remove initial space
 		if ("`notes'"!="") ereturn local title4 = " (`notes')"
+		if ("`notes'"!="") {
+			if ("`_dta[_TSpanel]'"!="") local tsset panel=`_dta[_TSpanel]'
+			if ("`_dta[_TStvar]'"!="") local tsset `tsset' time=`_dta[_TStvar]'
+			local tsset `tsset'
+			ereturn local title5 = " (`tsset')"
+		}
 	}
 end
 

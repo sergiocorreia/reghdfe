@@ -18,11 +18,11 @@ from __future__ import division
 
 import os, time, re, shutil
 
-
 # Filenames
 output_filenames = [ur"reghdfe.ado", ur"reghdfe_absorb.ado", 
     ur"reghdfe_estat.ado", ur"reghdfe_p.ado", ur"reghdfe_footnote.ado"]
 
+os.chdir(os.path.split(__file__)[0])
 fn_mata = ur"_mata/reghdfe.mata"
 server_path = u"../package"
 source_path = u"../source"
@@ -31,14 +31,16 @@ for fn in output_filenames:
     print("parsing file <{}>".format(fn))
     full_fn = os.path.join(source_path, fn)
     data = open(full_fn, "rb").read()
+    source_data = None
 
     # Change header
     if (fn==ur"reghdfe.ado"):
         regex = re.search(ur'^\*! reghdfe (\d+)\.(\d+)\.(\d+) \d+\w+\d+', data)
         version = '{}.{}.{}'.format(regex.group(1), regex.group(2), int(regex.group(3))+1)
         today = time.strftime("%d%b%Y").lower() # See http://strftime.net/
-        header = '*! version {} {}'.format(version, today)
+        header = '*! reghdfe {} {}'.format(version, today)
         data = data.replace(regex.group(0), header)
+        source_data = data
 
     # Add Mata
     if ("include _mata/reghdfe.mata" in data):
@@ -63,6 +65,11 @@ for fn in output_filenames:
     new_fn = os.path.join(server_path, fn)
     with open(new_fn, 'wb') as new_fh:
         new_fh.write(data)
+
+    # Override source file with correct build number
+    if (fn==ur"reghdfe.ado"):
+        with open(full_fn, 'wb') as fh:
+            fh.write(source_data)
 
 # Update reghdfe.pkg
 print("updating date in reghdfe.pkg")
