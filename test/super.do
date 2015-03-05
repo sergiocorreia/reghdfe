@@ -21,6 +21,8 @@
 	run test-weights
 	run test-mwc
 	run test-ivreg2-nocons
+
+	run test-avar
 	
 	run test-postestimation-test
 	run test-postestimation-predict
@@ -28,6 +30,9 @@
 	run test-cores
 	run test-attach
 	run test-stage
+
+	run test-cache
+	run test-over
 
 * Success
 	di as text "No errors found!"

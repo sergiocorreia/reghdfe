@@ -67,19 +67,19 @@ cscript "reghdfe with multi-way clustering" adofile reghdfe
 	
 	* Compare
 	storedresults compare bench_areg e(), tol(1e-12) include( ///
-		scalar: N rmse tss rss r2 r2_a F df_r df_a df_m /// 
+		scalar: N rmse tss rss r2 r2_a F df_r df_a df_m N_clust /// 
 		matrix: trim_b trim_V ///
 		macros: wexp wtype )
 	storedresults drop bench_areg
 	
 	storedresults compare bench_def e(), tol(1e-12) include( ///
-		scalar: N rmse tss rss r2 r2_a F df_r df_a df_m /// 
+		scalar: N rmse tss rss r2 r2_a F df_r df_a df_m N_clust /// 
 		matrix: trim_b trim_V ///
 		macros: wexp wtype )
 	storedresults drop bench_def
 	
 	storedresults compare bench_avar e(), tol(1e-12) include( ///
-		scalar: N rmse tss rss r2 r2_a F df_r df_a df_m /// 
+		scalar: N rmse tss rss r2 r2_a F df_r df_a df_m N_clust /// 
 		matrix: trim_b trim_V ///
 		macros: wexp wtype )
 	storedresults drop bench_avar
@@ -130,13 +130,13 @@ cscript "reghdfe with multi-way clustering" adofile reghdfe
 	* Compare
 	
 	storedresults compare bench_def e(), tol(1e-12) include( ///
-		scalar: N rmse tss rss r2 r2_a F df_r df_a df_m /// 
+		scalar: N rmse tss rss r2 r2_a F df_r df_a df_m N_clust /// 
 		matrix: trim_b trim_V ///
 		macros: wexp wtype )
 	storedresults drop bench_def
 	
 	storedresults compare bench_avar e(), tol(1e-12) include( ///
-		scalar: N rmse tss rss r2 r2_a F df_r df_a df_m /// 
+		scalar: N rmse tss rss r2 r2_a F df_r df_a df_m N_clust /// 
 		matrix: trim_b trim_V ///
 		macros: wexp wtype )
 	storedresults drop bench_avar

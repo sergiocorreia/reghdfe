@@ -535,7 +535,8 @@ else {
 
 	if ("`e(clustvar)'"!="") {
 		mata: st_local("clustvar", invtokens(clustervars_original))
-		ereturn local clustvar "`clustvar'"
+		* With kiefer/dkraay we add a time clustervar
+		if ("`clustvar'"!="") ereturn local clustvar "`clustvar'"
 		ereturn scalar N_clustervars = `num_clusters'
 	}
 

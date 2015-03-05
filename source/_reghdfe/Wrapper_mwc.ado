@@ -108,7 +108,7 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 * This will fail if V is not symmetric (we could use -mata makesymmetric- to deal with numerical precision errors)
 	mata: fix_psd("`V'") // This will update `V' making it PSD
 	assert inlist(`eigenfix', 0, 1)
-	if (`eigenfix') Debug, level(0) msg("VCV matrix was non-positive semi-definite; adjustment from Cameron, Gelbach & Miller applied.")
+	if (`eigenfix') Debug, level(0) msg("Warning: VCV matrix was non-positive semi-definite; adjustment from Cameron, Gelbach & Miller applied.")
 
 	local M = `N_clust' // cond( `N_clust' < . , `N_clust' , `N' )
 	local q = ( `N' - 1 ) / `df_r' * `M' / (`M' - 1) // General formula, from Stata PDF
@@ -144,6 +144,7 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 * Compute model F-test
 	if (`K'>0) {
 		qui test `indepvars' `avge' // Wald test
+		if (r(drop)==1) Debug, level(0) msg("Warning: Some variables were dropped by the F test due to collinearity (or insufficient number of clusters).")
 		ereturn scalar F = r(F)
 		ereturn scalar df_m = r(df)
 		ereturn scalar rank = r(df)+1 // Add constant

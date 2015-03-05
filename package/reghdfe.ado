@@ -1,4 +1,4 @@
-*! reghdfe 1.4.58 04mar2015
+*! reghdfe 1.4.72 04mar2015
 *! By Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 program define reghdfe
@@ -643,7 +643,8 @@ else {
 
 	if ("`e(clustvar)'"!="") {
 		mata: st_local("clustvar", invtokens(clustervars_original))
-		ereturn local clustvar "`clustvar'"
+		* With kiefer/dkraay we add a time clustervar
+		if ("`clustvar'"!="") ereturn local clustvar "`clustvar'"
 		ereturn scalar N_clustervars = `num_clusters'
 	}
 
@@ -1960,7 +1961,8 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 
 * Compute model F-test
 	if (`K'>0) {
-		qui test `indepvars' `avge' // Wald test
+		noi  test `indepvars' `avge' // Wald test
+		return list
 		ereturn scalar F = r(F)
 		ereturn scalar df_m = r(df)
 		ereturn scalar rank = r(df)+1 // Add constant
@@ -2039,7 +2041,8 @@ program define Wrapper_avar, eclass
 	* Compute the bread of the sandwich inv(X'X/N)
 	tempname XX invSxx
 	qui mat accum `XX' = `indepvars' `avgevars', `nocons'
-	mat `invSxx' = syminv(`XX' * 1/r(N))
+	mat `invSxx' = syminv(`XX')
+	*mat `invSxx' = syminv(`XX' * 1/r(N))
 	
 	* Resids
 	tempvar resid
@@ -2068,12 +2071,18 @@ program define Wrapper_avar, eclass
 	local M = cond( r(N_clust) < . , r(N_clust) , r(N) )
 	local q = ( `N' - 1 ) / `df_r' * `M' / (`M' - 1) // General formula, from Stata PDF
 	tempname V
-	matrix `V' = `invSxx' * r(S) * `invSxx' / r(N) // Large-sample version
+	matrix list r(S)
+	matrix `V' = `invSxx' * r(S) * `invSxx' * r(N) // Large-sample version
+	*matrix `V' = `invSxx' * r(S) * `invSxx' / r(N) // Large-sample version
+	matrix list `V'
 	matrix `V' = `V' * `q' // Small-sample adjustments
+	matrix list `V'
 	* At this point, we have the true V and just need to add it to e()
 
 * Avoid corner case error when all the RHS vars are collinear with the FEs
 	local unclustered_df_r = `df_r' // Used later in R2 adj
+	if (`dkraay'>1) local clustervars "`_dta[_TStvar]'"
+	*if ("`kiefer'")
 	if ("`clustervars'"!="") local df_r = `M' - 1
 
 	capture ereturn post `b' `V' `weightexp', dep(`depvar') obs(`N') dof(`df_r') properties(b V)
@@ -2086,6 +2095,7 @@ program define Wrapper_avar, eclass
 	ereturn local cmdline = "`cmdline'"
 	ereturn local title = "`title'"
 	ereturn local clustvar = "`clustervars'"
+
 	ereturn scalar rmse = `rmse'
 	ereturn scalar rss = `rss'
 	ereturn scalar tss = `tss'
@@ -2104,7 +2114,8 @@ program define Wrapper_avar, eclass
 
 * Compute model F-test
 	if (`K'>0) {
-		qui test `indepvars' `avge' // Wald test
+		noi test `indepvars' `avge' // Wald test
+		noi return list
 		ereturn scalar F = r(F)
 		ereturn scalar df_m = r(df)
 		ereturn scalar rank = r(df)+1 // Add constant
