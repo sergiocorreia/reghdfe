@@ -38,3 +38,5 @@
 
 * Success
 	di as text "No errors found!"
+	clear
+	exit
