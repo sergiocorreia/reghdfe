@@ -17,6 +17,11 @@ assert inlist(`i',1,2)
 		matrix: trim_b trim_V ///
 		macros: wexp wtype clustvar
 
+	local included_subset /// Used when not full rank due to clusters
+		scalar: N rmse rss df_r /// F
+		matrix: trim_b /// trim_V
+		macros: wexp wtype clustvar
+
 	* Unadjusted
 	ivreg2 `lhs' `rhs' ABS_*, small partial(ABS_*)
 	TrimMatrix `K'
@@ -92,29 +97,36 @@ assert inlist(`i',1,2)
 	* Cluster
 	ivreg2 `lhs' `rhs' ABS_*, small partial(ABS_*) cluster(turn t`i')
 	TrimMatrix `K'
+	local fullrank = (e(rankS)==e(rankzz))
 	storedresults save benchmark e()
 
 	reghdfe `lhs' `rhs', absorb(`absvars') nocons vce(cluster turn t`i', suite(default)) dof(none) tol(1e-12)
 	TrimMatrix `K'
-	storedresults compare benchmark e(), tol(1e-6) include(`included')
+	if (`fullrank') storedresults compare benchmark e(), tol(1e-6) include(`included')
+	if (!`fullrank') storedresults compare benchmark e(), tol(1e-6) include(`included_subset')
 
 	reghdfe `lhs' `rhs', absorb(`absvars') nocons vce(cluster turn t`i', suite(mwc)) dof(none) tol(1e-12)
 	TrimMatrix `K'
-	storedresults compare benchmark e(), tol(1e-6) include(`included')
+	if (`fullrank') storedresults compare benchmark e(), tol(1e-6) include(`included')
+	if (!`fullrank') storedresults compare benchmark e(), tol(1e-6) include(`included_subset')
 
 	reghdfe `lhs' `rhs', absorb(`absvars') nocons vce(cluster turn t`i', suite(avar)) dof(none) tol(1e-12)
 	TrimMatrix `K'
-	storedresults compare benchmark e(), tol(1e-6) include(`included')
+	if (`fullrank') storedresults compare benchmark e(), tol(1e-6) include(`included')
+	if (!`fullrank') storedresults compare benchmark e(), tol(1e-6) include(`included_subset')
 
 	storedresults drop benchmark
 
 	* Cluster + Autoco
 	ivreg2 `lhs' `rhs' ABS_*, small partial(ABS_*) cluster(turn t`i') bw(5)
 	TrimMatrix `K'
+	local fullrank = (e(rankS)==e(rankzz))
 	storedresults save benchmark e()
+
 	reghdfe `lhs' `rhs', absorb(`absvars') nocons vce(cluster turn t`i', bw(5)) dof(none)
 	TrimMatrix `K'
-	storedresults compare benchmark e(), tol(1e-6) include(`included')
+	if (`fullrank') storedresults compare benchmark e(), tol(1e-6) include(`included')
+	if (!`fullrank') storedresults compare benchmark e(), tol(1e-6) include(`included_subset')
 	storedresults drop benchmark
 
 	* Cluster + Autoco + kernel
@@ -123,5 +135,6 @@ assert inlist(`i',1,2)
 	storedresults save benchmark e()
 	reghdfe `lhs' `rhs', absorb(`absvars') nocons vce(cluster turn t`i', bw(5) kernel(thann)) dof(none)
 	TrimMatrix `K'
-	storedresults compare benchmark e(), tol(1e-6) include(`included')
+	if (`fullrank') storedresults compare benchmark e(), tol(1e-6) include(`included')
+	if (!`fullrank') storedresults compare benchmark e(), tol(1e-6) include(`included_subset')
 	storedresults drop benchmark

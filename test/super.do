@@ -22,6 +22,8 @@
 	run test-mwc
 	run test-ivreg2-nocons
 
+	run test-slope
+	
 	run test-avar
 	
 	run test-postestimation-test

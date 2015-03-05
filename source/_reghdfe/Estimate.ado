@@ -84,7 +84,7 @@ else {
 	if ("`over'"!="" & `savingcache') qui levelsof `over', local(levels_over)
 
 * 8) Fill Mata structures, create FE identifiers, avge vars and clustervars if needed
-	reghdfe_absorb, step(precompute) keep(`uid' `expandedvars' `tsvars') depvar("`depvar'") `excludeself' tsvars(`tsvars')
+	reghdfe_absorb, step(precompute) keep(`uid' `expandedvars' `tsvars') depvar("`depvar'") `excludeself' tsvars(`tsvars') over(`over')
 	Debug, level(2) msg("(dataset compacted: observations " as result "`RAW_N' -> `c(N)'" as text " ; variables " as result "`RAW_K' -> `c(k)'" as text ")")
 	local avgevars = cond("`avge'"=="", "", "__W*__")
 	local vars `expandedvars' `avgevars'

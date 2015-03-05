@@ -106,6 +106,7 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 * 2) Replace negative eigenvalues into zero and obtain FixedLambda
 * 3) Recover FixedV = U * FixedLambda * U'
 * This will fail if V is not symmetric (we could use -mata makesymmetric- to deal with numerical precision errors)
+
 	mata: fix_psd("`V'") // This will update `V' making it PSD
 	assert inlist(`eigenfix', 0, 1)
 	if (`eigenfix') Debug, level(0) msg("Warning: VCV matrix was non-positive semi-definite; adjustment from Cameron, Gelbach & Miller applied.")

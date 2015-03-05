@@ -1,5 +1,5 @@
-*! reghdfe 1.4.72 04mar2015
-*! By Sergio Correia (sergio.correia@duke.edu)
+*! reghdfe 1.4.76 04mar2015
+*! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 program define reghdfe
 	local version `=clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
@@ -1924,9 +1924,10 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 * 2) Replace negative eigenvalues into zero and obtain FixedLambda
 * 3) Recover FixedV = U * FixedLambda * U'
 * This will fail if V is not symmetric (we could use -mata makesymmetric- to deal with numerical precision errors)
+
 	mata: fix_psd("`V'") // This will update `V' making it PSD
 	assert inlist(`eigenfix', 0, 1)
-	if (`eigenfix') Debug, level(0) msg("VCV matrix was non-positive semi-definite; adjustment from Cameron, Gelbach & Miller applied.")
+	if (`eigenfix') Debug, level(0) msg("Warning: VCV matrix was non-positive semi-definite; adjustment from Cameron, Gelbach & Miller applied.")
 
 	local M = `N_clust' // cond( `N_clust' < . , `N_clust' , `N' )
 	local q = ( `N' - 1 ) / `df_r' * `M' / (`M' - 1) // General formula, from Stata PDF
@@ -1961,8 +1962,8 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 
 * Compute model F-test
 	if (`K'>0) {
-		noi  test `indepvars' `avge' // Wald test
-		return list
+		qui test `indepvars' `avge' // Wald test
+		if (r(drop)==1) Debug, level(0) msg("Warning: Some variables were dropped by the F test due to collinearity (or insufficient number of clusters).")
 		ereturn scalar F = r(F)
 		ereturn scalar df_m = r(df)
 		ereturn scalar rank = r(df)+1 // Add constant
@@ -2041,8 +2042,9 @@ program define Wrapper_avar, eclass
 	* Compute the bread of the sandwich inv(X'X/N)
 	tempname XX invSxx
 	qui mat accum `XX' = `indepvars' `avgevars', `nocons'
-	mat `invSxx' = syminv(`XX')
-	*mat `invSxx' = syminv(`XX' * 1/r(N))
+	
+	* (Is this precise enough? i.e. using -matrix- commands instead of mata?)
+	mat `invSxx' = syminv(`XX' * 1/r(N) )
 	
 	* Resids
 	tempvar resid
@@ -2071,21 +2073,19 @@ program define Wrapper_avar, eclass
 	local M = cond( r(N_clust) < . , r(N_clust) , r(N) )
 	local q = ( `N' - 1 ) / `df_r' * `M' / (`M' - 1) // General formula, from Stata PDF
 	tempname V
-	matrix list r(S)
-	matrix `V' = `invSxx' * r(S) * `invSxx' * r(N) // Large-sample version
-	*matrix `V' = `invSxx' * r(S) * `invSxx' / r(N) // Large-sample version
-	matrix list `V'
+
+	* A little worried about numerical precision
+	matrix `V' = `invSxx' * r(S) * `invSxx' / r(N) // Large-sample version
 	matrix `V' = `V' * `q' // Small-sample adjustments
-	matrix list `V'
 	* At this point, we have the true V and just need to add it to e()
 
 * Avoid corner case error when all the RHS vars are collinear with the FEs
 	local unclustered_df_r = `df_r' // Used later in R2 adj
 	if (`dkraay'>1) local clustervars "`_dta[_TStvar]'"
-	*if ("`kiefer'")
 	if ("`clustervars'"!="") local df_r = `M' - 1
 
 	capture ereturn post `b' `V' `weightexp', dep(`depvar') obs(`N') dof(`df_r') properties(b V)
+
 	local rc = _rc
 	Assert inlist(_rc,0,504), msg("error `=_rc' when adjusting the VCV") // 504 = Matrix has MVs
 	Assert `rc'==0, msg("Error: estimated variance-covariance matrix has missing values")
@@ -2114,8 +2114,8 @@ program define Wrapper_avar, eclass
 
 * Compute model F-test
 	if (`K'>0) {
-		noi test `indepvars' `avge' // Wald test
-		noi return list
+		qui test `indepvars' `avge' // Wald test
+		if (r(drop)==1) Debug, level(0) msg("Warning: Some variables were dropped by the F test due to collinearity (or insufficient number of clusters).")
 		ereturn scalar F = r(F)
 		ereturn scalar df_m = r(df)
 		ereturn scalar rank = r(df)+1 // Add constant

@@ -196,6 +196,10 @@ if (!`savingcache') {
 
 * Add back constants (place this *after* we define `model')
 	local addconstant = ("`constant'"!="noconstant") & !("`model'"=="iv" & "`ivsuite'"=="ivreg2") // also see below
+	if (`addconstant' & "`over'"!="") {
+		local addconstant 0
+		Debug, level(0) msg("Constant will not be reported due to over(); use -post(summ)- or -estat summ- to obtain the summary stats")
+	}
 
 * Parse VCE options:
 	

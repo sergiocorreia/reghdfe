@@ -194,7 +194,7 @@ syntax, Absorb(string) [AVGE(string)] [CLUSTERVARS(string)] [OVER(varname numeri
 	}
 	local N_hdfe = `i'
 
-	if ("`over'"!="") Debug, msg("absvars expanded due to over: `pre_absorb' -> `absorb'")
+	if ("`over'"!="") Debug, msg(`"absvars expanded due to over: `pre_absorb' -> `absorb'"')
 
 **** AVGE PART ****
 
@@ -330,7 +330,7 @@ end
 cap pr drop Precompute
 program define Precompute, rclass
 //------------------------------------------------------------------------------
-syntax, KEEPvars(varlist) [DEPVAR(varname numeric) EXCLUDESELF] [TSVARS(varlist)]
+syntax, KEEPvars(varlist) [DEPVAR(varname numeric) EXCLUDESELF] [TSVARS(varlist)] [OVER(varname numeric)]
 
 **** AVGE PART ****
 mata: st_local("N_avge", strofreal(avge_num))
@@ -424,11 +424,12 @@ if (`N_avge'>0) {
 		local num_ivars : word count `ivars'
 		local is_cvar : list ivars & all_cvars
 		local is_cvar = "`is_cvar'"!=""
-		
+		local is_over = "`ivars'"=="`over'"
+
 		local in_keepvars 0
 		if (`num_ivars'==1) local in_keepvars : list ivars in keepvars
 
-		if (`num_ivars'>1 | `is_cvar' | `in_keepvars') {
+		if (`num_ivars'>1 | `is_cvar' | `in_keepvars' | `is_over') {
 			GenerateID `ivars',  gen(__FE`g'__)
 		}
 		else {

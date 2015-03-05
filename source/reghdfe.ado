@@ -1,5 +1,5 @@
-*! reghdfe 1.4.72 04mar2015
-*! By Sergio Correia (sergio.correia@duke.edu)
+*! reghdfe 1.4.76 04mar2015
+*! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 
 cap pr drop reghdfe
