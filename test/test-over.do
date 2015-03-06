@@ -60,6 +60,7 @@ cscript "reghdfe with cache" adofile reghdfe
 	local fn "D:/Github/tmp/thecache"
 	
 	reghdfe `lhs' `othervar' `rhs', absorb(`absvars') savecache("`fn'") over(foreign) cores(2)
+	assert "`e(over_levels)'"!=""
 
 	* 3. Use cache and compare
 	reghdfe `lhs' `rhs' if foreign==10, absorb(`absvars') usecache("`fn'") over(foreign) cores(2)

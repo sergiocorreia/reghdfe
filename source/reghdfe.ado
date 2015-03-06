@@ -1,4 +1,4 @@
-*! reghdfe 1.4.80 05mar2015
+*! reghdfe 1.4.116 05mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 
@@ -30,6 +30,7 @@ include "_common/Debug.ado"
 include "_mata/fix_psd.mata"
 include "_reghdfe/Estimate.ado"
 	include "_reghdfe/Parse.ado"
+	include "_reghdfe/DropSingletons.ado"
 	include "_reghdfe/ExpandFactorVariables.ado"
 	include "_reghdfe/EstimateDoF.ado"
 		include "_reghdfe/ConnectedGroups.ado"

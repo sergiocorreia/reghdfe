@@ -1,4 +1,4 @@
-*! reghdfe 1.4.80 05mar2015
+*! reghdfe 1.4.116 05mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 program define reghdfe
@@ -202,9 +202,10 @@ else {
 	markout `touse' `expandedvars'
 	markout `touse' `expandedvars' `absorb_keepvars'
 	qui keep if `touse'
+	if ("`dropsingletons'"!="") DropSingletons, num_absvars(`N_hdfe')
 	Assert c(N)>0, rc(2000) msg("Empty sample, check for missing values or an always-false if statement")
 	drop `touse'
-	if ("`over'"!="" & `savingcache') qui levelsof `over', local(levels_over)
+	if ("`over'"!="" & `savingcache') qui levelsof `over', local(over_levels)
 
 * 8) Fill Mata structures, create FE identifiers, avge vars and clustervars if needed
 	reghdfe_absorb, step(precompute) keep(`uid' `expandedvars' `tsvars') depvar("`depvar'") `excludeself' tsvars(`tsvars') over(`over')
@@ -399,7 +400,9 @@ if (`savingcache') {
 	char __uid__[absvars_key] `original_absvars'
 	sort __uid__
 	save "`savecache'", replace
-	if ("`levels_over'"!="") ereturn local levels_over = "`levels_over'"
+	ereturn clear
+	ereturn local cmdline `"`cmdline'"'
+	if ("`over_levels'"!="") ereturn local over_levels = "`over_levels'"
 	exit
 }
 
@@ -741,6 +744,7 @@ else {
 	ereturn scalar r2_a = 1 - (e(rss)/`used_df_r') / (`tss' / (e(N)-1) )
 
 	ereturn scalar rmse = sqrt( e(rss) / `used_df_r' )
+
 	if (e(N_clust)<.) Assert e(df_r) == e(N_clust) - 1, msg("Error, `wrapper' should have made sure that N_clust-1==df_r")
 	*if (e(N_clust)<.) ereturn scalar df_r = e(N_clust) - 1
 
@@ -917,7 +921,8 @@ if (`savingcache') {
 		[Verbose(integer 0) CHECK TOLerance(real 1e-7) MAXITerations(integer 1000) noACCELerate ///
 		bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) ///
 		accel_freq(integer 3) accel_start(integer 6) /// Advanced optimization options
-		CORES(integer 1) OVER(varname numeric)]
+		CORES(integer 1) OVER(varname numeric) ///
+		DROPSIngletons]
 
 	cap conf file "`savecache'.dta"
 	if (`=_rc'!=0) {
@@ -947,6 +952,7 @@ else {
 		[POSTestimation(string) NOTES(string)] /// (Quipu) postestimation([SUmmarize QUIetly]) NOTES(key=value ..)
 		[STAGEs(string)] ///
 		[noCONstant] /// Disable adding back the intercept (mandatory with -ivreg2-)
+		[DROPSIngletons] ///
 		[*] // For display options
 }
 
@@ -1202,6 +1208,12 @@ if (!`savingcache') {
 
 } // End of !`savingcache'
 
+* Add constant if -dropsingletons-; this applies for both savingcache and normal estimation
+	if ("`addconstant'"=="1" & "`dropsingletons'"!="") {
+		local addconstant 0
+		Debug, level(0) msg("(constant will not be reported because -dropsingletons- changes the reported constant)")
+	} 
+
 * Optimization
 	if (`maxiterations'==0) local maxiterations 1e7
 	Assert (`maxiterations'>0)
@@ -1257,14 +1269,16 @@ if (!`savingcache') {
 		addconstant ///
 		weight weightvar exp weightexp /// type of weight (fw,aw,pw), weight var., and full expr. ([fw=n])
 		cores savingcache usecache over ///
-		postestimation notes stages
+		postestimation notes stages ///
+		dropsingletons
 }
 
 if (`savingcache') {
 	local names maximize_options cores if in timevar panelvar indepvars basevars ///
 		absorb savecache savingcache fast nested check over ///
 		weight weightvar exp weightexp /// type of weight (fw,aw), weight var., and full expr. ([fw=n])
-		tolerance maxiterations // Here just used for -verbose- and cache handshake purposes
+		tolerance maxiterations /// Here just used for -verbose- and cache handshake purposes
+		dropsingletons
 }
 
 	local if `ifopt'
@@ -1277,6 +1291,31 @@ if (`savingcache') {
 		c_local `name' `"``name''"' // Inject values into caller (reghdfe.ado)
 	}
 	// Debug, level(3) newline
+end
+
+	
+// -------------------------------------------------------------
+// Iteratively drop singletons for each absvar
+// -------------------------------------------------------------
+* This could be done iteratively, dropping singletons for each absvar until no progress is made.
+* However, that would be extremely slow for a modest gain
+program define DropSingletons, sortpreserve
+syntax, num_absvars(integer)
+
+	forv g=1/`num_absvars' {
+		reghdfe_absorb, fe2local(`g')
+		* ivars cvars target varname varlabel is_interaction is_cont_interaction is_bivariate is_mock levels
+		
+		* It's either redudant (the second part of i.a##c.b) or tricky (a simple i.a#c.b) to discard singletons with cont. interactions
+		local is_slope =  ("`cvars'"!="") & (!`is_bivariate' | `is_mock')
+		if (`is_slope') continue
+
+		local N_old = c(N)
+		qui bys `ivars': drop if _N==1
+		local N_new = c(N)
+		local N_dropped = (`N_old' - `N_new')
+		if (`N_dropped'>0) Debug, level(0) msg("(dropped `N_dropped' singleton observations for absvar " as result "`varlabel'" as text ")")
+	}
 end
 
 	
@@ -1451,7 +1490,6 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 	mata: st_local("N_clustervars", strofreal(length(clustervars)))
 
 	if ("`group'"!="") {
-		local group_option ", gen(`group')"
 		Assert (`adj_firstpairs' | `adj_pairwise'), msg("Cannot save connected groups without options pairwise or firstpair")
 	}
 
@@ -1521,6 +1559,7 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 	}
 
 * Compute connected groups for the remaining FEs (except those with cont interactions)
+
 	local dof_exact 0 // if this code never runs, it's not exact
 	if (`adj_firstpairs' | `adj_pairwise') {
 		Debug, level(3) msg(" - Calculating connected groups for DoF estimation")
@@ -1531,13 +1570,32 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 			if (`is_slope`g'') continue
 			local start_h = `g' + 1
 			forv h=`start_h'/`G' {
+
 				if (`is_slope`h'' | `redundant`h'') continue
 				local ++i_comparison
 				if (`i_comparison'>1) local dof_exact 0 // Only exact with one comparison
 				if (`i_comparison'>1 & `adj_firstpairs') continue // -firstpairs- will only run the first comparison
 				if (`i_comparison'==1) local exact`h' 1
-				ConnectedGroups __FE`g'__ __FE`h'__ `group_option'
-				local group_option // connected groups are only saved *once*
+
+				* ConnectedGroups does destructive operations and thus backups the dta by default
+				* This is very slow with huge datasets and e.g. 4 FEs (up to 3*2*1=6 saves).
+				* As a soln, use the -clear- opt and save before. Rule:
+				* - Save the cache on the first comparison, OR if we are saving the connected group, on the second
+
+				if (`i_comparison'==1 & "`group'"!="") {
+					ConnectedGroups __FE`g'__ __FE`h'__ , gen(`group')
+				}
+				else if (`i_comparison'==1 & "`group'"=="") | (`i_comparison'==2 & "`group'"!="") {
+					tempfile backup
+					qui save "`backup'"
+					ConnectedGroups __FE`g'__ __FE`h'__ , clear
+					qui use "`backup'", clear
+				}
+				else {
+					ConnectedGroups __FE`g'__ __FE`h'__ , clear
+					qui use "`backup'", clear
+				}
+
 				local candidate = r(groups)
 				local M`h' = max(`M`h'', `candidate')
 			}
@@ -1637,7 +1695,6 @@ syntax varlist(min=2 max=2) [, GENerate(name) CLEAR]
     if ("`clear'"=="") qui save "`backup'"
     keep `varlist'
     qui bys `varlist': keep if _n==1
-
 
     clonevar `group' = `id1'
     clonevar `copy' = `group'
@@ -2274,6 +2331,7 @@ program define Wrapper_ivreg2, eclass
 	`noise' `subcmd'
 	if ("`noise'"=="noi") di in red "{hline 64}" _n "{hline 64}"
 	ereturn scalar tss = e(mss) + e(rss) // ivreg2 doesn't report e(tss)
+	ereturn scalar unclustered_df_r = e(N) - e(df_m)
 
 	if !missing(e(ecollin)) {
 		di as error "endogenous covariate <`e(ecollin)'> was perfectly predicted by the instruments!"

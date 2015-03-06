@@ -419,7 +419,7 @@ To use this, first add this option together with {it:savecache}. This will chang
 basically adding one fixed effect and adding the {it:over} variable to every interaction. Transforming the entire dataset with this specification is equivalent to transforming it separately by levels of {it:over}.
 
 {pmore}
-This call will return {opt e(levels_over)}, after which the regressions can be called as long as both {it:usecache} and {it:over} are specified. 
+This call will return {opt e(over_levels)}, after which the regressions can be called as long as both {it:usecache} and {it:over} are specified. 
 The user should be very careful not to change the dataset between calls, as the program will detect only some inconsistencies between the {it:savecache} call and the {it:usecache} call.
 
 {pmore}Example:{p_end}

@@ -24,7 +24,8 @@ if (`savingcache') {
 		[Verbose(integer 0) CHECK TOLerance(real 1e-7) MAXITerations(integer 1000) noACCELerate ///
 		bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) ///
 		accel_freq(integer 3) accel_start(integer 6) /// Advanced optimization options
-		CORES(integer 1) OVER(varname numeric)]
+		CORES(integer 1) OVER(varname numeric) ///
+		DROPSIngletons]
 
 	cap conf file "`savecache'.dta"
 	if (`=_rc'!=0) {
@@ -54,6 +55,7 @@ else {
 		[POSTestimation(string) NOTES(string)] /// (Quipu) postestimation([SUmmarize QUIetly]) NOTES(key=value ..)
 		[STAGEs(string)] ///
 		[noCONstant] /// Disable adding back the intercept (mandatory with -ivreg2-)
+		[DROPSIngletons] ///
 		[*] // For display options
 }
 
@@ -309,6 +311,12 @@ if (!`savingcache') {
 
 } // End of !`savingcache'
 
+* Add constant if -dropsingletons-; this applies for both savingcache and normal estimation
+	if ("`addconstant'"=="1" & "`dropsingletons'"!="") {
+		local addconstant 0
+		Debug, level(0) msg("(constant will not be reported because -dropsingletons- changes the reported constant)")
+	} 
+
 * Optimization
 	if (`maxiterations'==0) local maxiterations 1e7
 	Assert (`maxiterations'>0)
@@ -364,14 +372,16 @@ if (!`savingcache') {
 		addconstant ///
 		weight weightvar exp weightexp /// type of weight (fw,aw,pw), weight var., and full expr. ([fw=n])
 		cores savingcache usecache over ///
-		postestimation notes stages
+		postestimation notes stages ///
+		dropsingletons
 }
 
 if (`savingcache') {
 	local names maximize_options cores if in timevar panelvar indepvars basevars ///
 		absorb savecache savingcache fast nested check over ///
 		weight weightvar exp weightexp /// type of weight (fw,aw), weight var., and full expr. ([fw=n])
-		tolerance maxiterations // Here just used for -verbose- and cache handshake purposes
+		tolerance maxiterations /// Here just used for -verbose- and cache handshake purposes
+		dropsingletons
 }
 
 	local if `ifopt'

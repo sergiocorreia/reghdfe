@@ -94,9 +94,10 @@ else {
 	markout `touse' `expandedvars'
 	markout `touse' `expandedvars' `absorb_keepvars'
 	qui keep if `touse'
+	if ("`dropsingletons'"!="") DropSingletons, num_absvars(`N_hdfe')
 	Assert c(N)>0, rc(2000) msg("Empty sample, check for missing values or an always-false if statement")
 	drop `touse'
-	if ("`over'"!="" & `savingcache') qui levelsof `over', local(levels_over)
+	if ("`over'"!="" & `savingcache') qui levelsof `over', local(over_levels)
 
 * 8) Fill Mata structures, create FE identifiers, avge vars and clustervars if needed
 	reghdfe_absorb, step(precompute) keep(`uid' `expandedvars' `tsvars') depvar("`depvar'") `excludeself' tsvars(`tsvars') over(`over')
@@ -291,7 +292,9 @@ if (`savingcache') {
 	char __uid__[absvars_key] `original_absvars'
 	sort __uid__
 	save "`savecache'", replace
-	if ("`levels_over'"!="") ereturn local levels_over = "`levels_over'"
+	ereturn clear
+	ereturn local cmdline `"`cmdline'"'
+	if ("`over_levels'"!="") ereturn local over_levels = "`over_levels'"
 	exit
 }
 
@@ -633,6 +636,7 @@ else {
 	ereturn scalar r2_a = 1 - (e(rss)/`used_df_r') / (`tss' / (e(N)-1) )
 
 	ereturn scalar rmse = sqrt( e(rss) / `used_df_r' )
+
 	if (e(N_clust)<.) Assert e(df_r) == e(N_clust) - 1, msg("Error, `wrapper' should have made sure that N_clust-1==df_r")
 	*if (e(N_clust)<.) ereturn scalar df_r = e(N_clust) - 1
 

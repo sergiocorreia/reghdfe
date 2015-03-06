@@ -1,3 +1,26 @@
+Notar diferencia con xtivreg2:
+Radica en el q que multiplica a la VCV
+Ellos dicen "no es necesario ajustar por N/N-k-kk" porque N va al infinito wrt k,kk
+Que es como decir que tienes suficientes unidades de tiempo
+
+Subtle difference between xtivreg2 and reghdfe:
+Both do the N/(N-k-kk) adjustment
+(Note than in a normal ols, kk=1 i.e. the constant)
+Also both recognize that since clustervar==absvar, kk=0
+However, xtivreg2 replaces kk=1 instead of kk=0
+
+
+When I explain DROPSINGletons , mention that it changes the estimated value of the constant
+
+All in all, constants just seem to be a HUGE PITA
+- conflict with over()
+- mess up VCV sp. with ivreg2 and avar with clustering
+- Also it's interpretation is not particularly useful (it's not the avg. of depvar, just the expected value when all indepvars are zero)
+- Constant also changes when dropping singleton groups!
+
+
+
+
 In the helpfile, carefully explain what goes in vce() and absorb()
 and *strongly* recommend people to use the interactions # as it's faster in several parts
 

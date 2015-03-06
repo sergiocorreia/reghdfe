@@ -21,7 +21,6 @@ syntax varlist(min=2 max=2) [, GENerate(name) CLEAR]
     keep `varlist'
     qui bys `varlist': keep if _n==1
 
-
     clonevar `group' = `id1'
     clonevar `copy' = `group'
     capture error 100 // We want an error

@@ -75,7 +75,6 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 	mata: st_local("N_clustervars", strofreal(length(clustervars)))
 
 	if ("`group'"!="") {
-		local group_option ", gen(`group')"
 		Assert (`adj_firstpairs' | `adj_pairwise'), msg("Cannot save connected groups without options pairwise or firstpair")
 	}
 
@@ -145,6 +144,7 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 	}
 
 * Compute connected groups for the remaining FEs (except those with cont interactions)
+
 	local dof_exact 0 // if this code never runs, it's not exact
 	if (`adj_firstpairs' | `adj_pairwise') {
 		Debug, level(3) msg(" - Calculating connected groups for DoF estimation")
@@ -155,13 +155,32 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 			if (`is_slope`g'') continue
 			local start_h = `g' + 1
 			forv h=`start_h'/`G' {
+
 				if (`is_slope`h'' | `redundant`h'') continue
 				local ++i_comparison
 				if (`i_comparison'>1) local dof_exact 0 // Only exact with one comparison
 				if (`i_comparison'>1 & `adj_firstpairs') continue // -firstpairs- will only run the first comparison
 				if (`i_comparison'==1) local exact`h' 1
-				ConnectedGroups __FE`g'__ __FE`h'__ `group_option'
-				local group_option // connected groups are only saved *once*
+
+				* ConnectedGroups does destructive operations and thus backups the dta by default
+				* This is very slow with huge datasets and e.g. 4 FEs (up to 3*2*1=6 saves).
+				* As a soln, use the -clear- opt and save before. Rule:
+				* - Save the cache on the first comparison, OR if we are saving the connected group, on the second
+
+				if (`i_comparison'==1 & "`group'"!="") {
+					ConnectedGroups __FE`g'__ __FE`h'__ , gen(`group')
+				}
+				else if (`i_comparison'==1 & "`group'"=="") | (`i_comparison'==2 & "`group'"!="") {
+					tempfile backup
+					qui save "`backup'"
+					ConnectedGroups __FE`g'__ __FE`h'__ , clear
+					qui use "`backup'", clear
+				}
+				else {
+					ConnectedGroups __FE`g'__ __FE`h'__ , clear
+					qui use "`backup'", clear
+				}
+
 				local candidate = r(groups)
 				local M`h' = max(`M`h'', `candidate')
 			}
