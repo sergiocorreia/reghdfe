@@ -1,5 +1,5 @@
 cd "D:/Github/reghdfe/source"
-cscript "reghdfe with clusters" adofile reghdfe
+cscript "reghdfe with quipu" adofile reghdfe
 
 * Setup
 	discard
@@ -29,7 +29,7 @@ cscript "reghdfe with clusters" adofile reghdfe
 	bys turn: gen t = _n
 	tsset turn t
 
-* [TEST] Cluster
+* [TEST]
 	local lhs price
 	local rhs weight length
 	local endogvar gear
@@ -82,10 +82,14 @@ cscript "reghdfe with clusters" adofile reghdfe
 	TrimMatrix `K_first1'
 	storedresults save b_first1 e()
 
+	* Quipu path
+	quipu setpath "D:\Github\tmp\", replace
+
 	* 2. Run reghdfe
 	set trace off
 	set tracedepth 4
-	reghdfe `lhs' `rhs' (`endogvar'=`iv'), absorb(`absvars') stages(ols first acid reduced) vce(cluster `clustervar') // will be saved as reghdfe_`stage'
+	quipu save, notes(somekey=123): reghdfe `lhs' `rhs' (`endogvar'=`iv'), absorb(`absvars') stages(ols first acid reduced) vce(cluster `clustervar') // will be saved as reghdfe_`stage'
+	asd
 	estimates store reghdfe_iv
 
 	* Compare

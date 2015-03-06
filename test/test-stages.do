@@ -1,5 +1,5 @@
 cd "D:/Github/reghdfe/source"
-cscript "reghdfe with clusters" adofile reghdfe
+cscript "reghdfe with iv-stages" adofile reghdfe
 
 * Setup
 	discard
