@@ -33,10 +33,12 @@
 
 	run test-cores
 	run test-attach
-	run test-stage
+	run test-stages
 
 	run test-cache
 	run test-over
+
+	* run test-quipu // Don't run this as it's mostly a test about quipu.ado and not reghdfe.ado
 
 * Success
 	di as text "No errors found!"
