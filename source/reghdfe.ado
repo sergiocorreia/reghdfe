@@ -1,4 +1,4 @@
-*! reghdfe 1.4.152 07mar2015
+*! reghdfe 1.4.181 07mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 
@@ -41,6 +41,7 @@ include "_reghdfe/Estimate.ado"
 	include "_reghdfe/Wrapper_ivregress.ado"
 	include "_reghdfe/Wrapper_ivreg2.ado"
 	include "_reghdfe/AddConstant.ado"
+include "_reghdfe/Attach.ado"
 include "_reghdfe/Replay.ado"
 include "_reghdfe/Header.ado"
 

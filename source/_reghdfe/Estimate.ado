@@ -245,11 +245,13 @@ else {
 		local original_absvars `original_absvars'  `varlabel'
 	}
 
-* Compute summary statistics for the variables
-	qui 
-	tempname stats
-	matrix `stats' = r(StatTotal)
-	matrix list `stats', title("Summary Statistics")
+* Compute summary statistics for the all the regression variables
+	if ("`stats'"!="") {
+		local tabstat_weight : subinstr local weightexp "[pweight" "[aweight"
+		qui tabstat `vars' `tabstat_weight' , stat(`stats') col(stat) save
+		tempname statsmatrix
+		matrix `statsmatrix' = r(StatTotal)
+	}
 
 * 14) Compute residuals for all variables including the AvgEs (overwrites vars!)
 	qui ds `vars'
@@ -272,11 +274,8 @@ else {
 		sort __uid__ // The user may have changed the sort order of the master data
 		qui merge 1:1 __uid__ using "`usecache'", keepusing(`vars') assert(match master `using') keep(master match) nolabel sorted
 		qui cou if _merge!=3
-		if (r(N)>0) {
-			Debug, level(0) msg(as error "Warning: the cache has `r(N)' less observations than the master data" _n as text ///
-				" - This is possibly because, when created, it included variables that were missing in cases where the current ones are not." _n ///
-				" - It may or may not be an error depending on your objective.")
-		}
+		Assert r(N)==0, msg(as error "Error: the cache has `r(N)' less observations than the master data" _n ///
+			as text " - This is possibly because, when created, it included variables that were missing in cases where the current ones are not.")
 		qui drop if _merge!=3
 		drop _merge
 
@@ -694,6 +693,7 @@ else {
 
 	if ("`stage'"!="none") Debug, level(0) msg(_n "{title:Stage: `stage'}" _n)
 	if ("`lhs_endogvar'"!="<none>") Debug, level(0) msg("{title:Endogvar: `lhs_endogvar'}")
+	Attach, notes(`notes') statsmatrix(`statsmatrix') summarize_quietly(`summarize_quietly')
 	Replay
 
 *** <<<< LAST PART OF UGLY STAGE <<<<	
@@ -714,7 +714,6 @@ else if ("`stage'"=="iv") {
 } // stage
 *** >>>> LAST PART OF UGLY STAGE >>>>
 
-	Attach, post(`postestimation') notes(`notes')
 	reghdfe_absorb, step(stop)
 
 end
@@ -768,38 +767,4 @@ program define Subtitle, eclass
 			ereturn local title5 = " (`tsset')"
 		}
 	}
-end
-
-capture program drop Attach
-program define Attach, eclass
-syntax, [POSTestimation(string) NOTES(string)]
-	
-	* Postestimation
-	local 0, `postestimation'
-	syntax, [SUmmarize] [QUIetly]
-	if ("`summarize'"!="") {
-		*`quietly' reghdfe_estat summarize
-		*tempname stats
-		*matrix `stats' = r(stats)
-		*ereturn matrix summarize = `stats'
-
-		*local vars "`e(depvar)'"
-		*tabstat displacement price weight [weights] , stat(mean sd min max) col(stat)
-
-
-	}
-
-	* Parse key=value options and append to ereturn as hidden
-	mata: st_local("notes", strtrim(`"`notes'"')) // trim (supports large strings)
-	local keys
-	while (`"`notes'"'!="") {
-		gettoken key notes : notes, parse(" =")
-		Assert !inlist("`key'","sample","time"), msg("Key cannot be -sample- or -time-") // Else -estimates- will fail
-		gettoken _ notes : notes, parse("=")
-		gettoken value notes : notes, quotes
-		local keys `keys' `key'
-		ereturn hidden local `key' `value'
-	}
-	if ("`keys'"!="") ereturn hidden local keys `keys'
-
 end

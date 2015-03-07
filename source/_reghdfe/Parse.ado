@@ -52,11 +52,11 @@ else {
 		[SUBOPTions(string)] /// Options to be passed to the estimation command (e.g . to regress)
 		[bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) accel_freq(integer 3) accel_start(integer 6)] /// Advanced optimization options
 		[CORES(integer 1)] [USEcache(string)] [OVER(varname numeric)] ///
-		[POSTestimation(string) NOTES(string)] /// (Quipu) postestimation([SUmmarize QUIetly]) NOTES(key=value ..)
+		[NOTES(string)] /// NOTES(key=value ..)
 		[STAGEs(string)] ///
 		[noCONstant] /// Disable adding back the intercept (mandatory with -ivreg2-)
 		[DROPSIngletons] ///
-		[*] // For display options
+		[*] // For display options ; and SUmmarize(stats)
 }
 
 * Weight
@@ -79,6 +79,12 @@ else {
 * Save locals that will be overwritten by later calls to -syntax-
 	local ifopt `if'
 	local inopt `in'
+
+* Parse summarize(..)
+	local default_stats mean min max
+	ParseImplicit, opt(SUmmarize) default(`default_stats') input(`options') syntax([namelist(name=stats)] , [QUIetly]) inject(stats quietly)
+	local summarize_quietly = ("`quietly'"!="")
+	if ("`stats'"=="" & "`quietly'"!="") local stats `default_stats'
 
 * Coef Table Options
 if (!`savingcache') {
@@ -202,7 +208,7 @@ if (!`savingcache') {
 	local addconstant = ("`constant'"!="noconstant") & !("`model'"=="iv" & "`ivsuite'"=="ivreg2") // also see below
 	if (`addconstant' & "`over'"!="") {
 		local addconstant 0
-		Debug, level(0) msg("Constant will not be reported due to over(); use -post(summ)- or -estat summ- to obtain the summary stats")
+		Debug, level(0) msg("Constant will not be reported due to over(); use option -summarize()- or run the command -estat summ- to obtain the summary stats")
 	}
 
 * Parse VCE options:
@@ -374,7 +380,7 @@ if (!`savingcache') {
 		addconstant ///
 		weight weightvar exp weightexp /// type of weight (fw,aw,pw), weight var., and full expr. ([fw=n])
 		cores savingcache usecache over ///
-		postestimation notes stages ///
+		stats summarize_quietly notes stages ///
 		dropsingletons
 }
 
@@ -396,4 +402,31 @@ if (`savingcache') {
 		c_local `name' `"``name''"' // Inject values into caller (reghdfe.ado)
 	}
 	// Debug, level(3) newline
+end
+
+capture program drop ParseImplicit
+program define ParseImplicit
+* Parse options in the form NAME|NAME(arguments)
+* Inject: what locals to inject (depend on -syntax)
+* Default: default value for implicit form
+	syntax, opt(name local) default(string) syntax(string asis) input(string asis) inject(namelist local)
+
+	* First see if the implicit version is possible
+	local lower_opt = lower("`opt'")
+	local 0 , `input'
+	cap syntax, `opt' [*]
+	local rc = _rc
+	if (`rc') {
+		di `"<`0'>"'
+		syntax, `opt'(string asis) [*]
+	}
+	else {
+		local `lower_opt' `default'
+	}
+	local 0 ``lower_opt''
+	syntax `syntax'
+	foreach loc of local inject {
+		c_local `loc' ``loc''
+	}
+	c_local options `options'
 end

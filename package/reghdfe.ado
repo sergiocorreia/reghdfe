@@ -1,4 +1,4 @@
-*! reghdfe 1.4.152 07mar2015
+*! reghdfe 1.4.181 07mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 program define reghdfe
@@ -353,6 +353,14 @@ else {
 		local original_absvars `original_absvars'  `varlabel'
 	}
 
+* Compute summary statistics for the all the regression variables
+	if ("`stats'"!="") {
+		local tabstat_weight : subinstr local weightexp "[pweight" "[aweight"
+		qui tabstat `vars' `tabstat_weight' , stat(`stats') col(stat) save
+		tempname statsmatrix
+		matrix `statsmatrix' = r(StatTotal)
+	}
+
 * 14) Compute residuals for all variables including the AvgEs (overwrites vars!)
 	qui ds `vars'
 	local NUM_VARS : word count `r(varlist)'
@@ -374,11 +382,8 @@ else {
 		sort __uid__ // The user may have changed the sort order of the master data
 		qui merge 1:1 __uid__ using "`usecache'", keepusing(`vars') assert(match master `using') keep(master match) nolabel sorted
 		qui cou if _merge!=3
-		if (r(N)>0) {
-			Debug, level(0) msg(as error "Warning: the cache has `r(N)' less observations than the master data" _n as text ///
-				" - This is possibly because, when created, it included variables that were missing in cases where the current ones are not." _n ///
-				" - It may or may not be an error depending on your objective.")
-		}
+		Assert r(N)==0, msg(as error "Error: the cache has `r(N)' less observations than the master data" _n ///
+			as text " - This is possibly because, when created, it included variables that were missing in cases where the current ones are not.")
 		qui drop if _merge!=3
 		drop _merge
 
@@ -796,6 +801,7 @@ else {
 
 	if ("`stage'"!="none") Debug, level(0) msg(_n "{title:Stage: `stage'}" _n)
 	if ("`lhs_endogvar'"!="<none>") Debug, level(0) msg("{title:Endogvar: `lhs_endogvar'}")
+	Attach, notes(`notes') statsmatrix(`statsmatrix') summarize_quietly(`summarize_quietly')
 	Replay
 
 *** <<<< LAST PART OF UGLY STAGE <<<<	
@@ -816,7 +822,6 @@ else if ("`stage'"=="iv") {
 } // stage
 *** >>>> LAST PART OF UGLY STAGE >>>>
 
-	Attach, post(`postestimation') notes(`notes')
 	reghdfe_absorb, step(stop)
 
 end
@@ -840,8 +845,6 @@ syntax, uid(varname numeric) file(string) [groupdta(string)]
 	* Add mobility group
 	if ("`groupdta'"!="") merge 1:1 `uid' using "`groupdta'", assert(master match) nogen nolabel nonotes noreport sorted
 end
-
-capture program drop Subtitle
 program define Subtitle, eclass
 	* Fill e(title3/4/5) based on the info of the other e(..)
 
@@ -869,35 +872,6 @@ program define Subtitle, eclass
 			ereturn local title5 = " (`tsset')"
 		}
 	}
-end
-
-capture program drop Attach
-program define Attach, eclass
-syntax, [POSTestimation(string) NOTES(string)]
-	
-	* Postestimation
-	local 0, `postestimation'
-	syntax, [SUmmarize] [QUIetly]
-	if ("`summarize'"!="") {
-		`quietly' reghdfe_estat summarize
-		tempname stats
-		matrix `stats' = r(stats)
-		ereturn matrix summarize = `stats'
-	}
-
-	* Parse key=value options and append to ereturn as hidden
-	mata: st_local("notes", strtrim(`"`notes'"')) // trim (supports large strings)
-	local keys
-	while (`"`notes'"'!="") {
-		gettoken key notes : notes, parse(" =")
-		Assert !inlist("`key'","sample","time"), msg("Key cannot be -sample- or -time-") // Else -estimates- will fail
-		gettoken _ notes : notes, parse("=")
-		gettoken value notes : notes, quotes
-		local keys `keys' `key'
-		ereturn hidden local `key' `value'
-	}
-	if ("`keys'"!="") ereturn hidden local keys `keys'
-
 end
 
 	
@@ -953,11 +927,11 @@ else {
 		[SUBOPTions(string)] /// Options to be passed to the estimation command (e.g . to regress)
 		[bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) accel_freq(integer 3) accel_start(integer 6)] /// Advanced optimization options
 		[CORES(integer 1)] [USEcache(string)] [OVER(varname numeric)] ///
-		[POSTestimation(string) NOTES(string)] /// (Quipu) postestimation([SUmmarize QUIetly]) NOTES(key=value ..)
+		[NOTES(string)] /// NOTES(key=value ..)
 		[STAGEs(string)] ///
 		[noCONstant] /// Disable adding back the intercept (mandatory with -ivreg2-)
 		[DROPSIngletons] ///
-		[*] // For display options
+		[*] // For display options ; and SUmmarize(stats)
 }
 
 * Weight
@@ -980,6 +954,12 @@ else {
 * Save locals that will be overwritten by later calls to -syntax-
 	local ifopt `if'
 	local inopt `in'
+
+* Parse summarize(..)
+	local default_stats mean min max
+	ParseImplicit, opt(SUmmarize) default(`default_stats') input(`options') syntax([namelist(name=stats)] , [QUIetly]) inject(stats quietly)
+	local summarize_quietly = ("`quietly'"!="")
+	if ("`stats'"=="" & "`quietly'"!="") local stats `default_stats'
 
 * Coef Table Options
 if (!`savingcache') {
@@ -1103,7 +1083,7 @@ if (!`savingcache') {
 	local addconstant = ("`constant'"!="noconstant") & !("`model'"=="iv" & "`ivsuite'"=="ivreg2") // also see below
 	if (`addconstant' & "`over'"!="") {
 		local addconstant 0
-		Debug, level(0) msg("Constant will not be reported due to over(); use -post(summ)- or -estat summ- to obtain the summary stats")
+		Debug, level(0) msg("Constant will not be reported due to over(); use option -summarize()- or run the command -estat summ- to obtain the summary stats")
 	}
 
 * Parse VCE options:
@@ -1275,7 +1255,7 @@ if (!`savingcache') {
 		addconstant ///
 		weight weightvar exp weightexp /// type of weight (fw,aw,pw), weight var., and full expr. ([fw=n])
 		cores savingcache usecache over ///
-		postestimation notes stages ///
+		stats summarize_quietly notes stages ///
 		dropsingletons
 }
 
@@ -1297,6 +1277,31 @@ if (`savingcache') {
 		c_local `name' `"``name''"' // Inject values into caller (reghdfe.ado)
 	}
 	// Debug, level(3) newline
+end
+program define ParseImplicit
+* Parse options in the form NAME|NAME(arguments)
+* Inject: what locals to inject (depend on -syntax)
+* Default: default value for implicit form
+	syntax, opt(name local) default(string) syntax(string asis) input(string asis) inject(namelist local)
+
+	* First see if the implicit version is possible
+	local lower_opt = lower("`opt'")
+	local 0 , `input'
+	cap syntax, `opt' [*]
+	local rc = _rc
+	if (`rc') {
+		di `"<`0'>"'
+		syntax, `opt'(string asis) [*]
+	}
+	else {
+		local `lower_opt' `default'
+	}
+	local 0 ``lower_opt''
+	syntax `syntax'
+	foreach loc of local inject {
+		c_local `loc' ``loc''
+	}
+	c_local options `options'
 end
 
 	
@@ -1664,8 +1669,6 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 	return scalar saved_group = `saved_group'
 	return scalar M_due_to_nested = `M_due_to_nested'
 end
-
-capture program drop CheckZerosByGroup
 program define CheckZerosByGroup, rclass sortpreserve
 syntax, fe(varname numeric) cvars(varname numeric) anyconstant(integer)
 	tempvar redundant
@@ -1905,9 +1908,6 @@ program define Wrapper_regress, eclass
 
 	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars'" )) )
 end
-
-	
-capture program drop Wrapper_mwc
 program define Wrapper_mwc, eclass
 * This will compute an ols regression with 2+ clusters
 syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
@@ -2385,9 +2385,6 @@ program define Wrapper_ivreg2, eclass
 	* ereturns specific to this command
 	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars' (`original_endogvars'=`original_instruments')" )) )
 end
-
-	
-capture program drop AddConstant
 program define AddConstant
 	syntax varlist(numeric)
 	foreach var of local varlist {
@@ -2396,6 +2393,38 @@ program define AddConstant
 		assert !missing(`mean')
 		qui replace `var' = `var' + `mean'
 	}
+end
+program define Attach, eclass
+	syntax, [NOTES(string)] [statsmatrix(string)] summarize_quietly(integer)
+	
+	* Summarize
+	* This needs to happen after all the missing obs. have been dropped and the only obs. are those that *WILL* be in the regression
+	if ("`statsmatrix'"!="") {
+		* Update beta vector
+		* ...
+
+		if (!`summarize_quietly') {
+			di as text _n "{ul:Regression Summary Statistics}" _c
+			tempname stats_transpose
+			matrix `stats_transpose' = (`statsmatrix')'
+			matrix list `stats_transpose', noheader
+		}
+		ereturn matrix summarize = `statsmatrix'
+	}
+
+	* Parse key=value options and append to ereturn as hidden
+	mata: st_local("notes", strtrim(`"`notes'"')) // trim (supports large strings)
+	local keys
+	while (`"`notes'"'!="") {
+		gettoken key notes : notes, parse(" =")
+		Assert !inlist("`key'","sample","time"), msg("Key cannot be -sample- or -time-") // Else -estimates- will fail
+		gettoken _ notes : notes, parse("=")
+		gettoken value notes : notes, quotes
+		local keys `keys' `key'
+		ereturn hidden local `key' `value'
+	}
+	if ("`keys'"!="") ereturn hidden local keys `keys'
+
 end
 
 
@@ -2488,8 +2517,6 @@ end
 
 
 * (Modified from _coef_table_header.ado)
-
-capture program drop Header
 program define Header
 	if !c(noisily) exit
 

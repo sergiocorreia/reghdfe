@@ -57,7 +57,7 @@ for fn in output_filenames:
         data = data.replace(u'include "{}"'.format(include), '\r\n' + include_data)
 
     # Remove cap drop
-    capdrops = re.findall('\s^\s*cap pr drop [a-zA-Z0-9_]+\s*$', data, re.MULTILINE)
+    capdrops = re.findall('\s^\s*cap[a-z]* pr[a-z]* drop [a-zA-Z0-9_]+\s*$', data, re.MULTILINE)
     for capdrop in capdrops:
         data = data.replace(capdrop, "")        
 
