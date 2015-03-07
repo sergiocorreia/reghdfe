@@ -8,7 +8,7 @@ program define Attach, eclass
 		* Update beta vector
 		* ...
 
-		if (!`summarize_quietly') {
+		if (!`summarize_quietly' & "`statsmatrix'"!="") {
 			di as text _n "{ul:Regression Summary Statistics}" _c
 			tempname stats_transpose
 			matrix `stats_transpose' = (`statsmatrix')'

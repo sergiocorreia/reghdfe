@@ -1,4 +1,4 @@
-*! reghdfe 1.4.194 07mar2015
+*! reghdfe 1.4.195 07mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 program define reghdfe
@@ -2405,7 +2405,7 @@ program define Attach, eclass
 		* Update beta vector
 		* ...
 
-		if (!`summarize_quietly') {
+		if (!`summarize_quietly' & "`statsmatrix'"!="") {
 			di as text _n "{ul:Regression Summary Statistics}" _c
 			tempname stats_transpose
 			matrix `stats_transpose' = (`statsmatrix')'
