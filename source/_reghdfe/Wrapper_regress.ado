@@ -7,7 +7,7 @@ program define Wrapper_regress, eclass
 		[weightexp(string)] ///
 		addconstant(integer) ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
-
+	
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
 	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars'" )) ) // Just for esthetic purposes
 	if (`c(version)'>=12) local hidden hidden
@@ -102,5 +102,4 @@ program define Wrapper_regress, eclass
 	}
 
 	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars'" )) )
-
 end

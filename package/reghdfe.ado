@@ -1,4 +1,4 @@
-*! reghdfe 1.4.116 05mar2015
+*! reghdfe 1.4.143 07mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 program define reghdfe
@@ -459,6 +459,7 @@ else if ("`stage'"=="ols") {
 	local original_endogvars
 	local original_indepvars `backup_original_indepvars' `backup_original_endogvars'
 	local original_instruments
+	local vcesuite avar
 }
 else if ("`stage'"=="reduced") {
 	local tss = `backup_tss'
@@ -471,6 +472,7 @@ else if ("`stage'"=="reduced") {
 	local original_indepvars `backup_original_indepvars' `backup_original_instruments'
 	local original_endogvars
 	local original_instruments
+	local vcesuite avar
 }
 else if ("`stage'"=="acid") {
 	local tss = `backup_tss'
@@ -483,18 +485,21 @@ else if ("`stage'"=="acid") {
 	local original_indepvars `backup_original_indepvars' `backup_original_endogvars' `backup_original_instruments'
 	local original_endogvars
 	local original_instruments
+	local vcesuite avar
 }
 else if ("`stage'"=="first") {
+	local ++ i_endogvar
 	local tss = `tss_`lhs_endogvar''
 	local fast 1
 	local depvar `lhs_endogvar'
 	local indepvars `backup_indepvars' `backup_instruments'
 	local endogvars
 	local instruments
-	local original_depvar `backup_original_depvar'
+	local original_depvar : word `i_endogvar' of `backup_original_endogvars'
 	local original_indepvars `backup_original_indepvars' `backup_original_endogvars' `backup_original_instruments'
 	local original_endogvars
 	local original_instruments
+	local vcesuite avar
 }
 **** END OF UGLY -stages- CODE >>>> 
 
@@ -657,6 +662,7 @@ else {
 	ereturn local footnote = "reghdfe_footnote"
 	ereturn local absvars = "`original_absvars'"
 	ereturn local vcesuite = "`vcesuite'"
+	if ("`stage'"!="none") ereturn local iv_depvar = "`backup_original_depvar'"
 	ereturn `hidden' local diopts = "`diopts'"
 	if ("`over'"!="") {
 		ereturn local over = "`over'"
@@ -794,9 +800,6 @@ else {
 
 *** <<<< LAST PART OF UGLY STAGE <<<<	
 if (!inlist("`stage'","none", "iv")) {
-	if ("`i_endogvar'"!="") {
-		local ++ i_endogvar
-	}
 	local estimate_name reghdfe_`stage'`i_endogvar'
 	local stored_estimates `stored_estimates' `estimate_name'
 	local cmd estimates store `estimate_name', nocopy
@@ -1045,10 +1048,12 @@ if (!`savingcache') {
 		Assert "`endogvars'"!="", msg("iv: endogvars required")
 		local 0 `endogvars'
 		syntax varlist(fv ts numeric)
+		local endogvars `varlist'
 
 		Assert "`instruments'"!="", msg("iv: instruments required")
 		local 0 `instruments'
 		syntax varlist(fv ts numeric)
+		local instruments `varlist'
 		
 		local 0 `left' // So OLS part can handle it
 		Assert "`endogvars'`instruments'"!=""
@@ -1061,7 +1066,7 @@ if (!`savingcache') {
 
 * OLS varlist
 	syntax varlist(fv ts numeric)
-	gettoken depvar indepvars : 0
+	gettoken depvar indepvars : varlist
 	_fv_check_depvar `depvar'
 
 * Extract format of depvar so we can format FEs like this
@@ -1803,7 +1808,7 @@ program define Wrapper_regress, eclass
 		[weightexp(string)] ///
 		addconstant(integer) ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
-
+	
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
 	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars'" )) ) // Just for esthetic purposes
 	if (`c(version)'>=12) local hidden hidden
@@ -1898,7 +1903,6 @@ program define Wrapper_regress, eclass
 	}
 
 	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars'" )) )
-
 end
 
 	
@@ -2212,7 +2216,7 @@ program define Wrapper_avar, eclass
 		ereturn df_m = 0
 		ereturn scalar rank = 1
 	}
-
+	
 * ereturns specific to this command
 	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars'" )) )
 end
@@ -2332,6 +2336,8 @@ program define Wrapper_ivreg2, eclass
 	if ("`noise'"=="noi") di in red "{hline 64}" _n "{hline 64}"
 	ereturn scalar tss = e(mss) + e(rss) // ivreg2 doesn't report e(tss)
 	ereturn scalar unclustered_df_r = e(N) - e(df_m)
+
+	if ("`e(vce)'"=="robust cluster") ereturn local vce = "cluster"
 
 	if !missing(e(ecollin)) {
 		di as error "endogenous covariate <`e(ecollin)'> was perfectly predicted by the instruments!"

@@ -351,6 +351,7 @@ else if ("`stage'"=="ols") {
 	local original_endogvars
 	local original_indepvars `backup_original_indepvars' `backup_original_endogvars'
 	local original_instruments
+	local vcesuite avar
 }
 else if ("`stage'"=="reduced") {
 	local tss = `backup_tss'
@@ -363,6 +364,7 @@ else if ("`stage'"=="reduced") {
 	local original_indepvars `backup_original_indepvars' `backup_original_instruments'
 	local original_endogvars
 	local original_instruments
+	local vcesuite avar
 }
 else if ("`stage'"=="acid") {
 	local tss = `backup_tss'
@@ -375,18 +377,21 @@ else if ("`stage'"=="acid") {
 	local original_indepvars `backup_original_indepvars' `backup_original_endogvars' `backup_original_instruments'
 	local original_endogvars
 	local original_instruments
+	local vcesuite avar
 }
 else if ("`stage'"=="first") {
+	local ++ i_endogvar
 	local tss = `tss_`lhs_endogvar''
 	local fast 1
 	local depvar `lhs_endogvar'
 	local indepvars `backup_indepvars' `backup_instruments'
 	local endogvars
 	local instruments
-	local original_depvar `backup_original_depvar'
+	local original_depvar : word `i_endogvar' of `backup_original_endogvars'
 	local original_indepvars `backup_original_indepvars' `backup_original_endogvars' `backup_original_instruments'
 	local original_endogvars
 	local original_instruments
+	local vcesuite avar
 }
 **** END OF UGLY -stages- CODE >>>> 
 
@@ -549,6 +554,7 @@ else {
 	ereturn local footnote = "reghdfe_footnote"
 	ereturn local absvars = "`original_absvars'"
 	ereturn local vcesuite = "`vcesuite'"
+	if ("`stage'"!="none") ereturn local iv_depvar = "`backup_original_depvar'"
 	ereturn `hidden' local diopts = "`diopts'"
 	if ("`over'"!="") {
 		ereturn local over = "`over'"
@@ -686,9 +692,6 @@ else {
 
 *** <<<< LAST PART OF UGLY STAGE <<<<	
 if (!inlist("`stage'","none", "iv")) {
-	if ("`i_endogvar'"!="") {
-		local ++ i_endogvar
-	}
 	local estimate_name reghdfe_`stage'`i_endogvar'
 	local stored_estimates `stored_estimates' `estimate_name'
 	local cmd estimates store `estimate_name', nocopy

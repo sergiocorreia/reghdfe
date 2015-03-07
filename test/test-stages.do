@@ -52,6 +52,7 @@ cscript "reghdfe with iv-stages" adofile reghdfe
 	fvunab tmp : `rhs' `endogvar'
 	local K_iv : list sizeof tmp
 	TrimMatrix `K_iv'
+	estadd local stage = "iv"
 	storedresults save b_iv e()
 
 	* OLS
@@ -59,6 +60,7 @@ cscript "reghdfe with iv-stages" adofile reghdfe
 	fvunab tmp : `rhs'
 	local K_ols : list sizeof tmp
 	TrimMatrix `K_ols'
+	estadd local stage = "ols"
 	storedresults save b_ols e()
 
 	* Reduced
@@ -66,6 +68,7 @@ cscript "reghdfe with iv-stages" adofile reghdfe
 	fvunab tmp : `rhs' `iv'
 	local K_reduced : list sizeof tmp
 	TrimMatrix `K_reduced'
+	estadd local stage = "reduced"
 	storedresults save b_reduced e()
 
 	* Acid
@@ -73,6 +76,7 @@ cscript "reghdfe with iv-stages" adofile reghdfe
 	fvunab tmp : `rhs' `endogvar' `iv'
 	local K_acid : list sizeof tmp
 	TrimMatrix `K_acid'
+	estadd local stage = "acid"
 	storedresults save b_acid e()
 
 	* First stage
@@ -80,11 +84,10 @@ cscript "reghdfe with iv-stages" adofile reghdfe
 	fvunab tmp : `rhs' `iv'
 	local K_first1 : list sizeof tmp
 	TrimMatrix `K_first1'
+	estadd local stage = "first1"
 	storedresults save b_first1 e()
 
 	* 2. Run reghdfe
-	set trace off
-	set tracedepth 4
 	reghdfe `lhs' `rhs' (`endogvar'=`iv'), absorb(`absvars') stages(ols first acid reduced) vce(cluster `clustervar') // will be saved as reghdfe_`stage'
 	estimates store reghdfe_iv
 
@@ -95,7 +98,7 @@ cscript "reghdfe with iv-stages" adofile reghdfe
 		storedresults compare b_`stage' e(), tol(1e-6) include( ///
 			scalar: N rss df_r `extra' /// rmse
 			matrix: trim_b trim_V ///
-			macros: wexp wtype )
+			macros: wexp wtype depvar)
 		local extra r2 // Activate after comparing IV
 		
 	}

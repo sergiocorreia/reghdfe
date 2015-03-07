@@ -146,7 +146,7 @@ program define Wrapper_avar, eclass
 		ereturn df_m = 0
 		ereturn scalar rank = 1
 	}
-
+	
 * ereturns specific to this command
 	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars'" )) )
 end

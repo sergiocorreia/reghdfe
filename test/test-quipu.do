@@ -82,30 +82,26 @@ cscript "reghdfe with quipu" adofile reghdfe
 	TrimMatrix `K_first1'
 	storedresults save b_first1 e()
 
+rebuild_git quipu
+discard
+
 	* Quipu path
-	quipu setpath "D:\Github\tmp\", replace
+	quipu setpath "D:\Github\tmp", replace
 
 	* 2. Run reghdfe
-	set trace off
-	set tracedepth 4
 	quipu save, notes(somekey=123): reghdfe `lhs' `rhs' (`endogvar'=`iv'), absorb(`absvars') stages(ols first acid reduced) vce(cluster `clustervar') // will be saved as reghdfe_`stage'
-	asd
-	estimates store reghdfe_iv
-
-	* Compare
-	foreach stage in iv ols first1 acid reduced  {
-		estimates restore reghdfe_`stage'
-		TrimMatrix `K_`stage''
-		storedresults compare b_`stage' e(), tol(1e-6) include( ///
-			scalar: N rss df_r `extra' /// rmse
-			matrix: trim_b trim_V ///
-			macros: wexp wtype )
-		local extra r2 // Activate after comparing IV
-		
-	}
+	quipu save, notes(somekey=456): reghdfe `lhs' `iv', absorb(`absvars') vce(cluster `clustervar')
 	
-	storedresults drop b_iv b_ols b_acid b_reduced b_first1
-	estimates drop reghdfe_* // accepts wildchars? or just -estimates clear-?
+	local fn = e(filename)
+	di as error `"<quipu view "`fn'">"'
+	quipu view `fn'
+	quipu view `fn', n(1)
+
+	quipu index, keys(r2 iv_depvar)
+	quipu tab
+	quipu table
+
+	quipu export using "D:\Github\tmp\page.html", header(vce clustvar depvar model stage #)
 
 cd "D:/Github/reghdfe/test"
 exit

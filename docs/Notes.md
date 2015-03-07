@@ -1,3 +1,30 @@
+We need a pitfalls section. For instance:
+1. Ignore the constant; it doesn't tell you much. If you want to use descriptive stats, that's what the -summ- commands are for. Even better, use -noconstant- to drop it (although it's not really dropped as it never existed on the first place!)
+2. Do not save the fixed effects. They are probably inconsistent / not identified and you will likely use them wrong.
+3. It's good practice to drop singletons. Thus, use -dropsingleton-.
+4. If you use vce(robust), hope that your *other* dimension is not fixed, or your SEs will be wrong.
+5. If you use vce(cluster ..), check that your number of clusters is high enough! If not, you are making the SEs even worse!
+6. Probably also the panel variables (absvars) should be nested within the clusters (clustervars) due to the within-panel correlation induced by the FEs
+(this is not the case for *all* the absvars, only those that are treated as growing as N grows)
+
+
+Remember that in a FE panel regression, using a HC (het-consistent aka white/sandwich) estimate for the variance will 
+lead to inconsistent results for the VCV  if the time dimension is fixed (!!!)
+
+The soln in that case is to use clustered errors.
+
+See:
+http://www.princeton.edu/~mwatson/papers/ecta6489.pdf
+Stock and Watson, "Heteroskedasticity-robust standard errors for fixed-effects panel-data regression," Econometrica 76 (2008): 155-174
+
+
+This translates to the reghdfe case as follows:
+If you use vce(robust), then there should be enough observations within each firm/group/individual (or whatever unit the absvars point to).
+Again, we need to be able to use asymptotics within *all* of absvars. This is a *huge* assumption,
+so most of the time our best bet is to use vce(cluster clustervars); taking care that again there are enough clusters for each clustervar
+
+
+
 Notar diferencia con xtivreg2:
 Radica en el q que multiplica a la VCV
 Ellos dicen "no es necesario ajustar por N/N-k-kk" porque N va al infinito wrt k,kk

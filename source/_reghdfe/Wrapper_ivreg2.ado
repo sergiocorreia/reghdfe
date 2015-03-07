@@ -47,6 +47,8 @@ program define Wrapper_ivreg2, eclass
 	ereturn scalar tss = e(mss) + e(rss) // ivreg2 doesn't report e(tss)
 	ereturn scalar unclustered_df_r = e(N) - e(df_m)
 
+	if ("`e(vce)'"=="robust cluster") ereturn local vce = "cluster"
+
 	if !missing(e(ecollin)) {
 		di as error "endogenous covariate <`e(ecollin)'> was perfectly predicted by the instruments!"
 		error 2000

@@ -148,10 +148,12 @@ if (!`savingcache') {
 		Assert "`endogvars'"!="", msg("iv: endogvars required")
 		local 0 `endogvars'
 		syntax varlist(fv ts numeric)
+		local endogvars `varlist'
 
 		Assert "`instruments'"!="", msg("iv: instruments required")
 		local 0 `instruments'
 		syntax varlist(fv ts numeric)
+		local instruments `varlist'
 		
 		local 0 `left' // So OLS part can handle it
 		Assert "`endogvars'`instruments'"!=""
@@ -164,7 +166,7 @@ if (!`savingcache') {
 
 * OLS varlist
 	syntax varlist(fv ts numeric)
-	gettoken depvar indepvars : 0
+	gettoken depvar indepvars : varlist
 	_fv_check_depvar `depvar'
 
 * Extract format of depvar so we can format FEs like this

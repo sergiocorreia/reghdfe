@@ -38,7 +38,8 @@
 	run test-cache
 	run test-over
 
-	* run test-quipu // Don't run this as it's mostly a test about quipu.ado and not reghdfe.ado
+	* Don't run by default this as it's mostly a test about quipu.ado and not reghdfe.ado
+	*run test-quipu
 
 * Success
 	di as text "No errors found!"

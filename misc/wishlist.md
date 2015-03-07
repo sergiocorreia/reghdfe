@@ -1,3 +1,7 @@
+* Maybe we can implement a test for the FEs under robust/cluster with the robustified hausman
+* See explanation of xtoverid (Hansen J)
+
+
 # Quick wishlist for future additions:
 
 ## Easy(sh)
