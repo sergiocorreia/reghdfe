@@ -260,9 +260,9 @@ if (!`savingcache') {
 		Assert !_rc , msg("error: -tuples- not installed, please run {stata ssc install tuples} to estimate multi-way clusters.")
 	}
 	
-	if ("`vcesuite'"=="avar") {
-		cap findfile `vcesuite'.ado
-		Assert !_rc , msg("error: -`vcesuite'- not installed, please run {stata ssc install `vcesuite'} or change the option -vcesuite-")
+	if ("`vcesuite'"=="avar" | "`stages'"!="") {
+		cap findfile avar.ado // We use -avar- as default with stages (on the non-iv stages)
+		Assert !_rc , msg("error: -avar- not installed, please run {stata ssc install avar} or change the option -vcesuite-")
 	}
 
 	* Some combinations are not coded

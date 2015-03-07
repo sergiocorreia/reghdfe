@@ -245,6 +245,12 @@ else {
 		local original_absvars `original_absvars'  `varlabel'
 	}
 
+* Compute summary statistics for the variables
+	qui 
+	tempname stats
+	matrix `stats' = r(StatTotal)
+	matrix list `stats', title("Summary Statistics")
+
 * 14) Compute residuals for all variables including the AvgEs (overwrites vars!)
 	qui ds `vars'
 	local NUM_VARS : word count `r(varlist)'
@@ -292,6 +298,7 @@ if (`savingcache') {
 	char __uid__[absvars_key] `original_absvars'
 	sort __uid__
 	save "`savecache'", replace
+	return clear
 	ereturn clear
 	ereturn local cmdline `"`cmdline'"'
 	if ("`over_levels'"!="") ereturn local over_levels = "`over_levels'"
@@ -528,7 +535,7 @@ else {
 } // fast
 
 * 8) Restore original dataset and merge
-	if (inlist("`stage'","none", "iv")) restore // Restore user-provided dataset
+	if (inlist("`stage'","none", "iv")) restore // Restore user-provided dataset (since -iv- comes at the end, that is done at that stage!)
 	if (!`fast') {
 		// `saved_group' was created by EstimateDoF.ado
 		if (!`saved_group')  local groupdta
@@ -688,7 +695,6 @@ else {
 	if ("`stage'"!="none") Debug, level(0) msg(_n "{title:Stage: `stage'}" _n)
 	if ("`lhs_endogvar'"!="<none>") Debug, level(0) msg("{title:Endogvar: `lhs_endogvar'}")
 	Replay
-	Attach, post(`postestimation') notes(`notes')
 
 *** <<<< LAST PART OF UGLY STAGE <<<<	
 if (!inlist("`stage'","none", "iv")) {
@@ -708,6 +714,7 @@ else if ("`stage'"=="iv") {
 } // stage
 *** >>>> LAST PART OF UGLY STAGE >>>>
 
+	Attach, post(`postestimation') notes(`notes')
 	reghdfe_absorb, step(stop)
 
 end
@@ -771,10 +778,15 @@ syntax, [POSTestimation(string) NOTES(string)]
 	local 0, `postestimation'
 	syntax, [SUmmarize] [QUIetly]
 	if ("`summarize'"!="") {
-		`quietly' reghdfe_estat summarize
-		tempname stats
-		matrix `stats' = r(stats)
-		ereturn matrix summarize = `stats'
+		*`quietly' reghdfe_estat summarize
+		*tempname stats
+		*matrix `stats' = r(stats)
+		*ereturn matrix summarize = `stats'
+
+		*local vars "`e(depvar)'"
+		*tabstat displacement price weight [weights] , stat(mean sd min max) col(stat)
+
+
 	}
 
 	* Parse key=value options and append to ereturn as hidden

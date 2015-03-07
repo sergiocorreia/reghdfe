@@ -1,4 +1,4 @@
-*! reghdfe 1.4.143 07mar2015
+*! reghdfe 1.4.152 07mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 program define reghdfe
@@ -400,6 +400,7 @@ if (`savingcache') {
 	char __uid__[absvars_key] `original_absvars'
 	sort __uid__
 	save "`savecache'", replace
+	return clear
 	ereturn clear
 	ereturn local cmdline `"`cmdline'"'
 	if ("`over_levels'"!="") ereturn local over_levels = "`over_levels'"
@@ -636,7 +637,7 @@ else {
 } // fast
 
 * 8) Restore original dataset and merge
-	if (inlist("`stage'","none", "iv")) restore // Restore user-provided dataset
+	if (inlist("`stage'","none", "iv")) restore // Restore user-provided dataset (since -iv- comes at the end, that is done at that stage!)
 	if (!`fast') {
 		// `saved_group' was created by EstimateDoF.ado
 		if (!`saved_group')  local groupdta
@@ -796,7 +797,6 @@ else {
 	if ("`stage'"!="none") Debug, level(0) msg(_n "{title:Stage: `stage'}" _n)
 	if ("`lhs_endogvar'"!="<none>") Debug, level(0) msg("{title:Endogvar: `lhs_endogvar'}")
 	Replay
-	Attach, post(`postestimation') notes(`notes')
 
 *** <<<< LAST PART OF UGLY STAGE <<<<	
 if (!inlist("`stage'","none", "iv")) {
@@ -816,6 +816,7 @@ else if ("`stage'"=="iv") {
 } // stage
 *** >>>> LAST PART OF UGLY STAGE >>>>
 
+	Attach, post(`postestimation') notes(`notes')
 	reghdfe_absorb, step(stop)
 
 end
@@ -1160,9 +1161,9 @@ if (!`savingcache') {
 		Assert !_rc , msg("error: -tuples- not installed, please run {stata ssc install tuples} to estimate multi-way clusters.")
 	}
 	
-	if ("`vcesuite'"=="avar") {
-		cap findfile `vcesuite'.ado
-		Assert !_rc , msg("error: -`vcesuite'- not installed, please run {stata ssc install `vcesuite'} or change the option -vcesuite-")
+	if ("`vcesuite'"=="avar" | "`stages'"!="") {
+		cap findfile avar.ado // We use -avar- as default with stages (on the non-iv stages)
+		Assert !_rc , msg("error: -avar- not installed, please run {stata ssc install avar} or change the option -vcesuite-")
 	}
 
 	* Some combinations are not coded
