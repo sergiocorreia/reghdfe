@@ -409,16 +409,18 @@ program define ParseImplicit
 * Parse options in the form NAME|NAME(arguments)
 * Inject: what locals to inject (depend on -syntax)
 * Default: default value for implicit form
-	syntax, opt(name local) default(string) syntax(string asis) input(string asis) inject(namelist local)
+* XOR: opt is mandatory (one of the two versions)
+	syntax, opt(name local) default(string) syntax(string asis) [input(string asis)] inject(namelist local) [XOR]
 
 	* First see if the implicit version is possible
 	local lower_opt = lower("`opt'")
 	local 0 , `input'
 	cap syntax, `opt' [*]
+	if ("`xor'"=="") local capture capture
 	local rc = _rc
 	if (`rc') {
-		di `"<`0'>"'
-		syntax, `opt'(string asis) [*]
+		`capture' syntax, `opt'(string asis) [*]
+		if ("`capture'"!="" & _rc) exit
 	}
 	else {
 		local `lower_opt' `default'
