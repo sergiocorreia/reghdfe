@@ -1,4 +1,4 @@
-*! reghdfe 1.4.195 07mar2015
+*! reghdfe 1.4.196 07mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 program define reghdfe
@@ -2411,7 +2411,7 @@ program define Attach, eclass
 			matrix `stats_transpose' = (`statsmatrix')'
 			matrix list `stats_transpose', noheader
 		}
-		ereturn matrix summarize = `statsmatrix'
+		ereturn matrix summarize = `statsmatrix', copy // If we move instead of copy, stages() will fail
 	}
 
 	* Parse key=value options and append to ereturn as hidden
