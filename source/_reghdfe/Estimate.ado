@@ -693,8 +693,8 @@ else {
 
 	if ("`stage'"!="none") Debug, level(0) msg(_n "{title:Stage: `stage'}" _n)
 	if ("`lhs_endogvar'"!="<none>") Debug, level(0) msg("{title:Endogvar: `lhs_endogvar'}")
-	Attach, notes(`notes') statsmatrix(`statsmatrix') summarize_quietly(`summarize_quietly')
 	Replay
+	Attach, notes(`notes') statsmatrix(`statsmatrix') summarize_quietly(`summarize_quietly')
 
 *** <<<< LAST PART OF UGLY STAGE <<<<	
 if (!inlist("`stage'","none", "iv")) {

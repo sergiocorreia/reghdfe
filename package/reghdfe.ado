@@ -1,4 +1,4 @@
-*! reghdfe 1.4.196 07mar2015
+*! reghdfe 1.4.199 08mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 program define reghdfe
@@ -801,8 +801,8 @@ else {
 
 	if ("`stage'"!="none") Debug, level(0) msg(_n "{title:Stage: `stage'}" _n)
 	if ("`lhs_endogvar'"!="<none>") Debug, level(0) msg("{title:Endogvar: `lhs_endogvar'}")
-	Attach, notes(`notes') statsmatrix(`statsmatrix') summarize_quietly(`summarize_quietly')
 	Replay
+	Attach, notes(`notes') statsmatrix(`statsmatrix') summarize_quietly(`summarize_quietly')
 
 *** <<<< LAST PART OF UGLY STAGE <<<<	
 if (!inlist("`stage'","none", "iv")) {
@@ -2405,13 +2405,11 @@ program define Attach, eclass
 		* Update beta vector
 		* ...
 
-		if (!`summarize_quietly' & "`statsmatrix'"!="") {
-			di as text _n "{ul:Regression Summary Statistics}" _c
-			tempname stats_transpose
-			matrix `stats_transpose' = (`statsmatrix')'
-			matrix list `stats_transpose', noheader
-		}
 		ereturn matrix summarize = `statsmatrix', copy // If we move instead of copy, stages() will fail
+		if (!`summarize_quietly' & "`statsmatrix'"!="") {
+			di as text _n "{sf:Regression Summary Statistics}" _c
+			matlist e(summarize)', border(top bottom) twidth(18) rowtitle(Variable)
+		}
 	}
 
 	* Parse key=value options and append to ereturn as hidden

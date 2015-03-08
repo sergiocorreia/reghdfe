@@ -8,13 +8,11 @@ program define Attach, eclass
 		* Update beta vector
 		* ...
 
-		if (!`summarize_quietly' & "`statsmatrix'"!="") {
-			di as text _n "{ul:Regression Summary Statistics}" _c
-			tempname stats_transpose
-			matrix `stats_transpose' = (`statsmatrix')'
-			matrix list `stats_transpose', noheader
-		}
 		ereturn matrix summarize = `statsmatrix', copy // If we move instead of copy, stages() will fail
+		if (!`summarize_quietly' & "`statsmatrix'"!="") {
+			di as text _n "{sf:Regression Summary Statistics}" _c
+			matlist e(summarize)', border(top bottom) twidth(18) rowtitle(Variable)
+		}
 	}
 
 	* Parse key=value options and append to ereturn as hidden
