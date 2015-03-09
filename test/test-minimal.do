@@ -1,6 +1,6 @@
 * Test that it doesn't crash
 set varabbrev on
-cd "D:/Github/reghdfe/source"
+cd "D:/Github/reghdfe" // /source
 *cscript "minimal test" adofile reghdfe
 
 * Setup

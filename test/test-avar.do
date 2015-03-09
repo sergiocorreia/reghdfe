@@ -1,4 +1,4 @@
-cd "D:/Github/reghdfe/source"
+cd "D:/Github/reghdfe" // /source
 cscript "reghdfe with advanced robustness options from avar" adofile reghdfe
 
 * Setup

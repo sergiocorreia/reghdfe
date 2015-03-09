@@ -1,4 +1,4 @@
-cd "D:/Github/reghdfe/source"
+cd "D:/Github/reghdfe" // /source
 cscript "reghdfe with cache" adofile reghdfe
 
 * Setup

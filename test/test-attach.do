@@ -1,4 +1,4 @@
-cd "D:/Github/reghdfe/source"
+cd "D:/Github/reghdfe" // /source
 cscript "reghdfe with multicore" adofile reghdfe
 
 * Setup
@@ -42,8 +42,9 @@ cscript "reghdfe with multicore" adofile reghdfe
 	local K : list sizeof tmp
 	
 	* 1. Attach estat summarize
-	reghdfe `lhs' `rhs', absorb(`absvars') post(su)
-	reghdfe `lhs' `rhs', absorb(`absvars') post(su qui)
+	reghdfe `lhs' `rhs', absorb(`absvars') sum
+	reghdfe `lhs' `rhs', absorb(`absvars') sum(,qui)
+	reghdfe `lhs' `rhs', absorb(`absvars') sum(mean sd, qui)
 
 	* 2. Attach notes
 	reghdfe `lhs' `rhs', absorb(`absvars') notes(a=b x=123 z="hola juan")

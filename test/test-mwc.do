@@ -3,7 +3,7 @@
 * Note: We use -fixed_cgmreg- because a bug in -cgmreg-, where they count K=rows(X'X)
 * But the rows are also included for omitted variables (e.g. the base variable in a factor expansion i.turn)
 
-cd "D:/Github/reghdfe/source"
+cd "D:/Github/reghdfe" // /source
 cscript "reghdfe with multi-way clustering" adofile reghdfe
 
 * Setup

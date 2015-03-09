@@ -1,4 +1,4 @@
-cd "D:/Github/reghdfe/source"
+cd "D:/Github/reghdfe" // /source
 cscript "reghdfe clustering and absorbing by the same variable" adofile reghdfe
 
 * Setup

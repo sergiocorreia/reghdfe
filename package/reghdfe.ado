@@ -1,4 +1,4 @@
-*! reghdfe 1.4.201 08mar2015
+*! reghdfe 1.4.205 08mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 program define reghdfe
@@ -78,6 +78,103 @@ program define Debug
 		if (`"`msg'"'!="") di as `color' `msg'`time'
 		if ("`newline'"!="") di
 	}
+end
+
+
+// -------------------------------------------------------------
+// Faster alternative to -egen group-. MVs, IF, etc not allowed!
+// -------------------------------------------------------------
+program define GenerateID, sortpreserve
+syntax varlist(numeric) , [REPLACE Generate(name)]
+
+	assert ("`replace'"!="") + ("`generate'"!="") == 1
+	// replace XOR generate, could also use -opts_exclusive -
+	foreach var of varlist `varlist' {
+		assert !missing(`var')
+	}
+
+	local numvars : word count `varlist'
+	if ("`replace'"!="") assert `numvars'==1 // Can't replace more than one var!
+	
+	// Create ID
+	tempvar new_id
+	sort `varlist'
+	by `varlist': gen long `new_id' = (_n==1)
+	qui replace `new_id' = sum(`new_id')
+	qui compress `new_id'
+	assert !missing(`new_id')
+	
+	local name = "i." + subinstr("`varlist'", " ", "#i.", .)
+	char `new_id'[name] `name'
+	la var `new_id' "[ID] `name'"
+
+	// Either replace or generate
+	if ("`replace'"!="") {
+		drop `varlist'
+		rename `new_id' `varlist'
+	}
+	else {
+		rename `new_id' `generate'
+	}
+
+end
+
+
+// -------------------------------------------------------------
+// Faster alternative to -makegps-, but with some limitations
+// -------------------------------------------------------------
+* To avoid backuping the data, use option -clear-
+* For simplicity, disallow -if- and -in- options
+program ConnectedGroups, rclass
+syntax varlist(min=2 max=2) [, GENerate(name) CLEAR]
+
+* To avoid backuping the data, use option -clear-
+* For simplicity, disallow -if- and -in- options
+
+    if ("`generate'"!="") conf new var `generate'
+    gettoken id1 id2 : varlist
+    Debug, level(2) msg("    - computing connected groups between `id1' and`id2'")
+    tempvar group copy
+
+    tempfile backup
+    if ("`clear'"=="") qui save "`backup'"
+    keep `varlist'
+    qui bys `varlist': keep if _n==1
+
+    clonevar `group' = `id1'
+    clonevar `copy' = `group'
+    capture error 100 // We want an error
+    while _rc {
+        qui bys `id2' (`group'): replace `group' = `group'[1]
+        qui bys `id1' (`group'): replace `group' = `group'[1]
+        capture assert `copy'==`group'
+        qui replace `copy' = `group'
+    }
+
+    assert !missing(`group')
+    qui bys `group': replace `group' = (_n==1)
+    qui replace `group' = sum(`group')
+    
+    su `group', mean
+    local num_groups = r(max)
+    
+    if ("`generate'"!="") rename `group' `generate'
+    
+    if ("`clear'"=="") {
+        if ("`generate'"!="") {
+            tempfile groups
+            qui compress
+            la var `generate' "Mobility group for (`varlist')"
+            qui save "`groups'"
+            qui use "`backup'", clear
+            qui merge m:1 `id1' `id2' using "`groups'" , assert(match) nogen
+        }
+        else {
+            qui use "`backup'", clear
+        }
+    }
+    
+    return scalar groups=`num_groups'
 end
 
 
@@ -1685,64 +1782,6 @@ syntax, fe(varname numeric) cvars(varname numeric) anyconstant(integer)
 	return scalar redundant = r(N)
 end
 
-		
-// -------------------------------------------------------------
-// Faster alternative to -makegps-, but with some limitations
-// -------------------------------------------------------------
-* To avoid backuping the data, use option -clear-
-* For simplicity, disallow -if- and -in- options
-program ConnectedGroups, rclass
-syntax varlist(min=2 max=2) [, GENerate(name) CLEAR]
-
-* To avoid backuping the data, use option -clear-
-* For simplicity, disallow -if- and -in- options
-
-    if ("`generate'"!="") conf new var `generate'
-    gettoken id1 id2 : varlist
-    Debug, level(2) msg("    - computing connected groups between `id1' and`id2'")
-    tempvar group copy
-
-    tempfile backup
-    if ("`clear'"=="") qui save "`backup'"
-    keep `varlist'
-    qui bys `varlist': keep if _n==1
-
-    clonevar `group' = `id1'
-    clonevar `copy' = `group'
-    capture error 100 // We want an error
-    while _rc {
-        qui bys `id2' (`group'): replace `group' = `group'[1]
-        qui bys `id1' (`group'): replace `group' = `group'[1]
-        capture assert `copy'==`group'
-        qui replace `copy' = `group'
-    }
-
-    assert !missing(`group')
-    qui bys `group': replace `group' = (_n==1)
-    qui replace `group' = sum(`group')
-    
-    su `group', mean
-    local num_groups = r(max)
-    
-    if ("`generate'"!="") rename `group' `generate'
-    
-    if ("`clear'"=="") {
-        if ("`generate'"!="") {
-            tempfile groups
-            qui compress
-            la var `generate' "Mobility group for (`varlist')"
-            qui save "`groups'"
-            qui use "`backup'", clear
-            qui merge m:1 `id1' `id2' using "`groups'" , assert(match) nogen
-        }
-        else {
-            qui use "`backup'", clear
-        }
-    }
-    
-    return scalar groups=`num_groups'
-end
-
 	
 //------------------------------------------------------------------------------
 // Name tempvars into e.g. L.x i1.y i2.y AvgE:z , etc.
@@ -2699,42 +2738,4 @@ end
 exit
 
 
-
-// -------------------------------------------------------------
-// Faster alternative to -egen group-. MVs, IF, etc not allowed!
-// -------------------------------------------------------------
-program define GenerateID, sortpreserve
-syntax varlist(numeric) , [REPLACE Generate(name)]
-
-	assert ("`replace'"!="") + ("`generate'"!="") == 1
-	// replace XOR generate, could also use -opts_exclusive -
-	foreach var of varlist `varlist' {
-		assert !missing(`var')
-	}
-
-	local numvars : word count `varlist'
-	if ("`replace'"!="") assert `numvars'==1 // Can't replace more than one var!
-	
-	// Create ID
-	tempvar new_id
-	sort `varlist'
-	by `varlist': gen long `new_id' = (_n==1)
-	qui replace `new_id' = sum(`new_id')
-	qui compress `new_id'
-	assert !missing(`new_id')
-	
-	local name = "i." + subinstr("`varlist'", " ", "#i.", .)
-	char `new_id'[name] `name'
-	la var `new_id' "[ID] `name'"
-
-	// Either replace or generate
-	if ("`replace'"!="") {
-		drop `varlist'
-		rename `new_id' `varlist'
-	}
-	else {
-		rename `new_id' `generate'
-	}
-
-end
 

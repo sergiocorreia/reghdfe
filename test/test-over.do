@@ -1,4 +1,4 @@
-cd "D:/Github/reghdfe/source"
+cd "D:/Github/reghdfe" // /source
 cscript "reghdfe with cache" adofile reghdfe
 
 * Setup
@@ -119,11 +119,11 @@ cscript "reghdfe with cache" adofile reghdfe
 	reghdfe `lhs' `othervar' `rhs', absorb(`absvars') savecache("`fn'") over(foreign)
 
 	* 3. Use cache and compare
-	reghdfe `lhs' `rhs' if foreign==10, absorb(`absvars') usecache("`fn'") over(foreign) post(su)
+	reghdfe `lhs' `rhs' if foreign==10, absorb(`absvars') usecache("`fn'") over(foreign) summarize
 	TrimMatrix `K'
 	storedresults compare benchmark0 e(), tol(1e-12) include(`include')
 
-	reghdfe `lhs' `rhs' if foreign==11, absorb(`absvars') usecache("`fn'") over(foreign) post(su)
+	reghdfe `lhs' `rhs' if foreign==11, absorb(`absvars') usecache("`fn'") over(foreign) summarize
 	TrimMatrix `K'
 	storedresults compare benchmark1 e(), tol(1e-12) include(`include')
 
