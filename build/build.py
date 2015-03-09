@@ -16,7 +16,19 @@ Note: Wrote in Python 2.7 but should work with Python 3.
 from __future__ import print_function
 from __future__ import division
 
-import os, time, re, shutil
+import os, time, re, shutil, zipfile
+
+# -------------------------------------------------------------
+# Functions
+# -------------------------------------------------------------
+def zipdir(path, zip):
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            zip.write(os.path.join(root, file))
+
+# -------------------------------------------------------------
+# Main
+# -------------------------------------------------------------
 
 # Filenames
 output_filenames = [ur"reghdfe.ado", ur"reghdfe_absorb.ado", 
@@ -84,5 +96,10 @@ shutil.copy(full_pkg, os.path.join(server_path, u"reghdfe.pkg"))
 print("Copying misc files...")
 shutil.copy(os.path.join(source_path, u"reghdfe.sthlp"), os.path.join(server_path, u"reghdfe.sthlp"))
 shutil.copy(os.path.join(source_path, u"stata.toc"), os.path.join(server_path, u"stata.toc"))
+
+print("Building zip file")
+zipf = zipfile.ZipFile('../misc/reghdfe.zip', 'w')
+zipdir('../package/', zipf)
+zipf.close()
 
 print("Done!")
