@@ -1,4 +1,4 @@
-*! reghdfe 1.4.279 12mar2015
+*! reghdfe 1.4.280 12mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 program define reghdfe
@@ -993,7 +993,7 @@ if (`savingcache') {
 
 	syntax anything(name=indepvars) [if] [in] [fweight aweight pweight/] , ///
 		Absorb(string) SAVEcache(string) ///
-		[Verbose(integer 0) CHECK TOLerance(real 1e-7) MAXITerations(integer 1000) noACCELerate ///
+		[Verbose(integer 0) CHECK TOLerance(real 1e-7) MAXITerations(integer 10000) noACCELerate ///
 		bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) ///
 		accel_freq(integer 3) accel_start(integer 6) /// Advanced optimization options
 		CORES(integer 1) OVER(varname numeric) ///
@@ -1016,7 +1016,7 @@ else {
 		[DOFadjustments(string) GROUP(name)] ///
 		[avge(string) EXCLUDESELF] ///
 		[Verbose(integer 0) CHECK NESTED FAST] ///
-		[TOLerance(real 1e-7) MAXITerations(integer 1000) noACCELerate] /// See reghdfe_absorb.Annihilate
+		[TOLerance(real 1e-7) MAXITerations(integer 10000) noACCELerate] /// See reghdfe_absorb.Annihilate
 		[IVsuite(string) SAVEFIRST FIRST SHOWRAW] /// ESTimator(string)
 		[SMALL Hascons TSSCONS] /// ignored options
 		[liml kiefer cue] /// excluded
@@ -1298,7 +1298,7 @@ if (!`savingcache') {
 	} 
 
 * Optimization
-	if (`maxiterations'==0) local maxiterations 1e7
+	if (`maxiterations'==0) local maxiterations 1e8
 	Assert (`maxiterations'>0)
 	local accelerate = cond("`accelerate'"!="", 0, 1) // 1=Yes
 	local check = cond("`check'"!="", 1, 0) // 1=Yes
