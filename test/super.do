@@ -23,6 +23,7 @@
 	run test-ivreg2-nocons
 
 	run test-gmm
+	run test-cue
 
 	run test-singletons
 	run test-iv
@@ -39,6 +40,8 @@
 
 	run test-cache
 	run test-over
+
+	run test-hdfe // just tests that the syntax works, not for correctness
 
 	* Don't run by default this as it's mostly a test about quipu.ado and not reghdfe.ado
 	*run test-quipu

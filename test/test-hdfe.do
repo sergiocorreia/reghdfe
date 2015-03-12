@@ -33,7 +33,7 @@ cscript "reghdfe with clusters" adofile reghdfe
 	local lhs price
 	local rhs weight length
 	local absvars turn
-	local clustervar rep
+	local clustervar rep78
 	fvunab tmp : `rhs'
 	local K : list sizeof tmp
 
@@ -43,53 +43,19 @@ cscript "reghdfe with clusters" adofile reghdfe
 
 	* 1. Run -reghdfe- as benchmark
 	di as result "reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervar')"
-	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervar') // dof(none)	
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervar') // dof(none)
 	matrix list e(V)
 	TrimMatrix `K'
 
-set trace on
 	* 2. Run -hdfe-
+	preserve
 	hdfe `lhs' `rhs', abs(`absvars') cluster(`clustervar')
-	regress `lhs' `rhs' , vce(cluster `clustervar')
-	asd
-	
-	* 3. Compare
-	storedresults compare benchmark e(), tol(1e-12) include( ///
-		scalar: N rmse tss rss r2 r2_a F df_r df_a df_m /// F_absorb 
-		matrix: trim_b trim_V ///
-		macros: wexp wtype )
-	storedresults drop benchmark
-	* NOTE: What should I use to build F_absorb in this case?
+	return list
+	regress `lhs' `rhs' , vce(cluster `clustervar') // this will have different DoF so of course different VCE
+	restore
 
-* [TEST] Interacted cluster
-	local lhs price
-	local rhs weight length
-	local absvars turn
-	local clustervar turn#trunk
-	fvunab tmp : `rhs'
-	local K : list sizeof tmp
-
-	* Custom adjustment: in this simple case we can compare _cons
-	local K = `K' + 1
-	drop if missing(rep)
-
-	* 1. Run benchmark
-	egen turn_trunk = group(turn trunk)
-	areg `lhs' `rhs', absorb(`absvars') cluster(turn_trunk)
-	TrimMatrix `K'
-	storedresults save benchmark e()
-	
-	* 2. Run reghdfe
-	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervar') // dof(none)
-	TrimMatrix `K'
-	
-	* 3. Compare
-	storedresults compare benchmark e(), tol(1e-12) include( ///
-		scalar: N rmse tss rss r2 r2_a F df_r df_a df_m /// F_absorb 
-		matrix: trim_b trim_V ///
-		macros: wexp wtype )
-	storedresults drop benchmark
-
+	hdfe `lhs' `rhs', abs(`absvars') cluster(`clustervar') gen(resid_)
+	reg resid_*
 	
 cd "D:/Github/reghdfe/test"
 exit

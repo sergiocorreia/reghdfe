@@ -1,4 +1,4 @@
-*! reghdfe 1.4.310 12mar2015
+*! reghdfe 1.4.326 12mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 program define reghdfe
@@ -569,7 +569,7 @@ else if ("`stage'"=="first") {
 		vceoption vcetype vcesuite ///
 		kk suboptions showraw first weightexp ///
 		addconstant /// tells -regress- to hide _cons
-		gmm2s // Whether to run or not two-step gmm
+		gmm2s cue // Whether to run or not two-step gmm
 	foreach opt of local option_list {
 		if ("``opt''"!="") local options `options' `opt'(``opt'')
 	}
@@ -699,6 +699,7 @@ else {
 	ereturn local subcmd = cond(inlist("`stage'", "none", "iv"), "`subcmd'", "regress")
 	ereturn local cmdline `"`cmdline'"'
 	ereturn local model = cond("`gmm2s'"=="", "`model'", "gmm2s")
+	ereturn local model = cond("`cue'"=="", "`model'", "cue")
 	ereturn local dofadjustments = "`dofadjustments'"
 	ereturn local title = "HDFE " + e(title)
 	ereturn local title2 =  "Absorbing `N_hdfe' HDFE " + plural(`N_hdfe', "indicator")
@@ -962,7 +963,7 @@ else {
 		[TOLerance(real 1e-7) MAXITerations(integer 10000) noACCELerate] /// See reghdfe_absorb.Annihilate
 		[IVsuite(string) SAVEFIRST FIRST SHOWRAW] /// ESTimator(string)
 		[SMALL Hascons TSSCONS] /// ignored options
-		[liml kiefer cue] /// excluded
+		[liml kiefer] /// excluded
 		[SUBOPTions(string)] /// Options to be passed to the estimation command (e.g . to regress)
 		[bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) accel_freq(integer 3) accel_start(integer 6)] /// Advanced optimization options
 		[CORES(integer 1)] [USEcache(string)] [OVER(varname numeric)] ///
@@ -970,7 +971,7 @@ else {
 		[STAGEs(string)] ///
 		[noCONstant] /// Disable adding back the intercept (mandatory with -ivreg2-)
 		[DROPSIngletons] ///
-		[GMM2s] /// two-step GMM
+		[GMM2s CUE] /// two-step GMM and CUE
 		[*] // For display options ; and SUmmarize(stats)
 }
 
@@ -1224,7 +1225,7 @@ if (!`savingcache') {
 * IV options
 	if ("`small'"!="") di in ye "(note: reghdfe will always use the option -small-, no need to specify it)"
 
-	Assert ("`liml'`cue'"==""), msg("options liml/cue not allowed")
+	Assert ("`liml'"==""), msg("options liml not allowed")
 	
 	if ("`model'"=="iv") {
 		local savefirst = ("`savefirst'"!="")
@@ -1283,6 +1284,9 @@ if (!`savingcache') {
 
 * GMM2S option requires instruments
 	if ("`gmm2s'"!="") Assert "`model'"=="iv", msg("Error: option -gmm2s- requires an instrumental-variable regression")
+	if ("`gmm2s'"!="") Assert "`cue'"=="", msg("gmm2s and cue options are mutually exclusive")
+	if ("`cue'"!="") Assert "`model'"=="iv", msg("Error: option -cue- requires an instrumental-variable regression")
+	if ("`cue'"!="") Assert "`ivsuite'"=="ivreg2", msg("CUE option is only available with the ivreg2 command")
 
 * Return values
 	local names cmdline diopts model ///
@@ -1299,7 +1303,7 @@ if (!`savingcache') {
 		weight weightvar exp weightexp /// type of weight (fw,aw,pw), weight var., and full expr. ([fw=n])
 		cores savingcache usecache over ///
 		stats summarize_quietly notes stages ///
-		dropsingletons gmm2s
+		dropsingletons gmm2s cue
 }
 
 if (`savingcache') {
@@ -2047,7 +2051,7 @@ program define Wrapper_ivreg2, eclass
 		KK(integer) ///
 		[SHOWRAW(integer 0)] first(integer) [weightexp(string)] ///
 		addconstant(integer) ///
-		[GMM2s(string)] ///
+		[GMM2s(string) CUE(string)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
 	if (`c(version)'>=12) local hidden hidden
@@ -2078,7 +2082,7 @@ program define Wrapper_ivreg2, eclass
 	}
 	
 	* Variables have already been demeaned, so we need to add -nocons- or the matrix of orthog conditions will be singular
-	local subcmd ivreg2 `vars' `weightexp', `vceoption' `firstoption' small sdofminus(`=`kk'+1') nocons `gmm2s' `suboptions'
+	local subcmd ivreg2 `vars' `weightexp', `vceoption' `firstoption' small sdofminus(`=`kk'+1') nocons `gmm2s' `cue' `suboptions'
 	Debug, level(3) msg(_n "call to subcommand: " _n as result "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'

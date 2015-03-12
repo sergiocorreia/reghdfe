@@ -95,6 +95,7 @@ shutil.copy(full_pkg, os.path.join(server_path, u"reghdfe.pkg"))
 # Copy
 print("Copying misc files...")
 shutil.copy(os.path.join(source_path, u"reghdfe.sthlp"), os.path.join(server_path, u"reghdfe.sthlp"))
+shutil.copy(os.path.join(source_path, u"hdfe.sthlp"), os.path.join(server_path, u"hdfe.sthlp"))
 shutil.copy(os.path.join(source_path, u"stata.toc"), os.path.join(server_path, u"stata.toc"))
 
 print("Building zip file")

@@ -3,6 +3,8 @@
 // -------------------------------------------------------------------------------------------------
 // Partial-out a list of variables with respect to any number of fixed effects
 // -------------------------------------------------------------------------------------------------
+/// Does NOT accept factor/time series, and variables MUST BE FULLY spelled out (i.e. you need to use unab beforehand!)
+
 cap pr drop hdfe
 program define hdfe, rclass
 	syntax varlist [fweight aweight pweight/] , Absorb(string) [CLUSTERvars(string) Verbose(integer 0) TOLerance(real 1e-7) MAXITerations(integer 10000)] [GENerate(name)]
@@ -42,13 +44,13 @@ program define hdfe, rclass
 * Keep relevant observations
 	marksample touse, novar
 	markout `touse' `varlist' `absorb_keepvars'
-	keep if `touse'
+	qui keep if `touse'
 	
 * Keep relevant variables
-	keep `varlist' `clustervars' `weightvar' `panelvar' `timevar' `absorb_keepvars'
+	keep `varlist' `clustervars' `weightvar' `panelvar' `timevar' `absorb_keepvars' `uid'
 	
 * Construct Mata objects and auxiliary variables
-	reghdfe_absorb, step(precompute) keep(`varlist' `clustervars' `weightvar' `panelvar' `timevar') tsvars(`panelvar' `timevar')
+	reghdfe_absorb, step(precompute) keep(`varlist' `clustervars' `weightvar' `panelvar' `timevar' `uid') tsvars(`panelvar' `timevar')
 
 * Compute e(df_a)
 	reghdfe_absorb, step(estimatedof) dofadjustments(pairwise clusters continuous)
@@ -78,7 +80,7 @@ program define hdfe, rclass
 
 		tempfile output
 		sort `uid'
-		save "`output'"
+		qui save "`output'"
 		restore
 		SafeMerge, uid(`uid') file("`output'")
 	}

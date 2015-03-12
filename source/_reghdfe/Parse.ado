@@ -47,7 +47,7 @@ else {
 		[TOLerance(real 1e-7) MAXITerations(integer 10000) noACCELerate] /// See reghdfe_absorb.Annihilate
 		[IVsuite(string) SAVEFIRST FIRST SHOWRAW] /// ESTimator(string)
 		[SMALL Hascons TSSCONS] /// ignored options
-		[liml kiefer cue] /// excluded
+		[liml kiefer] /// excluded
 		[SUBOPTions(string)] /// Options to be passed to the estimation command (e.g . to regress)
 		[bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) accel_freq(integer 3) accel_start(integer 6)] /// Advanced optimization options
 		[CORES(integer 1)] [USEcache(string)] [OVER(varname numeric)] ///
@@ -55,7 +55,7 @@ else {
 		[STAGEs(string)] ///
 		[noCONstant] /// Disable adding back the intercept (mandatory with -ivreg2-)
 		[DROPSIngletons] ///
-		[GMM2s] /// two-step GMM
+		[GMM2s CUE] /// two-step GMM and CUE
 		[*] // For display options ; and SUmmarize(stats)
 }
 
@@ -309,7 +309,7 @@ if (!`savingcache') {
 * IV options
 	if ("`small'"!="") di in ye "(note: reghdfe will always use the option -small-, no need to specify it)"
 
-	Assert ("`liml'`cue'"==""), msg("options liml/cue not allowed")
+	Assert ("`liml'"==""), msg("options liml not allowed")
 	
 	if ("`model'"=="iv") {
 		local savefirst = ("`savefirst'"!="")
@@ -368,6 +368,9 @@ if (!`savingcache') {
 
 * GMM2S option requires instruments
 	if ("`gmm2s'"!="") Assert "`model'"=="iv", msg("Error: option -gmm2s- requires an instrumental-variable regression")
+	if ("`gmm2s'"!="") Assert "`cue'"=="", msg("gmm2s and cue options are mutually exclusive")
+	if ("`cue'"!="") Assert "`model'"=="iv", msg("Error: option -cue- requires an instrumental-variable regression")
+	if ("`cue'"!="") Assert "`ivsuite'"=="ivreg2", msg("CUE option is only available with the ivreg2 command")
 
 * Return values
 	local names cmdline diopts model ///
@@ -384,7 +387,7 @@ if (!`savingcache') {
 		weight weightvar exp weightexp /// type of weight (fw,aw,pw), weight var., and full expr. ([fw=n])
 		cores savingcache usecache over ///
 		stats summarize_quietly notes stages ///
-		dropsingletons gmm2s
+		dropsingletons gmm2s cue
 }
 
 if (`savingcache') {

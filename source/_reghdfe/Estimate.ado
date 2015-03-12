@@ -422,7 +422,7 @@ else if ("`stage'"=="first") {
 		vceoption vcetype vcesuite ///
 		kk suboptions showraw first weightexp ///
 		addconstant /// tells -regress- to hide _cons
-		gmm2s // Whether to run or not two-step gmm
+		gmm2s cue // Whether to run or not two-step gmm
 	foreach opt of local option_list {
 		if ("``opt''"!="") local options `options' `opt'(``opt'')
 	}
@@ -552,6 +552,7 @@ else {
 	ereturn local subcmd = cond(inlist("`stage'", "none", "iv"), "`subcmd'", "regress")
 	ereturn local cmdline `"`cmdline'"'
 	ereturn local model = cond("`gmm2s'"=="", "`model'", "gmm2s")
+	ereturn local model = cond("`cue'"=="", "`model'", "cue")
 	ereturn local dofadjustments = "`dofadjustments'"
 	ereturn local title = "HDFE " + e(title)
 	ereturn local title2 =  "Absorbing `N_hdfe' HDFE " + plural(`N_hdfe', "indicator")
