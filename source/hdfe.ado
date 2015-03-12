@@ -1,6 +1,11 @@
-cap pr drop partialfe
-program define partialfe, rclass
-	syntax varlist [fweight aweight pweight/] , Absorb(string) [CLUSTERvars(string) Verbose(integer 0) TOLerance(real 1e-7) MAXITerations(integer 10000)]
+*! hdfe 1.0 12mar2015
+*! Sergio Correia (sergio.correia@duke.edu)
+// -------------------------------------------------------------------------------------------------
+// Partial-out a list of variables with respect to any number of fixed effects
+// -------------------------------------------------------------------------------------------------
+cap pr drop hdfe
+program define hdfe, rclass
+	syntax varlist [fweight aweight pweight/] , Absorb(string) [CLUSTERvars(string) Verbose(integer 0) TOLerance(real 1e-7) MAXITerations(integer 10000)] [GENerate(name)]
 	if ("`weight'"!="") {
 		local weightvar `exp'
 		conf var `weightvar' // just allow simple weights
@@ -8,7 +13,14 @@ program define partialfe, rclass
 	}
 	
 * Assert that program exists
-	qui which reghdfe_absorb	
+	qui which reghdfe_absorb
+
+* Preserve if asked to
+	if ("`generate'"!="") {
+		tempvar uid
+		gen double `uid' = _n
+		preserve
+	}
 	
 * Clear previous errors
 	cap reghdfe_absorb, step(stop)
@@ -58,4 +70,25 @@ program define partialfe, rclass
 	
 * Clean up Mata objects
 	reghdfe_absorb, step(stop)
+
+	if ("`generate'"!="") {
+		foreach var of local varlist {
+			rename `var' `generate'`var'
+		}
+
+		tempfile output
+		sort `uid'
+		save "`output'"
+		restore
+		SafeMerge, uid(`uid') file("`output'")
+	}
+end
+
+* [SafeMerge: ADAPTED FROM THE ONE IN ESTIMATE.ADO]
+* The idea of this program is to keep the sort order when doing the merges
+cap pr drop SafeMerge
+program define SafeMerge, eclass sortpreserve
+syntax, uid(varname numeric) file(string)
+	* Merging gives us e(sample) and the FEs / AvgEs
+	merge 1:1 `uid' using "`file'", assert(master match) nolabel nonotes noreport nogen
 end

@@ -24,7 +24,7 @@ f reghdfe_absorb.ado
 f reghdfe_footnote.ado
 f reghdfe_p.ado
 f reghdfe_estat.ado
-f partialfe.ado
+f hdfe.ado
 f reghdfe.sthlp
 
 d Note: explanation.pdf available on the project's homepage (github)

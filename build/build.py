@@ -32,7 +32,7 @@ def zipdir(path, zip):
 
 # Filenames
 output_filenames = [ur"reghdfe.ado", ur"reghdfe_absorb.ado", 
-    ur"reghdfe_estat.ado", ur"reghdfe_p.ado", ur"reghdfe_footnote.ado", ur"partialfe.ado"]
+    ur"reghdfe_estat.ado", ur"reghdfe_p.ado", ur"reghdfe_footnote.ado", ur"hdfe.ado"]
 
 os.chdir(os.path.split(__file__)[0])
 fn_mata = ur"_mata/reghdfe.mata"
