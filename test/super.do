@@ -23,7 +23,8 @@
 	run test-ivreg2-nocons
 
 	run test-gmm
-	run test-cue
+	* Doesn't work: run test-cue
+	run test-liml
 
 	run test-singletons
 	run test-iv

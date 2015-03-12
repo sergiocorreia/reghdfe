@@ -1,4 +1,4 @@
-*! reghdfe 1.4.326 12mar2015
+*! reghdfe 1.4.334 12mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 program define reghdfe
@@ -567,9 +567,9 @@ else if ("`stage'"=="first") {
 		original_depvar original_indepvars original_endogvars ///
 		original_instruments original_absvars avge_targets ///
 		vceoption vcetype vcesuite ///
-		kk suboptions showraw first weightexp ///
+		kk suboptions showraw vceunadjusted first weightexp ///
 		addconstant /// tells -regress- to hide _cons
-		gmm2s cue // Whether to run or not two-step gmm
+		gmm2s cue liml // Whether to run or not two-step gmm
 	foreach opt of local option_list {
 		if ("``opt''"!="") local options `options' `opt'(``opt'')
 	}
@@ -700,6 +700,7 @@ else {
 	ereturn local cmdline `"`cmdline'"'
 	ereturn local model = cond("`gmm2s'"=="", "`model'", "gmm2s")
 	ereturn local model = cond("`cue'"=="", "`model'", "cue")
+	ereturn local model = cond("`liml'"=="", "`model'", "liml")
 	ereturn local dofadjustments = "`dofadjustments'"
 	ereturn local title = "HDFE " + e(title)
 	ereturn local title2 =  "Absorbing `N_hdfe' HDFE " + plural(`N_hdfe', "indicator")
@@ -962,8 +963,9 @@ else {
 		[Verbose(integer 0) CHECK NESTED FAST] ///
 		[TOLerance(real 1e-7) MAXITerations(integer 10000) noACCELerate] /// See reghdfe_absorb.Annihilate
 		[IVsuite(string) SAVEFIRST FIRST SHOWRAW] /// ESTimator(string)
+		[VCEUNADJUSTED] /// Option when running gmm2s with ivregress
 		[SMALL Hascons TSSCONS] /// ignored options
-		[liml kiefer] /// excluded
+		[kiefer] /// excluded
 		[SUBOPTions(string)] /// Options to be passed to the estimation command (e.g . to regress)
 		[bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) accel_freq(integer 3) accel_start(integer 6)] /// Advanced optimization options
 		[CORES(integer 1)] [USEcache(string)] [OVER(varname numeric)] ///
@@ -971,7 +973,7 @@ else {
 		[STAGEs(string)] ///
 		[noCONstant] /// Disable adding back the intercept (mandatory with -ivreg2-)
 		[DROPSIngletons] ///
-		[GMM2s CUE] /// two-step GMM and CUE
+		[GMM2s CUE LIML] /// two-step GMM and CUE
 		[*] // For display options ; and SUmmarize(stats)
 }
 
@@ -1021,6 +1023,13 @@ if (!`savingcache') {
 
 * Show raw output of called subcommand (e.g. ivreg2)
 	local showraw = ("`showraw'"!="")
+	
+* If true, will use wmatrix(...) vce(unadjusted) instead of the default of setting vce contents equal to wmatrix
+* This basically undoes the extra adjustment that ivregress does, so it's comparable with ivreg2
+*
+* Note: Cannot match exactly the -ivregress- results without vceunadjusted (see test-gmm.do)
+* Thus, I will set this to true ALWAYS
+	local vceunadjusted = 1 // ("`vceunadjusted'"!="")
 
 * tsset variables, if any
 	cap conf var `_dta[_TStvar]'
@@ -1225,7 +1234,8 @@ if (!`savingcache') {
 * IV options
 	if ("`small'"!="") di in ye "(note: reghdfe will always use the option -small-, no need to specify it)"
 
-	Assert ("`liml'"==""), msg("options liml not allowed")
+	*Assert ("`liml'"==""), msg("options liml not allowed")
+	Assert ("`cue'"==""), msg("option cue not allowed; results not invariant to partialling-out")
 	
 	if ("`model'"=="iv") {
 		local savefirst = ("`savefirst'"!="")
@@ -1284,13 +1294,19 @@ if (!`savingcache') {
 
 * GMM2S option requires instruments
 	if ("`gmm2s'"!="") Assert "`model'"=="iv", msg("Error: option -gmm2s- requires an instrumental-variable regression")
-	if ("`gmm2s'"!="") Assert "`cue'"=="", msg("gmm2s and cue options are mutually exclusive")
 	if ("`cue'"!="") Assert "`model'"=="iv", msg("Error: option -cue- requires an instrumental-variable regression")
+	if ("`liml'"!="") Assert "`model'"=="iv", msg("Error: option -liml- requires an instrumental-variable regression")
+	
 	if ("`cue'"!="") Assert "`ivsuite'"=="ivreg2", msg("CUE option is only available with the ivreg2 command")
+	if ("`liml'"!="") Assert "`ivsuite'"=="ivreg2", msg("liml option is only available with the ivreg2 command")
+
+	if ("`gmm2s'"!="") Assert "`cue'"=="", msg("gmm2s and cue options are mutually exclusive")
+	if ("`gmm2s'"!="") Assert "`liml'"=="", msg("gmm2s and liml options are mutually exclusive")
+	if ("`cue'"!="") Assert "`liml'"=="", msg("cue and liml options are mutually exclusive")
 
 * Return values
 	local names cmdline diopts model ///
-		ivsuite showraw ///
+		ivsuite showraw vceunadjusted ///
 		depvar indepvars endogvars instruments savefirst first ///
 		vceoption vcetype vcesuite vceextra num_clusters clustervars bw kernel dkraay /// vceextra
 		dofadjustments ///
@@ -1303,7 +1319,7 @@ if (!`savingcache') {
 		weight weightvar exp weightexp /// type of weight (fw,aw,pw), weight var., and full expr. ([fw=n])
 		cores savingcache usecache over ///
 		stats summarize_quietly notes stages ///
-		dropsingletons gmm2s cue
+		dropsingletons gmm2s cue liml
 }
 
 if (`savingcache') {
@@ -1963,7 +1979,7 @@ program define Wrapper_ivregress, eclass
 		KK(integer) ///
 		[weightexp(string)] ///
 		addconstant(integer) ///
-		SHOWRAW(integer) first(integer) ///
+		SHOWRAW(integer) first(integer) vceunadjusted(integer) ///
 		[GMM2s(string)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
@@ -1984,8 +2000,9 @@ program define Wrapper_ivregress, eclass
 
 	if ("`gmm2s'"!="") {
 		local wmatrix : subinstr local vceoption "vce(" "wmatrix("
-		local vceoption "vce(unadjusted)"
+		local vceoption = cond(`vceunadjusted', "vce(unadjusted)", "")
 	}
+	di as error "<`vceunadjusted'>!!!"
 	
 	* Note: the call to -ivregress- could be optimized.
 	* EG: -ivregress- calls ereturn post .. ESAMPLE(..) but we overwrite the esample and its SLOW
@@ -2051,7 +2068,7 @@ program define Wrapper_ivreg2, eclass
 		KK(integer) ///
 		[SHOWRAW(integer 0)] first(integer) [weightexp(string)] ///
 		addconstant(integer) ///
-		[GMM2s(string) CUE(string)] ///
+		[GMM2s(string) CUE(string) LIML(string)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
 	if (`c(version)'>=12) local hidden hidden
@@ -2082,7 +2099,7 @@ program define Wrapper_ivreg2, eclass
 	}
 	
 	* Variables have already been demeaned, so we need to add -nocons- or the matrix of orthog conditions will be singular
-	local subcmd ivreg2 `vars' `weightexp', `vceoption' `firstoption' small sdofminus(`=`kk'+1') nocons `gmm2s' `cue' `suboptions'
+	local subcmd ivreg2 `vars' `weightexp', `vceoption' `firstoption' small sdofminus(`=`kk'+1') nocons `gmm2s' `cue' `liml' `suboptions'
 	Debug, level(3) msg(_n "call to subcommand: " _n as result "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'

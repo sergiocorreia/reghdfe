@@ -8,7 +8,7 @@ program define Wrapper_ivregress, eclass
 		KK(integer) ///
 		[weightexp(string)] ///
 		addconstant(integer) ///
-		SHOWRAW(integer) first(integer) ///
+		SHOWRAW(integer) first(integer) vceunadjusted(integer) ///
 		[GMM2s(string)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
@@ -29,8 +29,9 @@ program define Wrapper_ivregress, eclass
 
 	if ("`gmm2s'"!="") {
 		local wmatrix : subinstr local vceoption "vce(" "wmatrix("
-		local vceoption "vce(unadjusted)"
+		local vceoption = cond(`vceunadjusted', "vce(unadjusted)", "")
 	}
+	di as error "<`vceunadjusted'>!!!"
 	
 	* Note: the call to -ivregress- could be optimized.
 	* EG: -ivregress- calls ereturn post .. ESAMPLE(..) but we overwrite the esample and its SLOW

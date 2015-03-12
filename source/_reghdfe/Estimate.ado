@@ -420,9 +420,9 @@ else if ("`stage'"=="first") {
 		original_depvar original_indepvars original_endogvars ///
 		original_instruments original_absvars avge_targets ///
 		vceoption vcetype vcesuite ///
-		kk suboptions showraw first weightexp ///
+		kk suboptions showraw vceunadjusted first weightexp ///
 		addconstant /// tells -regress- to hide _cons
-		gmm2s cue // Whether to run or not two-step gmm
+		gmm2s cue liml // Whether to run or not two-step gmm
 	foreach opt of local option_list {
 		if ("``opt''"!="") local options `options' `opt'(``opt'')
 	}
@@ -553,6 +553,7 @@ else {
 	ereturn local cmdline `"`cmdline'"'
 	ereturn local model = cond("`gmm2s'"=="", "`model'", "gmm2s")
 	ereturn local model = cond("`cue'"=="", "`model'", "cue")
+	ereturn local model = cond("`liml'"=="", "`model'", "liml")
 	ereturn local dofadjustments = "`dofadjustments'"
 	ereturn local title = "HDFE " + e(title)
 	ereturn local title2 =  "Absorbing `N_hdfe' HDFE " + plural(`N_hdfe', "indicator")

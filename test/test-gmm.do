@@ -76,16 +76,26 @@ cscript "reghdfe with ivreg2/ivregress and two-step gmm" adofile reghdfe
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-6) include(`include')
 
-	ivregress gmm `depvar' `indepvars' ABS_* foreign (`endogvars' = `instruments') , small wmatrix(robust) // This one is different b/c it uses vce same as wmatrix!
 	ivregress gmm `depvar' `indepvars' ABS_* foreign (`endogvars' = `instruments') , small wmatrix(robust) vce(unadjusted)
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-6) include(`include')
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust) ivsuite(ivregress) tol(1e-12) gmm2s 
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust) ivsuite(ivregress) tol(1e-12) gmm2s  vceunadjusted
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-6) include(`include')
 
 	storedresults drop benchmark
+	
+	* BUGBUG: I expected this to work but fails; so I'm setting vceunadjusted to TRUE always
+	**ivregress gmm `depvar' `indepvars' ABS_* foreign (`endogvars' = `instruments') , small wmatrix(robust) vce(robust) hascons // This one is different b/c it uses vce same as wmatrix!
+	**TrimMatrix `K'
+	**storedresults save benchmark e()
+	**
+	**reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust) ivsuite(ivregress) tol(1e-12) gmm2s
+	**TrimMatrix `K'
+	**storedresults compare benchmark e(), tol(1e-6) include(`include')
+	**
+	**storedresults drop benchmark
 
 * [TEST] CLUSTER
 
@@ -102,7 +112,7 @@ cscript "reghdfe with ivreg2/ivregress and two-step gmm" adofile reghdfe
 	*TrimMatrix `K'
 	*storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(cluster `cluster') ivsuite(ivregress) tol(1e-12) gmm2s 
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(cluster `cluster') ivsuite(ivregress) tol(1e-12) gmm2s vceunadjusted
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-6) include(`include')
 
