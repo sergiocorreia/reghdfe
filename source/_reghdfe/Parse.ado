@@ -48,7 +48,7 @@ else {
 		[noTRACK] /// Not used here but in -Track-
 		[IVsuite(string) SAVEFIRST FIRST SHOWRAW] /// ESTimator(string)
 		[SMALL Hascons TSSCONS] /// ignored options
-		[gmm2s liml kiefer cue] ///
+		[liml kiefer cue] ///
 		[SUBOPTions(string)] /// Options to be passed to the estimation command (e.g . to regress)
 		[bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) accel_freq(integer 3) accel_start(integer 6)] /// Advanced optimization options
 		[CORES(integer 1)] [USEcache(string)] [OVER(varname numeric)] ///
@@ -56,6 +56,7 @@ else {
 		[STAGEs(string)] ///
 		[noCONstant] /// Disable adding back the intercept (mandatory with -ivreg2-)
 		[DROPSIngletons] ///
+		[GMM2s] /// two-step GMM
 		[*] // For display options ; and SUmmarize(stats)
 }
 
@@ -309,7 +310,7 @@ if (!`savingcache') {
 * IV options
 	if ("`small'"!="") di in ye "(note: reghdfe will always use the option -small-, no need to specify it)"
 
-	Assert ("`gmm2s'`liml'`cue'"==""), msg("options gmm2s/liml/cue not allowed")
+	Assert ("`liml'`cue'"==""), msg("options liml/cue not allowed")
 	
 	if ("`model'"=="iv") {
 		local savefirst = ("`savefirst'"!="")
@@ -366,6 +367,9 @@ if (!`savingcache') {
 	local weight `backupweight'
 	Assert inlist( ("`weight'"!="") + ("`weightvar'"!="") + ("`weightexp'"!="") , 0 , 3 ) , msg("not all 3 weight locals are set")
 
+* GMM2S option requires instruments
+	if ("`gmm2s'"!="") Assert "`model'"=="iv", msg("Error: option -gmm2s- requires an instrumental-variable regression")
+
 * Return values
 	local names cmdline diopts model ///
 		ivsuite showraw ///
@@ -381,7 +385,7 @@ if (!`savingcache') {
 		weight weightvar exp weightexp /// type of weight (fw,aw,pw), weight var., and full expr. ([fw=n])
 		cores savingcache usecache over ///
 		stats summarize_quietly notes stages ///
-		dropsingletons
+		dropsingletons gmm2s
 }
 
 if (`savingcache') {

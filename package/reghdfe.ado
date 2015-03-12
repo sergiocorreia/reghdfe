@@ -1,4 +1,4 @@
-*! reghdfe 1.4.205 08mar2015
+*! reghdfe 1.4.277 11mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 program define reghdfe
@@ -615,7 +615,6 @@ else if ("`stage'"=="first") {
 		AddConstant `depvar' `indepvars' `avgevars' `endogvars' `instruments'
 	}
 
-
 * Regress
 	if ("`stage'"=="none") Debug, level(2) msg("(running regresion: `model'.`ivsuite')")
 	local avge = cond(`N_avge'>0, "__W*__", "")
@@ -626,7 +625,8 @@ else if ("`stage'"=="first") {
 		original_instruments original_absvars avge_targets ///
 		vceoption vcetype vcesuite ///
 		kk suboptions showraw first weightexp ///
-		addconstant // tells -regress- to hide _cons
+		addconstant /// tells -regress- to hide _cons
+		gmm2s // Whether to run or not two-step gmm
 	foreach opt of local option_list {
 		if ("``opt''"!="") local options `options' `opt'(``opt'')
 	}
@@ -755,8 +755,7 @@ else {
 	ereturn local cmd = "reghdfe"
 	ereturn local subcmd = cond(inlist("`stage'", "none", "iv"), "`subcmd'", "regress")
 	ereturn local cmdline `"`cmdline'"'
-	if ("`e(model)'"!="" & "`e(model)'"!="`model'") di as error "`e(model) was <`e(model)'>" // ?
-	ereturn local model = "`model'"
+	ereturn local model = cond("`gmm2s'"=="", "`model'", "gmm2s")
 	ereturn local dofadjustments = "`dofadjustments'"
 	ereturn local title = "HDFE " + e(title)
 	ereturn local title2 =  "Absorbing `N_hdfe' HDFE " + plural(`N_hdfe', "indicator")
@@ -1020,7 +1019,7 @@ else {
 		[noTRACK] /// Not used here but in -Track-
 		[IVsuite(string) SAVEFIRST FIRST SHOWRAW] /// ESTimator(string)
 		[SMALL Hascons TSSCONS] /// ignored options
-		[gmm2s liml kiefer cue] ///
+		[liml kiefer cue] ///
 		[SUBOPTions(string)] /// Options to be passed to the estimation command (e.g . to regress)
 		[bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) accel_freq(integer 3) accel_start(integer 6)] /// Advanced optimization options
 		[CORES(integer 1)] [USEcache(string)] [OVER(varname numeric)] ///
@@ -1028,6 +1027,7 @@ else {
 		[STAGEs(string)] ///
 		[noCONstant] /// Disable adding back the intercept (mandatory with -ivreg2-)
 		[DROPSIngletons] ///
+		[GMM2s] /// two-step GMM
 		[*] // For display options ; and SUmmarize(stats)
 }
 
@@ -1281,7 +1281,7 @@ if (!`savingcache') {
 * IV options
 	if ("`small'"!="") di in ye "(note: reghdfe will always use the option -small-, no need to specify it)"
 
-	Assert ("`gmm2s'`liml'`cue'"==""), msg("options gmm2s/liml/cue not allowed")
+	Assert ("`liml'`cue'"==""), msg("options liml/cue not allowed")
 	
 	if ("`model'"=="iv") {
 		local savefirst = ("`savefirst'"!="")
@@ -1338,6 +1338,9 @@ if (!`savingcache') {
 	local weight `backupweight'
 	Assert inlist( ("`weight'"!="") + ("`weightvar'"!="") + ("`weightexp'"!="") , 0 , 3 ) , msg("not all 3 weight locals are set")
 
+* GMM2S option requires instruments
+	if ("`gmm2s'"!="") Assert "`model'"=="iv", msg("Error: option -gmm2s- requires an instrumental-variable regression")
+
 * Return values
 	local names cmdline diopts model ///
 		ivsuite showraw ///
@@ -1353,7 +1356,7 @@ if (!`savingcache') {
 		weight weightvar exp weightexp /// type of weight (fw,aw,pw), weight var., and full expr. ([fw=n])
 		cores savingcache usecache over ///
 		stats summarize_quietly notes stages ///
-		dropsingletons
+		dropsingletons gmm2s
 }
 
 if (`savingcache') {
@@ -2272,6 +2275,7 @@ program define Wrapper_ivregress, eclass
 		[weightexp(string)] ///
 		addconstant(integer) ///
 		SHOWRAW(integer) first(integer) ///
+		[GMM2s(string)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
@@ -2287,7 +2291,12 @@ program define Wrapper_ivregress, eclass
 	if ("`clustervars'"!="") local vceoption `vceoption' `clustervars'
 	local vceoption "vce(`vceoption')"
 
-	local estimator 2sls
+	local estimator = cond("`gmm2s'"=="", "2sls", "gmm")
+
+	if ("`gmm2s'"!="") {
+		local wmatrix : subinstr local vceoption "vce(" "wmatrix("
+		local vceoption "vce(unadjusted)"
+	}
 	
 	* Note: the call to -ivregress- could be optimized.
 	* EG: -ivregress- calls ereturn post .. ESAMPLE(..) but we overwrite the esample and its SLOW
@@ -2305,7 +2314,7 @@ program define Wrapper_ivregress, eclass
 	}
 
 * Subcmd
-	local subcmd ivregress `estimator' `vars' `weightexp', `vceoption' small `nocons' `firstoption' `suboptions'
+	local subcmd ivregress `estimator' `vars' `weightexp', `wmatrix' `vceoption' small `nocons' `firstoption' `suboptions'
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'
@@ -2316,11 +2325,23 @@ program define Wrapper_ivregress, eclass
 	local WrongDoF = `N' - `addconstant' - `K'
 	local CorrectDoF = `WrongDoF' - `kk'
 	Assert !missing(`CorrectDoF')
-	if ("`estimator'"!="gmm" | 1) {
-		tempname V
-		matrix `V' = e(V) * (`WrongDoF' / `CorrectDoF')
-		ereturn repost V=`V'
+
+	* We should have used M/M-1 instead of N/N-1, but we are making ivregress to do the wrong thing by using vce(unadjusted) (which makes it fit with ivreg2)
+	local q 1
+	if ("`estimator'"=="gmm" & "`clustervars'"!="") {
+		local N = e(N)
+		tempvar group
+		GenerateID `clustervars', gen(`group')
+		su `group', mean
+		drop `group'
+		local M = r(max) // N_clust
+		local q = ( `M' / (`M' - 1)) / ( `N' / (`N' - 1) ) // multiply correct, divide prev wrong one
+		ereturn scalar df_r = `M' - 1
 	}
+
+	tempname V
+	matrix `V' = e(V) * (`WrongDoF' / `CorrectDoF') * `q'
+	ereturn repost V=`V'
 	
 	if ("`clustervars'"=="") ereturn scalar df_r = `CorrectDoF'
 
@@ -2341,6 +2362,7 @@ program define Wrapper_ivreg2, eclass
 		KK(integer) ///
 		[SHOWRAW(integer 0)] first(integer) [weightexp(string)] ///
 		addconstant(integer) ///
+		[GMM2s(string)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
 	if (`c(version)'>=12) local hidden hidden
@@ -2369,9 +2391,9 @@ program define Wrapper_ivreg2, eclass
 	if (`first') {
 		local firstoption "first savefirst"
 	}
-
+	
 	* Variables have already been demeaned, so we need to add -nocons- or the matrix of orthog conditions will be singular
-	local subcmd ivreg2 `vars' `weightexp', `vceoption' `firstoption' small sdofminus(`=`kk'+1') `suboptions' nocons
+	local subcmd ivreg2 `vars' `weightexp', `vceoption' `firstoption' small sdofminus(`=`kk'+1') nocons `gmm2s' `suboptions'
 	Debug, level(3) msg(_n "call to subcommand: " _n as result "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'

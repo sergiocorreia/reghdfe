@@ -410,7 +410,6 @@ else if ("`stage'"=="first") {
 		AddConstant `depvar' `indepvars' `avgevars' `endogvars' `instruments'
 	}
 
-
 * Regress
 	if ("`stage'"=="none") Debug, level(2) msg("(running regresion: `model'.`ivsuite')")
 	local avge = cond(`N_avge'>0, "__W*__", "")
@@ -421,7 +420,8 @@ else if ("`stage'"=="first") {
 		original_instruments original_absvars avge_targets ///
 		vceoption vcetype vcesuite ///
 		kk suboptions showraw first weightexp ///
-		addconstant // tells -regress- to hide _cons
+		addconstant /// tells -regress- to hide _cons
+		gmm2s // Whether to run or not two-step gmm
 	foreach opt of local option_list {
 		if ("``opt''"!="") local options `options' `opt'(``opt'')
 	}
@@ -550,8 +550,7 @@ else {
 	ereturn local cmd = "reghdfe"
 	ereturn local subcmd = cond(inlist("`stage'", "none", "iv"), "`subcmd'", "regress")
 	ereturn local cmdline `"`cmdline'"'
-	if ("`e(model)'"!="" & "`e(model)'"!="`model'") di as error "`e(model) was <`e(model)'>" // ?
-	ereturn local model = "`model'"
+	ereturn local model = cond("`gmm2s'"=="", "`model'", "gmm2s")
 	ereturn local dofadjustments = "`dofadjustments'"
 	ereturn local title = "HDFE " + e(title)
 	ereturn local title2 =  "Absorbing `N_hdfe' HDFE " + plural(`N_hdfe', "indicator")

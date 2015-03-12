@@ -22,6 +22,8 @@
 	run test-mwc
 	run test-ivreg2-nocons
 
+	run test-gmm
+
 	run test-singletons
 	run test-iv
 	run test-slope

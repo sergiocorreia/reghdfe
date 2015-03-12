@@ -9,6 +9,7 @@ program define Wrapper_ivregress, eclass
 		[weightexp(string)] ///
 		addconstant(integer) ///
 		SHOWRAW(integer) first(integer) ///
+		[GMM2s(string)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
@@ -24,7 +25,12 @@ program define Wrapper_ivregress, eclass
 	if ("`clustervars'"!="") local vceoption `vceoption' `clustervars'
 	local vceoption "vce(`vceoption')"
 
-	local estimator 2sls
+	local estimator = cond("`gmm2s'"=="", "2sls", "gmm")
+
+	if ("`gmm2s'"!="") {
+		local wmatrix : subinstr local vceoption "vce(" "wmatrix("
+		local vceoption "vce(unadjusted)"
+	}
 	
 	* Note: the call to -ivregress- could be optimized.
 	* EG: -ivregress- calls ereturn post .. ESAMPLE(..) but we overwrite the esample and its SLOW
@@ -42,7 +48,7 @@ program define Wrapper_ivregress, eclass
 	}
 
 * Subcmd
-	local subcmd ivregress `estimator' `vars' `weightexp', `vceoption' small `nocons' `firstoption' `suboptions'
+	local subcmd ivregress `estimator' `vars' `weightexp', `wmatrix' `vceoption' small `nocons' `firstoption' `suboptions'
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'
@@ -53,11 +59,23 @@ program define Wrapper_ivregress, eclass
 	local WrongDoF = `N' - `addconstant' - `K'
 	local CorrectDoF = `WrongDoF' - `kk'
 	Assert !missing(`CorrectDoF')
-	if ("`estimator'"!="gmm" | 1) {
-		tempname V
-		matrix `V' = e(V) * (`WrongDoF' / `CorrectDoF')
-		ereturn repost V=`V'
+
+	* We should have used M/M-1 instead of N/N-1, but we are making ivregress to do the wrong thing by using vce(unadjusted) (which makes it fit with ivreg2)
+	local q 1
+	if ("`estimator'"=="gmm" & "`clustervars'"!="") {
+		local N = e(N)
+		tempvar group
+		GenerateID `clustervars', gen(`group')
+		su `group', mean
+		drop `group'
+		local M = r(max) // N_clust
+		local q = ( `M' / (`M' - 1)) / ( `N' / (`N' - 1) ) // multiply correct, divide prev wrong one
+		ereturn scalar df_r = `M' - 1
 	}
+
+	tempname V
+	matrix `V' = e(V) * (`WrongDoF' / `CorrectDoF') * `q'
+	ereturn repost V=`V'
 	
 	if ("`clustervars'"=="") ereturn scalar df_r = `CorrectDoF'
 
