@@ -16,7 +16,7 @@ program define Parse
 if (`savingcache') {
 
 	* Disable these options
-	local fast
+	local FAST
 	local nested
 
 	syntax anything(name=indepvars) [if] [in] [fweight aweight pweight/] , ///
@@ -45,10 +45,9 @@ else {
 		[avge(string) EXCLUDESELF] ///
 		[Verbose(integer 0) CHECK NESTED FAST] ///
 		[TOLerance(real 1e-7) MAXITerations(integer 1000) noACCELerate] /// See reghdfe_absorb.Annihilate
-		[noTRACK] /// Not used here but in -Track-
 		[IVsuite(string) SAVEFIRST FIRST SHOWRAW] /// ESTimator(string)
 		[SMALL Hascons TSSCONS] /// ignored options
-		[liml kiefer cue] ///
+		[liml kiefer cue] /// excluded
 		[SUBOPTions(string)] /// Options to be passed to the estimation command (e.g . to regress)
 		[bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) accel_freq(integer 3) accel_start(integer 6)] /// Advanced optimization options
 		[CORES(integer 1)] [USEcache(string)] [OVER(varname numeric)] ///

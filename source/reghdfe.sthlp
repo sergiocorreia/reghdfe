@@ -18,9 +18,59 @@
 {title:Title}
 
 {p2colset 5 18 20 2}{...}
-{p2col :{cmd:reghdfe} {hline 2}}Linear and instrumental-variable regression absorbing any number of high-dimensional fixed effects{p_end}
+{p2col :{cmd:reghdfe} {hline 2}}Linear and instrumental-variable/GMM regression absorbing any number of fixed effects{p_end}
 {p2colreset}{...}
 
+{marker fullsyntax}{...}
+{title:Full Syntax}
+
+{pstd}This list enumerates all the options, most of which you {it:do not} need:{p_end}
+
+{p 8 15 2}
+{cmd:reghdfe}
+{depvar}
+[{indepvars}]
+    [{cmd:(}{it:{help varlist:endogvars}}
+    {cmd:=}
+    {it:{help varlist:iv_vars}}{cmd:)}]
+{ifin}
+{it:{weight}}
+{cmd:,}
+{opth a:bsorb(reghdfe##absvar:absvars)}
+{cmd:vce(}{help reghdfe##vcetype:vcetype}{cmd:)}
+{opt gmm:2s}
+{opt dof:adjustments(doflist)}
+{opt dropsi:ngletons}
+{opth tol:erance(#)}
+{opth maxit:erations(#)}
+{opt fast}
+{opth cores(#)}
+{opt v:erbose(#)}
+{opt nested}
+{opt stage:s(stage_list)}
+{opt nocon:stant}
+{opt su:mmarize(summ_list)}
+{opth group(newvarname)}
+{opth avge(varlist)}
+{opt excludeself}
+{opth iv:suite(subcmd)}
+{opt first}
+{opt savefirst}
+{opt showraw}
+{opt sub:options(...)}
+{opt check}
+{opth save:cache(filename)}
+{opth use:cache(filename)}
+{opth over(varname)}
+{opt l:evel(#)}
+{it:{help reghdfe##display_options:display_options}}
+{opt noaccel:erate}
+{opth accel_start(#)}
+{opth accel_freq(#)}
+{opth bad_loop_threshold(#)}
+{opth stuck_threshold(#)}
+{opth pause_length(#)}
+{p_end}
 
 {marker syntax}{...}
 {title:Syntax}
@@ -35,7 +85,28 @@
 {ifin}
 {it:{weight}}
 {cmd:,}
-{opt a:bsorb(absvars)}
+{opth a:bsorb(reghdfe##absvar:absvars)}
+[{opth vce:(reghdfe##vcetype:vcetype)}
+{help reghdfe##options:options}]
+{p_end}
+
+{pstd}Options are grouped as follows: {help reghdfe##maximize_options:common},
+{help reghdfe##iv_options:iv/gmm},
+{help reghdfe##speedup_options:speedups},
+{help reghdfe##speedup_options:maximization},
+{help reghdfe##dof_options:dof adjustments},
+
+{p_end}
+
+
+
+recomendar q el mas denso este primero
+
+
+
+
+]
+
 [{it:vce_options}]
 [{it:dof_options}]
 [{it:other_options}]
@@ -52,7 +123,7 @@
 {synopt:{it:var1}{cmd:##}{cmd:c.}{it:var2}}equivalent to "{cmd:i.}{it:var1} {cmd:i.}{it:var1}{cmd:#}{cmd:c.}{it:var2}", but much faster (the two sets of fixed effects are absorbed jointly at each iteration){p_end}
 {synoptline}
 {p2colreset}{...}
-{p 4 6 2}{it:absvar} can contain any number of categorical interactions 
+{p 4 6 2}each {it:absvar} can contain any number of categorical interactions 
 (e.g. {cmd:i.}{it:var1}{cmd:#i.}{it:var2}{cmd:#i.}{it:var3})
 but at most one continuous interaction
 (thus, {cmd:i.}{it:var1}{cmd:#c.}{it:var2}{cmd:#c.}{it:var3} is not allowed){p_end}
@@ -60,6 +131,23 @@ but at most one continuous interaction
 {p 4 6 2}{newvar}{cmd:=}{it:varname1}{cmd:##c.}{it:varname2} is equivalent to
 "{newvar}{cmd:=}{it:varname1} {newvar:_slope}{cmd:=}{it:varname1}{cmd:#c.}{it:varname2}"{p_end}
 {p 4 6 2} {cmd:fweight}s, {cmd:aweight}s and {cmd:pweight}s are allowed; see {help weight}.{p_end}
+
+
+
+absorb vce [main] [iv] [advanced: dof maximization reporting] [speedups]
+
+
+[iv] -> stages, ivsuite, first, etc.
+[reporting]
+[speedupds]
+absorb()
+vce()
+
+advanced:
+[dof]
+[maximization]
+
+
 
 
 {synoptset 22 tabbed}{...}
@@ -619,7 +707,7 @@ Only {cmd:estat summarize} and {cmd:predict} are currently implemented.
 Sergio Correia
 
 {phang}
-Duke University, Fuqua School of Business
+Fuqua School of Business, Duke University
 
 {phang}
 Email: {browse "mailto:sergio.correia@duke.edu":sergio.correia@duke.edu}
@@ -627,9 +715,24 @@ Email: {browse "mailto:sergio.correia@duke.edu":sergio.correia@duke.edu}
 
 {title:Acknowledgements}
 
-{phang}
-This program is heavily based on the works by Paulo Guimaraes and Pedro Portugal discussed in the reference section, and also borrows from the work of Nikolas Mittag (2012) and from Amine Quazad's {help a2group} Stata code.
-{p_end}
+{pstd}
+This package wouldn't have existed without the invaluable feedback and contributions of Paulo Guimaraes
+and Amine Quazad. I am also indebted to the guidance of Mark Schaffer, Kit Baum, and Nikolas Mittag;
+and to the great bug-spotting abilities of many users.{p_end}
+
+{pstd}In addition, {it:reghdfe} is build upon important contributions from the Stata community:{p_end}
+
+{phang}{browse "https://ideas.repec.org/c/boc/bocode/s457101.html":reg2hdfe}, from Paulo Guimaraes,
+and {browse "https://ideas.repec.org/c/boc/bocode/s456942.html":a2reg} from Amine Quazad,
+ were the inspiration and building blocks on which reghdfe was built.{p_end}
+
+{phang}{browse "http://www.repec.org/bocode/i/ivreg2.html":ivreg2}, by Christopher F Baum, Mark E Schaffer and Steven Stillman, is the package used by default for instrumental-variable regression.{p_end}
+
+{phang}{browse "https://ideas.repec.org/c/boc/bocode/s457689.html":avar} by Christopher F Baum and Mark E Schaffer, is the package used for estimating the HAC-robust standard errors of ols regressions.{p_end}
+
+{phang}{browse "http://econpapers.repec.org/software/bocbocode/s456797.htm)":tuples} by Joseph Lunchman and Nicholas Cox, is used when computing standard errors with multi-way clustering (two or more clustering variables).{p_end}
+
+{phang}{browse "https://ideas.repec.org/c/boc/bocode/s457527.html":parallel} by George Vega Yon is used when running reghdfe with multiple processors.{p_end}
 
 {marker references}{...}
 {title:References}
@@ -637,18 +740,30 @@ This program is heavily based on the works by Paulo Guimaraes and Pedro Portugal
 This program implements an extension on the fixed-point iteration proposed by:
 
 {phang}
-Paulo Guimaraes and Pedro Portugal.
-"A Simple Feasible Alternative Procedure to Estimate Models with High-Dimensional Fixed Effects".
+Paulo Guimaraes and Pedro Portugal. "A Simple Feasible Alternative Procedure to Estimate
+Models with High-Dimensional Fixed Effects".
 {it:Stata Journal, 10(4), 628-649, 2010.}
+{browse "http://www.stata-journal.com/article.html?article=st0212":[link]}
 {p_end}
 
-If you use this program in your research, please cite the aforementioned article. Also notice that the algorithm is different from the one used in:
+A technical appendix of the algorithm employed is available in the PDF file below:
+
+{phang}Sergio Correia. "Least Squares Iteration with Several High-Dimensional Fixed Effects". {it:Mimeo, 2014}
+{browse "https://raw.githubusercontent.com/sergiocorreia/reghdfe/master/docs/explanation.pdf":[link]}
+{p_end}
+
+Note that the algorithm is not the same as the one used in:
 
 {phang}
 Torres, Sonia & Portugal, Pedro & Addison, John T. & Guimaraes, Paulo, 2013.
 "The Sources of Wage Variation: A Three-Way High-Dimensional Fixed Effects Regression Model".
 {it: IZA Discussion Papers 7276, Institute for the Study of Labor (IZA).}
 {p_end}
+
+{p 0 0 0}
+If you use this program in your research, please cite either
+the {browse "https://ideas.repec.org/c/boc/bocode/s457874.html":REPEC entry}
+or the first article on this list.{p_end}
 
 For details on the acceleration technique employed, please see "method 3" as described by:
 
@@ -661,7 +776,7 @@ For the rationale behind interacting fixed effects with continuous variables, se
 
 {phang}
 Duflo, Esther. "The medium run effects of educational expansion: Evidence from a large school construction program in Indonesia."
-{it:Journal of Development Economics 74.1 (2004): 163-197.}{browse "http://www.sciencedirect.com/science/article/pii/S0304387803001846": [URL]}
+{it:Journal of Development Economics 74.1 (2004): 163-197.}{browse "http://www.sciencedirect.com/science/article/pii/S0304387803001846": [link]}
 {p_end}
 
 Also see:
