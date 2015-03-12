@@ -559,6 +559,7 @@ else {
 	ereturn local footnote = "reghdfe_footnote"
 	ereturn local absvars = "`original_absvars'"
 	ereturn local vcesuite = "`vcesuite'"
+	ereturn local maximize_options = "`maximize_options'" // In option format; tolerance(..) etc.
 	if ("`stage'"!="none") ereturn local iv_depvar = "`backup_original_depvar'"
 	ereturn `hidden' local diopts = "`diopts'"
 	if ("`over'"!="") {
