@@ -25,10 +25,12 @@
 			Fill mata objects with counts and means, delete unused vars
 			RETURN r(clustervar1)
 
+ (3)		reghdfe_absorb, step(estimatedof) dofadjustments(pairwise clusters continuous) [group(`group') groupdta(`groupdta') uid(`uid')]
+
  (-)		Compute statistics such as TSS, used later on
 			Save untransformed variables
 
- (3)	reghdfe_absorb, step(demean) varlist(...)  [maximize_options..]
+ (4)	reghdfe_absorb, step(demean) varlist(...)  [maximize_options..]
 			Obtain residuals of varlist wrt the FEs
 			Note: can be run multiple times
 
@@ -39,10 +41,10 @@
 			Use predict to get resid+d
 
 		reghdfe_absorb, step(demean) save_fe(1) var(resid_d) -> get FEs
- (4)	reghdfe_absorb, step(save) original_depvar(..)
+ (5)	reghdfe_absorb, step(save) original_depvar(..)
 			Save required FEs with proper name, labels, etc.
 
- (5)	reghdfe_absorb, step(stop)
+ (6)	reghdfe_absorb, step(stop)
 			Clean up all Mata objects
 
  (-)		Restore, merge sample(), report tables
@@ -52,7 +54,7 @@ include _mata/reghdfe.mata
 
 //------------------------------------------------------------------------------
 cap pr drop reghdfe_absorb
-program define reghdfe_absorb, rclass
+program define reghdfe_absorb // , rclass
 //------------------------------------------------------------------------------
 	local version `clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
 	qui version `version'
@@ -78,6 +80,12 @@ program define reghdfe_absorb, rclass
 * Parse
 	syntax, STEP(string) [CORES(integer 1)] [*]
 
+* Quick hack to deal with EstimateDoF
+	if ("`step'"=="estimatedof") {
+		EstimateDoF, `options'
+		exit
+	}
+
 * Sanity checks
 	local numstep = ("`step'"=="start") + 2*("`step'"=="precompute") + ///
 		3*("`step'"=="demean") + 4*("`step'"=="save") + 5*("`step'"=="stop")
@@ -96,9 +104,9 @@ program define reghdfe_absorb, rclass
 * Call subroutine and return results
 	if (`numstep'==1) {
 		Start, `options'
-		return local keepvars "`r(keepvars)'"
-		return scalar N_hdfe = r(N_hdfe)
-		return scalar N_avge = r(N_avge)
+		*return local keepvars "`r(keepvars)'"
+		*return scalar N_hdfe = r(N_hdfe)
+		*return scalar N_avge = r(N_avge)
 	}
 	else if (`numstep'==2) {
 		Precompute, `options'
@@ -111,7 +119,7 @@ program define reghdfe_absorb, rclass
 	}
 	else if (`numstep'==4) {
 		Save, `options'
-		return local keepvars "`r(keepvars)'"
+		*return local keepvars "`r(keepvars)'"
 	}
 	else if (`numstep'==5) {
 		Stop, `options'
@@ -462,7 +470,7 @@ cap pr drop program Demean
 program Demean
 //------------------------------------------------------------------------------
 syntax , VARlist(varlist numeric) ///
-	[TOLerance(real 1e-7) MAXITerations(integer 1000) ACCELerate(integer 1) /// See reghdfe.Parse
+	[TOLerance(real 1e-7) MAXITerations(integer 10000) ACCELerate(integer 1) /// See reghdfe.Parse
 	CHECK(integer 0) SAVE_fe(integer 0) /// Runs regr of FEs
 	NUM_fe(integer -1)] /// Regress only against the first Nth FEs (used in nested Fstats)
 	[bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) ///
@@ -849,7 +857,9 @@ end
 
 //------------------------------------------------------------------------------
 
+include "_reghdfe_absorb/ConnectedGroups.ado"
 include "_reghdfe_absorb/GenerateID.ado"
 include "_reghdfe_absorb/AverageOthers.ado"
 include "_common/Assert.ado"
 include "_common/Debug.ado"
+include "_reghdfe_absorb/EstimateDoF.ado"

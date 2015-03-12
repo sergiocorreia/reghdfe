@@ -152,7 +152,8 @@ else {
 		tempfile groupdta
 		local opt group(`group') groupdta(`groupdta') uid(`uid')
 	}
-	EstimateDoF, dofadjustments(`dofadjustments') `opt'
+	*EstimateDoF
+	reghdfe_absorb, step(estimatedof) dofadjustments(`dofadjustments') `opt'
 	local kk = r(kk) // FEs that were not found to be redundant (= total FEs - redundant FEs)
 	local M = r(M) // FEs found to be redundant
 	local saved_group = r(saved_group)
@@ -178,7 +179,7 @@ else {
 	}
 
 	if (`num_clusters'>0) {
-		mata: mata: st_local("temp_clustervars", invtokens(clustervars))
+		mata: st_local("temp_clustervars", invtokens(clustervars))
 		local vceoption : subinstr local vceoption "<CLUSTERVARS>" "`temp_clustervars'"
 	}
 

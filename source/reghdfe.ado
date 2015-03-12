@@ -1,4 +1,4 @@
-*! reghdfe 1.4.280 12mar2015
+*! reghdfe 1.4.299 12mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 
@@ -27,14 +27,12 @@ end
 include "_common/Assert.ado"
 include "_common/Debug.ado"
 include "_reghdfe_absorb/GenerateID.ado"
-include "_reghdfe/ConnectedGroups.ado"
 
 include "_mata/fix_psd.mata"
 include "_reghdfe/Estimate.ado"
 	include "_reghdfe/Parse.ado"
 	include "_reghdfe/DropSingletons.ado"
 	include "_reghdfe/ExpandFactorVariables.ado"
-	include "_reghdfe/EstimateDoF.ado"
 	include "_reghdfe/FixVarnames.ado"
 	include "_reghdfe/Wrapper_regress.ado"
 	include "_reghdfe/Wrapper_mwc.ado"
