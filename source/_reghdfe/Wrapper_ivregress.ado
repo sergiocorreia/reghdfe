@@ -31,7 +31,6 @@ program define Wrapper_ivregress, eclass
 		local wmatrix : subinstr local vceoption "vce(" "wmatrix("
 		local vceoption = cond(`vceunadjusted', "vce(unadjusted)", "")
 	}
-	di as error "<`vceunadjusted'>!!!"
 	
 	* Note: the call to -ivregress- could be optimized.
 	* EG: -ivregress- calls ereturn post .. ESAMPLE(..) but we overwrite the esample and its SLOW

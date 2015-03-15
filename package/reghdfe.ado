@@ -1,4 +1,4 @@
-*! reghdfe 1.4.334 12mar2015
+*! reghdfe 1.4.371 15mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 program define reghdfe
@@ -1408,6 +1408,8 @@ syntax varlist(min=1 numeric fv ts) [if] [,setname(string)] [CACHE]
 	* EG: if we use i.foreign#i.rep78 , several categories will be redundant, seen as e.g. "0b.foreign" in -char list-
 	* We'll also exclude base categories that don't have the "bn" option (to have no base)
 
+	* However, if there is a cont. interaction, then we DO want the base categories!
+
 	* Loop for each var and then expand them into i.var -> 1.var.. and loop
 	* Why two loops? B/c I want to save each var expansion to allow for a cache
 
@@ -1442,13 +1444,16 @@ syntax varlist(min=1 numeric fv ts) [if] [,setname(string)] [CACHE]
 			if (substr("`var'", 1, 2)=="__") {
 				local color result
 				local parts : subinstr local fvchar "#" " ", all
+				local continteraction = strpos("`fvchar'", "c.")>0
 				foreach part of local parts {
+					*di as error "part=<`part'> cont=`continteraction' all=<`fvchar'>"
 					* "^[0-9]+b\." -> "b.*\."
-					if regexm("`part'", "b.*\.") | regexm("`part'", "o.*\.") {
+					if (regexm("`part'", "b.*\.") & !`continteraction') | regexm("`part'", "o.*\.") {
 						local color error	
-						drop `var'
-						continue, break
 					}
+				}
+				if ("`color'"=="error") {
+					local color result
 				}
 
 
@@ -1525,7 +1530,14 @@ local vars `0'
 				if ("`newname'"=="") local newname `var'
 			}
 			else if (`is_temp' & "`name'"!="") {
-				local newname `prefix'`name' // BUGBUG
+				local newname `prefix'`name'
+				
+				* Fix bug when the var is omitted:
+				local bugmatch = regexm("`newname'", "^o\.([0-9]+)b?\.(.+)$")
+				if (`bugmatch') {
+					local newname = regexs(1) + "o." + regexs(2) // EG: 1o.var
+				}
+
 				local prettyname `newname'
 			}
 			else {
@@ -1534,7 +1546,7 @@ local vars `0'
 			}
 		}
 		
-		* di in red " var=<`var'> --> new=<`newname'> pretty=<`prettyname'>"
+		*di in red " var=<`var'> --> new=<`newname'> pretty=<`prettyname'>"
 		Assert ("`newname'"!="" & "`prettyname'"!=""), ///
 			msg("var=<`var'> --> new=<`newname'> pretty=<`prettyname'>")
 		local newnames `newnames' `newname'
@@ -2002,7 +2014,6 @@ program define Wrapper_ivregress, eclass
 		local wmatrix : subinstr local vceoption "vce(" "wmatrix("
 		local vceoption = cond(`vceunadjusted', "vce(unadjusted)", "")
 	}
-	di as error "<`vceunadjusted'>!!!"
 	
 	* Note: the call to -ivregress- could be optimized.
 	* EG: -ivregress- calls ereturn post .. ESAMPLE(..) but we overwrite the esample and its SLOW

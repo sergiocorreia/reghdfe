@@ -22,6 +22,8 @@
 	run test-mwc
 	run test-ivreg2-nocons
 
+	run test-cont-interaction
+
 	run test-gmm
 	* Doesn't work: run test-cue
 	run test-liml

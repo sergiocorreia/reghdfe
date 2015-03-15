@@ -33,7 +33,14 @@ local vars `0'
 				if ("`newname'"=="") local newname `var'
 			}
 			else if (`is_temp' & "`name'"!="") {
-				local newname `prefix'`name' // BUGBUG
+				local newname `prefix'`name'
+				
+				* Fix bug when the var is omitted:
+				local bugmatch = regexm("`newname'", "^o\.([0-9]+)b?\.(.+)$")
+				if (`bugmatch') {
+					local newname = regexs(1) + "o." + regexs(2) // EG: 1o.var
+				}
+
 				local prettyname `newname'
 			}
 			else {
@@ -42,7 +49,7 @@ local vars `0'
 			}
 		}
 		
-		* di in red " var=<`var'> --> new=<`newname'> pretty=<`prettyname'>"
+		*di in red " var=<`var'> --> new=<`newname'> pretty=<`prettyname'>"
 		Assert ("`newname'"!="" & "`prettyname'"!=""), ///
 			msg("var=<`var'> --> new=<`newname'> pretty=<`prettyname'>")
 		local newnames `newnames' `newname'
