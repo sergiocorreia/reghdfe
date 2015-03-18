@@ -22,7 +22,7 @@
 	run test-mwc
 	run test-ivreg2-nocons
 
-	run test-cont-interaction
+	run test-cont-interaction // fixes bug when the expansion of i.var#c.var  does not include base levels
 
 	run test-gmm
 	* Doesn't work: run test-cue
