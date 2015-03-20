@@ -50,7 +50,7 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 
 	* Compute the bread of the sandwich D := inv(X'X/N)
 	tempname XX invSxx
-	qui mat accum `XX' = `indepvars' `avgevars', `nocons'
+	qui mat accum `XX' = `indepvars' `avgevars' `weightexp', `nocons'
 	mat `invSxx' = syminv(`XX') // This line is different from <Wrapper_avar>
 
 	* Resids
@@ -91,7 +91,7 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 		
 		* Compute the full sandwich (will be saved in `M')
 
-		_robust `resid', variance(`M') minus(0) cluster(`group') // Use minus==1 b/c we adjust the q later
+		_robust `resid' `weightexp', variance(`M') minus(0) cluster(`group') // Use minus==1 b/c we adjust the q later
 		Debug, level(3) msg(as result "`sign' `vars'")
 		* Add it to the other sandwiches
 		matrix `V' = `V' `sign' `M'

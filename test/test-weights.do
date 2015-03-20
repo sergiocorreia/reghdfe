@@ -32,8 +32,16 @@ cscript "reghdfe with weights" adofile reghdfe
 	reghdfe price weight disp [fw=n], a(turn#foreign) tol(1e-10)
 	TrimMatrix 2
 	storedresults compare areg e(), tol(1e-10) include(scalar: N r2 matrix: trim_b trim_V macros: wexp wtype)
+
+foreach suite in default avar {
+	di as text "SUITE=<`suite'>"
+	reghdfe price weight disp [fw=n], a(turn#foreign) tol(1e-10) vce(ols, suite(`suite'))
+	TrimMatrix 2
+	storedresults compare areg e(), tol(1e-10) include(scalar: N r2 matrix: trim_b trim_V macros: wexp wtype)	
+}
+
 	storedresults drop areg
-	
+
 * [TEST] [fw] should fail with non-integer weights
 	gen float m = 1 + uniform()
 	rcof "reghdfe price weight disp [fw=m], a(turn#foreign)" == 401 // may not use noninteger freq weights

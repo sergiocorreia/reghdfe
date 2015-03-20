@@ -1,4 +1,4 @@
-*! reghdfe 1.4.371 15mar2015
+*! reghdfe 1.4.420 20mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 program define reghdfe
@@ -1606,6 +1606,8 @@ program define Wrapper_regress, eclass
 	local subcmd regress `vars' `weightexp', `vceoption' `suboptions' `nocons' noheader notable
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	qui `subcmd'
+	di as error "<`subcmd'>"
+	matrix list e(V), format(%20.12e)
 	
 	local N = e(N) // We couldn't just use c(N) due to possible frequency weights
 	local WrongDoF = `N' - `addconstant' - `K'
@@ -1720,7 +1722,7 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 
 	* Compute the bread of the sandwich D := inv(X'X/N)
 	tempname XX invSxx
-	qui mat accum `XX' = `indepvars' `avgevars', `nocons'
+	qui mat accum `XX' = `indepvars' `avgevars' `weightexp', `nocons'
 	mat `invSxx' = syminv(`XX') // This line is different from <Wrapper_avar>
 
 	* Resids
@@ -1761,7 +1763,7 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 		
 		* Compute the full sandwich (will be saved in `M')
 
-		_robust `resid', variance(`M') minus(0) cluster(`group') // Use minus==1 b/c we adjust the q later
+		_robust `resid' `weightexp', variance(`M') minus(0) cluster(`group') // Use minus==1 b/c we adjust the q later
 		Debug, level(3) msg(as result "`sign' `vars'")
 		* Add it to the other sandwiches
 		matrix `V' = `V' `sign' `M'
@@ -1844,6 +1846,8 @@ program define Wrapper_avar, eclass
 	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars'" )) ) // Just for esthetic purposes
 	if (`c(version)'>=12) local hidden hidden
 
+	local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)
+
 * Convert -vceoption- to what -avar- expects
 	local 0 `vceoption'
 	syntax namelist(max=3) , [bw(integer 1) dkraay(integer 1) kernel(string) kiefer]
@@ -1862,7 +1866,7 @@ program define Wrapper_avar, eclass
 		local nocons noconstant
 		local kk = `kk' + 1
 	}
-
+di as error "WRAPPER=AVAR"
 * Before -avar- we need:
 *	i) inv(X'X)
 *	ii) DoF lost due to included indepvars
@@ -1893,10 +1897,11 @@ program define Wrapper_avar, eclass
 
 	* Compute the bread of the sandwich inv(X'X/N)
 	tempname XX invSxx
-	qui mat accum `XX' = `indepvars' `avgevars', `nocons'
+	qui mat accum `XX' = `indepvars' `avgevars' `tmpweightexp', `nocons'
+	* WHY DO I NEED TO REPLACE PWEIGHT WITH AWEIGHT HERE?!?
 	
 	* (Is this precise enough? i.e. using -matrix- commands instead of mata?)
-	mat `invSxx' = syminv(`XX' * 1/r(N) )
+	mat `invSxx' = syminv(`XX' * 1/`N')
 	
 	* Resids
 	tempvar resid
@@ -1906,7 +1911,7 @@ program define Wrapper_avar, eclass
 	local df_r = max( `WrongDoF' - `kk' , 0 )
 
 * Use -avar- to get meat of sandwich
-	local subcmd avar `resid' (`indepvars' `avgevars'), `vceoption' `nocons' // dofminus(0)
+	local subcmd avar `resid' (`indepvars' `avgevars') `weightexp', `vceoption' `nocons' // dofminus(0)
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	cap `subcmd'
 	local rc = _rc

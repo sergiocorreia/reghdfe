@@ -12,6 +12,8 @@ program define Wrapper_avar, eclass
 	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars'" )) ) // Just for esthetic purposes
 	if (`c(version)'>=12) local hidden hidden
 
+	local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)
+
 * Convert -vceoption- to what -avar- expects
 	local 0 `vceoption'
 	syntax namelist(max=3) , [bw(integer 1) dkraay(integer 1) kernel(string) kiefer]
@@ -61,10 +63,11 @@ program define Wrapper_avar, eclass
 
 	* Compute the bread of the sandwich inv(X'X/N)
 	tempname XX invSxx
-	qui mat accum `XX' = `indepvars' `avgevars', `nocons'
+	qui mat accum `XX' = `indepvars' `avgevars' `tmpweightexp', `nocons'
+	* WHY DO I NEED TO REPLACE PWEIGHT WITH AWEIGHT HERE?!?
 	
 	* (Is this precise enough? i.e. using -matrix- commands instead of mata?)
-	mat `invSxx' = syminv(`XX' * 1/r(N) )
+	mat `invSxx' = syminv(`XX' * 1/`N')
 	
 	* Resids
 	tempvar resid
@@ -74,7 +77,7 @@ program define Wrapper_avar, eclass
 	local df_r = max( `WrongDoF' - `kk' , 0 )
 
 * Use -avar- to get meat of sandwich
-	local subcmd avar `resid' (`indepvars' `avgevars'), `vceoption' `nocons' // dofminus(0)
+	local subcmd avar `resid' (`indepvars' `avgevars') `weightexp', `vceoption' `nocons' // dofminus(0)
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	cap `subcmd'
 	local rc = _rc

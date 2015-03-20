@@ -22,6 +22,9 @@
 	run test-mwc
 	run test-ivreg2-nocons
 
+	run test-weights-1clust
+	run test-weights-2clust // 2 absvars and 2 clustervars
+
 	run test-cont-interaction // fixes bug when the expansion of i.var#c.var  does not include base levels
 
 	run test-gmm
