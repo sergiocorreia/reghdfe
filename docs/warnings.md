@@ -13,3 +13,4 @@ Quick list of pitfalls that need to be discussed:
 5. If you use vce(cluster ..), check that your number of clusters is high enough! If not, you are making the SEs even worse!
 6. The panel variables (absvars) should probably be nested within the clusters (clustervars) due to the within-panel correlation induced by the FEs
 (this is not the case for *all* the absvars, only those that are treated as growing as N grows)
+7. If you use weights, be careful about them. For instance, contrary to e.g. *xtreg* and *xtabond2* (but on par with *areg*), reghdfe does not check that the weights are constant within time (i.e. for a given unit). Sometimes, it is fine if weights are not constant, but it can also lead to issues such as those discussed through [statalist](http://www.statalist.org/forums/forum/general-stata-discussion/general/63794-xtologit-complex-weighting-for-a-ordered-logistic-regression-in-a-pre-post-study-design).
