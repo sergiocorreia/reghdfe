@@ -240,8 +240,8 @@ either {opt ivregress} or {opt ivreg2} (default; needs installing).{p_end}
 {synopt :{opt dof:adjustments(list)}}allows selecting the desired adjustments for degrees of freedom.{p_end}
 {synopt :} - rarely used except for a marginal speed-up, or when comparing with packages that do not allow some adjustments.{p_end}
 {synopt :} - possible values are: {it:[pairwise|firstpair] clusters continuous}.{p_end}
-{synopt :} - {opt vce(all)} is the default, equivalent to {it:pairwise clusters continuous}.{p_end}
-{synopt :} - {opt vce(none)} will not do any adjustments and provide overtly conservative degrees of freedom.{p_end}
+{synopt :} - {opt dof(all)} is the default, equivalent to {it:pairwise clusters continuous}.{p_end}
+{synopt :} - {opt dof(none)} will not do any adjustments and provide overtly conservative degrees of freedom.{p_end}
 {synopt: {opth group(newvarname)}}unique identifier for the first mobility group{p_end}
 
 {syntab:Speeding Up Estimation {help reghdfe##opt_speedup:[+]}}

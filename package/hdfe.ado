@@ -12,7 +12,7 @@ program define hdfe, rclass
 		local weighttype `weight'
 	}
 	
-* Assert that program exists
+* Assert that base program exists
 	qui which reghdfe_absorb
 
 * Preserve if asked to

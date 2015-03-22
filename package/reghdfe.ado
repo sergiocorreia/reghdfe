@@ -1,4 +1,4 @@
-*! reghdfe 1.4.420 20mar2015
+*! reghdfe 1.4.435 22mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 program define reghdfe
@@ -1606,8 +1606,6 @@ program define Wrapper_regress, eclass
 	local subcmd regress `vars' `weightexp', `vceoption' `suboptions' `nocons' noheader notable
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	qui `subcmd'
-	di as error "<`subcmd'>"
-	matrix list e(V), format(%20.12e)
 	
 	local N = e(N) // We couldn't just use c(N) due to possible frequency weights
 	local WrongDoF = `N' - `addconstant' - `K'
@@ -1866,7 +1864,7 @@ program define Wrapper_avar, eclass
 		local nocons noconstant
 		local kk = `kk' + 1
 	}
-di as error "WRAPPER=AVAR"
+
 * Before -avar- we need:
 *	i) inv(X'X)
 *	ii) DoF lost due to included indepvars

@@ -32,6 +32,11 @@ cscript "reghdfe with weights and MWC" adofile reghdfe
 
 	drop if `weightvar'==. | `weightvar'<=0
 	drop if `fweightvar'==. | `fweightvar'<=0
+
+	* XTREG REQUIRES WEIGHTS TO BE CONSTANT WITHIN ABSVAR
+	bys idcode (year): gen double cfw = `fweightvar'[1]
+	local cfweightvar cfw
+
 	
 	fvunab tmp : `indepvars' `endogvars'
 	local K : list sizeof tmp
@@ -42,13 +47,37 @@ cscript "reghdfe with weights and MWC" adofile reghdfe
 		macros: wtype // wexp
 
 	local i 0
+rebuild_git reghdfe
 
 // -------------------------------------------------------------------------------------------------
-rebuild_git reghdfe
-* [TEST] Freq. weight
+
+* [TEST] Freq. weight - Comparison vs XTREG
 	local weight fweight
-	noi di as text " - freq. weight"
-	xtreg `depvar' `indepvars' [`weight'=`fweightvar'], vce(cluster `clustervars') fe // absorb(`absvars') 
+	noi di as text " - freq. weight vs xtreg"
+	xtreg `depvar' `indepvars' [`weight'=`cfweightvar'], vce(cluster `clustervars') fe // absorb(`absvars') 
+	TrimMatrix `K'
+	matrix list e(trim_b), format(%20.12e)
+	matrix list e(trim_V), format(%20.12e)
+	di e(df_r)
+	storedresults save benchmark e()
+
+foreach suite in default avar mwc {
+	di as text "SUITE=<`suite'> WEIGHTEXP=[`weight'=`cfweightvar']"
+	reghdfe `depvar' `indepvars' [`weight'=`cfweightvar'], absorb(`absvars') vce(cluster `clustervars', suite(`suite'))
+	TrimMatrix `K'
+	matrix list e(trim_b), format(%20.12e)
+	matrix list e(trim_V), format(%20.12e)
+	storedresults compare benchmark e(), tol(1e-10) include(`include')
+}
+
+	storedresults drop benchmark
+
+// -------------------------------------------------------------------------------------------------
+
+* [TEST] Freq. weight - Comparison vs AREG
+	local weight fweight
+	noi di as text " - freq. weight vs areg"
+	areg `depvar' `indepvars' [`weight'=`fweightvar'], vce(cluster `clustervars') absorb(`absvars') 
 	TrimMatrix `K'
 	matrix list e(trim_b), format(%20.12e)
 	matrix list e(trim_V), format(%20.12e)
@@ -57,7 +86,7 @@ rebuild_git reghdfe
 
 foreach suite in default avar mwc {
 	di as text "SUITE=<`suite'> WEIGHTEXP=[`weight'=`fweightvar']"
-	reghdfe `depvar' `indepvars' [`weight'=`fweightvar'], absorb(`absvars') vce(cluster `clustervars', suite(`suite')) tol(1e-12)
+	reghdfe `depvar' `indepvars' [`weight'=`fweightvar'], absorb(`absvars') vce(cluster `clustervars', suite(`suite')) dof(pairwise continuous) // exclude -clusters- from dof()
 	TrimMatrix `K'
 	matrix list e(trim_b), format(%20.12e)
 	matrix list e(trim_V), format(%20.12e)
@@ -65,50 +94,92 @@ foreach suite in default avar mwc {
 }
 
 	storedresults drop benchmark
-asd
+
 // -------------------------------------------------------------------------------------------------
 
-* [TEST] Analytic. weight
+* [TEST] Analytic. weight vs xtreg
 	local weight aweight
-	noi di as text " - analytic weight: [`weight'=`weightvar']"
-	xtreg `depvar' `indepvars' [`weight'=`weightvar'], vce(cluster `clustervars') fe // absorb(`absvars') 
+	noi di as text " - analytic weight: [`weight'=`cfweightvar']"
+	xtreg `depvar' `indepvars' [`weight'=`cfweightvar'], vce(cluster `clustervars') fe // absorb(`absvars') 
 	di e(df_r) // Missing?
 	TrimMatrix `K'
 	matrix list e(trim_V), format(%20.12e)
 	storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' [`weight'=`weightvar'], absorb(`absvars') vce(cluster `clustervars', suite(avar))
+foreach suite in default avar mwc {
+	di as text "SUITE=<`suite'> WEIGHTEXP=[`weight'=`cfweightvar']"
+	reghdfe `depvar' `indepvars' [`weight'=`cfweightvar'], absorb(`absvars') vce(cluster `clustervars', suite(`suite'))
 	TrimMatrix `K'
+	matrix list e(trim_b), format(%20.12e)
 	matrix list e(trim_V), format(%20.12e)
 	storedresults compare benchmark e(), tol(1e-10) include(`include')
-
-	reghdfe `depvar' `indepvars' [`weight'=`weightvar'], absorb(`absvars') vce(cluster `clustervars', suite(mwc))
-	TrimMatrix `K'
-	matrix list e(trim_V), format(%20.12e)
-	storedresults compare benchmark e(), tol(1e-10) include(`include')
+}
 
 	storedresults drop benchmark
 
 // -------------------------------------------------------------------------------------------------
 
-* [TEST] Prob. weight
-	local weight pweight
-	noi di as text " - prob. weight: [`weight'=`weightvar']"
-	xtreg `depvar' `indepvars' [`weight'=`weightvar'], vce(cluster `clustervars') fe // absorb(`absvars') 
+* [TEST] Analytic. weight vs areg
+	local weight aweight
+	noi di as text " - analytic weight: [`weight'=`weightvar']"
+	areg `depvar' `indepvars' [`weight'=`weightvar'], vce(cluster `clustervars') absorb(`absvars') 
 	di e(df_r) // Missing?
 	TrimMatrix `K'
 	matrix list e(trim_V), format(%20.12e)
 	storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' [`weight'=`weightvar'], absorb(`absvars') vce(cluster `clustervars', suite(avar))
+foreach suite in default avar mwc {
+	di as text "SUITE=<`suite'> WEIGHTEXP=[`weight'=`weightvar']"
+	reghdfe `depvar' `indepvars' [`weight'=`weightvar'], absorb(`absvars') vce(cluster `clustervars', suite(`suite')) dof(pairwise continuous) // exclude -clusters- from dof()
 	TrimMatrix `K'
+	matrix list e(trim_b), format(%20.12e)
 	matrix list e(trim_V), format(%20.12e)
 	storedresults compare benchmark e(), tol(1e-10) include(`include')
+}
 
-	reghdfe `depvar' `indepvars' [`weight'=`weightvar'], absorb(`absvars') vce(cluster `clustervars', suite(mwc))
+	storedresults drop benchmark
+
+// -------------------------------------------------------------------------------------------------
+
+* [TEST] Prob. weight vs xtreg
+	local weight pweight
+	noi di as text " - prob. weight: [`weight'=`cfweightvar']"
+	xtreg `depvar' `indepvars' [`weight'=`cfweightvar'], vce(cluster `clustervars') fe // absorb(`absvars') 
+	di e(df_r) // Missing?
 	TrimMatrix `K'
 	matrix list e(trim_V), format(%20.12e)
+	storedresults save benchmark e()
+
+foreach suite in default avar mwc {
+	di as text "SUITE=<`suite'> WEIGHTEXP=[`weight'=`cfweightvar']"
+	reghdfe `depvar' `indepvars' [`weight'=`cfweightvar'], absorb(`absvars') vce(cluster `clustervars', suite(`suite'))
+	TrimMatrix `K'
+	matrix list e(trim_b), format(%20.12e)
+	matrix list e(trim_V), format(%20.12e)
 	storedresults compare benchmark e(), tol(1e-10) include(`include')
+}
+
+	storedresults drop benchmark
+
+// -------------------------------------------------------------------------------------------------
+
+* [TEST] Prob. weight vs areg
+	local weight pweight
+	noi di as text " - prob. weight: [`weight'=`weightvar']"
+	areg `depvar' `indepvars' [`weight'=`weightvar'], vce(cluster `clustervars') absorb(`absvars') 
+	di e(df_r) // Missing?
+	TrimMatrix `K'
+	matrix list e(trim_V), format(%20.12e)
+	storedresults save benchmark e()
+
+foreach suite in default avar mwc {
+	di as text "SUITE=<`suite'> WEIGHTEXP=[`weight'=`weightvar']"
+	reghdfe `depvar' `indepvars' [`weight'=`weightvar'], absorb(`absvars') vce(cluster `clustervars', suite(`suite')) dof(pairwise continuous) // exclude -clusters- from dof()
+	TrimMatrix `K'
+	matrix list e(trim_b), format(%20.12e)
+	matrix list e(trim_V), format(%20.12e)
+	storedresults compare benchmark e(), tol(1e-10) include(`include')
+}
 
 	storedresults drop benchmark
 
