@@ -48,7 +48,7 @@ cscript "reghdfe with clusters" adofile reghdfe
 
 	* 2. Run -hdfe-
 	preserve
-	hdfe `lhs' `rhs', abs(`absvars') cluster(`clustervar')
+	hdfe `lhs' `rhs', abs(`absvars') cluster(`clustervar') clear
 	return list
 	regress `lhs' `rhs' , vce(cluster `clustervar') // this will have different DoF so of course different VCE
 	restore
