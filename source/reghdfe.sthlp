@@ -702,6 +702,11 @@ you are responsible for ensuring that the weights stay
 constant within each unit of a fixed effect (e.g. individual),
 or that it is correct to allow varying-weights for that case.
 {p_end}
+{p 5 8 2}8. Be aware that adding several HDFEs is not a panacea.
+The first limitation is that it only uses within variation (more than acceptable if you have a large enough dataset).
+The second and subtler limitation occurs if the fixed effects are "endogenous"
+(e.g. a firm chooses a worker based on unobservables, then the identity
+of the worker is not exogenous and adding fixed effects may bias the other regressors).{p_end}
 
 {title:Missing Features}
 

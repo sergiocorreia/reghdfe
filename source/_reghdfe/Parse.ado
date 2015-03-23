@@ -139,7 +139,7 @@ if (!`savingcache') {
 		if (substr("`estimator'", 1, 3)=="gmm") local estimator gmm2s
 
 		Assert inlist("`estimator'", "2sls", "gmm2s", "liml", "cue"), msg("reghdfe error: invalid estimator `estimator'")
-		if (inlist("`estimator'", "cue")) Assert "`ivsuite'"=="ivreg2", msg("reghdfe error: estimator `estimator' only available with the ivreg2 command, you selected `ivsuite'")
+		if (inlist("`estimator'", "cue")) Assert "`ivsuite'"!="ivregress", msg("reghdfe error: estimator `estimator' only available with the ivreg2 command, you selected ivregress")
 	}
 	else {
 		local estimator 2sls
