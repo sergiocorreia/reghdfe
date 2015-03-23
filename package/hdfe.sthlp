@@ -35,7 +35,7 @@
 - does not accept time series or factor variables
 {p_end}
 {p 5 7 2}
-- does not accept the -if- or -in- commands
+- variables MUST BE FULLY spelled out (i.e. you need to use unab beforehand!)
 {p_end}
 
 {marker absvar}{...}

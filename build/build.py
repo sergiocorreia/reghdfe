@@ -84,7 +84,7 @@ for fn in output_filenames:
         with open(full_fn, 'wb') as fh:
             fh.write(source_data)
 
-# Update reghdfe.pkg
+# Update hdfe/reghdfe.pkg
 for pkgname in ["reghdfe.pkg", "hdfe.pkg"]:
     print("updating date in " + pkgname)
     full_pkg = os.path.join(source_path, pkgname)
