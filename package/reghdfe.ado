@@ -1,4 +1,4 @@
-*! reghdfe 2.0.149 23mar2015
+*! reghdfe 2.0.173 23mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 // -------------------------------------------------------------
@@ -1713,9 +1713,19 @@ else {
 		[STAGEs(string)] ///
 		[noCONstant] /// Disable adding back the intercept (mandatory with -ivreg2-)
 		[DROPSIngletons] ///
-		[GMM2s CUE LIML] /// two-step GMM and CUE
+		[ESTimator(string)] /// GMM2s CUE LIML
 		[*] // For display options ; and SUmmarize(stats)
 }
+
+* Estimator
+	if ("`estimator'"!="") {
+		if (substr("`estimator'", 1, 3)=="gmm") local estimator gmm2s
+
+		Assert inlist("`estimator'", "2sls", "gmm2s", "liml", "cue")
+	}
+	else {
+		local estimator 2sls
+	}
 
 * Weight
 * We'll have -weight- (fweight|aweight|pweight), -weightvar-, -exp-, and -weightexp-

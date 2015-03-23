@@ -8,13 +8,16 @@
 {vieweralsosee "reg2hdfe" "help reg2hdfe"}{...}
 {vieweralsosee "a2reg" "help a2reg"}{...}
 {viewerjumpto "Syntax" "reghdfe##syntax"}{...}
-{viewerjumpto "Postestimation Syntax" "reghdfe##postestimation"}{...}
 {viewerjumpto "Description" "reghdfe##description"}{...}
 {viewerjumpto "Options" "reghdfe##options"}{...}
+{viewerjumpto "Postestimation Syntax" "reghdfe##postestimation"}{...}
+{viewerjumpto "Remarks" "reghdfe##remarks"}{...}
 {viewerjumpto "Examples" "reghdfe##examples"}{...}
 {viewerjumpto "Stored results" "reghdfe##results"}{...}
+{viewerjumpto "Author" "reghdfe##contact"}{...}
+{viewerjumpto "Updates" "reghdfe##updates"}{...}
+{viewerjumpto "Acknowledgements" "reghdfe##acknowledgements"}{...}
 {viewerjumpto "References" "reghdfe##references"}{...}
-{viewerjumpto "Contact" "reghdfe##contact"}{...}
 {title:Title}
 
 {p2colset 5 18 20 2}{...}
@@ -108,8 +111,9 @@ but more flexible, compatible with the {opt fast:} option, and saves the matrix 
 {synopt :}{it:subopt} allows {opt bw(#)}, {opt dkraay(#)}, {opt ker:nel(str)}, {opt kiefer}{p_end}
 
 {syntab:IV/2SLS/GMM {help reghdfe##opt_iv:[+]}}
-{synopt :{opt gmm:2s}}use two-stage GMM estimator{p_end}
-{synopt :{opt liml:}}use LIML estimator{p_end}
+{synopt :{opt est:imator(str)}}estimator used in the instrumental-variable regression.
+The default is {opt 2sls}, valid options are {opt gmm:2s} (two-stage GMM estimator),
+{opt liml:} and {opt cue:} (which gives approximate results, as discussed in detail below){p_end}
 {synopt :{opth iv:suite(subcmd)}}package used in the regressions;
 either {opt ivreg2} (default; needs installing) or {opt ivregress}{p_end}
 {synopt :{opt first}}report first stage regression (but sadly not first-stage summary results){p_end}
@@ -122,6 +126,7 @@ either {opt ivreg2} (default; needs installing) or {opt ivregress}{p_end}
 {synopt :{opt check}}if convergence was achieved, the fixed effects should have a 1.0 coeficient in each step{p_end}
 
 {syntab:Degrees-of-Freedom Adjustments {help reghdfe##opt_dof:[+]}}
+BUGBUG
 {synopt :{opt dof:adjustments(list)}}allows selecting the desired adjustments for degrees of freedom.{p_end}
 {synopt :} - rarely used except for a marginal speed-up, or when comparing with packages that do not allow some adjustments.{p_end}
 {synopt :} - possible values are: {it:[pairwise|firstpair] clusters continuous}.{p_end}
@@ -130,6 +135,7 @@ either {opt ivreg2} (default; needs installing) or {opt ivregress}{p_end}
 {synopt: {opth group(newvarname)}}unique identifier for the first mobility group{p_end}
 
 {syntab:Speeding Up Estimation {help reghdfe##opt_speedup:[+]}}
+BUGBUG
 {synopt :{opt fast}}avoids one {it:save}, one {it:use}, and one {it:merge} operation{p_end}
 {synopt :{opth cores(#)}}run the demeaning algorithm in # parallel instances of Stata{p_end}
 {synopt :{opth save:cache(filename)}}compute the demeaning for a list of variables and save in the file;
@@ -270,8 +276,11 @@ under the assumptions of homoscedasticity and no correlation between observation
 {pmore}Warning: in a FE panel regression, using {opt r:obust} will
 lead to inconsistent standard errors if for every fixed effect, the {it:other} dimension is fixed.
 For instance, in an standard panel with individual and time fixed effects, we require both the number of
-individuals and time periods to grow asymptotically. If that is not the case, an alternative may be to use clustered errors,
-which as discussed below will still have their own asymptotic requirements. For a discussion, see {browse "http://www.princeton.edu/~mwatson/papers/ecta6489.pdf":Stock and Watson, "Heteroskedasticity-robust standard errors for fixed-effects panel-data regression," Econometrica 76 (2008): 155-174}
+individuals and time periods to grow asymptotically.
+If that is not the case, an alternative may be to use clustered errors,
+which as discussed below will still have their own asymptotic requirements.
+For a discussion, see
+{browse "http://www.princeton.edu/~mwatson/papers/ecta6489.pdf":Stock and Watson, "Heteroskedasticity-robust standard errors for fixed-effects panel-data regression," Econometrica 76 (2008): 155-174}
 
 {pmore}
 {opt cl:uster} {it:clustervars} estimates consistent standard errors even when the observations
@@ -331,12 +340,14 @@ Options {opt boot:strap} and {opt jack:knife} could be implemented, although the
 estimator used in the instrumental-variable estimation
 
 {pmore}
-{it:2sls} (default), {opt gmm:2s} (two-stage efficient GMM), {opt liml} (limited-information maximum likelihood), and
+{opt 2sls} (two-stage least squares, default), {opt gmm:2s} (two-stage efficient GMM), {opt liml} (limited-information maximum likelihood), and
 {opt cue} ("continuously-updated" GMM) are allowed.{p_end}
 
 {pmore}
-Note that this {opt cue}
-http://www.stata-journal.com/sjpdf.html?articlenum=st0030_3
+Warning: {opt cue} will not give the same results as ivreg2. See the discussion in
+{browse "http://www.stata-journal.com/sjpdf.html?articlenum=st0030_3": Baum, Christopher F., Mark E. Schaffer, and Steven Stillman. "Enhanced routines for instrumental variables/GMM estimation and testing." Stata Journal 7.4 (2007): 465-506}
+(page 484).
+Note that even if this is not exactly {opt cue}, it may still be a desirable/useful alternative to standard cue, as explained in the article.
 
 {phang}
 {opth iv:suite(subcmd)}
@@ -363,14 +374,29 @@ shows the entire output of ivreg2 (if that's the ivsuite used); this is used to 
 The downside is that it will have temporary names in place of whenever factors variables and time-series operators are used.
 
 {phang}
-{opt dofminus(small|large)}
-indicates whether {it:ivreg2} should substract the number of fixed effects using either the option {it:sdofminus} (treating them as partialled-out regressors)
-or the option {it:dofminus} (treating them as "fixed effects").
+{opt stage:s(stage_list)}
+adds and saves up to four auxiliary regressions useful when running instrumental-variable regressions:
 
-{pmore} This is only relevant under clustered errors, and only applies to the fixed effects not nested within a the cluster categories.
+{phang2}{cmd:ols} an equivalent ols regression (as a benchmark/comparison){p_end}
+{phang2}{cmd:first} all the first stage regressions{p_end}
+{phang2}{cmd:acid} an "acid" regression that includes both the instruments, exogenous regressors (i.e. included instruments), and endogenous regressors, against the dependent variable.
+In this setup, the instruments should not be significant.{p_end}
+{phang2}{cmd:reduced} the reduced-form regression, between the instruments and exogenous regressors, and the dependent variable (excludes the endogenous regressor).{p_end}
 
 {marker opt_diagnostic}{...}
 {dlgtab:Diagnostic}
+
+{phang}
+{opt v:erbose(#)} orders the command to print debugging information.
+
+{pmore}
+Possible values are 0 (none), 1 (some information), 2 (even more), 3 (adds dots for each iteration, and reportes parsing details), 4 (adds details for every iteration step)
+
+{pmore}
+For debugging, the most useful value is 3. For simple status reports, set verbose to 1.
+
+{phang}
+ {opt check} will regress the variable against the calculated fixed effects. If convergence was indeed achieved, the coefficients should be 1.0 in each step (except under perfect collinearity situations.)
 
 {marker opt_dof}{...}
 {dlgtab:Degrees-of-Freedom Adjustments}
@@ -385,6 +411,13 @@ and those nested within the {it:clustervar} (unless {input:dofmethod(naive)} is 
 {phang}
 {opth dofmethod(doftype)}
 details the adjustement to degrees-of-freedom due to the estimated fixed effects. This is an advanced option, and the default ({opt bounds}) should work reasonably well.
+
+{phang}
+{opt dofminus(small|large)}
+indicates whether {it:ivreg2} should substract the number of fixed effects using either the option {it:sdofminus} (treating them as partialled-out regressors)
+or the option {it:dofminus} (treating them as "fixed effects").
+
+{pmore} This is only relevant under clustered errors, and only applies to the fixed effects not nested within a the cluster categories.
 
 {pmore}
 Notation: There are G sets of fixed effects (G absvars).
@@ -415,9 +448,81 @@ This is a conservative number and works reasonably fast in most cases.
 Under the options {opt simple} and {opt naive}, no approximation is made and it is assumed that M=1 (very conservative).
 Additional methods, such as {opt bootstrap} are also possible but not yet implemented.
 
-
 {marker opt_speedup}{...}
 {dlgtab:Speeding Up Estimation}
+
+{phang}
+{ul:Parallel Computing}
+
+{phang}
+{opth cores(#)} will run the demeaning algorithm in # parallel instances.
+
+{pmore}
+Several Stata processes will be created, and the task of demeaning all the required variables will be distributed amongst them.
+This option requires the package {help parallel:parallel} by George Vega Yon (run {it:ssc install parallel} to download it)
+
+{pmore}
+Disclaimer: there may still be some rough corners (e.g. sometimes not deleting temporary files)
+
+{pmore}Example:{p_end}
+{phang2}{cmd:. sysuse auto}{p_end}
+{phang2}{cmd:. reghdfe price weight length, a(turn rep) cores(2)}{p_end}
+
+{phang}
+{ul:Precomputing transformations} (useful when testing alternative specifications)
+
+{phang}
+{cmd:reghdfe} {varlist} {ifin}{cmd:,} {opt a:bsorb(absvars)} {opth save:cache(filename)} [{it:options}]
+
+{pmore}
+This will demean {it:varlist} with respect to {it:absvars}, and save the transformed variables in {it:filename}. Note that if any variable has a missing value, the entire row is dropped.
+
+{pmore}
+Options allowed are all optimization options except {it:fast}, and all diagnostic options including {it:cores(#)}
+
+{pmore}
+This will create a variable __uid__ in the master data.
+
+{phang}
+{opth use:cache(filename)} can be added to a normal command and will load the transformed variables from {it:filename} instead of computing them again.
+
+{pmore}
+In order for this to work, i) the filename needs to exist and all the variables need to have been precomputed using that filename,
+ii) the variable __uid__ must exist, iii) the precomputed transformation must have been made using the same {it:absvars} and the same observations 
+(if it was precomputed with more observations, an error will occur; with less observations, that subset of the dataset will be used for the regression).
+
+{pmore}Example:{p_end}
+{phang2}{cmd:. sysuse auto}{p_end}
+{phang2}{cmd:. tempfile cache}{p_end}
+{phang2}{cmd:. reghdfe price weight length, a(turn rep) savecache("`cache'")}{p_end}
+{phang2}{cmd:. reghdfe price weight, a(turn rep) usecache("`cache'")}{p_end}
+{phang2}{cmd:. reghdfe price length, a(turn rep) usecache("`cache'")}{p_end}
+
+{phang}
+{ul:Running the same regression over different categories of a variable} (equivalent to by:)
+
+{phang} {opth over(varname)} allows regressions over the different levels of {it:varname}, with the advantage that the data needs to be demeaned only once.
+
+{pmore}
+To use this, first add this option together with {it:savecache}. This will change the {it:absvars} from e.g. "i.var1 i.var2##c.var3" to "i.over i.over#i.var1 i.over#i.var2##c.var3", 
+basically adding one fixed effect and adding the {it:over} variable to every interaction. Transforming the entire dataset with this specification is equivalent to transforming it separately by levels of {it:over}.
+
+{pmore}
+This call will return {opt e(over_levels)}, after which the regressions can be called as long as both {it:usecache} and {it:over} are specified. 
+The user should be very careful not to change the dataset between calls, as the program will detect only some inconsistencies between the {it:savecache} call and the {it:usecache} call.
+
+{pmore}Example:{p_end}
+{phang2}{cmd:. sysuse auto}{p_end}
+{phang2}{cmd:. tempfile cache}{p_end}
+{phang2}{cmd:. reghdfe price weight length, a(turn rep) savecache("`cache'") over(foreign)}{p_end}
+{phang2}{cmd:. local levels `e(levels_over)'}{p_end}
+{phang2}{cmd:. foreach level of local levels {c -(}}{p_end}
+{phang3}{cmd:. reghdfe price weight length if foreign==`level', a(turn rep) usecache("`cache'") over(foreign)}{p_end}
+{phang2}{cmd:. {c )-}}{p_end}
+
+{pmore}This is equivalent to running{p_end}
+{phang2}{cmd:. reghdfe price weight length  if foreign==0, a(turn rep)}{p_end}
+{phang2}{cmd:. reghdfe price weight length  if foreign==1, a(turn rep)}{p_end}
 
 {marker opt_avge}{...}
 {dlgtab:"Average Effects" (AvgE)}
@@ -510,106 +615,6 @@ Note that this is in terms of acceleration steps, not iterations (so if accel_fr
     see {helpb estimation options##display_options:[R] estimation options}.
 {p_end}
 
-
-{dlgtab:Diagnostic and Experimental}
-
-{phang}
-{opt v:erbose(#)} orders the command to print debugging information.
-
-{pmore}
-Possible values are 0 (none), 1 (some information), 2 (even more), 3 (adds dots for each iteration, and reportes parsing details), 4 (adds details for every iteration step)
-
-{pmore}
-For debugging, the most useful value is 3. For simple status reports, set verbose to 1.
-
-{phang}
- {opt check} will regress the variable against the calculated fixed effects. If convergence was indeed achieved, the coefficients should be 1.0 in each step (except under perfect collinearity situations.)
-
-{phang}
-{cmd: reghdfe}, {opt alt:ernative} will try to run an equivalent regression using estimators with dummy variables (e.g. {it:regress}).
-Note that it needs to be run {it:after} the {cmd:reghdfe} regression has been succesfully completed.
-
-{pmore}
-Disclaimer: it will currently raise an error under IV/2SLS or when using some advanced options.
-
-{marker experimental_options}{...}
-{phang}
-{it:Experimental options:}
-
-{phang}
-{ul:Parallel Computing}
-
-{phang}
-{opth cores(#)} will run the demeaning algorithm in # parallel instances.
-
-{pmore}
-Several Stata processes will be created, and the task of demeaning all the required variables will be distributed amongst them.
-This option requires the package {help parallel:parallel} by George Vega Yon (run {it:ssc install parallel} to download it)
-
-{pmore}
-Disclaimer: there may still be some rough corners (e.g. sometimes not deleting temporary files)
-
-{pmore}Example:{p_end}
-{phang2}{cmd:. sysuse auto}{p_end}
-{phang2}{cmd:. reghdfe price weight length, a(turn rep) cores(2)}{p_end}
-
-{phang}
-{ul:Precomputing transformations} (useful when testing alternative specifications)
-
-{phang}
-{cmd:reghdfe} {varlist} {ifin}{cmd:,} {opt a:bsorb(absvars)} {opth save:cache(filename)} [{it:options}]
-
-{pmore}
-This will demean {it:varlist} with respect to {it:absvars}, and save the transformed variables in {it:filename}. Note that if any variable has a missing value, the entire row is dropped.
-
-{pmore}
-Options allowed are all optimization options except {it:fast}, and all diagnostic options including {it:cores(#)}
-
-{pmore}
-This will create a variable __uid__ in the master data.
-
-{phang}
-{opth use:cache(filename)} can be added to a normal command and will load the transformed variables from {it:filename} instead of computing them again.
-
-{pmore}
-In order for this to work, i) the filename needs to exist and all the variables need to have been precomputed using that filename,
-ii) the variable __uid__ must exist, iii) the precomputed transformation must have been made using the same {it:absvars} and the same observations 
-(if it was precomputed with more observations, an error will occur; with less observations, that subset of the dataset will be used for the regression).
-
-{pmore}Example:{p_end}
-{phang2}{cmd:. sysuse auto}{p_end}
-{phang2}{cmd:. tempfile cache}{p_end}
-{phang2}{cmd:. reghdfe price weight length, a(turn rep) savecache("`cache'")}{p_end}
-{phang2}{cmd:. reghdfe price weight, a(turn rep) usecache("`cache'")}{p_end}
-{phang2}{cmd:. reghdfe price length, a(turn rep) usecache("`cache'")}{p_end}
-
-{phang}
-{ul:Running the same regression over different categories of a variable} (equivalent to by:)
-
-{phang} {opth over(varname)} allows regressions over the different levels of {it:varname}, with the advantage that the data needs to be demeaned only once.
-
-{pmore}
-To use this, first add this option together with {it:savecache}. This will change the {it:absvars} from e.g. "i.var1 i.var2##c.var3" to "i.over i.over#i.var1 i.over#i.var2##c.var3", 
-basically adding one fixed effect and adding the {it:over} variable to every interaction. Transforming the entire dataset with this specification is equivalent to transforming it separately by levels of {it:over}.
-
-{pmore}
-This call will return {opt e(over_levels)}, after which the regressions can be called as long as both {it:usecache} and {it:over} are specified. 
-The user should be very careful not to change the dataset between calls, as the program will detect only some inconsistencies between the {it:savecache} call and the {it:usecache} call.
-
-{pmore}Example:{p_end}
-{phang2}{cmd:. sysuse auto}{p_end}
-{phang2}{cmd:. tempfile cache}{p_end}
-{phang2}{cmd:. reghdfe price weight length, a(turn rep) savecache("`cache'") over(foreign)}{p_end}
-{phang2}{cmd:. local levels `e(levels_over)'}{p_end}
-{phang2}{cmd:. foreach level of local levels {c -(}}{p_end}
-{phang3}{cmd:. reghdfe price weight length if foreign==`level', a(turn rep) usecache("`cache'") over(foreign)}{p_end}
-{phang2}{cmd:. {c )-}}{p_end}
-
-{pmore}This is equivalent to running{p_end}
-{phang2}{cmd:. reghdfe price weight length  if foreign==0, a(turn rep)}{p_end}
-{phang2}{cmd:. reghdfe price weight length  if foreign==1, a(turn rep)}{p_end}
-
-
 {marker postestimation}{...}
 {title:Postestimation Syntax}
 
@@ -656,6 +661,7 @@ or tests on different groups, you can replicate it manually, as described
 
 {pstd}Note: do not use {cmd:suest}. It will run, but the results will be incorrect.{p_end}
 
+{marker remarks}{...}
 {title:Implementation Details}
 
 {p2col 5 7 7 2: -}This program usually runs at least 10 times faster than related programs ({cmd:areg}, {cmd:xtreg, fe}, {cmd:twfe}, {cmd:a2reg}, {cmd:reg2hdfe}, etc.).{p_end}
@@ -692,7 +698,8 @@ or that it is correct to allow varying-weights for that case.
 {phang}(If you are interested in discussing these or others, feel free to {help reghdfe##contact:contact me})
 
 {p2col 5 7 7 2: -}Add a more thorough discussion on the possible identification issues{p_end}
-{p2col 5 7 7 2: -}Find out a way to use HDFEs with CUE (right now only OLS/2SLS/2SGMM/LIML work correctly){p_end}
+{p2col 5 7 7 2: -}Find out a way to use reghdfe iteratively with CUE
+(right now only OLS/2SLS/2SGMM/LIML give the exact same results){p_end}
 {p2col 5 7 7 2: -}Implement a -bootstrap- option in DoF estimation{p_end}
 {p2col 5 7 7 2: -}The interaction with cont vars (i.a#c.b) may suffer from numerical accuracy issues, as we are dividing by a sum of squares{p_end}
 {p2col 5 7 7 2: -}Calculate exact DoF adjustment for 3+ HDFEs (note: not a problem with cluster VCE when one FE is nested within the cluster){p_end}
