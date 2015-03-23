@@ -431,7 +431,7 @@ else if ("`stage'"=="first") {
 		vceoption vcetype vcesuite ///
 		kk suboptions showraw vceunadjusted first weightexp ///
 		addconstant /// tells -regress- to hide _cons
-		gmm2s cue liml // Whether to run or not two-step gmm
+		estimator // Whether to run or not two-step gmm
 	foreach opt of local option_list {
 		if ("``opt''"!="") local options `options' `opt'(``opt'')
 	}

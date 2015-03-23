@@ -84,8 +84,9 @@ BODY{background-color: ffffff;
                             <i>subopt</i> allows <span class=result>bw(</span><i>#</i><span class=result>)</span>, <span class=result>dkraay(</span><i>#</i><span class=result>)</span>, <span class=result><u>ker</u></span><span class=result>nel(</span><i>str</i><span class=result>)</span>, <span class=result>kiefer</span>
 <br><br>
     IV/2SLS/GMM [+]
-      <span class=result><u>gmm</u></span><span class=result>2s</span>                 use two-stage GMM estimator
-      <span class=result>liml</span>                  use LIML estimator
+      <span class=result><u>est</u></span><span class=result>imator(</span><i>str</i><span class=result>)</span>        estimator used in the instrumental-variable regression.  The default
+                              is <span class=result>2sls</span>, valid options are <span class=result><u>gmm</u></span><span class=result>2s</span> (two-stage GMM estimator), <span class=result>liml</span> and
+                              <span class=result>cue</span> (which gives approximate results, as discussed in detail below)
       <span class=result><u>iv</u></span><span class=result>suite(</span><i>subcmd</i><span class=result>)</span>       package used in the regressions; either <span class=result>ivreg2</span> (default; needs
                               installing) or <span class=result>ivregress</span>
       <span class=result>first</span>                 report first stage regression (but sadly not first-stage summary
@@ -114,6 +115,7 @@ BODY{background-color: ffffff;
       <span class=result>group(</span><i>newvarname</i><span class=result>)</span>     unique identifier for the first mobility group
 <br><br>
     Speeding Up Estimation [+]
+BUGBUG
       <span class=result>fast</span>                  avoids one <i>save</i>, one <i>use</i>, and one <i>merge</i> operation
       <span class=result>cores(</span><i>#</i><span class=result>)</span>              run the demeaning algorithm in # parallel instances of Stata
       <span class=result><u>save</u></span><span class=result>cache(</span><i>filename</i><span class=result>)</span>   compute the demeaning for a list of variables and save in the file;
@@ -260,9 +262,9 @@ BODY{background-color: ffffff;
         Warning: in a FE panel regression, using <span class=result><u>r</u></span><span class=result>obust</span> will lead to inconsistent standard errors
         if for every fixed effect, the <i>other</i> dimension is fixed.  For instance, in an standard
         panel with individual and time fixed effects, we require both the number of individuals
-        and time periods to grow asymptotically. If that is not the case, an alternative may be to
-        use clustered errors, which as discussed below will still have their own asymptotic
-        requirements. For a discussion, see Stock and Watson, "Heteroskedasticity-robust standard
+        and time periods to grow asymptotically.  If that is not the case, an alternative may be
+        to use clustered errors, which as discussed below will still have their own asymptotic
+        requirements.  For a discussion, see Stock and Watson, "Heteroskedasticity-robust standard
         errors for fixed-effects panel-data regression," Econometrica 76 (2008): 155-174
 <br><br>
         <span class=result><u>cl</u></span><span class=result>uster</span> <i>clustervars</i> estimates consistent standard errors even when the observations are
@@ -316,10 +318,15 @@ BODY{background-color: ffffff;
 <br><br>
     <span class=result><u>est</u></span><span class=result>imator(2sls</span>|<span class=result><u>gmm</u></span><span class=result>2s</span>|<span class=result>liml</span>|<span class=result>cue)</span> estimator used in the instrumental-variable estimation
 <br><br>
-        <i>2sls</i> (default), <span class=result><u>gmm</u></span><span class=result>2s</span> (two-stage efficient GMM), <span class=result>liml</span> (limited-information maximum
-        likelihood), and <span class=result>cue</span> ("continuously-updated" GMM) are allowed.
+        <span class=result>2sls</span> (two-stage least squares, default), <span class=result><u>gmm</u></span><span class=result>2s</span> (two-stage efficient GMM), <span class=result>liml</span>
+        (limited-information maximum likelihood), and <span class=result>cue</span> ("continuously-updated" GMM) are
+        allowed.
 <br><br>
-        Note that this <span class=result>cue</span> http://www.stata-journal.com/sjpdf.html?articlenum=st0030_3
+        Warning: <span class=result>cue</span> will not give the same results as ivreg2. See the discussion in  Baum,
+        Christopher F., Mark E. Schaffer, and Steven Stillman. "Enhanced routines for instrumental
+        variables/GMM estimation and testing." Stata Journal 7.4 (2007): 465-506 (page 484).  Note
+        that even if this is not exactly <span class=result>cue</span>, it may still be a desirable/useful alternative to
+        standard cue, as explained in the article.
 <br><br>
     <span class=result><u>iv</u></span><span class=result>suite(</span><i>subcmd</i><span class=result>)</span> allows the IV/2SLS regression to be run either using <span class=result>ivregress</span> or <span class=result>ivreg2</span>.
 <br><br>
@@ -338,18 +345,47 @@ BODY{background-color: ffffff;
         The downside is that it will have temporary names in place of whenever factors variables
         and time-series operators are used.
 <br><br>
-    <span class=result>dofminus(</span><i>small</i>|<i>large</i><span class=result>)</span> indicates whether <i>ivreg2</i> should substract the number of fixed effects
-        using either the option <i>sdofminus</i> (treating them as partialled-out regressors) or the
-        option <i>dofminus</i> (treating them as "fixed effects").
+    <span class=result><u>stage</u></span><span class=result>s(</span><i>stage_list</i><span class=result>)</span> adds and saves up to four auxiliary regressions useful when running
+        instrumental-variable regressions:
 <br><br>
-        This is only relevant under clustered errors, and only applies to the fixed effects not
-        nested within a the cluster categories.
+        <span class=result>ols</span> an equivalent ols regression (as a benchmark/comparison)
+        <span class=result>first</span> all the first stage regressions
+        <span class=result>acid</span> an "acid" regression that includes both the instruments, exogenous regressors (i.e.
+            included instruments), and endogenous regressors, against the dependent variable.  In
+            this setup, the instruments should not be significant.
+        <span class=result>reduced</span> the reduced-form regression, between the instruments and exogenous regressors, and
+            the dependent variable (excludes the endogenous regressor).
 <br><br>
 <a name="opt_diagnostic"></a>        +------------+
     ----+ Diagnostic +----------------------------------------------------------------------------
 <br><br>
+    <span class=result><u>v</u></span><span class=result>erbose(</span><i>#</i><span class=result>)</span> orders the command to print debugging information.
+<br><br>
+        Possible values are 0 (none), 1 (some information), 2 (even more), 3 (adds dots for each
+        iteration, and reportes parsing details), 4 (adds details for every iteration step)
+<br><br>
+        For debugging, the most useful value is 3. For simple status reports, set verbose to 1.
+<br><br>
+    <span class=result>check</span> will regress the variable against the calculated fixed effects. If convergence was
+        indeed achieved, the coefficients should be 1.0 in each step (except under perfect
+        collinearity situations.)
+<br><br>
 <a name="opt_dof"></a>        +--------------------------------+
     ----+ Degrees-of-Freedom Adjustments +--------------------------------------------------------
+<br><br>
+    <span class=result><u>dof</u></span><span class=result>adjustments(</span><i>doflist</i><span class=result>)</span> selects how will the degrees-of-freedom, as well as e(df_a), are
+        adjusted due to the absorbed fixed effects
+<br><br>
+<span class=result>(all</span>|<span class=result>none</span>|<span class=result><u>pair</u></span><span class=result>wise</span> <span class=result><u>first</u></span><span class=result>pair</span>|<span class=result>none)</span>
+<br><br>
+<span class=result><u>dof</u></span><span class=result>adjustments(</span><i>list</i><span class=result>)</span>          allows selecting the desired adjustments for degrees of freedom.
+                               - rarely used except for a marginal speed-up, or when comparing with
+                                  packages that do not allow some adjustments.
+                               - possible values are: <i>[pairwise|firstpair] clusters continuous</i>.
+                               - <span class=result>dof(</span><i>all</i><span class=result>)</span> is the default, equivalent to <i>pairwise clusters</i>
+                                  <i>continuous</i>.
+                               - <span class=result>dof(</span><i>none</i><span class=result>)</span> will not do any adjustments and provide overtly
+                                  conservative degrees of freedom.
 <br><br>
     <span class=result>group(</span><i>newvarname</i><span class=result>)</span> name of the new variable that will contain the first mobility group.
 <br><br>
@@ -359,6 +395,13 @@ BODY{background-color: ffffff;
 <br><br>
     <span class=result>dofmethod(</span><i>doftype</i><span class=result>)</span> details the adjustement to degrees-of-freedom due to the estimated fixed
         effects. This is an advanced option, and the default (<span class=result>bounds</span>) should work reasonably well.
+<br><br>
+    <span class=result>dofminus(</span><i>small</i>|<i>large</i><span class=result>)</span> indicates whether <i>ivreg2</i> should substract the number of fixed effects
+        using either the option <i>sdofminus</i> (treating them as partialled-out regressors) or the
+        option <i>dofminus</i> (treating them as "fixed effects").
+<br><br>
+        This is only relevant under clustered errors, and only applies to the fixed effects not
+        nested within a the cluster categories.
 <br><br>
         Notation: There are G sets of fixed effects (G absvars).  K is the degrees of freedom lost
         due to the included regressors, and KK=(K1-M1)+(K2-M2)+...+(KG-MG) is the degrees of
@@ -396,102 +439,8 @@ BODY{background-color: ffffff;
         made and it is assumed that M=1 (very conservative).  Additional methods, such as
         <span class=result>bootstrap</span> are also possible but not yet implemented.
 <br><br>
-<br><br>
 <a name="opt_speedup"></a>        +------------------------+
     ----+ Speeding Up Estimation +----------------------------------------------------------------
-<br><br>
-<a name="opt_avge"></a>        +--------------------------+
-    ----+ "Average Effects" (AvgE) +--------------------------------------------------------------
-<br><br>
-    <span class=result>avge(</span><i>avgevars</i><span class=result>)</span> will attempt to control for categorical variables using the so-called AvgE
-        correction
-<br><br>
-        The advantage of this approach, vis-a-vis using <i>absorb()</i> is its speed and higher reported
-        degrees-of-freedom. It's disadvantage lies in it being inconsistent, as reported by
-        Gormley &amp; Matsa (2013).
-<br><br>
-        <i>avgevar</i> has the same syntax as <i>absvars</i>, except that continuous interactions (<span class=result>c.</span>) are not
-        allowed
-<br><br>
-    <span class=result>excludeself</span> excludes observation at hand when calculating the group average
-<br><br>
-<a name="opt_maximization"></a>        +--------------+
-    ----+ Maximization +--------------------------------------------------------------------------
-<br><br>
-    <span class=result><u>tol</u></span><span class=result>erance(</span><i>#</i><span class=result>)</span> specifies the tolerance criterion for convergence; default is <span class=result>tolerance(1e-7)</span>
-<br><br>
-        Note that for tolerances beyond 1e-14, the limits of the <i>double</i> precision are reached and
-        the results will most likely not converge.
-<br><br>
-        At the other end, is not tight enough, the regression may not identify perfectly collinear
-        regressors. However, those cases can be easily spotted due to their extremely high
-        standard errors.
-<br><br>
-    <span class=result><u>maxit</u></span><span class=result>erations(</span><i>#</i><span class=result>)</span> specifies the maximum number of iterations; the default is
-        <span class=result>maxiterations(10000)</span>; 0 means run forever until convergence.
-<br><br>
-    <i>Advanced options:</i>
-<br><br>
-    <span class=result>fast</span> avoids one <i>save</i>, one <i>use</i>, and one <i>merge</i> operation.  Useful if the dataset is very large,
-        but will not save <i>e(sample)</i> or compute correlations between the fixed effects and Xb.
-<br><br>
-        Will not work under <span class=result>check</span>, or if any variable (fixed effect, mobility group) needs to be
-        saved.
-<br><br>
-    <span class=result><u>noaccel</u></span><span class=result>erate</span> apply fixed point iteration without applying Aitken's acceleration.
-<br><br>
-        This will be much slower but may avoid situations where the acceleration gets stuck.
-<br><br>
-    <span class=result>accel_start(</span><i>#</i><span class=result>)</span> indicates how many iterations to wait until the Aitken's acceleration starts.
-        Default is 6.
-<br><br>
-    <span class=result>accel_freq(</span><i>#</i><span class=result>)</span> indicates how often the acceleration occurs. The default is 3, meaning that
-        after two steps without acceleration, the third one accelerates. Other common value is 6.
-<br><br>
-    <span class=result>bad_loop_threshold(</span><i>#</i><span class=result>)</span> If the acceleration seems stuck # times in a row, pause it. Default is
-        1.
-<br><br>
-    <span class=result>stuck_threshold(</span><i>#</i><span class=result>)</span> Defines when is the acceleration stuck (if the relative improvement is less
-        than #). Default is 5e-3
-<br><br>
-    <span class=result>pause_length(</span><i>#</i><span class=result>)</span> indicates how many acceleration steps to pause after the iteration got stuck.
-        Default is 20
-<br><br>
-        Note that this is in terms of acceleration steps, not iterations (so if accel_freq=3 and
-        pause_length=20, 60 iterations will pass until the acceleration resumes)
-<br><br>
-<a name="opt_reporting"></a>        +-----------+
-    ----+ Reporting +-----------------------------------------------------------------------------
-<br><br>
-    <span class=result><u>l</u></span><span class=result>evel(</span><i>#</i><span class=result>)</span> sets confidence level; default is <span class=result>level(95)</span>
-<br><br>
-<a name="display_options"></a>    <i>display_options</i>:  <span class=result><u>noomit</u></span><span class=result>ted</span>, <span class=result>vsquish</span>, <span class=result><u>noempty</u></span><span class=result>cells</span>, <span class=result><u>base</u></span><span class=result>levels</span>, <span class=result><u>allbase</u></span><span class=result>levels</span>, <span class=result>nofvlabel</span>,
-        <span class=result>fvwrap(</span><i>#</i><span class=result>)</span>, <span class=result>fvwrapon(</span><i>style</i><span class=result>)</span>, <span class=result>cformat(</span><i>%fmt</i><span class=result>)</span>, <span class=result>pformat(%</span><i>fmt</i><span class=result>)</span>, <span class=result>sformat(%</span><i>fmt</i><span class=result>)</span>, and <span class=result>nolstretch</span>;
-        see <span class=result>[R] estimation options</span>.
-<br><br>
-<br><br>
-        +-----------------------------+
-    ----+ Diagnostic and Experimental +-----------------------------------------------------------
-<br><br>
-    <span class=result><u>v</u></span><span class=result>erbose(</span><i>#</i><span class=result>)</span> orders the command to print debugging information.
-<br><br>
-        Possible values are 0 (none), 1 (some information), 2 (even more), 3 (adds dots for each
-        iteration, and reportes parsing details), 4 (adds details for every iteration step)
-<br><br>
-        For debugging, the most useful value is 3. For simple status reports, set verbose to 1.
-<br><br>
-    <span class=result>check</span> will regress the variable against the calculated fixed effects. If convergence was
-        indeed achieved, the coefficients should be 1.0 in each step (except under perfect
-        collinearity situations.)
-<br><br>
-    <span class=result>reghdfe</span>, <span class=result><u>alt</u></span><span class=result>ernative</span> will try to run an equivalent regression using estimators with dummy
-        variables (e.g. <i>regress</i>).  Note that it needs to be run <i>after</i> the <span class=result>reghdfe</span> regression has
-        been succesfully completed.
-<br><br>
-        Disclaimer: it will currently raise an error under IV/2SLS or when using some advanced
-        options.
-<br><br>
-<a name="experimental_options"></a>    <i>Experimental options:</i>
 <br><br>
     <u>Parallel Computing</u>
 <br><br>
@@ -566,6 +515,74 @@ BODY{background-color: ffffff;
         <span class=input>. reghdfe price weight length if foreign==0, a(turn rep)</span>
         <span class=input>. reghdfe price weight length if foreign==1, a(turn rep)</span>
 <br><br>
+<a name="opt_avge"></a>        +--------------------------+
+    ----+ "Average Effects" (AvgE) +--------------------------------------------------------------
+<br><br>
+    <span class=result>avge(</span><i>avgevars</i><span class=result>)</span> will attempt to control for categorical variables using the so-called AvgE
+        correction
+<br><br>
+        The advantage of this approach, vis-a-vis using <i>absorb()</i> is its speed and higher reported
+        degrees-of-freedom. It's disadvantage lies in it being inconsistent, as reported by
+        Gormley &amp; Matsa (2013).
+<br><br>
+        <i>avgevar</i> has the same syntax as <i>absvars</i>, except that continuous interactions (<span class=result>c.</span>) are not
+        allowed
+<br><br>
+    <span class=result>excludeself</span> excludes observation at hand when calculating the group average
+<br><br>
+<a name="opt_maximization"></a>        +--------------+
+    ----+ Maximization +--------------------------------------------------------------------------
+<br><br>
+    <span class=result><u>tol</u></span><span class=result>erance(</span><i>#</i><span class=result>)</span> specifies the tolerance criterion for convergence; default is <span class=result>tolerance(1e-7)</span>
+<br><br>
+        Note that for tolerances beyond 1e-14, the limits of the <i>double</i> precision are reached and
+        the results will most likely not converge.
+<br><br>
+        At the other end, is not tight enough, the regression may not identify perfectly collinear
+        regressors. However, those cases can be easily spotted due to their extremely high
+        standard errors.
+<br><br>
+    <span class=result><u>maxit</u></span><span class=result>erations(</span><i>#</i><span class=result>)</span> specifies the maximum number of iterations; the default is
+        <span class=result>maxiterations(10000)</span>; 0 means run forever until convergence.
+<br><br>
+    <i>Advanced options:</i>
+<br><br>
+    <span class=result>fast</span> avoids one <i>save</i>, one <i>use</i>, and one <i>merge</i> operation.  Useful if the dataset is very large,
+        but will not save <i>e(sample)</i> or compute correlations between the fixed effects and Xb.
+<br><br>
+        Will not work under <span class=result>check</span>, or if any variable (fixed effect, mobility group) needs to be
+        saved.
+<br><br>
+    <span class=result><u>noaccel</u></span><span class=result>erate</span> apply fixed point iteration without applying Aitken's acceleration.
+<br><br>
+        This will be much slower but may avoid situations where the acceleration gets stuck.
+<br><br>
+    <span class=result>accel_start(</span><i>#</i><span class=result>)</span> indicates how many iterations to wait until the Aitken's acceleration starts.
+        Default is 6.
+<br><br>
+    <span class=result>accel_freq(</span><i>#</i><span class=result>)</span> indicates how often the acceleration occurs. The default is 3, meaning that
+        after two steps without acceleration, the third one accelerates. Other common value is 6.
+<br><br>
+    <span class=result>bad_loop_threshold(</span><i>#</i><span class=result>)</span> If the acceleration seems stuck # times in a row, pause it. Default is
+        1.
+<br><br>
+    <span class=result>stuck_threshold(</span><i>#</i><span class=result>)</span> Defines when is the acceleration stuck (if the relative improvement is less
+        than #). Default is 5e-3
+<br><br>
+    <span class=result>pause_length(</span><i>#</i><span class=result>)</span> indicates how many acceleration steps to pause after the iteration got stuck.
+        Default is 20
+<br><br>
+        Note that this is in terms of acceleration steps, not iterations (so if accel_freq=3 and
+        pause_length=20, 60 iterations will pass until the acceleration resumes)
+<br><br>
+<a name="opt_reporting"></a>        +-----------+
+    ----+ Reporting +-----------------------------------------------------------------------------
+<br><br>
+    <span class=result><u>l</u></span><span class=result>evel(</span><i>#</i><span class=result>)</span> sets confidence level; default is <span class=result>level(95)</span>
+<br><br>
+<a name="display_options"></a>    <i>display_options</i>:  <span class=result><u>noomit</u></span><span class=result>ted</span>, <span class=result>vsquish</span>, <span class=result><u>noempty</u></span><span class=result>cells</span>, <span class=result><u>base</u></span><span class=result>levels</span>, <span class=result><u>allbase</u></span><span class=result>levels</span>, <span class=result>nofvlabel</span>,
+        <span class=result>fvwrap(</span><i>#</i><span class=result>)</span>, <span class=result>fvwrapon(</span><i>style</i><span class=result>)</span>, <span class=result>cformat(</span><i>%fmt</i><span class=result>)</span>, <span class=result>pformat(%</span><i>fmt</i><span class=result>)</span>, <span class=result>sformat(%</span><i>fmt</i><span class=result>)</span>, and <span class=result>nolstretch</span>;
+        see <span class=result>[R] estimation options</span>.
 <br><br>
 <a name="postestimation"></a><span class=result><u>Postestimation Syntax</u></span>
 <br><br>
@@ -601,7 +618,7 @@ Only <span class=result>estat summarize</span>, <span class=result>predict</span
 <br><br>
     Note: do not use <span class=result>suest</span>. It will run, but the results will be incorrect.
 <br><br>
-<span class=result><u>Implementation Details</u></span>
+<a name="remarks"></a><span class=result><u>Implementation Details</u></span>
 <br><br>
     - This program usually runs at least 10 times faster than related programs (<span class=result>areg</span>, <span class=result>xtreg, fe</span>,
       <span class=result>twfe</span>, <span class=result>a2reg</span>, <span class=result>reg2hdfe</span>, etc.).
@@ -642,7 +659,8 @@ Only <span class=result>estat summarize</span>, <span class=result>predict</span
     (If you are interested in discussing these or others, feel free to contact me)
 <br><br>
     - Add a more thorough discussion on the possible identification issues
-    - Find out a way to use HDFEs with CUE (right now only OLS/2SLS/2SGMM/LIML work correctly)
+    - Find out a way to use reghdfe iteratively with CUE (right now only OLS/2SLS/2SGMM/LIML give
+      the exact same results)
     - Implement a -bootstrap- option in DoF estimation
     - The interaction with cont vars (i.a#c.b) may suffer from numerical accuracy issues, as we
       are dividing by a sum of squares

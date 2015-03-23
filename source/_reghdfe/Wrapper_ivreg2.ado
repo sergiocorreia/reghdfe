@@ -9,7 +9,7 @@ program define Wrapper_ivreg2, eclass
 		KK(integer) ///
 		[SHOWRAW(integer 0)] first(integer) [weightexp(string)] ///
 		addconstant(integer) ///
-		[GMM2s(string) CUE(string) LIML(string)] ///
+		[ESTimator(string)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
 	if (`c(version)'>=12) local hidden hidden
@@ -38,6 +38,8 @@ program define Wrapper_ivreg2, eclass
 	if (`first') {
 		local firstoption "first savefirst"
 	}
+
+	if ("`estimator'"!="2sls") local opt_estimator `estimator'
 	
 	* Variables have already been demeaned, so we need to add -nocons- or the matrix of orthog conditions will be singular
 	if ("`cue'"=="") {
@@ -47,7 +49,7 @@ program define Wrapper_ivreg2, eclass
 		local nocons nocons // partial(cons)
 	}
 
-	local subcmd ivreg2 `vars' cons `weightexp', `vceoption' `firstoption' small sdofminus(`=`kk'+1') `nocons' `gmm2s' `cue' `liml' `suboptions'
+	local subcmd ivreg2 `vars' `weightexp', `vceoption' `firstoption' small sdofminus(`=`kk'+1') `nocons' `opt_estimator' `suboptions'
 	Debug, level(3) msg(_n "call to subcommand: " _n as result "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'

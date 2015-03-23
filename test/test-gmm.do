@@ -47,21 +47,16 @@ cscript "reghdfe with ivreg2/ivregress and two-step gmm" adofile reghdfe
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted) ivsuite(ivreg2) tol(1e-12) nocon // dropsingletons
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted) ivsuite(ivreg2) tol(1e-12) nocon est(gmm2s)
 	TrimMatrix `K'
-	storedresults compare benchmark e(), tol(1e-6) include(`include')
+	storedresults compare benchmark e(), tol(1e-10) include(`include')
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted) ivsuite(ivregress) tol(1e-12) nocon // dropsingletons
-	TrimMatrix `K'
-	storedresults compare benchmark e(), tol(1e-6) include(`include')
+	* Just for reference
+	ivregress gmm `depvar' `indepvars' ABS_* foreign (`endogvars'=`instruments'), vce(unadjusted) wmatrix(unadjusted) small
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted) ivsuite(ivreg2) tol(1e-12) nocon gmm2s
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted) ivsuite(ivregress) tol(1e-12) nocon est(gmm2s) v(3)
 	TrimMatrix `K'
-	storedresults compare benchmark e(), tol(1e-6) include(`include')
-
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted) ivsuite(ivregress) tol(1e-12) nocon gmm2s
-	TrimMatrix `K'
-	storedresults compare benchmark e(), tol(1e-6) include(`include')
+	storedresults compare benchmark e(), tol(1e-8) include(`include')
 
 	storedresults drop benchmark
 
@@ -71,7 +66,7 @@ cscript "reghdfe with ivreg2/ivregress and two-step gmm" adofile reghdfe
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust) ivsuite(ivreg2) tol(1e-12) gmm2s
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust) ivsuite(ivreg2) tol(1e-12) estimator(gmm2s)
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-6) include(`include')
 
@@ -79,7 +74,7 @@ cscript "reghdfe with ivreg2/ivregress and two-step gmm" adofile reghdfe
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-6) include(`include')
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust) ivsuite(ivregress) tol(1e-12) gmm2s  vceunadjusted
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust) ivsuite(ivregress) tol(1e-12) est(gmm2s)  vceunadjusted
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-6) include(`include')
 
@@ -102,7 +97,7 @@ cscript "reghdfe with ivreg2/ivregress and two-step gmm" adofile reghdfe
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(cluster `cluster') ivsuite(ivreg2) tol(1e-12) gmm2s
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(cluster `cluster') ivsuite(ivreg2) tol(1e-12) est(gmm2s)
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-6) include(`include')
 
@@ -111,7 +106,7 @@ cscript "reghdfe with ivreg2/ivregress and two-step gmm" adofile reghdfe
 	*TrimMatrix `K'
 	*storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(cluster `cluster') ivsuite(ivregress) tol(1e-12) gmm2s vceunadjusted
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(cluster `cluster') ivsuite(ivregress) tol(1e-12) est(gmm2s) vceunadjusted
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-6) include(`include')
 
@@ -125,7 +120,7 @@ cscript "reghdfe with ivreg2/ivregress and two-step gmm" adofile reghdfe
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(cluster `cluster') ivsuite(ivreg2) tol(1e-12) gmm2s
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(cluster `cluster') ivsuite(ivreg2) tol(1e-12) est(gmm2s)
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-6) include(`include')
 

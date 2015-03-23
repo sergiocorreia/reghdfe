@@ -126,7 +126,6 @@ either {opt ivreg2} (default; needs installing) or {opt ivregress}{p_end}
 {synopt :{opt check}}if convergence was achieved, the fixed effects should have a 1.0 coeficient in each step{p_end}
 
 {syntab:Degrees-of-Freedom Adjustments {help reghdfe##opt_dof:[+]}}
-BUGBUG
 {synopt :{opt dof:adjustments(list)}}allows selecting the desired adjustments for degrees of freedom.{p_end}
 {synopt :} - rarely used except for a marginal speed-up, or when comparing with packages that do not allow some adjustments.{p_end}
 {synopt :} - possible values are: {it:[pairwise|firstpair] clusters continuous}.{p_end}
@@ -400,6 +399,17 @@ For debugging, the most useful value is 3. For simple status reports, set verbos
 
 {marker opt_dof}{...}
 {dlgtab:Degrees-of-Freedom Adjustments}
+
+{phang}
+{opt dof:adjustments(doflist)} selects how will the degrees-of-freedom, as well as e(df_a), are adjusted due to the absorbed fixed effects
+
+{cmd:(}{opt all}|{opt none}|{opt pair:wise} {opt first:pair}|{opt none}{cmd:)}
+
+{synopt :{opt dof:adjustments(list)}}allows selecting the desired adjustments for degrees of freedom.{p_end}
+{synopt :} - rarely used except for a marginal speed-up, or when comparing with packages that do not allow some adjustments.{p_end}
+{synopt :} - possible values are: {it:[pairwise|firstpair] clusters continuous}.{p_end}
+{synopt :} - {opt dof(all)} is the default, equivalent to {it:pairwise clusters continuous}.{p_end}
+{synopt :} - {opt dof(none)} will not do any adjustments and provide overtly conservative degrees of freedom.{p_end}
 
 {phang}
 {opth group(newvarname)} name of the new variable that will contain the first mobility group.

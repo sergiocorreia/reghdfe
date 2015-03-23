@@ -1,4 +1,4 @@
-*! reghdfe 2.0.173 23mar2015
+*! reghdfe 2.0.187 23mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 // -------------------------------------------------------------
@@ -1306,7 +1306,7 @@ else if ("`stage'"=="first") {
 		vceoption vcetype vcesuite ///
 		kk suboptions showraw vceunadjusted first weightexp ///
 		addconstant /// tells -regress- to hide _cons
-		gmm2s cue liml // Whether to run or not two-step gmm
+		estimator // Whether to run or not two-step gmm
 	foreach opt of local option_list {
 		if ("``opt''"!="") local options `options' `opt'(``opt'')
 	}
@@ -1717,16 +1717,6 @@ else {
 		[*] // For display options ; and SUmmarize(stats)
 }
 
-* Estimator
-	if ("`estimator'"!="") {
-		if (substr("`estimator'", 1, 3)=="gmm") local estimator gmm2s
-
-		Assert inlist("`estimator'", "2sls", "gmm2s", "liml", "cue")
-	}
-	else {
-		local estimator 2sls
-	}
-
 * Weight
 * We'll have -weight- (fweight|aweight|pweight), -weightvar-, -exp-, and -weightexp-
 	if ("`weight'"!="") {
@@ -1799,9 +1789,22 @@ if (!`savingcache') {
 		}
 	}
 	
+	* Estimator
+	if ("`estimator'"!="") {
+		Assert "`model'"=="iv", msg("reghdfe error: estimator() requires an instrumental-variable regression")
+	
+		if (substr("`estimator'", 1, 3)=="gmm") local estimator gmm2s
+
+		Assert inlist("`estimator'", "2sls", "gmm2s", "liml", "cue"), msg("reghdfe error: invalid estimator `estimator'")
+		if (inlist("`estimator'", "cue")) Assert "`ivsuite'"=="ivreg2", msg("reghdfe error: estimator `estimator' only available with the ivreg2 command, you selected `ivsuite'")
+	}
+	else {
+		local estimator 2sls
+	}
 
 	* For this, _iv_parse would have been useful, although I don't want to do factor expansions when parsing
 	if ("`model'"=="iv") {
+
 		* get part before parentheses
 		local wrongparens 1
 		while (`wrongparens') {
@@ -1984,9 +1987,6 @@ if (!`savingcache') {
 * IV options
 	if ("`small'"!="") di in ye "(note: reghdfe will always use the option -small-, no need to specify it)"
 
-	*Assert ("`liml'"==""), msg("options liml not allowed")
-	*Assert ("`cue'"==""), msg("option cue not allowed; results not invariant to partialling-out")
-	
 	if ("`model'"=="iv") {
 		local savefirst = ("`savefirst'"!="")
 		local first = ("`first'"!="")
@@ -2042,18 +2042,6 @@ if (!`savingcache') {
 	local weight `backupweight'
 	Assert inlist( ("`weight'"!="") + ("`weightvar'"!="") + ("`weightexp'"!="") , 0 , 3 ) , msg("not all 3 weight locals are set")
 
-* GMM2S option requires instruments
-	if ("`gmm2s'"!="") Assert "`model'"=="iv", msg("Error: option -gmm2s- requires an instrumental-variable regression")
-	if ("`cue'"!="") Assert "`model'"=="iv", msg("Error: option -cue- requires an instrumental-variable regression")
-	if ("`liml'"!="") Assert "`model'"=="iv", msg("Error: option -liml- requires an instrumental-variable regression")
-	
-	if ("`cue'"!="") Assert "`ivsuite'"=="ivreg2", msg("CUE option is only available with the ivreg2 command")
-	if ("`liml'"!="") Assert "`ivsuite'"=="ivreg2", msg("liml option is only available with the ivreg2 command")
-
-	if ("`gmm2s'"!="") Assert "`cue'"=="", msg("gmm2s and cue options are mutually exclusive")
-	if ("`gmm2s'"!="") Assert "`liml'"=="", msg("gmm2s and liml options are mutually exclusive")
-	if ("`cue'"!="") Assert "`liml'"=="", msg("cue and liml options are mutually exclusive")
-
 * Return values
 	local names cmdline diopts model ///
 		ivsuite showraw vceunadjusted ///
@@ -2069,7 +2057,7 @@ if (!`savingcache') {
 		weight weightvar exp weightexp /// type of weight (fw,aw,pw), weight var., and full expr. ([fw=n])
 		cores savingcache usecache over ///
 		stats summarize_quietly notes stages ///
-		dropsingletons gmm2s cue liml
+		dropsingletons estimator
 }
 
 if (`savingcache') {
@@ -2764,12 +2752,14 @@ program define Wrapper_ivregress, eclass
 		[weightexp(string)] ///
 		addconstant(integer) ///
 		SHOWRAW(integer) first(integer) vceunadjusted(integer) ///
-		[GMM2s(string)] ///
+		[ESTimator(string)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
 	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars' (`endogvars'=`instruments')" )) )
 	if (`c(version)'>=12) local hidden hidden
+
+	local opt_estimator = cond("`estimator'"=="gmm2s", "gmm", "`estimator'")
 
 	* Convert -vceoption- to what -ivreg2- expects
 	local 0 `vceoption'
@@ -2780,9 +2770,7 @@ program define Wrapper_ivregress, eclass
 	if ("`clustervars'"!="") local vceoption `vceoption' `clustervars'
 	local vceoption "vce(`vceoption')"
 
-	local estimator = cond("`gmm2s'"=="", "2sls", "gmm")
-
-	if ("`gmm2s'"!="") {
+	if ("`estimator'"=="gmm2s") {
 		local wmatrix : subinstr local vceoption "vce(" "wmatrix("
 		local vceoption = cond(`vceunadjusted', "vce(unadjusted)", "")
 	}
@@ -2803,7 +2791,7 @@ program define Wrapper_ivregress, eclass
 	}
 
 * Subcmd
-	local subcmd ivregress `estimator' `vars' `weightexp', `wmatrix' `vceoption' small `nocons' `firstoption' `suboptions'
+	local subcmd ivregress `opt_estimator' `vars' `weightexp', `wmatrix' `vceoption' small `nocons' `firstoption' `suboptions'
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'
@@ -2817,7 +2805,7 @@ program define Wrapper_ivregress, eclass
 
 	* We should have used M/M-1 instead of N/N-1, but we are making ivregress to do the wrong thing by using vce(unadjusted) (which makes it fit with ivreg2)
 	local q 1
-	if ("`estimator'"=="gmm" & "`clustervars'"!="") {
+	if ("`estimator'"=="gmm2s" & "`clustervars'"!="") {
 		local N = e(N)
 		tempvar group
 		GenerateID `clustervars', gen(`group')
@@ -2852,7 +2840,7 @@ program define Wrapper_ivreg2, eclass
 		KK(integer) ///
 		[SHOWRAW(integer 0)] first(integer) [weightexp(string)] ///
 		addconstant(integer) ///
-		[GMM2s(string) CUE(string) LIML(string)] ///
+		[ESTimator(string)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
 	if (`c(version)'>=12) local hidden hidden
@@ -2881,6 +2869,8 @@ program define Wrapper_ivreg2, eclass
 	if (`first') {
 		local firstoption "first savefirst"
 	}
+
+	if ("`estimator'"!="2sls") local opt_estimator `estimator'
 	
 	* Variables have already been demeaned, so we need to add -nocons- or the matrix of orthog conditions will be singular
 	if ("`cue'"=="") {
@@ -2890,7 +2880,7 @@ program define Wrapper_ivreg2, eclass
 		local nocons nocons // partial(cons)
 	}
 
-	local subcmd ivreg2 `vars' cons `weightexp', `vceoption' `firstoption' small sdofminus(`=`kk'+1') `nocons' `gmm2s' `cue' `liml' `suboptions'
+	local subcmd ivreg2 `vars' `weightexp', `vceoption' `firstoption' small sdofminus(`=`kk'+1') `nocons' `opt_estimator' `suboptions'
 	Debug, level(3) msg(_n "call to subcommand: " _n as result "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'

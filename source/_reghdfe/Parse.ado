@@ -60,16 +60,6 @@ else {
 		[*] // For display options ; and SUmmarize(stats)
 }
 
-* Estimator
-	if ("`estimator'"!="") {
-		if (substr("`estimator'", 1, 3)=="gmm") local estimator gmm2s
-
-		Assert inlist("`estimator'", "2sls", "gmm2s", "liml", "cue")
-	}
-	else {
-		local estimator 2sls
-	}
-
 * Weight
 * We'll have -weight- (fweight|aweight|pweight), -weightvar-, -exp-, and -weightexp-
 	if ("`weight'"!="") {
@@ -142,9 +132,22 @@ if (!`savingcache') {
 		}
 	}
 	
+	* Estimator
+	if ("`estimator'"!="") {
+		Assert "`model'"=="iv", msg("reghdfe error: estimator() requires an instrumental-variable regression")
+	
+		if (substr("`estimator'", 1, 3)=="gmm") local estimator gmm2s
+
+		Assert inlist("`estimator'", "2sls", "gmm2s", "liml", "cue"), msg("reghdfe error: invalid estimator `estimator'")
+		if (inlist("`estimator'", "cue")) Assert "`ivsuite'"=="ivreg2", msg("reghdfe error: estimator `estimator' only available with the ivreg2 command, you selected `ivsuite'")
+	}
+	else {
+		local estimator 2sls
+	}
 
 	* For this, _iv_parse would have been useful, although I don't want to do factor expansions when parsing
 	if ("`model'"=="iv") {
+
 		* get part before parentheses
 		local wrongparens 1
 		while (`wrongparens') {
@@ -327,9 +330,6 @@ if (!`savingcache') {
 * IV options
 	if ("`small'"!="") di in ye "(note: reghdfe will always use the option -small-, no need to specify it)"
 
-	*Assert ("`liml'"==""), msg("options liml not allowed")
-	*Assert ("`cue'"==""), msg("option cue not allowed; results not invariant to partialling-out")
-	
 	if ("`model'"=="iv") {
 		local savefirst = ("`savefirst'"!="")
 		local first = ("`first'"!="")
@@ -385,18 +385,6 @@ if (!`savingcache') {
 	local weight `backupweight'
 	Assert inlist( ("`weight'"!="") + ("`weightvar'"!="") + ("`weightexp'"!="") , 0 , 3 ) , msg("not all 3 weight locals are set")
 
-* GMM2S option requires instruments
-	if ("`gmm2s'"!="") Assert "`model'"=="iv", msg("Error: option -gmm2s- requires an instrumental-variable regression")
-	if ("`cue'"!="") Assert "`model'"=="iv", msg("Error: option -cue- requires an instrumental-variable regression")
-	if ("`liml'"!="") Assert "`model'"=="iv", msg("Error: option -liml- requires an instrumental-variable regression")
-	
-	if ("`cue'"!="") Assert "`ivsuite'"=="ivreg2", msg("CUE option is only available with the ivreg2 command")
-	if ("`liml'"!="") Assert "`ivsuite'"=="ivreg2", msg("liml option is only available with the ivreg2 command")
-
-	if ("`gmm2s'"!="") Assert "`cue'"=="", msg("gmm2s and cue options are mutually exclusive")
-	if ("`gmm2s'"!="") Assert "`liml'"=="", msg("gmm2s and liml options are mutually exclusive")
-	if ("`cue'"!="") Assert "`liml'"=="", msg("cue and liml options are mutually exclusive")
-
 * Return values
 	local names cmdline diopts model ///
 		ivsuite showraw vceunadjusted ///
@@ -412,7 +400,7 @@ if (!`savingcache') {
 		weight weightvar exp weightexp /// type of weight (fw,aw,pw), weight var., and full expr. ([fw=n])
 		cores savingcache usecache over ///
 		stats summarize_quietly notes stages ///
-		dropsingletons gmm2s cue liml
+		dropsingletons estimator
 }
 
 if (`savingcache') {

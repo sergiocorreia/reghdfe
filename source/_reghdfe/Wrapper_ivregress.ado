@@ -9,12 +9,14 @@ program define Wrapper_ivregress, eclass
 		[weightexp(string)] ///
 		addconstant(integer) ///
 		SHOWRAW(integer) first(integer) vceunadjusted(integer) ///
-		[GMM2s(string)] ///
+		[ESTimator(string)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
 	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars' (`endogvars'=`instruments')" )) )
 	if (`c(version)'>=12) local hidden hidden
+
+	local opt_estimator = cond("`estimator'"=="gmm2s", "gmm", "`estimator'")
 
 	* Convert -vceoption- to what -ivreg2- expects
 	local 0 `vceoption'
@@ -25,9 +27,7 @@ program define Wrapper_ivregress, eclass
 	if ("`clustervars'"!="") local vceoption `vceoption' `clustervars'
 	local vceoption "vce(`vceoption')"
 
-	local estimator = cond("`gmm2s'"=="", "2sls", "gmm")
-
-	if ("`gmm2s'"!="") {
+	if ("`estimator'"=="gmm2s") {
 		local wmatrix : subinstr local vceoption "vce(" "wmatrix("
 		local vceoption = cond(`vceunadjusted', "vce(unadjusted)", "")
 	}
@@ -48,7 +48,7 @@ program define Wrapper_ivregress, eclass
 	}
 
 * Subcmd
-	local subcmd ivregress `estimator' `vars' `weightexp', `wmatrix' `vceoption' small `nocons' `firstoption' `suboptions'
+	local subcmd ivregress `opt_estimator' `vars' `weightexp', `wmatrix' `vceoption' small `nocons' `firstoption' `suboptions'
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'
@@ -62,7 +62,7 @@ program define Wrapper_ivregress, eclass
 
 	* We should have used M/M-1 instead of N/N-1, but we are making ivregress to do the wrong thing by using vce(unadjusted) (which makes it fit with ivreg2)
 	local q 1
-	if ("`estimator'"=="gmm" & "`clustervars'"!="") {
+	if ("`estimator'"=="gmm2s" & "`clustervars'"!="") {
 		local N = e(N)
 		tempvar group
 		GenerateID `clustervars', gen(`group')

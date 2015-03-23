@@ -51,9 +51,13 @@ noi cscript "reghdfe with liml" adofile reghdfe
 	*TrimMatrix `K'
 	*storedresults compare benchmark e(), tol(1e-6) include(`include')
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted) ivsuite(ivreg2) tol(1e-12) nocon liml verbose(3)
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted) ivsuite(ivreg2) tol(1e-12) nocon est(liml)
 	TrimMatrix `K'
-	storedresults compare benchmark e(), tol(1e-6) include(`include')
+	storedresults compare benchmark e(), tol(1e-10) include(`include')
+
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted) ivsuite(ivregress) tol(1e-12) nocon est(liml)
+	TrimMatrix `K'
+	storedresults compare benchmark e(), tol(1e-10) include(`include')
 
 	storedresults drop benchmark
 
@@ -63,9 +67,16 @@ noi cscript "reghdfe with liml" adofile reghdfe
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust) ivsuite(ivreg2) tol(1e-12) liml showraw
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust) ivsuite(ivreg2) tol(1e-12) estim(liml)
 	TrimMatrix `K'
-	storedresults compare benchmark e(), tol(1e-6) include(`include')
+	storedresults compare benchmark e(), tol(1e-10) include(`include')
+
+	* Just for reference
+	ivregress liml `depvar' `indepvars' ABS_* foreign (`endogvars'=`instruments'), vce(robust) small
+
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust) ivsuite(ivregress) tol(1e-12) estim(liml)
+	TrimMatrix `K'
+	storedresults compare benchmark e(), tol(1e-8) include(`include') // Not as accurate?
 
 	storedresults drop benchmark
 
@@ -75,9 +86,16 @@ noi cscript "reghdfe with liml" adofile reghdfe
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(cluster `cluster') ivsuite(ivreg2) tol(1e-12) liml
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(cluster `cluster') ivsuite(ivreg2) tol(1e-12) estimator(liml)
 	TrimMatrix `K'
-	storedresults compare benchmark e(), tol(1e-6) include(`include')
+	storedresults compare benchmark e(), tol(1e-10) include(`include')
+
+	* Just for reference
+	ivregress liml `depvar' `indepvars' ABS_* foreign (`endogvars'=`instruments'), vce(cluster `cluster') small
+
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(cluster `cluster') ivsuite(ivregress) tol(1e-12) estimator(liml)
+	TrimMatrix `K'
+	storedresults compare benchmark e(), tol(1e-10) include(`include')
 
 	storedresults drop benchmark
 
@@ -85,14 +103,14 @@ noi cscript "reghdfe with liml" adofile reghdfe
 
 	local cluster turn cluster2
 
-	ivreg2 `depvar' `indepvars' ABS_* foreign (`endogvars' = `instruments') , small liml cluster(`cluster') nocons partial(ABS_* foreign)
+	ivreg2 `depvar' `indepvars' ABS_* foreign (`endogvars' = `instruments') , small liml cluster(`cluster') nocons // partial(ABS_* foreign) // With partial ivreg2 gives inaccurate results
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(cluster `cluster') ivsuite(ivreg2) tol(1e-12) liml
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(cluster `cluster') ivsuite(ivreg2) tol(1e-12) est(liml)
 	TrimMatrix `K'
-	storedresults compare benchmark e(), tol(1e-6) include(scalar: N df_r matrix: trim_b macros: wexp wtype)
-	storedresults compare benchmark e(), tol(1e-5) include(matrix: trim_V)
+	storedresults compare benchmark e(), tol(1e-10) include(scalar: N df_r matrix: trim_b macros: wexp wtype)
+	storedresults compare benchmark e(), tol(1e-10) include(matrix: trim_V)
 
 	storedresults drop benchmark
 
