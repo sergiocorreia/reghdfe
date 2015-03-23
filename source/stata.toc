@@ -1,6 +1,7 @@
 v 3
 d Sergio Correia, Duke University (sergio.correia@duke.edu)
 p reghdfe REGHDFE - Linear regression with many high-dimensional fixed effects
+p reghdfe HDFE - Partial out variables with respect to a set of fixed effects
 
 * l word-to-show path-or-url [description]
 * t: Directories within site:

@@ -31,8 +31,7 @@ def zipdir(path, zip):
 # -------------------------------------------------------------
 
 # Filenames
-output_filenames = [ur"reghdfe.ado", ur"reghdfe_absorb.ado", 
-    ur"reghdfe_estat.ado", ur"reghdfe_p.ado", ur"reghdfe_footnote.ado", ur"hdfe.ado"]
+output_filenames = ["reghdfe.ado", "reghdfe_estat.ado", "reghdfe_p.ado", "reghdfe_footnote.ado", "hdfe.ado"]
 
 os.chdir(os.path.split(__file__)[0])
 fn_mata = ur"_mata/reghdfe.mata"
@@ -46,11 +45,13 @@ for fn in output_filenames:
     source_data = None
 
     # Change header
-    if (fn==ur"reghdfe.ado"):
-        regex = re.search(ur'^\*! reghdfe (\d+)\.(\d+)\.(\d+) \d+\w+\d+', data)
+    if (fn in ["reghdfe.ado", "hdfe.ado"]):
+        base = fn[:-4]
+        regex_string = ur'^\*! {} (\d+)\.(\d+)\.(\d+) \d+\w+\d+'.format(base)
+        regex = re.search(regex_string, data)
         version = '{}.{}.{}'.format(regex.group(1), regex.group(2), int(regex.group(3))+1)
         today = time.strftime("%d%b%Y").lower() # See http://strftime.net/
-        header = '*! reghdfe {} {}'.format(version, today)
+        header = '*! {} {} {}'.format(base, version, today)
         data = data.replace(regex.group(0), header)
         source_data = data
 
@@ -79,18 +80,19 @@ for fn in output_filenames:
         new_fh.write(data)
 
     # Override source file with correct build number
-    if (fn==ur"reghdfe.ado"):
+    if (fn in ["reghdfe.ado", "hdfe.ado"]):
         with open(full_fn, 'wb') as fh:
             fh.write(source_data)
 
 # Update reghdfe.pkg
-print("updating date in reghdfe.pkg")
-full_pkg = os.path.join(source_path, u"reghdfe.pkg")
-pkg = open(full_pkg, "rb").read()
-today = time.strftime("%Y%m%d")
-pkg = re.sub(ur'Distribution-Date: \d+', ur'Distribution-Date: ' + today, pkg)
-open(full_pkg, 'wb').write(pkg)
-shutil.copy(full_pkg, os.path.join(server_path, u"reghdfe.pkg"))
+for pkgname in ["reghdfe.pkg", "hdfe.pkg"]:
+    print("updating date in " + pkgname)
+    full_pkg = os.path.join(source_path, pkgname)
+    pkg = open(full_pkg, "rb").read()
+    today = time.strftime("%Y%m%d")
+    pkg = re.sub(ur'Distribution-Date: \d+', ur'Distribution-Date: ' + today, pkg)
+    open(full_pkg, 'wb').write(pkg)
+    shutil.copy(full_pkg, os.path.join(server_path, pkgname))
 
 # Copy
 print("Copying misc files...")

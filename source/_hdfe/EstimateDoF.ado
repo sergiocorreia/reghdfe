@@ -40,7 +40,7 @@
 	 - Do a conf var at this point to be SURE that we didn't mess up before
 	 - We need the ivars and cvars in a list
 	 - For the c. interactions, we need to know if they are bivariate or univariate
-	 - SOLN -> reghdfe_absorb, fe2local(`g')  ; from mata: ivars_clustervar`i' (needed???) , and G
+	 - SOLN -> mata: fe2local(`g')  ; from mata: ivars_clustervar`i' (needed???) , and G
 	 - Thus, do we really needed the syntax part??
 	 - fe2local saves: ivars cvars target varname varlabel is_interaction is_cont_interaction is_bivariate is_mock levels // Z group_k weightvar
 
@@ -83,7 +83,7 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 
 * Starting point assumes no redundant parameters
 	forv g=1/`G' {
-		reghdfe_absorb, fe2local(`g')
+		mata: fe2local(`g')
 		local redundant`g' = 0 // will be 1 if we don't penalize at all for this absvar (i.e. if it's nested with cluster or collinear with another absvar)
 		local is_slope`g' = ("`cvars'"!="") & (!`is_bivariate' | `is_mock') // two cases: i.a#c.b , i.a##c.b (which expands to <i.a i.a#c.b> and we want the second part)
 		local M`g' = !`is_slope`g'' // Start with 0 with cont. interaction, 1 w/out cont interaction
@@ -102,7 +102,7 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 	if (`N_clustervars'>0) {
 		mata: st_local("clustervars", invtokens(clustervars))
 		forv g=1/`G' {
-			reghdfe_absorb, fe2local(`g')
+			mata: fe2local(`g')
 			local gg = `g' - `is_mock'
 			local absvar_in_clustervar 0 // 1 if absvar is nested in a clustervar
 			
@@ -190,7 +190,7 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 * Adjustment with cont. interactions
 	if (`adj_continuous') {
 		forv g=1/`G' {
-			reghdfe_absorb, fe2local(`g')
+			mata: fe2local(`g')
 			if (!`is_slope`g'') continue
 			CheckZerosByGroup, fe(`varname') cvars(`cvars') anyconstant(`is_mock')
 			local M`g' = r(redundant)
@@ -208,7 +208,7 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 	local SumK 0
 	Debug, level(2) msg(" - Results of DoF adjustments:")
 	forv g=1/`G' {
-		reghdfe_absorb, fe2local(`g')
+		mata: fe2local(`g')
 		assert !missing(`M`g'') & !missing(`levels')
 		local SumM = `SumM' + `M`g''
 		local SumK = `SumK' + `levels'

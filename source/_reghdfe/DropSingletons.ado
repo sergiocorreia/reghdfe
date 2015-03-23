@@ -9,7 +9,7 @@ program define DropSingletons, sortpreserve
 syntax, num_absvars(integer)
 
 	forv g=1/`num_absvars' {
-		reghdfe_absorb, fe2local(`g')
+		mata: fe2local(`g')
 		* ivars cvars target varname varlabel is_interaction is_cont_interaction is_bivariate is_mock levels
 		
 		* It's either redudant (the second part of i.a##c.b) or tricky (a simple i.a#c.b) to discard singletons with cont. interactions

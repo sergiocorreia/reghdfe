@@ -503,7 +503,7 @@ void function make_residual(
 	if (args()<10 | pause_length==-1) pause_length = 20
 	if (args()<11 | accel_freq==-1) accel_freq = 3
 	if (args()<12 | accel_start==-1) accel_start = 6
-	// BUGBUG: These defaults are in triplicate: here, in reghdfe_absorb, and in reghdfe.prase
+	// BUGBUG: These defaults are in triplicate: here, in Demean (?), and in reghdfe.parse
 
 	// Should I expose these parameters?
 	// bad_loop_threshold = 1 // If acceleration seems stuck X times in a row, pause it

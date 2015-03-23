@@ -2,6 +2,8 @@
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 
+include _mata/reghdfe.mata
+
 cap pr drop reghdfe
 program define reghdfe
 	local version `=clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
@@ -12,12 +14,21 @@ program define reghdfe
 		Replay `0'
 	}
 	else {
+
+		* Intercept multiprocessor/parallel calls
+		cap syntax, instance [*]
+		local rc = _rc
+		 if (`rc'==0) {
+			ParallelInstance, `options'
+			exit
+		}
+
 		* Estimate, and then clean up Mata in case of failure
 		mata: st_global("reghdfe_pwd",pwd())
 		cap noi Estimate `0'
 		if (_rc) {
 			local rc = _rc
-			reghdfe_absorb, step(stop)
+			Stop
 			exit `rc'
 		}
 	}
@@ -26,7 +37,6 @@ end
 * Note: Assert and Debug must go first
 include "_common/Assert.ado"
 include "_common/Debug.ado"
-include "_reghdfe_absorb/GenerateID.ado"
 
 include "_mata/fix_psd.mata"
 include "_reghdfe/Estimate.ado"
@@ -44,4 +54,16 @@ include "_reghdfe/Attach.ado"
 include "_reghdfe/Replay.ado"
 include "_reghdfe/Header.ado"
 
+include "_hdfe/ConnectedGroups.ado"
+include "_hdfe/GenerateID.ado"
+include "_hdfe/AverageOthers.ado"
+include "_hdfe/EstimateDoF.ado"
 
+include "_hdfe/Start.ado"
+include "_hdfe/ParseOneAbsvar.ado"
+include "_hdfe/Precompute.ado"
+include "_hdfe/Demean.ado"
+include "_hdfe/DemeanParallel.ado"
+include "_hdfe/ParallelInstance.ado"
+include "_hdfe/Save.ado"
+include "_hdfe/Stop.ado"

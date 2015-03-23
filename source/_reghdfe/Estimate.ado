@@ -14,12 +14,12 @@ program define Estimate, eclass
 // PART I - PREPARE DATASET FOR REGRESSION
 
 * 1) Parse main options
-	reghdfe_absorb, step(stop) // clean Mata leftovers before running -Parse-
+	Stop // clean Mata leftovers before running -Parse-
 	Parse `0' // save all arguments into locals (verbose>=3 shows them)
 	local sets depvar indepvars endogvars instruments // depvar MUST be first
 
 * 2) Parse identifiers (absorb variables, avge, clustervar)
-	reghdfe_absorb, step(start) absorb(`absorb') over(`over') avge(`avge') clustervars(`clustervars') weight(`weight') weightvar(`weightvar')
+	Start, absorb(`absorb') over(`over') avge(`avge') clustervars(`clustervars') weight(`weight') weightvar(`weightvar')
 	* Note: In this step, it doesn't matter if the weight is FW or AW
 	local N_hdfe = r(N_hdfe)
 	local N_avge = r(N_avge)
@@ -75,7 +75,7 @@ else {
 	marksample touse, novar // Uses -if- , -in- ; -weight-? and -exp- ; can't drop any var until this
 	keep `uid' `touse' `timevar' `panelvar' `absorb_keepvars' `basevars' `over' `weightvar' `tsvars'
 
-* 5) Expand factor and time-series variables (this *must* happen before reghdfe precompute is called!)
+* 5) Expand factor and time-series variables (this *must* happen before precompute is called!)
 	local expandedvars
 	foreach set of local sets {
 		local varlist ``set''
@@ -100,7 +100,7 @@ else {
 	if ("`over'"!="" & `savingcache') qui levelsof `over', local(over_levels)
 
 * 8) Fill Mata structures, create FE identifiers, avge vars and clustervars if needed
-	reghdfe_absorb, step(precompute) keep(`uid' `expandedvars' `tsvars') depvar("`depvar'") `excludeself' tsvars(`tsvars') over(`over')
+	Precompute, keep(`uid' `expandedvars' `tsvars') depvar("`depvar'") `excludeself' tsvars(`tsvars') over(`over')
 	Debug, level(2) msg("(dataset compacted: observations " as result "`RAW_N' -> `c(N)'" as text " ; variables " as result "`RAW_K' -> `c(k)'" as text ")")
 	local avgevars = cond("`avge'"=="", "", "__W*__")
 	local vars `expandedvars' `avgevars'
@@ -152,8 +152,7 @@ else {
 		tempfile groupdta
 		local opt group(`group') groupdta(`groupdta') uid(`uid')
 	}
-	*EstimateDoF
-	reghdfe_absorb, step(estimatedof) dofadjustments(`dofadjustments') `opt'
+	EstimateDoF, dofadjustments(`dofadjustments') `opt'
 	local kk = r(kk) // FEs that were not found to be redundant (= total FEs - redundant FEs)
 	local M = r(M) // FEs found to be redundant
 	local saved_group = r(saved_group)
@@ -194,7 +193,7 @@ else {
 	mata: st_local("any_target_avge", strofreal(any(avge_target :!= "")) ) // saving avge?
 	local any_target_hdfe 0 // saving hdfe?
 	forv g=1/`N_hdfe' {
-		reghdfe_absorb, fe2local(`g')
+		mata: fe2local(`g')
 		if (!`is_bivariate' | `is_mock') local hdfe_cvar`g' `cvars'
 		// If it's the intercept part of the bivariate absorbed effect, don't add the cvar!
 		local hdfe_target`g' `target'
@@ -231,7 +230,13 @@ else {
 			local subZs
 			forv g=1/`=`N_hdfe'-1' {
 				Debug, msg("(computing nested model w/`g' FEs)")
-				reghdfe_absorb, step(demean) varlist(`vars') `maximize_options' num_fe(`g') `parallel_opt'
+				if (`cores'>1) {
+					DemeanParallel, varlist(`vars') `maximize_options' num_fe(`g') self(reghdfe) `parallel_opt'
+				}
+				else {
+					Demean, varlist(`vars') `maximize_options' num_fe(`g')	
+				}
+
 				qui _regress `vars' `weightexp', noheader notable
 				local rss`g' = e(rss)
 				qui use "`original_vars'", clear // Back to untransformed dataset
@@ -242,7 +247,7 @@ else {
 	* Get normalized string of the absvars (i.e. turn -> i.turn)
 	local original_absvars
 	forv g=1/`N_hdfe' {
-		reghdfe_absorb, fe2local(`g')
+		mata: fe2local(`g')
 		local original_absvars `original_absvars'  `varlabel'
 	}
 
@@ -261,7 +266,12 @@ else {
 	Debug, msg(" - tolerance = `tolerance'")
 	Debug, msg(" - max. iter = `maxiterations'")
 	if ("`usecache'"=="") {
-		reghdfe_absorb, step(demean) varlist(`vars') `maximize_options' `parallel_opt'
+		if (`cores'>1) {
+			DemeanParallel, varlist(`vars') `maximize_options' self(reghdfe) `parallel_opt'
+		}
+		else {
+			Demean, varlist(`vars') `maximize_options'	
+		}
 	}
 	else {
 		Debug, msg("(using cache data)")
@@ -485,7 +495,7 @@ else {
 
 	* Absorb the residuals to obtain the FEs (i.e. run a regression on just the resids)
 	Debug, level(2) tic(31)
-	reghdfe_absorb, step(demean) varlist(`resid_d') `maximize_options' save_fe(1)
+	Demean, varlist(`resid_d') `maximize_options' save_fe(1)
 	Debug, level(2) toc(31) msg("mata:make_residual on final model took")
 	drop `resid_d'
 
@@ -512,7 +522,7 @@ else {
 	matrix colnames `b' = `newnames'
 
 * 5) Save FEs w/proper name, format
-	reghdfe_absorb, step(save) original_depvar(`original_depvar')
+	Save, original_depvar(`original_depvar')
 	local keepvars `r(keepvars)'
 	if ("`keepvars'"!="") format `fe_format' `keepvars'
 * 6) Save AvgEs
@@ -717,7 +727,7 @@ else if ("`stage'"=="iv") {
 } // stage
 *** >>>> LAST PART OF UGLY STAGE >>>>
 
-	reghdfe_absorb, step(stop)
+	Stop
 
 end
 

@@ -1,22 +1,31 @@
-*! hdfe 1.0 12mar2015
+*! hdfe 1.1 22mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
-// -------------------------------------------------------------------------------------------------
-// Partial-out a list of variables with respect to any number of fixed effects
-// -------------------------------------------------------------------------------------------------
-/// Does NOT accept factor/time series, and variables MUST BE FULLY spelled out (i.e. you need to use unab beforehand!)
+* (built from multiple source files using build.py)
+
+include _mata/reghdfe.mata
 
 cap pr drop hdfe
 program define hdfe, rclass
-	syntax varlist [fweight aweight pweight/] , Absorb(string) [CLUSTERvars(string) Verbose(integer 0) TOLerance(real 1e-7) MAXITerations(integer 10000)] [GENerate(name)]
+	local version `clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
+	qui version `version'
+
+	syntax varlist [if] [in] [fweight aweight pweight/] , Absorb(string) ///
+		[CORES(integer 1)]
+		[CLUSTERvars(string) Verbose(integer 0) TOLerance(real 1e-7) MAXITerations(integer 10000)] [GENerate(name)]
 	if ("`weight'"!="") {
 		local weightvar `exp'
 		conf var `weightvar' // just allow simple weights
 		local weighttype `weight'
 	}
-	
-* Assert that base program exists
-	qui which reghdfe_absorb
 
+* Intercept multiprocessor/parallel calls
+	cap syntax, instance [*]
+	local rc = _rc
+	 if (`rc'==0) {
+		ParallelInstance, `options'
+		exit
+	}
+	
 * Preserve if asked to
 	if ("`generate'"!="") {
 		tempvar uid
@@ -25,7 +34,7 @@ program define hdfe, rclass
 	}
 	
 * Clear previous errors
-	cap reghdfe_absorb, step(stop)
+	cap Stop
 
 * Time/panel variables
 	cap conf var `_dta[_TStvar]'
@@ -37,7 +46,7 @@ program define hdfe, rclass
 	mata: VERBOSE = `verbose' // Pick a number between 0 (quiet) and 4 (lots of debugging info)
 
 * Parse: absorb, clusters, and weights
-	reghdfe_absorb, step(start) absorb(`absorb') clustervars(`clustervars') weight(`weighttype') weightvar(`weightvar')
+	Start, absorb(`absorb') clustervars(`clustervars') weight(`weighttype') weightvar(`weightvar')
 	local absorb_keepvars = r(keepvars)
 	local N_hdfe = r(N_hdfe)
 	
@@ -50,20 +59,26 @@ program define hdfe, rclass
 	keep `varlist' `clustervars' `weightvar' `panelvar' `timevar' `absorb_keepvars' `uid'
 	
 * Construct Mata objects and auxiliary variables
-	reghdfe_absorb, step(precompute) keep(`varlist' `clustervars' `weightvar' `panelvar' `timevar' `uid') tsvars(`panelvar' `timevar')
+	Precompute, keep(`varlist' `clustervars' `weightvar' `panelvar' `timevar' `uid') tsvars(`panelvar' `timevar')
 
 * Compute e(df_a)
-	reghdfe_absorb, step(estimatedof) dofadjustments(pairwise clusters continuous)
+	EstimateDoF, dofadjustments(pairwise clusters continuous)
 	* return list // what matters is r(kk) which will be e(df_a)
 	local kk = r(kk)
 	
 * Demean variables wrt to the fixed effects
-	reghdfe_absorb, step(demean) varlist(`varlist') tol(`tolerance') maxiterations(`maxiterations') // Other maximize/parallel options
+	local opt varlist(`varlist') tol(`tolerance') maxiterations(`maxiterations') // Other maximize/parallel options
+	if (`cores'>1) {
+		DemeanParallel, `opt' self(hdfe) cores(`cores')
+	}
+	else {
+		Demean, `opt'	
+	}
 	
 	return scalar df_a = `kk'
 	return scalar N_hdfe = `N_hdfe'
 	forv g=1/`N_hdfe' {
-		reghdfe_absorb, fe2local(`g') // copies Mata structure into locals
+		mata: fe2local(`g') // copies Mata structure into locals
 		* Will inject the following with c_local:
 		* ivars cvars target varname varlabel is_interaction is_cont_interaction is_bivariate is_mock levels
 		return local hdfe`g' = "`varlabel'"
@@ -71,7 +86,7 @@ program define hdfe, rclass
 	}
 	
 * Clean up Mata objects
-	reghdfe_absorb, step(stop)
+	Stop
 
 	if ("`generate'"!="") {
 		foreach var of local varlist {
@@ -94,3 +109,20 @@ syntax, uid(varname numeric) file(string)
 	* Merging gives us e(sample) and the FEs / AvgEs
 	merge 1:1 `uid' using "`file'", assert(master match) nolabel nonotes noreport nogen
 end
+
+include "_common/Assert.ado"
+include "_common/Debug.ado"
+
+include "_hdfe/ConnectedGroups.ado"
+include "_hdfe/GenerateID.ado"
+include "_hdfe/AverageOthers.ado"
+include "_hdfe/EstimateDoF.ado"
+
+include "_hdfe/Start.ado"
+include "_hdfe/ParseOneAbsvar.ado"
+include "_hdfe/Precompute.ado"
+include "_hdfe/Demean.ado"
+include "_hdfe/DemeanParallel.ado"
+include "_hdfe/ParallelInstance.ado"
+include "_hdfe/Save.ado"
+include "_hdfe/Stop.ado"

@@ -44,7 +44,7 @@ else {
 		[DOFadjustments(string) GROUP(name)] ///
 		[avge(string) EXCLUDESELF] ///
 		[Verbose(integer 0) CHECK NESTED FAST] ///
-		[TOLerance(real 1e-7) MAXITerations(integer 10000) noACCELerate] /// See reghdfe_absorb.Annihilate
+		[TOLerance(real 1e-7) MAXITerations(integer 10000) noACCELerate] ///
 		[IVsuite(string) SAVEFIRST FIRST SHOWRAW] /// ESTimator(string)
 		[VCEUNADJUSTED] /// Option when running gmm2s with ivregress
 		[SMALL Hascons TSSCONS] /// ignored options
