@@ -23,11 +23,13 @@
 {it:{weight}}
 {cmd:,}
 {opth a:bsorb(hdfe##absvar:absvars)}
+[{opt g:enerate(stubname)} | clear]
 [{opth cluster:vars(hdfe##vcetype:vcetype)}
+{opth cores(#)}
 {opt v:erbose(#)}
 {opt tol:erance(#)}
-{opt maxi:terations(#)}
-{opt g:enerate(stubname)}]
+{opt maxi:terations(#)}]
+{it: maximize_options}]
 {p_end}
 
 {pstd}{it: Notes:}{p_end}
@@ -84,10 +86,16 @@ but at most one continuous interaction
 {synoptline}
 {syntab:Model}
 {p2coldent:* {opth a:bsorb(hdfe##absvar:absvars)}   }identifiers of the fixed effects that will be absorbed{p_end}
+{synopt :{opt g:enerate(stubname)}}will not overwrite the variables; instead creating new demeaned variables with the {it:stubname} prefix{p_end}
+{synopt :{opt clear:}}will overwrite the dataset; leaving the transformed variables, as well as some ancillary ones (such as the fixed effects, weights, cluster variables, etc.).
+Use {cmd: char list} to see details of those ancillary variables.
+{p_end}
+
 {synopt: {opt cluster:vars(varlist)}}list of variables containing cluster categories{p_end}
+{synopt: {opth cores(#)}}will run the demeaning algorithm in # parallel instances.{p_end}
 {synopt :{opt v:erbose(#)}}amount of debugging information to show (0=None, 1=Some, 2=More, 3=Parsing/convergence details, 4=Every iteration){p_end}
 {synopt :{opth maxit:erations(#)}}specify maximum number of iterations; default is {cmd:maxiterations(1000)}; 0 means run forever until convergence{p_end}
-{synopt :{opt g:enerate(stubname)}}will not overwrite the variables; instead creating new demeaned variables with the {it:stubname} prefix{p_end}
+{synopt :{it:maximize_options}}there are several advanced maximization options, useful for tweaking the iteration. See the {help reghdfe##maximize_options:help for reghdfe} for details.{p_end}
 
 {marker contact}{...}
 {title:Author}

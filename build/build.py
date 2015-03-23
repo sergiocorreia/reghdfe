@@ -72,7 +72,7 @@ for fn in output_filenames:
     # Remove cap drop
     capdrops = re.findall('\s^\s*cap[a-z]* pr[a-z]* drop [a-zA-Z0-9_]+\s*$', data, re.MULTILINE)
     for capdrop in capdrops:
-        data = data.replace(capdrop, "")        
+        data = data.replace(capdrop, "\n")        
 
     # Save
     new_fn = os.path.join(server_path, fn)

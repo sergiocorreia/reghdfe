@@ -1,5 +1,4 @@
-cd "D:/Github/reghdfe" // /source
-cscript "reghdfe comparison with ivreg2" adofile reghdfe
+noi cscript "reghdfe comparison with ivreg2" adofile reghdfe
 
 * Setup
 	discard

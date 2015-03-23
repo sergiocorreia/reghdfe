@@ -1,5 +1,4 @@
-cd "D:/Github/reghdfe" // /source
-cscript "reghdfe with quipu" adofile reghdfe
+noi cscript "reghdfe with quipu" adofile reghdfe
 
 * Setup
 	discard

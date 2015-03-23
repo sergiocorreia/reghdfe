@@ -1,4 +1,4 @@
-*! reghdfe 2.0.1 22mar2015
+*! reghdfe 2.0.58 23mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 // -------------------------------------------------------------
@@ -83,19 +83,19 @@ void function add_fe(
 // Dump data of one FE to locals
 void function fe2local(`Integer' g) {
 	`SharedData' FEs
-	stata("c_local ivars " + FEs[g].ivars)
-	stata("c_local cvars " + FEs[g].cvars)
-	stata("c_local target " + FEs[g].target)
-	stata("c_local varname " + FEs[g].varname)
-	stata("c_local Z " + FEs[g].Z)
-	stata("c_local varlabel " + FEs[g].varlabel)
-	stata("c_local is_interaction " + strofreal(FEs[g].is_interaction))
-	stata("c_local is_cont_interaction " + strofreal(FEs[g].is_cont_interaction))
-	stata("c_local is_bivariate " + strofreal(FEs[g].is_bivariate))
-	stata("c_local is_mock " + strofreal(FEs[g].is_mock))
-	stata("c_local levels " + strofreal(FEs[g].levels))
-	stata("c_local group_k " + strofreal(FEs[g].K))
-	stata("c_local weightvar " + FEs[g].weightvar)
+	stata("local ivars " + FEs[g].ivars)
+	stata("local cvars " + FEs[g].cvars)
+	stata("local target " + FEs[g].target)
+	stata("local varname " + FEs[g].varname)
+	stata("local Z " + FEs[g].Z)
+	stata("local varlabel " + FEs[g].varlabel)
+	stata("local is_interaction " + strofreal(FEs[g].is_interaction))
+	stata("local is_cont_interaction " + strofreal(FEs[g].is_cont_interaction))
+	stata("local is_bivariate " + strofreal(FEs[g].is_bivariate))
+	stata("local is_mock " + strofreal(FEs[g].is_mock))
+	stata("local levels " + strofreal(FEs[g].levels))
+	stata("local group_k " + strofreal(FEs[g].K))
+	stata("local weightvar " + FEs[g].weightvar)
 }
 
 // Fill aux structures
@@ -754,6 +754,7 @@ void function make_residual(
 }
 
 end
+
 program define reghdfe
 	local version `=clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
 	qui version `version'
@@ -774,6 +775,7 @@ program define reghdfe
 
 		* Estimate, and then clean up Mata in case of failure
 		mata: st_global("reghdfe_pwd",pwd())
+		Stop // clean leftovers for a possible [break]
 		cap noi Estimate `0'
 		if (_rc) {
 			local rc = _rc
@@ -788,6 +790,7 @@ end
 // -------------------------------------------------------------
 // Simple assertions
 // -------------------------------------------------------------
+
 program define Assert
     syntax anything(everything equalok) [, MSG(string asis) RC(integer 198)]
     if !(`anything') {
@@ -800,6 +803,7 @@ end
 // -------------------------------------------------------------
 // Simple debugging
 // -------------------------------------------------------------
+
 program define Debug
 
 	syntax, [MSG(string asis) Level(integer 1) NEWline COLOR(string)] [tic(integer 0) toc(integer 0)]
@@ -869,9 +873,11 @@ void function fix_psd(string scalar Vname) {
 end
 
 
+
 // -------------------------------------------------------------------------------------------------
 // Transform data and run the regression
 // -------------------------------------------------------------------------------------------------
+
 program define Estimate, eclass
 
 /* Notation of created variables
@@ -884,7 +890,6 @@ program define Estimate, eclass
 // PART I - PREPARE DATASET FOR REGRESSION
 
 * 1) Parse main options
-	Stop // clean Mata leftovers before running -Parse-
 	Parse `0' // save all arguments into locals (verbose>=3 shows them)
 	local sets depvar indepvars endogvars instruments // depvar MUST be first
 
@@ -1604,6 +1609,7 @@ end
 // -------------------------------------------------------------------------------------------------
 
 * The idea of this program is to keep the sort order when doing the merges
+
 program define SafeMerge, eclass sortpreserve
 syntax, uid(varname numeric) file(string) [groupdta(string)]
 	* Merging gives us e(sample) and the FEs / AvgEs
@@ -1620,6 +1626,7 @@ syntax, uid(varname numeric) file(string) [groupdta(string)]
 	* Add mobility group
 	if ("`groupdta'"!="") merge 1:1 `uid' using "`groupdta'", assert(master match) nogen nolabel nonotes noreport sorted
 end
+
 program define Subtitle, eclass
 	* Fill e(title3/4/5) based on the info of the other e(..)
 
@@ -1649,7 +1656,7 @@ program define Subtitle, eclass
 	}
 end
 
-	
+
 // -------------------------------------------------------------
 // Parsing and basic sanity checks for REGHDFE.ado
 // -------------------------------------------------------------
@@ -1657,6 +1664,7 @@ end
 // indepvars: included exogenous regressors
 // endogvars: included endogenous regressors
 // instruments: excluded exogenous regressors
+
 program define Parse
 
 * Remove extra spacing from cmdline (just for aesthetics, run before syntax)
@@ -2074,6 +2082,7 @@ if (`savingcache') {
 	}
 	// Debug, level(3) newline
 end
+
 program define ParseImplicit
 * Parse options in the form NAME|NAME(arguments)
 * Inject: what locals to inject (depend on -syntax)
@@ -2102,12 +2111,13 @@ program define ParseImplicit
 	c_local options `options'
 end
 
-	
+
 // -------------------------------------------------------------
 // Iteratively drop singletons for each absvar
 // -------------------------------------------------------------
 * This could be done iteratively, dropping singletons for each absvar until no progress is made.
 * However, that would be extremely slow for a modest gain
+
 program define DropSingletons, sortpreserve
 syntax, num_absvars(integer)
 
@@ -2127,11 +2137,12 @@ syntax, num_absvars(integer)
 	}
 end
 
-	
+
 //------------------------------------------------------------------------------
 // Expand Factor Variables, interactions, and time-series vars
 //------------------------------------------------------------------------------
 // This basically wraps -fvrevar-, adds labels, and drops omitted/base
+
 program define ExpandFactorVariables, rclass
 syntax varlist(min=1 numeric fv ts) [if] [,setname(string)] [CACHE]
 
@@ -2228,10 +2239,11 @@ syntax varlist(min=1 numeric fv ts) [if] [,setname(string)] [CACHE]
 	return local varlist "`newvarlist'"
 end
 
-	
+
 //------------------------------------------------------------------------------
 // Name tempvars into e.g. L.x i1.y i2.y AvgE:z , etc.
 //------------------------------------------------------------------------------
+
 program define FixVarnames, rclass
 local vars `0'
 
@@ -2298,6 +2310,7 @@ local vars `0'
 	return local newnames "`newnames'"
 	return local prettynames "`prettynames'"
 end
+
 program define Wrapper_regress, eclass
 	syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 		original_absvars(string) original_depvar(string) [original_indepvars(string) avge_targets(string)] ///
@@ -2402,6 +2415,7 @@ program define Wrapper_regress, eclass
 
 	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars'" )) )
 end
+
 program define Wrapper_mwc, eclass
 * This will compute an ols regression with 2+ clusters
 syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
@@ -2564,6 +2578,7 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars'" )) )
 
 end
+
 program define Wrapper_avar, eclass
 	syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 		original_absvars(string) original_depvar(string) [original_indepvars(string) avge_targets(string)] ///
@@ -2718,6 +2733,7 @@ program define Wrapper_avar, eclass
 * ereturns specific to this command
 	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars'" )) )
 end
+
 program define Wrapper_ivregress, eclass
 	syntax , depvar(varname) endogvars(varlist) instruments(varlist) ///
 		[indepvars(varlist) avgevars(varlist)] ///
@@ -2805,6 +2821,7 @@ program define Wrapper_ivregress, eclass
 	ereturn scalar tss = e(mss) + e(rss) // ivreg2 doesn't report e(tss)
 	ereturn `hidden' scalar unclustered_df_r = `CorrectDoF' // Used later in R2 adj
 end
+
 program define Wrapper_ivreg2, eclass
 	syntax , depvar(varname) endogvars(varlist) instruments(varlist) ///
 		[indepvars(varlist) avgevars(varlist)] ///
@@ -2901,6 +2918,7 @@ program define Wrapper_ivreg2, eclass
 	* ereturns specific to this command
 	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars' (`original_endogvars'=`original_instruments')" )) )
 end
+
 program define AddConstant
 	syntax varlist(numeric)
 	foreach var of local varlist {
@@ -2910,6 +2928,7 @@ program define AddConstant
 		qui replace `var' = `var' + `mean'
 	}
 end
+
 program define Attach, eclass
 	syntax, [NOTES(string)] [statsmatrix(string)] summarize_quietly(integer)
 	
@@ -2945,6 +2964,7 @@ end
 // -------------------------------------------------------------
 // Display Regression Table
 // -------------------------------------------------------------
+
  program define Replay, eclass
 	syntax , [*]
 	Assert e(cmd)=="reghdfe"
@@ -3031,6 +3051,7 @@ end
 
 
 * (Modified from _coef_table_header.ado)
+
 program define Header
 	if !c(noisily) exit
 
@@ -3125,10 +3146,10 @@ program define Header
 		.`left'.Arrpush `C1' "Number of clusters (" as res "`cluster'" as text  ") " `C2' as text "= " as res %`c2wfmt'.0f `num'
 	}
 	
-	Display `left' `right' `"`title'"' `"`title2'"' `"`title3'"' `"`title4'"' `"`title5'"'
+	HeaderDisplay `left' `right' `"`title'"' `"`title2'"' `"`title3'"' `"`title4'"' `"`title5'"'
 end
 
-program Display
+program define HeaderDisplay
 		args left right title1 title2 title3 title4 title5
 
 		local nl = `.`left'.arrnels'
@@ -3154,7 +3175,7 @@ program Display
 		}
 end
 
-program Ftest
+program define Ftest
 		args right C3 C4 c4wfmt is_svy
 
 		local df = e(df_r)
@@ -3181,7 +3202,8 @@ program Ftest
 		}
 end
 
-program Chi2test
+program define Chi2test
+
 		args right C3 C4 c4wfmt
 
 		local type `e(chi2type)'
@@ -3210,8 +3232,6 @@ program Chi2test
 		}
 end
 
-exit
-
 
 
 // -------------------------------------------------------------
@@ -3219,6 +3239,7 @@ exit
 // -------------------------------------------------------------
 * To avoid backuping the data, use option -clear-
 * For simplicity, disallow -if- and -in- options
+
 program ConnectedGroups, rclass
 syntax varlist(min=2 max=2) [, GENerate(name) CLEAR]
 
@@ -3275,6 +3296,7 @@ end
 // -------------------------------------------------------------
 // Faster alternative to -egen group-. MVs, IF, etc not allowed!
 // -------------------------------------------------------------
+
 program define GenerateID, sortpreserve
 syntax varlist(numeric) , [REPLACE Generate(name)]
 
@@ -3314,7 +3336,8 @@ end
 // -------------------------------------------------------------
 // AvgE: Average of all the other obs in a group, except each obs itself
 // -------------------------------------------------------------
-program AverageOthers , sortpreserve
+
+program define AverageOthers , sortpreserve
 syntax varname , BY(varlist) Generate(name) [EXCLUDESELF]
 
 * EXCLUDESELF: Excludes obs at hand when computing avg
@@ -3422,6 +3445,7 @@ end
 
 	For this to work, the program MUST be modular
 */
+
 program define EstimateDoF, rclass
 syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 	
@@ -3611,6 +3635,7 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 	return scalar saved_group = `saved_group'
 	return scalar M_due_to_nested = `M_due_to_nested'
 end
+
 program define CheckZerosByGroup, rclass sortpreserve
 syntax, fe(varname numeric) cvars(varname numeric) anyconstant(integer)
 	tempvar redundant
@@ -3624,6 +3649,7 @@ syntax, fe(varname numeric) cvars(varname numeric) anyconstant(integer)
 	qui cou if `redundant'==1
 	return scalar redundant = r(N)
 end
+
 program define Start, rclass
 	CheckCorrectOrder start
 	syntax, Absorb(string) [AVGE(string)] [CLUSTERVARS(string)] [OVER(varname numeric)] [WEIGHT(string) WEIGHTVAR(varname numeric)]
@@ -3764,6 +3790,7 @@ if ("`avge'"!="") {
 	return scalar N_hdfe = `N_hdfe'
 	return scalar N_avge = `N_avge'
 end
+
 program define ParseOneAbsvar, rclass
 	syntax, ABSVAR(string)
 
@@ -3820,6 +3847,7 @@ program define ParseOneAbsvar, rclass
 	if ("`cvars'"!="") return local cvars "`cvars'"
 	return local ivars "`ivars'"
 end
+
 program define Precompute, rclass
 	CheckCorrectOrder precompute
 	syntax, KEEPvars(varlist) [DEPVAR(varname numeric) EXCLUDESELF] [TSVARS(varlist)] [OVER(varname numeric)]
@@ -3949,10 +3977,7 @@ if (`N_avge'>0) {
 	Debug, level(2) toc(20) msg("mata:prepare took")
 end
 
-
-
-cap pr drop program Demean
-program Demean
+program define Demean
 
 	CheckCorrectOrder demean
 	syntax , VARlist(varlist numeric) ///
@@ -4042,7 +4067,8 @@ program Demean
 	}
 	Debug, level(2) toc(30) msg("(timer for calls to mata:make_residual)")
 end
-program DemeanParallel
+
+program define DemeanParallel
 	* Notes:
 	* First cluster is taking by this stata instance, to save HDD/memory/merge time
 	* Also, this cluster should have more obs than the other ones so we let it have
@@ -4193,7 +4219,8 @@ program DemeanParallel
 	`qui' di as text 44 * "_" + "\ PARALLEL /" + 44 * "_"
 
 end
-program ParallelInstance
+
+program define ParallelInstance
 	syntax, core(integer) code(string asis)
 	set more off
 	assert inrange(`core',1,32)
@@ -4246,7 +4273,8 @@ program ParallelInstance
 	file close _all
 	exit, STATA
 end
-program Save, rclass
+
+program define Save, rclass
 	* Run this after -Demean .. , save_fe(1)-
 	* For each FE, if it has a -target-, add label, chars, and demean or divide
 	CheckCorrectOrder save
@@ -4285,7 +4313,8 @@ program Save, rclass
 	cap drop __Z*__
 	return local keepvars " `keepvars'" // the space prevents MVs
 end
-program Stop
+
+program define Stop
 	cap mata: mata drop prev_numstep // Created at step 1
 	cap mata: mata drop VERBOSE // Created before step 1
 	cap mata: mata drop G // Num of absorbed FEs
@@ -4325,5 +4354,21 @@ program Stop
 		cap mata: mata drop parallel_opt
 		cap mata: mata drop parallel_path
 	}
+end
+
+program define CheckCorrectOrder
+	args step
+
+	local numstep = ("`step'"=="start") + 2*("`step'"=="precompute") + ///
+		3*("`step'"=="demean") + 4*("`step'"=="save")
+	Assert (`numstep'>0), msg("hdfe: -`step'- is an invalid step")
+
+	cap mata: st_local("prev_numstep", strofreal(prev_numstep))
+	if (_rc) local prev_numstep 0
+
+	Assert (`numstep'==`prev_numstep'+1) | (`numstep'==3 & `prev_numstep'==3) ///
+		, msg("hdfe: expected step `=`prev_numstep'+1' instead of step 	`numstep'")
+	mata: prev_numstep = `numstep'
+	Debug, msg(_n as text "{title:Running -hdfe- step `numstep'/5 (`step')}") level(3)
 end
 

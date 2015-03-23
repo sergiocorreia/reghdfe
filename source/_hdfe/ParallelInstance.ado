@@ -1,5 +1,5 @@
 cap pr drop ParallelInstance
-program ParallelInstance
+program define ParallelInstance
 	syntax, core(integer) code(string asis)
 	set more off
 	assert inrange(`core',1,32)

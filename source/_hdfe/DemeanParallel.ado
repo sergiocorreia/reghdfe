@@ -1,5 +1,5 @@
 cap pr drop DemeanParallel
-program DemeanParallel
+program define DemeanParallel
 	* Notes:
 	* First cluster is taking by this stata instance, to save HDD/memory/merge time
 	* Also, this cluster should have more obs than the other ones so we let it have

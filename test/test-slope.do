@@ -1,4 +1,3 @@
-cd "D:/Github/reghdfe" // /source
 noi cscript "reghdfe with FE interacted with slope" adofile reghdfe
 
 * Setup

@@ -95,10 +95,11 @@ program define Header
 		.`left'.Arrpush `C1' "Number of clusters (" as res "`cluster'" as text  ") " `C2' as text "= " as res %`c2wfmt'.0f `num'
 	}
 	
-	Display `left' `right' `"`title'"' `"`title2'"' `"`title3'"' `"`title4'"' `"`title5'"'
+	HeaderDisplay `left' `right' `"`title'"' `"`title2'"' `"`title3'"' `"`title4'"' `"`title5'"'
 end
 
-program Display
+capture program drop HeaderDisplay
+program define HeaderDisplay
 		args left right title1 title2 title3 title4 title5
 
 		local nl = `.`left'.arrnels'
@@ -124,7 +125,8 @@ program Display
 		}
 end
 
-program Ftest
+capture program drop Ftest
+program define Ftest
 		args right C3 C4 c4wfmt is_svy
 
 		local df = e(df_r)
@@ -151,7 +153,9 @@ program Ftest
 		}
 end
 
-program Chi2test
+capture program drop Chi2test
+program define Chi2test
+
 		args right C3 C4 c4wfmt
 
 		local type `e(chi2type)'
@@ -179,5 +183,3 @@ program Chi2test
 				   as res %`c4wfmt's "."
 		}
 end
-
-exit

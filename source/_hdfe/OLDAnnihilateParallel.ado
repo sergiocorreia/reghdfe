@@ -1,8 +1,4 @@
 
-
-
-
-
 // The filename must have already been saved
 cap pr drop AnnihilateParallelOld
 program AnnihilateParallelOld

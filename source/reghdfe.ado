@@ -1,4 +1,4 @@
-*! reghdfe 2.0.1 22mar2015
+*! reghdfe 2.0.58 23mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 
@@ -25,6 +25,7 @@ program define reghdfe
 
 		* Estimate, and then clean up Mata in case of failure
 		mata: st_global("reghdfe_pwd",pwd())
+		Stop // clean leftovers for a possible [break]
 		cap noi Estimate `0'
 		if (_rc) {
 			local rc = _rc
@@ -39,17 +40,18 @@ include "_common/Assert.ado"
 include "_common/Debug.ado"
 
 include "_mata/fix_psd.mata"
+
 include "_reghdfe/Estimate.ado"
-	include "_reghdfe/Parse.ado"
-	include "_reghdfe/DropSingletons.ado"
-	include "_reghdfe/ExpandFactorVariables.ado"
-	include "_reghdfe/FixVarnames.ado"
-	include "_reghdfe/Wrapper_regress.ado"
-	include "_reghdfe/Wrapper_mwc.ado"
-	include "_reghdfe/Wrapper_avar.ado"
-	include "_reghdfe/Wrapper_ivregress.ado"
-	include "_reghdfe/Wrapper_ivreg2.ado"
-	include "_reghdfe/AddConstant.ado"
+include "_reghdfe/Parse.ado"
+include "_reghdfe/DropSingletons.ado"
+include "_reghdfe/ExpandFactorVariables.ado"
+include "_reghdfe/FixVarnames.ado"
+include "_reghdfe/Wrapper_regress.ado"
+include "_reghdfe/Wrapper_mwc.ado"
+include "_reghdfe/Wrapper_avar.ado"
+include "_reghdfe/Wrapper_ivregress.ado"
+include "_reghdfe/Wrapper_ivreg2.ado"
+include "_reghdfe/AddConstant.ado"
 include "_reghdfe/Attach.ado"
 include "_reghdfe/Replay.ado"
 include "_reghdfe/Header.ado"
@@ -58,7 +60,6 @@ include "_hdfe/ConnectedGroups.ado"
 include "_hdfe/GenerateID.ado"
 include "_hdfe/AverageOthers.ado"
 include "_hdfe/EstimateDoF.ado"
-
 include "_hdfe/Start.ado"
 include "_hdfe/ParseOneAbsvar.ado"
 include "_hdfe/Precompute.ado"
@@ -67,3 +68,4 @@ include "_hdfe/DemeanParallel.ado"
 include "_hdfe/ParallelInstance.ado"
 include "_hdfe/Save.ado"
 include "_hdfe/Stop.ado"
+include "_hdfe/CheckCorrectOrder.ado"

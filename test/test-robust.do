@@ -1,5 +1,4 @@
-cd "D:/Github/reghdfe" // /source
-cscript "reghdfe with robust VCV" adofile reghdfe
+noi cscript "reghdfe with robust VCV" adofile reghdfe
 
 * Setup
 	discard

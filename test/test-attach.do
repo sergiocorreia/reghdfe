@@ -1,5 +1,4 @@
-cd "D:/Github/reghdfe" // /source
-cscript "reghdfe with multicore" adofile reghdfe
+cscript "reghdfe with summarize" adofile reghdfe
 
 * Setup
 	discard

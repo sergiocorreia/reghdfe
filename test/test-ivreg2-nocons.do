@@ -1,5 +1,4 @@
-cd "D:/Github/reghdfe" // /source
-cscript "reghdfe with ivreg2 should use nocons" adofile reghdfe
+noi cscript "reghdfe with ivreg2 should use nocons" adofile reghdfe
 
 * Setup
 	discard

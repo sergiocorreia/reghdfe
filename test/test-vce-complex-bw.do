@@ -1,5 +1,4 @@
-cd "D:/Github/reghdfe" // /source
-cscript "reghdfe with HAC VCE (bw>1)" adofile reghdfe
+noi cscript "reghdfe with HAC VCE (bw>1)" adofile reghdfe
 
 * Setup
 	discard

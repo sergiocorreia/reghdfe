@@ -1,4 +1,4 @@
-*! hdfe 2.0.1 22mar2015
+*! hdfe 2.0.58 23mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 
@@ -6,17 +6,8 @@ include _mata/reghdfe.mata
 
 cap pr drop hdfe
 program define hdfe, rclass
-	local version `clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
+	local version `=clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
 	qui version `version'
-
-	syntax varlist [if] [in] [fweight aweight pweight/] , Absorb(string) ///
-		[CORES(integer 1)]
-		[CLUSTERvars(string) Verbose(integer 0) TOLerance(real 1e-7) MAXITerations(integer 10000)] [GENerate(name)]
-	if ("`weight'"!="") {
-		local weightvar `exp'
-		conf var `weightvar' // just allow simple weights
-		local weighttype `weight'
-	}
 
 * Intercept multiprocessor/parallel calls
 	cap syntax, instance [*]
@@ -25,16 +16,34 @@ program define hdfe, rclass
 		ParallelInstance, `options'
 		exit
 	}
-	
+
+* Parse
+	syntax varlist [if] [in] [fweight aweight pweight/] , Absorb(string) ///
+		[CORES(integer 1)] ///
+		[CLUSTERvars(string) Verbose(integer 0) TOLerance(real 1e-7) MAXITerations(integer 10000)] [GENerate(name)] [CLEAR] [*]
+
+	Assert ("`generate'"!="") + ("`clear'"!="") == 1 , msg("hdfe error: you need to specify one and only one of the following options: clear generate(...)")
+
+	if ("`weight'"!="") {
+		local weightvar `exp'
+		conf var `weightvar' // just allow simple weights
+		local weighttype `weight'
+	}
+
 * Preserve if asked to
 	if ("`generate'"!="") {
+
+		* The stub must not exist!
+		 cap ds `generate'*
+		 Assert "`r(varlist)'"=="", msg("hdfe error: there are already variables that start with the stub `generate'")
+
 		tempvar uid
 		gen double `uid' = _n
 		preserve
 	}
-	
+
 * Clear previous errors
-	cap Stop
+	Stop
 
 * Time/panel variables
 	cap conf var `_dta[_TStvar]'
@@ -60,14 +69,17 @@ program define hdfe, rclass
 	
 * Construct Mata objects and auxiliary variables
 	Precompute, keep(`varlist' `clustervars' `weightvar' `panelvar' `timevar' `uid') tsvars(`panelvar' `timevar')
-
+	
 * Compute e(df_a)
 	EstimateDoF, dofadjustments(pairwise clusters continuous)
 	* return list // what matters is r(kk) which will be e(df_a)
 	local kk = r(kk)
 	
+* We don't need the FE variables (they are in mata objects now)
+	*drop __FE*__
+
 * Demean variables wrt to the fixed effects
-	local opt varlist(`varlist') tol(`tolerance') maxiterations(`maxiterations') // Other maximize/parallel options
+	local opt varlist(`varlist') tol(`tolerance') maxiterations(`maxiterations') `options'
 	if (`cores'>1) {
 		DemeanParallel, `opt' self(hdfe) cores(`cores')
 	}
@@ -89,6 +101,7 @@ program define hdfe, rclass
 	Stop
 
 	if ("`generate'"!="") {
+		keep `varlist' `uid'
 		foreach var of local varlist {
 			rename `var' `generate'`var'
 		}
@@ -126,3 +139,4 @@ include "_hdfe/DemeanParallel.ado"
 include "_hdfe/ParallelInstance.ado"
 include "_hdfe/Save.ado"
 include "_hdfe/Stop.ado"
+include "_hdfe/CheckCorrectOrder.ado"

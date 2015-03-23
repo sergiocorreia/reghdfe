@@ -1,4 +1,3 @@
-cd "D:/Github/reghdfe" // /source
 cscript "reghdfe postestimation: test" adofile reghdfe
 
 * Setup

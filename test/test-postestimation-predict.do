@@ -1,5 +1,4 @@
-cd "D:/Github/reghdfe" // /source
-cscript "reghdfe postestimation: predict" adofile reghdfe
+noi cscript "reghdfe postestimation: predict" adofile reghdfe
 
 * Setup
 	discard

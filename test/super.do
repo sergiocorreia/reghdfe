@@ -5,6 +5,10 @@
 	cap cls
 	set more off
 	cd "D:/Github/reghdfe/test"
+
+	rebuild_git reghdfe
+	cap pr drop _all
+	discard
 	
 * Run scripts
 	*run test-minimal

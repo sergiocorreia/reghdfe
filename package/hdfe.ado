@@ -1,4 +1,4 @@
-*! hdfe 2.0.1 22mar2015
+*! hdfe 2.0.58 23mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 // -------------------------------------------------------------
@@ -83,19 +83,19 @@ void function add_fe(
 // Dump data of one FE to locals
 void function fe2local(`Integer' g) {
 	`SharedData' FEs
-	stata("c_local ivars " + FEs[g].ivars)
-	stata("c_local cvars " + FEs[g].cvars)
-	stata("c_local target " + FEs[g].target)
-	stata("c_local varname " + FEs[g].varname)
-	stata("c_local Z " + FEs[g].Z)
-	stata("c_local varlabel " + FEs[g].varlabel)
-	stata("c_local is_interaction " + strofreal(FEs[g].is_interaction))
-	stata("c_local is_cont_interaction " + strofreal(FEs[g].is_cont_interaction))
-	stata("c_local is_bivariate " + strofreal(FEs[g].is_bivariate))
-	stata("c_local is_mock " + strofreal(FEs[g].is_mock))
-	stata("c_local levels " + strofreal(FEs[g].levels))
-	stata("c_local group_k " + strofreal(FEs[g].K))
-	stata("c_local weightvar " + FEs[g].weightvar)
+	stata("local ivars " + FEs[g].ivars)
+	stata("local cvars " + FEs[g].cvars)
+	stata("local target " + FEs[g].target)
+	stata("local varname " + FEs[g].varname)
+	stata("local Z " + FEs[g].Z)
+	stata("local varlabel " + FEs[g].varlabel)
+	stata("local is_interaction " + strofreal(FEs[g].is_interaction))
+	stata("local is_cont_interaction " + strofreal(FEs[g].is_cont_interaction))
+	stata("local is_bivariate " + strofreal(FEs[g].is_bivariate))
+	stata("local is_mock " + strofreal(FEs[g].is_mock))
+	stata("local levels " + strofreal(FEs[g].levels))
+	stata("local group_k " + strofreal(FEs[g].K))
+	stata("local weightvar " + FEs[g].weightvar)
 }
 
 // Fill aux structures
@@ -754,18 +754,10 @@ void function make_residual(
 }
 
 end
-program define hdfe, rclass
-	local version `clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
-	qui version `version'
 
-	syntax varlist [if] [in] [fweight aweight pweight/] , Absorb(string) ///
-		[CORES(integer 1)]
-		[CLUSTERvars(string) Verbose(integer 0) TOLerance(real 1e-7) MAXITerations(integer 10000)] [GENerate(name)]
-	if ("`weight'"!="") {
-		local weightvar `exp'
-		conf var `weightvar' // just allow simple weights
-		local weighttype `weight'
-	}
+program define hdfe, rclass
+	local version `=clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
+	qui version `version'
 
 * Intercept multiprocessor/parallel calls
 	cap syntax, instance [*]
@@ -774,16 +766,34 @@ program define hdfe, rclass
 		ParallelInstance, `options'
 		exit
 	}
-	
+
+* Parse
+	syntax varlist [if] [in] [fweight aweight pweight/] , Absorb(string) ///
+		[CORES(integer 1)] ///
+		[CLUSTERvars(string) Verbose(integer 0) TOLerance(real 1e-7) MAXITerations(integer 10000)] [GENerate(name)] [CLEAR] [*]
+
+	Assert ("`generate'"!="") + ("`clear'"!="") == 1 , msg("hdfe error: you need to specify one and only one of the following options: clear generate(...)")
+
+	if ("`weight'"!="") {
+		local weightvar `exp'
+		conf var `weightvar' // just allow simple weights
+		local weighttype `weight'
+	}
+
 * Preserve if asked to
 	if ("`generate'"!="") {
+
+		* The stub must not exist!
+		 cap ds `generate'*
+		 Assert "`r(varlist)'"=="", msg("hdfe error: there are already variables that start with the stub `generate'")
+
 		tempvar uid
 		gen double `uid' = _n
 		preserve
 	}
-	
+
 * Clear previous errors
-	cap Stop
+	Stop
 
 * Time/panel variables
 	cap conf var `_dta[_TStvar]'
@@ -809,14 +819,17 @@ program define hdfe, rclass
 	
 * Construct Mata objects and auxiliary variables
 	Precompute, keep(`varlist' `clustervars' `weightvar' `panelvar' `timevar' `uid') tsvars(`panelvar' `timevar')
-
+	
 * Compute e(df_a)
 	EstimateDoF, dofadjustments(pairwise clusters continuous)
 	* return list // what matters is r(kk) which will be e(df_a)
 	local kk = r(kk)
 	
+* We don't need the FE variables (they are in mata objects now)
+	*drop __FE*__
+
 * Demean variables wrt to the fixed effects
-	local opt varlist(`varlist') tol(`tolerance') maxiterations(`maxiterations') // Other maximize/parallel options
+	local opt varlist(`varlist') tol(`tolerance') maxiterations(`maxiterations') `options'
 	if (`cores'>1) {
 		DemeanParallel, `opt' self(hdfe) cores(`cores')
 	}
@@ -838,6 +851,7 @@ program define hdfe, rclass
 	Stop
 
 	if ("`generate'"!="") {
+		keep `varlist' `uid'
 		foreach var of local varlist {
 			rename `var' `generate'`var'
 		}
@@ -852,6 +866,7 @@ end
 
 * [SafeMerge: ADAPTED FROM THE ONE IN ESTIMATE.ADO]
 * The idea of this program is to keep the sort order when doing the merges
+
 program define SafeMerge, eclass sortpreserve
 syntax, uid(varname numeric) file(string)
 	* Merging gives us e(sample) and the FEs / AvgEs
@@ -862,6 +877,7 @@ end
 // -------------------------------------------------------------
 // Simple assertions
 // -------------------------------------------------------------
+
 program define Assert
     syntax anything(everything equalok) [, MSG(string asis) RC(integer 198)]
     if !(`anything') {
@@ -874,6 +890,7 @@ end
 // -------------------------------------------------------------
 // Simple debugging
 // -------------------------------------------------------------
+
 program define Debug
 
 	syntax, [MSG(string asis) Level(integer 1) NEWline COLOR(string)] [tic(integer 0) toc(integer 0)]
@@ -923,6 +940,7 @@ end
 // -------------------------------------------------------------
 * To avoid backuping the data, use option -clear-
 * For simplicity, disallow -if- and -in- options
+
 program ConnectedGroups, rclass
 syntax varlist(min=2 max=2) [, GENerate(name) CLEAR]
 
@@ -979,6 +997,7 @@ end
 // -------------------------------------------------------------
 // Faster alternative to -egen group-. MVs, IF, etc not allowed!
 // -------------------------------------------------------------
+
 program define GenerateID, sortpreserve
 syntax varlist(numeric) , [REPLACE Generate(name)]
 
@@ -1018,7 +1037,8 @@ end
 // -------------------------------------------------------------
 // AvgE: Average of all the other obs in a group, except each obs itself
 // -------------------------------------------------------------
-program AverageOthers , sortpreserve
+
+program define AverageOthers , sortpreserve
 syntax varname , BY(varlist) Generate(name) [EXCLUDESELF]
 
 * EXCLUDESELF: Excludes obs at hand when computing avg
@@ -1126,6 +1146,7 @@ end
 
 	For this to work, the program MUST be modular
 */
+
 program define EstimateDoF, rclass
 syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 	
@@ -1315,6 +1336,7 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 	return scalar saved_group = `saved_group'
 	return scalar M_due_to_nested = `M_due_to_nested'
 end
+
 program define CheckZerosByGroup, rclass sortpreserve
 syntax, fe(varname numeric) cvars(varname numeric) anyconstant(integer)
 	tempvar redundant
@@ -1328,6 +1350,7 @@ syntax, fe(varname numeric) cvars(varname numeric) anyconstant(integer)
 	qui cou if `redundant'==1
 	return scalar redundant = r(N)
 end
+
 program define Start, rclass
 	CheckCorrectOrder start
 	syntax, Absorb(string) [AVGE(string)] [CLUSTERVARS(string)] [OVER(varname numeric)] [WEIGHT(string) WEIGHTVAR(varname numeric)]
@@ -1468,6 +1491,7 @@ if ("`avge'"!="") {
 	return scalar N_hdfe = `N_hdfe'
 	return scalar N_avge = `N_avge'
 end
+
 program define ParseOneAbsvar, rclass
 	syntax, ABSVAR(string)
 
@@ -1524,6 +1548,7 @@ program define ParseOneAbsvar, rclass
 	if ("`cvars'"!="") return local cvars "`cvars'"
 	return local ivars "`ivars'"
 end
+
 program define Precompute, rclass
 	CheckCorrectOrder precompute
 	syntax, KEEPvars(varlist) [DEPVAR(varname numeric) EXCLUDESELF] [TSVARS(varlist)] [OVER(varname numeric)]
@@ -1653,10 +1678,7 @@ if (`N_avge'>0) {
 	Debug, level(2) toc(20) msg("mata:prepare took")
 end
 
-
-
-cap pr drop program Demean
-program Demean
+program define Demean
 
 	CheckCorrectOrder demean
 	syntax , VARlist(varlist numeric) ///
@@ -1746,7 +1768,8 @@ program Demean
 	}
 	Debug, level(2) toc(30) msg("(timer for calls to mata:make_residual)")
 end
-program DemeanParallel
+
+program define DemeanParallel
 	* Notes:
 	* First cluster is taking by this stata instance, to save HDD/memory/merge time
 	* Also, this cluster should have more obs than the other ones so we let it have
@@ -1897,7 +1920,8 @@ program DemeanParallel
 	`qui' di as text 44 * "_" + "\ PARALLEL /" + 44 * "_"
 
 end
-program ParallelInstance
+
+program define ParallelInstance
 	syntax, core(integer) code(string asis)
 	set more off
 	assert inrange(`core',1,32)
@@ -1950,7 +1974,8 @@ program ParallelInstance
 	file close _all
 	exit, STATA
 end
-program Save, rclass
+
+program define Save, rclass
 	* Run this after -Demean .. , save_fe(1)-
 	* For each FE, if it has a -target-, add label, chars, and demean or divide
 	CheckCorrectOrder save
@@ -1989,7 +2014,8 @@ program Save, rclass
 	cap drop __Z*__
 	return local keepvars " `keepvars'" // the space prevents MVs
 end
-program Stop
+
+program define Stop
 	cap mata: mata drop prev_numstep // Created at step 1
 	cap mata: mata drop VERBOSE // Created before step 1
 	cap mata: mata drop G // Num of absorbed FEs
@@ -2029,5 +2055,21 @@ program Stop
 		cap mata: mata drop parallel_opt
 		cap mata: mata drop parallel_path
 	}
+end
+
+program define CheckCorrectOrder
+	args step
+
+	local numstep = ("`step'"=="start") + 2*("`step'"=="precompute") + ///
+		3*("`step'"=="demean") + 4*("`step'"=="save")
+	Assert (`numstep'>0), msg("hdfe: -`step'- is an invalid step")
+
+	cap mata: st_local("prev_numstep", strofreal(prev_numstep))
+	if (_rc) local prev_numstep 0
+
+	Assert (`numstep'==`prev_numstep'+1) | (`numstep'==3 & `prev_numstep'==3) ///
+		, msg("hdfe: expected step `=`prev_numstep'+1' instead of step 	`numstep'")
+	mata: prev_numstep = `numstep'
+	Debug, msg(_n as text "{title:Running -hdfe- step `numstep'/5 (`step')}") level(3)
 end
 

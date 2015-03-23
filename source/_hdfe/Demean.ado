@@ -1,5 +1,5 @@
-cap pr drop program Demean
-program Demean
+cap pr drop Demean
+program define Demean
 
 	CheckCorrectOrder demean
 	syntax , VARlist(varlist numeric) ///

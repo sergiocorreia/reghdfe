@@ -1,10 +1,9 @@
+noi cscript "reghdfe with multi-way clustering" adofile reghdfe
+
 * Test multi-way-clustering routine
 * Will compare it against areg (N_clustervars==1), ivreg2 (N_clustervars<=2) and cgmreg.
 * Note: We use -fixed_cgmreg- because a bug in -cgmreg-, where they count K=rows(X'X)
 * But the rows are also included for omitted variables (e.g. the base variable in a factor expansion i.turn)
-
-cd "D:/Github/reghdfe" // /source
-cscript "reghdfe with multi-way clustering" adofile reghdfe
 
 * Setup
 	discard

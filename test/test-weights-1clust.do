@@ -1,5 +1,4 @@
-cd "D:/Github/reghdfe" // /source
-cscript "reghdfe with weights and MWC" adofile reghdfe
+cscript "reghdfe with weights and 1 MWC" adofile reghdfe
 
 * Setup
 	discard
@@ -47,7 +46,6 @@ cscript "reghdfe with weights and MWC" adofile reghdfe
 		macros: wtype // wexp
 
 	local i 0
-rebuild_git reghdfe
 
 // -------------------------------------------------------------------------------------------------
 

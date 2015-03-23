@@ -1,5 +1,4 @@
-cd "D:/Github/reghdfe" // /source
-cscript "reghdfe with weights" adofile reghdfe
+cscript "reghdfe template" adofile reghdfe
 
 * Setup
 	discard

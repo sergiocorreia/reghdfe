@@ -1,4 +1,3 @@
-cd "D:/Github/reghdfe" // /source
 cscript "reghdfe test bugfix ibn.x1#c.x2 do not drop base cat." adofile reghdfe
 
 * Setup

@@ -80,19 +80,19 @@ void function add_fe(
 // Dump data of one FE to locals
 void function fe2local(`Integer' g) {
 	`SharedData' FEs
-	stata("c_local ivars " + FEs[g].ivars)
-	stata("c_local cvars " + FEs[g].cvars)
-	stata("c_local target " + FEs[g].target)
-	stata("c_local varname " + FEs[g].varname)
-	stata("c_local Z " + FEs[g].Z)
-	stata("c_local varlabel " + FEs[g].varlabel)
-	stata("c_local is_interaction " + strofreal(FEs[g].is_interaction))
-	stata("c_local is_cont_interaction " + strofreal(FEs[g].is_cont_interaction))
-	stata("c_local is_bivariate " + strofreal(FEs[g].is_bivariate))
-	stata("c_local is_mock " + strofreal(FEs[g].is_mock))
-	stata("c_local levels " + strofreal(FEs[g].levels))
-	stata("c_local group_k " + strofreal(FEs[g].K))
-	stata("c_local weightvar " + FEs[g].weightvar)
+	stata("local ivars " + FEs[g].ivars)
+	stata("local cvars " + FEs[g].cvars)
+	stata("local target " + FEs[g].target)
+	stata("local varname " + FEs[g].varname)
+	stata("local Z " + FEs[g].Z)
+	stata("local varlabel " + FEs[g].varlabel)
+	stata("local is_interaction " + strofreal(FEs[g].is_interaction))
+	stata("local is_cont_interaction " + strofreal(FEs[g].is_cont_interaction))
+	stata("local is_bivariate " + strofreal(FEs[g].is_bivariate))
+	stata("local is_mock " + strofreal(FEs[g].is_mock))
+	stata("local levels " + strofreal(FEs[g].levels))
+	stata("local group_k " + strofreal(FEs[g].K))
+	stata("local weightvar " + FEs[g].weightvar)
 }
 
 // Fill aux structures

@@ -1,5 +1,4 @@
-cd "D:/Github/reghdfe" // /source
-cscript "reghdfe with ivreg2/ivregress and two-step gmm" adofile reghdfe
+cscript "reghdfe with cue" adofile reghdfe
 
 * Setup
 	discard

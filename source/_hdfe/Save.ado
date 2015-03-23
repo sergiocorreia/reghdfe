@@ -1,5 +1,5 @@
 cap pr drop Save
-program Save, rclass
+program define Save, rclass
 	* Run this after -Demean .. , save_fe(1)-
 	* For each FE, if it has a -target-, add label, chars, and demean or divide
 	CheckCorrectOrder save

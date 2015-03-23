@@ -1,5 +1,4 @@
-cd "D:/Github/reghdfe" // /source
-cscript "reghdfe with unadjusted/ols VCV" adofile reghdfe
+cscript "reghdfe with singletons" adofile reghdfe
 
 * Setup
 	discard

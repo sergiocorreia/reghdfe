@@ -14,7 +14,6 @@ program define Estimate, eclass
 // PART I - PREPARE DATASET FOR REGRESSION
 
 * 1) Parse main options
-	Stop // clean Mata leftovers before running -Parse-
 	Parse `0' // save all arguments into locals (verbose>=3 shows them)
 	local sets depvar indepvars endogvars instruments // depvar MUST be first
 

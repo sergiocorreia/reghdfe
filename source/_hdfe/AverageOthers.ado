@@ -2,7 +2,7 @@
 // AvgE: Average of all the other obs in a group, except each obs itself
 // -------------------------------------------------------------
 cap pr drop AverageOthers
-program AverageOthers , sortpreserve
+program define AverageOthers , sortpreserve
 syntax varname , BY(varlist) Generate(name) [EXCLUDESELF]
 
 * EXCLUDESELF: Excludes obs at hand when computing avg

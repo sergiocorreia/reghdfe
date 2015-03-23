@@ -1,6 +1,6 @@
 * Test that it doesn't crash
 set varabbrev on
-cd "D:/Github/reghdfe" // /source
+
 *cscript "minimal test" adofile reghdfe
 
 * Setup
@@ -8,7 +8,7 @@ cd "D:/Github/reghdfe" // /source
 	discard
 	clear all
 	set more off
-	qui adopath + "D:/Github/reghdfe/test"
+	*qui adopath + "D:/Github/reghdfe/test"
 	set more off
 
 

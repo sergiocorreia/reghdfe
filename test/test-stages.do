@@ -1,4 +1,3 @@
-cd "D:/Github/reghdfe" // /source
 cscript "reghdfe with iv-stages" adofile reghdfe
 
 * Setup

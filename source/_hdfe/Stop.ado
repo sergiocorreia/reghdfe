@@ -1,5 +1,5 @@
-cap pr drop Stop
-program Stop
+capture program drop Stop
+program define Stop
 	cap mata: mata drop prev_numstep // Created at step 1
 	cap mata: mata drop VERBOSE // Created before step 1
 	cap mata: mata drop G // Num of absorbed FEs
