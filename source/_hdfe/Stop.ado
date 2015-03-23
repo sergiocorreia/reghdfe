@@ -13,9 +13,9 @@ program define Stop
 	cap mata: mata drop clustervars_ivars
 	cap mata: mata drop clustervars_original
 
-	if ("${reghdfe_pwd}"!="") {
-		qui cd "${reghdfe_pwd}"
-		global reghdfe_pwd
+	if ("${hdfe_pwd}"!="") {
+		qui cd "${hdfe_pwd}"
+		global hdfe_pwd
 	}
 
 	* PARALLEL SPECIFIC CLEANUP

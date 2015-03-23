@@ -34,11 +34,10 @@ program define DemeanParallel
 	local code = string(int( uniform() * 1e6 ), "%08.0f")
 
 	* Prepare
-	local path "`c(tmpdir)'reghdfe_`code'`c(dirsep)'"
+	local path "`c(tmpdir)'hdfe_`code'`c(dirsep)'"
 	Debug, level(1) msg(" - tempdir will be " as input "`path'")
 	mata: parallel_cores = `cores'
 	mata: parallel_dta = `"`filename'"'
-	mata: parallel_vars = J(`cores',1,"")
 	mata: parallel_vars = J(`cores',1,"")
 	mata: parallel_opt = `"`options'"'
 	mata: parallel_path = `"`path'"'
@@ -48,7 +47,7 @@ program define DemeanParallel
 
 	local dropvarlist : list varlist - varlist1
 	drop `dropvarlist' // basically, keeps UID and clustervar
-	mata: st_global("reghdfe_pwd",pwd())
+	mata: st_global("hdfe_pwd",pwd())
 	mkdir "`path'"
 	qui cd "`path'"
 
@@ -95,12 +94,12 @@ program define DemeanParallel
 				Assert `elapsed'<`timeout', msg("Failed to start subprocess `i'")
 			}
 		}
-		local cores `cores' `i' // Will contain remaining cores
+		local remaining_cores `remaining_cores' `i' // Will contain remaining cores
 	}
 
 	* Wait for termination and merge
-	while ("`cores'"!="") {
-		foreach core of local cores {
+	while ("`remaining_cores'"!="") {
+		foreach core of local remaining_cores {
 			local donefn "`path'`core'_done.txt"
 			local okfn "`path'`core'_ok.txt"
 			local errorfn "`path'`core'_error.txt"
@@ -114,7 +113,6 @@ program define DemeanParallel
 			if (`rc'==0) {
 				Debug, level(1) msg(" - process `core' finished")
 				erase "`donefn'"
-
 				cap conf file "`okfn'"
 				if (`=_rc'>0) {
 					type "`logfile'"
@@ -124,7 +122,7 @@ program define DemeanParallel
 
 				erase "`okfn'"
 				Debug, level(1) msg(" - Subprocess `core' done")
-				local cores : list cores - core
+				local remaining_cores : list remaining_cores - core
 				mata: st_local("VERBOSE",strofreal(VERBOSE))
 				
 				if (`VERBOSE'>=3) {
@@ -144,7 +142,7 @@ program define DemeanParallel
 	}
 
 	* Cleanup
-	qui cd "${reghdfe_pwd}"
+	qui cd "${hdfe_pwd}"
 	erase "`path'hdfe_mata.mo"
 	cap rmdir `"`path'"'
 	`qui' di as text 44 * "_" + "\ PARALLEL /" + 44 * "_"

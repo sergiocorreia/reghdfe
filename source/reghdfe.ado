@@ -1,4 +1,4 @@
-*! reghdfe 2.0.58 23mar2015
+*! reghdfe 2.0.75 23mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 
@@ -9,20 +9,19 @@ program define reghdfe
 	local version `=clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
 	qui version `version'
 
+	* Intercept multiprocessor/parallel calls
+	cap syntax, instance [*]
+	local rc = _rc
+	 if (`rc'==0) {
+		ParallelInstance, `options'
+		exit
+	}
+
 	if replay() {
 		if (`"`e(cmd)'"'!="reghdfe") error 301
 		Replay `0'
 	}
 	else {
-
-		* Intercept multiprocessor/parallel calls
-		cap syntax, instance [*]
-		local rc = _rc
-		 if (`rc'==0) {
-			ParallelInstance, `options'
-			exit
-		}
-
 		* Estimate, and then clean up Mata in case of failure
 		mata: st_global("reghdfe_pwd",pwd())
 		Stop // clean leftovers for a possible [break]
