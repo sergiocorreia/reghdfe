@@ -1,4 +1,4 @@
-*! hdfe 2.0.83 23mar2015
+*! hdfe 2.0.85 23mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 
@@ -20,6 +20,7 @@ program define hdfe, rclass
 * Parse
 	syntax varlist [if] [in] [fweight aweight pweight/] , Absorb(string) ///
 		[CORES(integer 1)] ///
+		[DROPSIngletons] ///
 		[CLUSTERvars(string) Verbose(integer 0) TOLerance(real 1e-7) MAXITerations(integer 10000)] [GENerate(name)] [CLEAR] [*]
 
 	Assert ("`generate'"!="") + ("`clear'"!="") == 1 , msg("hdfe error: you need to specify one and only one of the following options: clear generate(...)")
@@ -66,6 +67,9 @@ program define hdfe, rclass
 	
 * Keep relevant variables
 	keep `varlist' `clustervars' `weightvar' `panelvar' `timevar' `absorb_keepvars' `uid'
+
+* Drop singletons
+	if ("`dropsingletons'"!="") DropSingletons, num_absvars(`N_hdfe')
 	
 * Construct Mata objects and auxiliary variables
 	Precompute, keep(`varlist' `clustervars' `weightvar' `panelvar' `timevar' `uid') tsvars(`panelvar' `timevar')
@@ -140,3 +144,4 @@ include "_hdfe/ParallelInstance.ado"
 include "_hdfe/Save.ado"
 include "_hdfe/Stop.ado"
 include "_hdfe/CheckCorrectOrder.ado"
+include "_hdfe/DropSingletons.ado"

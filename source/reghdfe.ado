@@ -1,4 +1,4 @@
-*! reghdfe 2.0.83 23mar2015
+*! reghdfe 2.0.85 23mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 
@@ -42,7 +42,7 @@ include "_mata/fix_psd.mata"
 
 include "_reghdfe/Estimate.ado"
 include "_reghdfe/Parse.ado"
-include "_reghdfe/DropSingletons.ado"
+include "_hdfe/DropSingletons.ado"
 include "_reghdfe/ExpandFactorVariables.ado"
 include "_reghdfe/FixVarnames.ado"
 include "_reghdfe/Wrapper_regress.ado"

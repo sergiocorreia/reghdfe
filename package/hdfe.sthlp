@@ -25,6 +25,7 @@
 {opth a:bsorb(hdfe##absvar:absvars)}
 [{opt g:enerate(stubname)} | clear]
 [{opth cluster:vars(varlist)}
+{opt dropsi:ngletons}
 {opth cores(#)}
 {opt v:erbose(#)}
 {opt tol:erance(#)}
@@ -93,8 +94,8 @@ but at most one continuous interaction
 {synopt :{opt clear:}}will overwrite the dataset; leaving the transformed variables, as well as some ancillary ones (such as the fixed effects, weights, cluster variables, etc.).
 Use {cmd: char list} to see details of those ancillary variables.
 {p_end}
-
 {synopt: {opt cluster:vars(varlist)}}list of variables containing cluster categories. This is used to give more accurate number of degrees of freedom lost due to the fixed effects, as reported on r(df_a).{p_end}
+{synopt: {opt dropsi:ngletons}}remove singleton groups from the sample; once per {it:absvar}.{p_end}
 {synopt: {opth cores(#)}}will run the demeaning algorithm in # parallel instances.{p_end}
 {synopt :{opt v:erbose(#)}}amount of debugging information to show (0=None, 1=Some, 2=More, 3=Parsing/convergence details, 4=Every iteration){p_end}
 {synopt :{opth maxit:erations(#)}}specify maximum number of iterations; default is {cmd:maxiterations(1000)}; 0 means run forever until convergence{p_end}
