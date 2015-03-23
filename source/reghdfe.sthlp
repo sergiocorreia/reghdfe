@@ -335,6 +335,7 @@ estimator used in the instrumental-variable estimation
 {opt cue} ("continuously-updated" GMM) are allowed.{p_end}
 
 {pmore}
+Note that this {opt cue}
 http://www.stata-journal.com/sjpdf.html?articlenum=st0030_3
 
 {phang}

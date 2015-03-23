@@ -67,38 +67,27 @@ BODY{background-color: ffffff;
 <br><br>
     Model and Miscellanea [+]
     * <span class=result><u>a</u></span><span class=result>bsorb(</span><i>absvars</i><span class=result>)</span>       identifiers of the fixed effects that will be absorbed
-    + <span class=result><u>dropsi</u></span><span class=result>ngletons</span>        remove singleton groups from the sample; once per <i>absvar</i>.  This will
-                              affect the reported constant, while speeding up computation and
-                              limit potential problems in the computation of the VCV.
-    + <span class=result><u>nocon</u></span><span class=result>stant</span>            do not add back constant to regression (<span class=result>ivreg2</span> will always do that).
+    + <span class=result><u>dropsi</u></span><span class=result>ngletons</span>        remove singleton groups from the sample; once per <i>absvar</i> (<span class=result>recommended</span>)
+    + <span class=result><u>nocon</u></span><span class=result>stant</span>            do not report the constant (<span class=result>recommended</span>)
       <span class=result>nested</span>                add each <i>absvar</i> recursively, reporting the R2 and associated F-test at
                               each stage (only under linear regression and unadjusted standard
                               errors)
-      <span class=result><u>su</u></span><span class=result>mmarize(</span><i>stats</i><span class=result>)</span>      equivalent to running <span class=result>estat summarize</span> afterwards, but faster, includes
-                              instruments, saves results on <i>e(stats)</i>, and accepts more statistics
-                              (default is <i>mean min max</i>).  Use the suboption [<i>,</i> <span class=result><u>qui</u></span><span class=result>etly</span>] to store
-                              the table without reporting it.
-      <span class=result><u>sub</u></span><span class=result>options(</span>...<span class=result>)</span>       options that will be passed to the regression command (either regress,
-                              ivreg2, or ivregress)
+      <span class=result><u>su</u></span><span class=result>mmarize(</span><i>stats</i><span class=result>)</span>      equivalent to running <span class=result>estat summarize</span> after the regression, but more
+                              flexible, compatible with the <span class=result>fast</span> option, and saves the matrix of
+                              results on <i>e(summarize)</i>
+      <span class=result><u>sub</u></span><span class=result>options(</span>...<span class=result>)</span>       additional options that will be passed to the regression command
+                              (either regress, ivreg2, or ivregress)
 <br><br>
     SE/Robust [+]
     + <span class=result>vce(</span><i>vcetype, subopt</i><span class=result>)</span>  <i>vcetype</i> may be <span class=result><u>un</u></span><span class=result>adjusted</span>/<span class=result>ols</span> (default), <span class=result><u>r</u></span><span class=result>obust</span>, or <span class=result><u>cl</u></span><span class=result>uster</span>
-                              <i>clustervars</i>.  In addition, you can add HAC estimates.
-                             - <span class=result><u>cl</u></span><span class=result>uster</span> allows any number of cluster variables, but remember that
-                              there must be <i>enough</i> categories for each cluster variable.
-                             - each <i>clustervar</i> permits interactions of the type <i>var1</i><i>#</i><i>var2</i> (this is
-                              faster than using <span class=result>egen group()</span> for a one-off regression).
-                             - for HAC variance estimates, use the suboptions <span class=result>bw(</span><i>#</i><span class=result>)</span>, <span class=result>dkraay(</span><i>#</i><span class=result>)</span>,
-                              <span class=result><u>ker</u></span><span class=result>nel(</span><i>str</i><span class=result>)</span>, <span class=result>kiefer</span>; see ivreg2.
-                            <i>Advanced:</i>
-                             - under ols, the suboption <span class=result>suite(</span><i>default</i>|<i>mwc</i>|<i>avar</i><span class=result>)</span> will override the
-                              package that computes the VCE matrix; rarely used.
+                              <i>clustervars</i>
+                            <i>subopt</i> allows <span class=result>bw(</span><i>#</i><span class=result>)</span>, <span class=result>dkraay(</span><i>#</i><span class=result>)</span>, <span class=result><u>ker</u></span><span class=result>nel(</span><i>str</i><span class=result>)</span>, <span class=result>kiefer</span>
 <br><br>
     IV/2SLS/GMM [+]
-      <span class=result><u>gmm</u></span><span class=result>2s</span>                 use two-stage GMM for estimation.
-      <span class=result>liml</span>                  use LIML for estimation.
-      <span class=result><u>iv</u></span><span class=result>suite(</span><i>subcmd</i><span class=result>)</span>       package used in the regressions; either <span class=result>ivregress</span> or <span class=result>ivreg2</span> (default;
-                              needs installing).
+      <span class=result><u>gmm</u></span><span class=result>2s</span>                 use two-stage GMM estimator
+      <span class=result>liml</span>                  use LIML estimator
+      <span class=result><u>iv</u></span><span class=result>suite(</span><i>subcmd</i><span class=result>)</span>       package used in the regressions; either <span class=result>ivreg2</span> (default; needs
+                              installing) or <span class=result>ivregress</span>
       <span class=result>first</span>                 report first stage regression (but sadly not first-stage summary
                               results)
       <span class=result>savefirst</span>             saves the first-stage regressions results; requires <span class=result>first</span>
@@ -195,18 +184,38 @@ BODY{background-color: ffffff;
     ----+ Model and Miscellanea +-----------------------------------------------------------------
 <br><br>
     <span class=result><u>a</u></span><span class=result>bsorb(</span><i>absvars</i><span class=result>)</span> list of categorical variables (or interactions) representing the fixed effects
-        to be absorbed. this is equivalent to including a dummy variable for each category of each
-        <i>absvar</i>. <span class=result>absorb()</span> is required.
+        to be absorbed.  this is equivalent to including a dummy variable for each category of
+        each <i>absvar</i>. <span class=result>absorb()</span> is required.
 <br><br>
-        To save a fixed effect, prefix the absvar with "<i>newvar</i><span class=result>=</span>". For instance, the option
+        To save a fixed effect, prefix the absvar with "<i>newvar</i><span class=result>=</span>".  For instance, the option
         <span class=result>absorb(firm_id worker_id year_coefs=year_id)</span> will include firm, worker and year fixed
         effects, but will only save the estimates for the year fixed effects (in the new variable
         <i>year_coefs</i>).
 <br><br>
-    <span class=result>group(</span><i>newvarname</i><span class=result>)</span> name of the new variable that will contain the first mobility group.
+    <span class=result><u>dropsi</u></span><span class=result>ngletons</span> will drop the observations that contain values of the fixed effects repeated
+        only once.  For instance, with individual fixed effects, it will drop individuals that
+        appear only once in the sample.<span class=result>  I strongly recommend you to use this option</span>.
 <br><br>
-        This option requires at least two <i>absvars</i>, excluding those with continuous interactions,
-        and those nested within the <i>clustervar</i> (unless <span class=result>dofmethod(naive)</span> is specified).
+        Benefits of this option include a faster estimation (due to less observations and fixed
+        effects) and less change of problems when estimating the VCE matrix.
+<br><br>
+        This option changes the reported constant (but the other estimates), but as discussed
+        below, the usefulness of the constant (and its interpretation) is very limited.
+<br><br>
+        Note that after dropping singletons on the first fixed effect, a value of the second fixed
+        effect that previously appeared in two observations may now appear in only one and thus
+        will be dropped.  Also note that only one check will be done for each fixed effect.
+<br><br>
+    <span class=result><u>nocon</u></span><span class=result>stant</span> removes the constant from the reported model. <span class=result>Also strongly recommended</span>.
+<br><br>
+        Since the constant is perfectly collinear with the absorbed fixed effects, it is usually a
+        good idea to remove it from the regression. For instance, for some advanced VCE
+        estimations, removing the constant will allow us to have a VCE matrix of full rank.
+<br><br>
+        There is no really good reason to keep the constant in an HDFE model, but for historical
+        reasons it will be reported in most cases. Note that a better alternative to obtain
+        summary statistics is with the <span class=result><u>su</u></span><span class=result>mmarize</span> option, or through the<span class=result> estat summ</span> postestimation
+        command.
 <br><br>
     <span class=result>nested</span> Add each <i>absvar</i> recursively into the model
 <br><br>
@@ -215,22 +224,106 @@ BODY{background-color: ffffff;
 <br><br>
         Only available in OLS with <i>vce(unadjusted)</i>.
 <br><br>
+    <span class=result><u>su</u></span><span class=result>mmarize(</span><i>stats</i><span class=result>)</span> will report and save a table of summary of statistics of the regression
+        variables (including the instruments, if applicable), using the same sample as the
+        regression.
+<br><br>
+        <span class=result><u>su</u></span><span class=result>mmarize</span> (without parenthesis) saves the default set of statistics: <i>mean min max</i>.
+<br><br>
+        The complete list of accepted statistics is available in the tabstat help. The most useful
+        are <i>count range sd median p##</i>.
+<br><br>
+        The summary table is saved in <i>e(summarize)</i>
+<br><br>
+        To save the summary table silently (without showing it after the regression table), use
+        the <span class=result><u>qui</u></span><span class=result>etly</span> suboption. You can use it by itself (<span class=result>summarize(,quietly)</span>) or with custom
+        statistics (<span class=result>summarize(mean, quietly)</span>).
+<br><br>
     <span class=result><u>sub</u></span><span class=result>options(</span>...<span class=result>)</span> options that will be passed directly to the regression command (either 
         regress, ivreg2, or ivregress)
 <br><br>
         Some options are not allowed and will be silently ignored (<i>nosmall</i>, <i>hascons</i>, <i>tsscons</i>)
 <br><br>
-        +---------+
-    ----+ IV/2SLS +-------------------------------------------------------------------------------
+<a name="opt_vce"></a>        +-----------+
+    ----+ SE/Robust +-----------------------------------------------------------------------------
+<br><br>
+    <span class=result>vce(</span><i>vcetype, subopt</i><span class=result>)</span> specifies the type of standard error reported.  Note that all the
+        advanced estimators rely on asymptotic theory, and will likely have poor performance with
+        small samples (but again if you are using reghdfe, that is probably not your case)
+<br><br>
+        <span class=result><u>un</u></span><span class=result>adjusted</span>/<span class=result>ols</span> estimates conventional standard errors, valid even in small samples under
+        the assumptions of homoscedasticity and no correlation between observations
+<br><br>
+        <span class=result><u>r</u></span><span class=result>obust</span> estimates heteroscedasticity-consistent standard errors (Huber/White/sandwich
+        estimators), but still assuming independence between observations
+<br><br>
+        Warning: in a FE panel regression, using <span class=result><u>r</u></span><span class=result>obust</span> will lead to inconsistent standard errors
+        if for every fixed effect, the <i>other</i> dimension is fixed.  For instance, in an standard
+        panel with individual and time fixed effects, we require both the number of individuals
+        and time periods to grow asymptotically. If that is not the case, an alternative may be to
+        use clustered errors, which as discussed below will still have their own asymptotic
+        requirements. For a discussion, see Stock and Watson, "Heteroskedasticity-robust standard
+        errors for fixed-effects panel-data regression," Econometrica 76 (2008): 155-174
+<br><br>
+        <span class=result><u>cl</u></span><span class=result>uster</span> <i>clustervars</i> estimates consistent standard errors even when the observations are
+        correlated within groups.
+<br><br>
+        Multi-way-clustering is allowed. Thus, you can indicate as many <i>clustervar</i>s as desired
+        (e.g. allowing for intragroup correlation across individuals, time, country, etc.).
+<br><br>
+        Each <i>clustervar</i> permits interactions of the type <i>var1</i><i>#</i><i>var2</i> (this is faster than using <span class=result>egen</span>
+        <span class=result>group()</span> for a one-off regression).
+<br><br>
+        Warning: The number of clusters, for all of the cluster variables, must go off to
+        infinity.  A frequent rule of thumb is that each cluster variable must have at least 50
+        different categories (the number of categories for each clustervar appears on the header
+        of the regression table).
+<br><br>
+    The following suboptions require either the ivreg2 or the avar package from SSC.  For a
+    careful explanation, see the ivreg help file, from which the comments below borrow.
+<br><br>
+        <span class=result><u>u</u></span><span class=result>nadjusted, bw(</span><i>#</i><span class=result>)</span> (or just <span class=result>, bw(</span><i>#</i><span class=result>)</span>) estimates autocorrelation-consistent standard errors
+        (Newey-West).
+<br><br>
+        <span class=result><u>r</u></span><span class=result>obust, bw(</span><i>#</i><span class=result>)</span> estimates autocorrelation-and-heteroscedasticity consistent standard errors
+        (HAC).
+<br><br>
+        <span class=result><u>cl</u></span><span class=result>uster</span> <i>clustervars</i><span class=result>, bw(</span><i>#</i><span class=result>)</span> estimates standard errors consistent to common autocorrelated
+        disturbances (Driscoll-Kraay). At most two cluster variables can be used in this case.
+<br><br>
+        <span class=result>, kiefer</span> estimates standard errors consistent under arbitrary intra-group autocorrelation
+        (but not heteroskedasticity) (Kiefer).
+<br><br>
+        <span class=result>kernel(</span><i>str</i><span class=result>)</span> is allowed in all the cases that allow <span class=result>bw(</span><i>#</i><span class=result>)</span> The default kernel is <i>bar</i>
+        (Bartlett). Valid kernels are Bartlett (bar); Truncated (tru); Parzen (par); Tukey-Hanning
+        (thann); Tukey-Hamming (thamm); Daniell (dan); Tent (ten); and Quadratic-Spectral (qua or
+        qs).
+<br><br>
+    Advanced suboption:
+<br><br>
+        <span class=result>, suite(</span><i>default</i>|<i>mwc</i>|<i>avar</i><span class=result>)</span> overrides the package chosen by reghdfe to estimate the VCE.
+        <i>default</i> uses the default Stata computation (allows unadjusted, robust, and at most one
+        cluster variable).  <i>mwc</i> allows multi-way-clustering (any number of cluster variables), but
+        without the <i>bw</i> and <i>kernel</i> suboptions.  <i>avar</i> uses the avar package from SSC. Is the same
+        package used by ivreg2, and allows the <i>bw</i>, <i>kernel</i>, <i>dkraay</i> and <i>kiefer</i> suboptions.  This is
+        useful almost exclusively for debugging.
+<br><br>
+    Options <span class=result><u>boot</u></span><span class=result>strap</span> and <span class=result><u>jack</u></span><span class=result>knife</span> could be implemented, although their execution would be
+    extremely slow.
+<br><br>
+<a name="opt_iv"></a>        +-------------+
+    ----+ IV/2SLS/GMM +---------------------------------------------------------------------------
+<br><br>
+    <span class=result><u>est</u></span><span class=result>imator(2sls</span>|<span class=result><u>gmm</u></span><span class=result>2s</span>|<span class=result>liml</span>|<span class=result>cue)</span> estimator used in the instrumental-variable estimation
+<br><br>
+        <i>2sls</i> (default), <span class=result><u>gmm</u></span><span class=result>2s</span> (two-stage efficient GMM), <span class=result>liml</span> (limited-information maximum
+        likelihood), and <span class=result>cue</span> ("continuously-updated" GMM) are allowed.
+<br><br>
+        Note that this <span class=result>cue</span> http://www.stata-journal.com/sjpdf.html?articlenum=st0030_3
 <br><br>
     <span class=result><u>iv</u></span><span class=result>suite(</span><i>subcmd</i><span class=result>)</span> allows the IV/2SLS regression to be run either using <span class=result>ivregress</span> or <span class=result>ivreg2</span>.
 <br><br>
-        <span class=result>ivreg2</span> needs to be installed for that option to work.
-<br><br>
-    <span class=result><u>est</u></span><span class=result>imator(</span><i>est</i><span class=result>)</span> currently only <span class=result>estimator(</span><i>2sls</i><span class=result>)</span> allowed
-<br><br>
-        Additional estimators, such as {cmd liml} or {cmd gmm2s} could be implemented in the
-        future.
+        <span class=result>ivreg2</span> is the default, but needs to be installed for that option to work.
 <br><br>
     <span class=result>first</span> will report first stage regression.
 <br><br>
@@ -252,35 +345,17 @@ BODY{background-color: ffffff;
         This is only relevant under clustered errors, and only applies to the fixed effects not
         nested within a the cluster categories.
 <br><br>
+<a name="opt_diagnostic"></a>        +------------+
+    ----+ Diagnostic +----------------------------------------------------------------------------
 <br><br>
-        +--------------------------+
-    ----+ "Average Effects" (AvgE) +--------------------------------------------------------------
+<a name="opt_dof"></a>        +--------------------------------+
+    ----+ Degrees-of-Freedom Adjustments +--------------------------------------------------------
 <br><br>
-    <span class=result>avge(</span><i>avgevars</i><span class=result>)</span> will attempt to control for categorical variables using the so-called AvgE
-        correction
+    <span class=result>group(</span><i>newvarname</i><span class=result>)</span> name of the new variable that will contain the first mobility group.
 <br><br>
-        The advantage of this approach, vis-a-vis using <i>absorb()</i> is its speed and higher reported
-        degrees-of-freedom. It's disadvantage lies in it being inconsistent, as reported by
-        Gormley &amp; Matsa (2013).
+        This option requires at least two <i>absvars</i>, excluding those with continuous interactions,
+        and those nested within the <i>clustervar</i> (unless <span class=result>dofmethod(naive)</span> is specified).
 <br><br>
-        <i>avgevar</i> has the same syntax as <i>absvars</i>, except that continuous interactions (<span class=result>c.</span>) are not
-        allowed
-<br><br>
-    <span class=result>excludeself</span> excludes observation at hand when calculating the group average
-<br><br>
-        +-----------+
-    ----+ SE/Robust +-----------------------------------------------------------------------------
-<br><br>
-    <span class=result>vce(</span><i>vcetype</i><span class=result>)</span> specifies the type of standard error reported, including types derived from
-        asyptotic theory (<span class=result><u>un</u></span><span class=result>adjusted</span>, the default), that are robust to heteroscedasticity (<span class=result><u>r</u></span><span class=result>obust</span>,
-        the Huber/White/sandwich estimator), or that allow for intragroup correlation (<span class=result><u>cl</u></span><span class=result>uster</span>
-        <i>clustvar</i>).
-<br><br>
-        <i>clustvar</i> can also be specified as an interaction between two or more categorical
-        variables.
-<br><br>
-        options <span class=result><u>boot</u></span><span class=result>strap</span> and <span class=result><u>jack</u></span><span class=result>knife</span> are planned, and twoway clusters can be made to work when
-        calling <i>ivreg2</i>.
 <br><br>
     <span class=result>dofmethod(</span><i>doftype</i><span class=result>)</span> details the adjustement to degrees-of-freedom due to the estimated fixed
         effects. This is an advanced option, and the default (<span class=result>bounds</span>) should work reasonably well.
@@ -321,16 +396,26 @@ BODY{background-color: ffffff;
         made and it is assumed that M=1 (very conservative).  Additional methods, such as
         <span class=result>bootstrap</span> are also possible but not yet implemented.
 <br><br>
-        +-----------+
-    ----+ Reporting +-----------------------------------------------------------------------------
 <br><br>
-    <span class=result><u>l</u></span><span class=result>evel(</span><i>#</i><span class=result>)</span> sets confidence level; default is <span class=result>level(95)</span>
+<a name="opt_speedup"></a>        +------------------------+
+    ----+ Speeding Up Estimation +----------------------------------------------------------------
 <br><br>
-<a name="display_options"></a>    <i>display_options</i>:  <span class=result><u>noomit</u></span><span class=result>ted</span>, <span class=result>vsquish</span>, <span class=result><u>noempty</u></span><span class=result>cells</span>, <span class=result><u>base</u></span><span class=result>levels</span>, <span class=result><u>allbase</u></span><span class=result>levels</span>, <span class=result>nofvlabel</span>,
-        <span class=result>fvwrap(</span><i>#</i><span class=result>)</span>, <span class=result>fvwrapon(</span><i>style</i><span class=result>)</span>, <span class=result>cformat(</span><i>%fmt</i><span class=result>)</span>, <span class=result>pformat(%</span><i>fmt</i><span class=result>)</span>, <span class=result>sformat(%</span><i>fmt</i><span class=result>)</span>, and <span class=result>nolstretch</span>;
-        see <span class=result>[R] estimation options</span>.
+<a name="opt_avge"></a>        +--------------------------+
+    ----+ "Average Effects" (AvgE) +--------------------------------------------------------------
 <br><br>
-        +--------------+
+    <span class=result>avge(</span><i>avgevars</i><span class=result>)</span> will attempt to control for categorical variables using the so-called AvgE
+        correction
+<br><br>
+        The advantage of this approach, vis-a-vis using <i>absorb()</i> is its speed and higher reported
+        degrees-of-freedom. It's disadvantage lies in it being inconsistent, as reported by
+        Gormley &amp; Matsa (2013).
+<br><br>
+        <i>avgevar</i> has the same syntax as <i>absvars</i>, except that continuous interactions (<span class=result>c.</span>) are not
+        allowed
+<br><br>
+    <span class=result>excludeself</span> excludes observation at hand when calculating the group average
+<br><br>
+<a name="opt_maximization"></a>        +--------------+
     ----+ Maximization +--------------------------------------------------------------------------
 <br><br>
     <span class=result><u>tol</u></span><span class=result>erance(</span><i>#</i><span class=result>)</span> specifies the tolerance criterion for convergence; default is <span class=result>tolerance(1e-7)</span>
@@ -345,7 +430,7 @@ BODY{background-color: ffffff;
     <span class=result><u>maxit</u></span><span class=result>erations(</span><i>#</i><span class=result>)</span> specifies the maximum number of iterations; the default is
         <span class=result>maxiterations(10000)</span>; 0 means run forever until convergence.
 <br><br>
-<a name="maximize_options"></a>    <i>Advanced options:</i>
+    <i>Advanced options:</i>
 <br><br>
     <span class=result>fast</span> avoids one <i>save</i>, one <i>use</i>, and one <i>merge</i> operation.  Useful if the dataset is very large,
         but will not save <i>e(sample)</i> or compute correlations between the fixed effects and Xb.
@@ -374,6 +459,16 @@ BODY{background-color: ffffff;
 <br><br>
         Note that this is in terms of acceleration steps, not iterations (so if accel_freq=3 and
         pause_length=20, 60 iterations will pass until the acceleration resumes)
+<br><br>
+<a name="opt_reporting"></a>        +-----------+
+    ----+ Reporting +-----------------------------------------------------------------------------
+<br><br>
+    <span class=result><u>l</u></span><span class=result>evel(</span><i>#</i><span class=result>)</span> sets confidence level; default is <span class=result>level(95)</span>
+<br><br>
+<a name="display_options"></a>    <i>display_options</i>:  <span class=result><u>noomit</u></span><span class=result>ted</span>, <span class=result>vsquish</span>, <span class=result><u>noempty</u></span><span class=result>cells</span>, <span class=result><u>base</u></span><span class=result>levels</span>, <span class=result><u>allbase</u></span><span class=result>levels</span>, <span class=result>nofvlabel</span>,
+        <span class=result>fvwrap(</span><i>#</i><span class=result>)</span>, <span class=result>fvwrapon(</span><i>style</i><span class=result>)</span>, <span class=result>cformat(</span><i>%fmt</i><span class=result>)</span>, <span class=result>pformat(%</span><i>fmt</i><span class=result>)</span>, <span class=result>sformat(%</span><i>fmt</i><span class=result>)</span>, and <span class=result>nolstretch</span>;
+        see <span class=result>[R] estimation options</span>.
+<br><br>
 <br><br>
         +-----------------------------+
     ----+ Diagnostic and Experimental +-----------------------------------------------------------
