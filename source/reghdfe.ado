@@ -1,4 +1,4 @@
-*! reghdfe 2.0.82 23mar2015
+*! reghdfe 2.0.83 23mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 

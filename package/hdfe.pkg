@@ -11,7 +11,8 @@ d hdfe is the underlying procedure for the reghdfe module, which contains more d
 d It can be used as a building block for any regression command that wishes to include multiple high-dimensional fixed effects.
 dIt is not a package intended for an end user, but for a package developer.
 d
-d The partialling out is done employing an extension of the methodology of Guimaraes & Portugal (2010), described in detail by Correia (2015, mimeo). It generalizes the within transformation thanks to an iterated application of the Frisch-Waugh-Lovell theorem.
+d The partialling out is done employing an extension of the methodology of Guimaraes & Portugal (2010), described in detail by Correia (2015, mimeo).
+d It generalizes the within transformation thanks to an iterated application of the Frisch-Waugh-Lovell theorem.
 d
 d For more details, see the Guimaraes & Portugal paper, the help file, or the ancilliary PDF
 d
