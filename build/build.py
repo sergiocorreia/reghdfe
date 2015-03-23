@@ -31,7 +31,7 @@ def zipdir(path, zip):
 # -------------------------------------------------------------
 
 # Build html help files
-subprocess.call(['create_html_help.do'])
+subprocess.call(['C:\Bin\Stata13\StataMP-64.exe', '/e', 'do create_html_help.do'])
 
 # Filenames
 output_filenames = ["reghdfe.ado", "reghdfe_estat.ado", "reghdfe_p.ado", "reghdfe_footnote.ado", "hdfe.ado"]
