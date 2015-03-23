@@ -318,7 +318,7 @@ if (!`savingcache') {
 	if ("`small'"!="") di in ye "(note: reghdfe will always use the option -small-, no need to specify it)"
 
 	*Assert ("`liml'"==""), msg("options liml not allowed")
-	Assert ("`cue'"==""), msg("option cue not allowed; results not invariant to partialling-out")
+	*Assert ("`cue'"==""), msg("option cue not allowed; results not invariant to partialling-out")
 	
 	if ("`model'"=="iv") {
 		local savefirst = ("`savefirst'"!="")

@@ -80,8 +80,9 @@ program define reghdfe_p, // sortpreserve properties(default_xb)
 	
 	* Adjusting for -noconstant- option
 	local adj_cons = cond(e(_cons)<., e(_cons), 0)
+
 	cap replace `xb' = `xb' + `adj_cons'
-	cap replace `d' = `d' - `adj_cons'
+	* cap replace `d' = `d' // - `adj_cons'
 	
 	if ("`option'"=="xb") {
 		rename `xb' `varlist'

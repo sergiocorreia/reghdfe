@@ -1,0 +1,26 @@
+
+  ___  ____  ____  ____  ____ (R)
+ /__    /   ____/   /   ____/
+___/   /   /___/   /   /___/   13.1   Copyright 1985-2013 StataCorp LP
+  Statistics/Data Analysis            StataCorp
+                                      4905 Lakeway Drive
+     MP - Parallel Edition            College Station, Texas 77845 USA
+                                      800-STATA-PC        http://www.stata.com
+                                      979-696-4600        stata@stata.com
+                                      979-696-4601 (fax)
+
+3-user 8-core Stata network perpetual license:
+       Serial number:  501306208483
+         Licensed to:  User Name
+                       Organization
+
+Notes:
+      1.  (/v# option or -set maxvar-) 5000 maximum variables
+      2.  Stata running in batch mode
+
+
+running C:\Bin\Stata13\profile.do ...
+
+. do "do create_html_help.do" 
+file do create_html_help.do not found
+r(601);

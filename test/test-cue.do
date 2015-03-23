@@ -43,7 +43,7 @@ cscript "reghdfe with cue" adofile reghdfe
 
 * [TEST] UNADJUSTED
 
-	ivreg2 `depvar' `indepvars' ABS_* foreign (`endogvars' = `instruments') , small cue
+	ivreg2 `depvar' `indepvars' ABS_* foreign (`endogvars' = `instruments') , small cue partial(ABS_* foreign)
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
@@ -51,33 +51,33 @@ cscript "reghdfe with cue" adofile reghdfe
 	*TrimMatrix `K'
 	*storedresults compare benchmark e(), tol(1e-6) include(`include')
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted) ivsuite(ivreg2) tol(1e-12) nocon cue
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted) ivsuite(ivreg2) tol(1e-12) cue verbose(3)
 	TrimMatrix `K'
-	storedresults compare benchmark e(), tol(1e-6) include(`include')
+	storedresults compare benchmark e(), tol(1e-9) include(`include')
 
 	storedresults drop benchmark
 
 * [TEST] ROBUST
 
-	ivreg2 `depvar' `indepvars' ABS_* foreign (`endogvars' = `instruments') , small cue robust nocons
+	ivreg2 `depvar' `indepvars' ABS_* foreign (`endogvars' = `instruments') , small cue robust partial(ABS_* foreign)
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
 	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust) ivsuite(ivreg2) tol(1e-12) cue showraw
 	TrimMatrix `K'
-	storedresults compare benchmark e(), tol(1e-6) include(`include')
+	storedresults compare benchmark e(), tol(1e-9) include(`include')
 
 	storedresults drop benchmark
 
 * [TEST] CLUSTER
 
-	ivreg2 `depvar' `indepvars' ABS_* foreign (`endogvars' = `instruments') , small cue cluster(`cluster') nocons
+	ivreg2 `depvar' `indepvars' ABS_* foreign (`endogvars' = `instruments') , small cue cluster(`cluster') partial(ABS_* foreign)
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
 	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(cluster `cluster') ivsuite(ivreg2) tol(1e-12) cue
 	TrimMatrix `K'
-	storedresults compare benchmark e(), tol(1e-6) include(`include')
+	storedresults compare benchmark e(), tol(1e-9) include(`include')
 
 	storedresults drop benchmark
 
@@ -91,7 +91,7 @@ cscript "reghdfe with cue" adofile reghdfe
 
 	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(cluster `cluster') ivsuite(ivreg2) tol(1e-12) cue
 	TrimMatrix `K'
-	storedresults compare benchmark e(), tol(1e-6) include(`include')
+	storedresults compare benchmark e(), tol(1e-9) include(`include')
 
 	storedresults drop benchmark
 

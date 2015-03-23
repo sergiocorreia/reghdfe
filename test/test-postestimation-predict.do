@@ -65,10 +65,10 @@ noi cscript "reghdfe postestimation: predict" adofile reghdfe
 	predict double resid_test, resid
 	*su d d_test xb xb_test xbd xbd_test resid resid_test, sep(2)
 	
-	_vassert xb xb_test, tol(1e-12)
-	_vassert d d_test, tol(1e-12)
-	_vassert xbd xbd_test, tol(1e-12)
-	_vassert resid resid_test, tol(1e-12)
+	_vassert xb xb_test, tol(1e-10)
+	_vassert d d_test, tol(1e-10)
+	_vassert xbd xbd_test, tol(1e-10)
+	_vassert resid resid_test, tol(1e-10)
 	
 	drop *_test FE
 
@@ -82,10 +82,10 @@ noi cscript "reghdfe postestimation: predict" adofile reghdfe
 	predict double resid_test, resid
 	*su d d_test xb xb_test xbd xbd_test resid resid_test, sep(2)
 	
-	_vassert xb xb_test, tol(1e-12)
-	_vassert d d_test, tol(1e-12)
-	_vassert xbd xbd_test, tol(1e-12)
-	_vassert resid resid_test, tol(1e-12)
+	_vassert xb xb_test, tol(1e-10)
+	_vassert d d_test, tol(1e-10)
+	_vassert xbd xbd_test, tol(1e-10)
+	_vassert resid resid_test, tol(1e-10)
 	
 	drop *_test FE
 
@@ -96,7 +96,7 @@ noi cscript "reghdfe postestimation: predict" adofile reghdfe
 	predict score*, score
 	predict alt, resid
 	su score* alt
-	_vassert alt score, tol(1e-12)
+	_vassert alt score, tol(1e-10)
 	drop FE alt resid
 
 

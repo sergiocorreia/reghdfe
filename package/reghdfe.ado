@@ -1,4 +1,4 @@
-*! reghdfe 2.0.117 23mar2015
+*! reghdfe 2.0.138 23mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 // -------------------------------------------------------------
@@ -1975,7 +1975,7 @@ if (!`savingcache') {
 	if ("`small'"!="") di in ye "(note: reghdfe will always use the option -small-, no need to specify it)"
 
 	*Assert ("`liml'"==""), msg("options liml not allowed")
-	Assert ("`cue'"==""), msg("option cue not allowed; results not invariant to partialling-out")
+	*Assert ("`cue'"==""), msg("option cue not allowed; results not invariant to partialling-out")
 	
 	if ("`model'"=="iv") {
 		local savefirst = ("`savefirst'"!="")
@@ -2205,15 +2205,26 @@ syntax varlist(min=1 numeric fv ts) [if] [,setname(string)] [CACHE]
 					local newvarbase : subinstr local name "." "__", all // pray that no variable has three _
 					local newvarbase : subinstr local newvarbase "#" "_X_", all // idem
 					local newvarbase : permname __`newvarbase', length(30)
-					local i 0
+
+					* In what cases will just using newvarbase fail???
+					local i // Empty
 					while (1) {
-						local newvar "`newvarbase'`++i'"
+						local newvar "`newvarbase'`i'"
+					
+						if ("`i'"=="") {
+							local i 1
+						}
+						else {
+							local ++i
+						}
+
 						Assert `i'<1000, msg("Couldn't create tempvar for `var' (`name')")
 						cap conf new var `newvar', exact
 						if _rc==0 {
 							continue, break
 						}
 					}
+
 					rename `var' `newvar'
 					local var `newvar'
 				}
@@ -2862,7 +2873,14 @@ program define Wrapper_ivreg2, eclass
 	}
 	
 	* Variables have already been demeaned, so we need to add -nocons- or the matrix of orthog conditions will be singular
-	local subcmd ivreg2 `vars' `weightexp', `vceoption' `firstoption' small sdofminus(`=`kk'+1') nocons `gmm2s' `cue' `liml' `suboptions'
+	if ("`cue'"=="") {
+		local nocons nocons // Exception to get the same results as ivreg2, partial
+	}
+	else {
+		local nocons nocons // partial(cons)
+	}
+
+	local subcmd ivreg2 `vars' cons `weightexp', `vceoption' `firstoption' small sdofminus(`=`kk'+1') `nocons' `gmm2s' `cue' `liml' `suboptions'
 	Debug, level(3) msg(_n "call to subcommand: " _n as result "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'

@@ -94,38 +94,24 @@ but at most one continuous interaction
 
 {syntab:Model and Miscellanea {help reghdfe##opt_model:[+]}}
 {p2coldent:* {opth a:bsorb(reghdfe##absvar:absvars)}   }identifiers of the fixed effects that will be absorbed{p_end}
-{p2coldent:+ {opt dropsi:ngletons}}remove singleton groups from the sample; once per {it:absvar}.
-This will affect the reported constant, while speeding up computation and limit potential problems
-in the computation of the VCV.
-{p_end}
-{p2coldent:+ {opt nocon:stant}}do not add back constant to regression ({cmd:ivreg2} will always do that).{p_end}
+{p2coldent:+ {opt dropsi:ngletons}}remove singleton groups from the sample; once per {it:absvar} ({bf:recommended}){p_end}
+{p2coldent:+ {opt nocon:stant}}do not report the constant ({bf:recommended}){p_end}
 {synopt: {opt nested}}add each {it:absvar} recursively, reporting the R2 and associated F-test
 at each stage (only under linear regression and unadjusted standard errors){p_end}
-{synopt :{opth su:mmarize(tabstat##statname:stats)}}equivalent to running {cmd:estat summarize} afterwards,
-but faster, includes instruments, saves results on {it:e(stats)},
-and accepts more statistics (default is {it:mean min max}).
-Use the suboption [{it:,} {opt qui:etly}] to store the table without reporting it.{p_end}
-{synopt : {opt sub:options(...)}}options that will be passed to the regression command (either {help regress}, {help ivreg2}, or {help ivregress}){p_end}
+{synopt :{opth su:mmarize(tabstat##statname:stats)}}equivalent to running {cmd:estat summarize} after the regression,
+but more flexible, compatible with the {opt fast:} option, and saves the matrix of results on {it:e(summarize)}{p_end}
+{synopt : {opt sub:options(...)}}additional options that will be passed to the regression command (either {help regress}, {help ivreg2}, or {help ivregress}){p_end}
 
 {syntab:SE/Robust {help reghdfe##opt_vce:[+]}}
 {p2coldent:+ {opth vce:(reghdfe##vcetype:vcetype, subopt)}  }{it:vcetype} may
- be {opt un:adjusted}/{opt ols} (default), {opt r:obust}, or {opt cl:uster} {it:clustervars}.
-In addition, you can add HAC estimates.{p_end}
-{synopt :} - {opt cl:uster} allows any number of cluster variables,
- but remember that there must be {it:enough} categories for each cluster variable.{p_end}
-{synopt :} - each {it:clustervar} permits interactions of the type {it:var1{cmd:#}var2}
-(this is faster than using {cmd:egen group()} for a one-off regression).{p_end}
-{synopt :} - for HAC variance estimates, use the suboptions {opt bw(#)}, {opt dkraay(#)}, {opt ker:nel(str)}, {opt kiefer};
-see {help ivreg2##s_robust:ivreg2}.{p_end}
-{synopt :}{it:Advanced:}{p_end}
-{synopt :} - under ols, the suboption {opt suite(default|mwc|avar)} will override the package that computes the VCE matrix;
-rarely used.{p_end}
+ be {opt un:adjusted}/{opt ols} (default), {opt r:obust}, or {opt cl:uster} {it:clustervars}{p_end}
+{synopt :}{it:subopt} allows {opt bw(#)}, {opt dkraay(#)}, {opt ker:nel(str)}, {opt kiefer}{p_end}
 
 {syntab:IV/2SLS/GMM {help reghdfe##opt_iv:[+]}}
-{synopt :{opt gmm:2s}}use two-stage GMM for estimation.{p_end}
-{synopt :{opt liml:}}use LIML for estimation.{p_end}
+{synopt :{opt gmm:2s}}use two-stage GMM estimator{p_end}
+{synopt :{opt liml:}}use LIML estimator{p_end}
 {synopt :{opth iv:suite(subcmd)}}package used in the regressions;
-either {opt ivregress} or {opt ivreg2} (default; needs installing).{p_end}
+either {opt ivreg2} (default; needs installing) or {opt ivregress}{p_end}
 {synopt :{opt first}}report first stage regression (but sadly not first-stage summary results){p_end}
 {synopt :{opt savefirst}}saves the first-stage regressions results; requires {opt first}{p_end}
 {synopt :{opt showraw}}show the raw output of ivreg2 (if that's the ivsuite used); useful to see first-stage summary results{p_end}
@@ -202,22 +188,61 @@ within each subgraph (see {help reghdfe##references:references}).{p_end}
 {dlgtab:Model and Miscellanea}
 
 {phang}
-{opth a:bsorb(reghdfe##absvar:absvars)} list of categorical variables (or interactions) representing the fixed effects to be absorbed. this is equivalent to including a dummy variable for each category of each {it:absvar}. {cmd:absorb()} is required.
+{opth a:bsorb(reghdfe##absvar:absvars)} list of categorical variables (or interactions) representing the fixed effects to be absorbed.
+this is equivalent to including a dummy variable for each category of each {it:absvar}. {cmd:absorb()} is required.
 
 {pmore}
-To save a fixed effect, prefix the absvar with "{newvar}{cmd:=}". For instance, the option {input:absorb(firm_id worker_id year_coefs=year_id)} will include firm, worker and year fixed effects, but will only save the estimates for the year fixed effects (in the new variable {it:year_coefs}).
+To save a fixed effect, prefix the absvar with "{newvar}{cmd:=}".
+For instance, the option {input:absorb(firm_id worker_id year_coefs=year_id)} will include firm,
+worker and year fixed effects, but will only save the estimates for the year fixed effects (in the new variable {it:year_coefs}).
 
 {phang}
-{opth group(newvarname)} name of the new variable that will contain the first mobility group.
+{opt dropsi:ngletons} will drop the observations that contain values of the fixed effects repeated only once.
+For instance, with individual fixed effects, it will drop individuals that appear only once in the sample.
+{hi: I strongly recommend you to use this option}.
 
-{pmore} This option requires at least two {it:absvars}, excluding those with continuous interactions, and those nested within the {it:clustervar} (unless {input:dofmethod(naive)} is specified).
+{pmore}
+Benefits of this option include a faster estimation (due to less observations and fixed effects) and
+less change of problems when estimating the VCE matrix.
+
+{pmore}
+This option changes the reported constant (but the other estimates), but as discussed below,
+the usefulness of the constant (and its interpretation) is very limited.
+
+{pmore}
+Note that after dropping singletons on the first fixed effect, a value of the second fixed effect that
+previously appeared in two observations may now appear in only one and thus will be dropped.
+Also note that only one check will be done for each fixed effect.
+
+{phang}
+{opt nocon:stant} removes the constant from the reported model. {hi:Also strongly recommended}.
+
+{pmore} Since the constant is perfectly collinear with the absorbed fixed effects,
+it is usually a good idea to remove it from the regression. For instance, for some advanced VCE estimations,
+removing the constant will allow us to have a VCE matrix of full rank.
+
+{pmore} There is no really good reason to keep the constant in an HDFE model, but for historical reasons
+it will be reported in most cases. Note that a better alternative to obtain summary statistics is with the {opt su:mmarize} option, or through the {cmd: estat summ} postestimation command.
 
 {phang}
 {opt nested} Add each {it:absvar} recursively into the model
 
-{pmore} This option will reporting the R2 at each stage, and also compute the Fisher test of significance for each set of absorbed variables.
+{pmore} This option will reporting the R2 at each stage, and also compute the Fisher test of significance
+for each set of absorbed variables.
 
 {pmore} Only available in OLS with {it:vce(unadjusted)}.
+
+{phang}
+{opth su:mmarize(tabstat##statname:stats)} will report and save a table of summary of statistics of the regression
+variables (including the instruments, if applicable), using the same sample as the regression.
+
+{pmore} {opt su:mmarize} (without parenthesis) saves the default set of statistics: {it:mean min max}.
+
+{pmore} The complete list of accepted statistics is available in the {help tabstat##statname:tabstat help}. The most useful are {it:count range sd median p##}.
+
+{pmore} The summary table is saved in {it:e(summarize)}
+
+{pmore} To save the summary table silently (without showing it after the regression table), use the {opt qui:etly} suboption. You can use it by itself ({cmd:summarize(,quietly)}) or with custom statistics ({cmd:summarize(mean, quietly)}).
 
 {phang}
 {opt sub:options(...)}
@@ -226,20 +251,97 @@ options that will be passed directly to the regression command (either {help reg
 {pmore}
 Some options are not allowed and will be silently ignored ({it:nosmall}, {it:hascons}, {it:tsscons})
 
-{dlgtab:IV/2SLS}
+{marker opt_vce}{...}
+{dlgtab:SE/Robust}
+
+{phang}
+{opth vce:(reghdfe##vcetype:vcetype, subopt)}
+specifies the type of standard error reported.
+Note that all the advanced estimators rely on asymptotic theory, and will likely have poor performance with small samples
+(but again if you are using reghdfe, that is probably not your case)
+
+{pmore}
+{opt un:adjusted}/{opt ols:} estimates conventional standard errors, valid even in small samples
+under the assumptions of homoscedasticity and no correlation between observations
+
+{pmore}
+{opt r:obust} estimates heteroscedasticity-consistent standard errors (Huber/White/sandwich estimators), but still assuming independence between observations
+
+{pmore}Warning: in a FE panel regression, using {opt r:obust} will
+lead to inconsistent standard errors if for every fixed effect, the {it:other} dimension is fixed.
+For instance, in an standard panel with individual and time fixed effects, we require both the number of
+individuals and time periods to grow asymptotically. If that is not the case, an alternative may be to use clustered errors,
+which as discussed below will still have their own asymptotic requirements. For a discussion, see {browse "http://www.princeton.edu/~mwatson/papers/ecta6489.pdf":Stock and Watson, "Heteroskedasticity-robust standard errors for fixed-effects panel-data regression," Econometrica 76 (2008): 155-174}
+
+{pmore}
+{opt cl:uster} {it:clustervars} estimates consistent standard errors even when the observations
+are correlated within groups.
+
+{pmore}
+Multi-way-clustering is allowed. Thus, you can indicate as many {it:clustervar}s as desired
+(e.g. allowing for intragroup correlation across individuals, time, country, etc.).
+
+{pmore}
+Each {it:clustervar} permits interactions of the type {it:var1{cmd:#}var2}
+(this is faster than using {cmd:egen group()} for a one-off regression).
+
+{pmore} Warning: The number of clusters, for all of the cluster variables, must go off to infinity.
+A frequent rule of thumb is that each cluster variable must have at least 50 different categories
+(the number of categories for each clustervar appears on the header of the regression table).
+
+{pstd}
+The following suboptions require either the {help ivreg2} or the {help avar} package from SSC.
+For a careful explanation, see the {help ivreg2##s_robust:ivreg help file}, from which the comments below borrow.
+
+{pmore}
+{opt u:nadjusted}{cmd:, }{opt bw(#)} (or just {cmd:, }{opt bw(#)}) estimates autocorrelation-consistent standard errors (Newey-West).
+
+{pmore}
+{opt r:obust}{cmd:, }{opt bw(#)} estimates autocorrelation-and-heteroscedasticity consistent standard errors (HAC).
+
+{pmore}
+{opt cl:uster} {it:clustervars}{cmd:, }{opt bw(#)} estimates standard errors consistent to common autocorrelated disturbances (Driscoll-Kraay). At most two cluster variables can be used in this case.
+
+{pmore}
+{cmd:, }{opt kiefer} estimates standard errors consistent under arbitrary intra-group autocorrelation (but not heteroskedasticity) (Kiefer).
+
+{pmore}
+{opt kernel(str)} is allowed in all the cases that allow {opt bw(#)}
+The default kernel is {it:bar} (Bartlett). Valid kernels are Bartlett (bar); Truncated (tru); Parzen (par);
+Tukey-Hanning (thann); Tukey-Hamming (thamm); Daniell (dan); Tent (ten); and Quadratic-Spectral (qua or qs). 
+
+{pstd}
+Advanced suboption:
+
+{pmore}
+{cmd:, }{opt suite(default|mwc|avar)} overrides the package chosen by reghdfe to estimate the VCE.
+{it:default} uses the default Stata computation (allows unadjusted, robust, and at most one cluster variable).
+{it:mwc} allows multi-way-clustering (any number of cluster variables), but without the {it:bw} and {it:kernel} suboptions.
+{it:avar} uses the avar package from SSC. Is the same package used by ivreg2, and allows the {it:bw}, {it:kernel}, {it:dkraay} and {it:kiefer} suboptions.
+This is useful almost exclusively for debugging.
+
+{pstd}
+Options {opt boot:strap} and {opt jack:knife} could be implemented, although their execution would be extremely slow.
+
+{marker opt_iv}{...}
+{dlgtab:IV/2SLS/GMM}
+
+{phang}
+{opt est:imator}{cmd:(}{opt 2sls}|{opt gmm:2s}|{opt liml}|{opt cue}{cmd:)}
+estimator used in the instrumental-variable estimation
+
+{pmore}
+{it:2sls} (default), {opt gmm:2s} (two-stage efficient GMM), {opt liml} (limited-information maximum likelihood), and
+{opt cue} ("continuously-updated" GMM) are allowed.{p_end}
+
+{pmore}
+http://www.stata-journal.com/sjpdf.html?articlenum=st0030_3
 
 {phang}
 {opth iv:suite(subcmd)}
 allows the IV/2SLS regression to be run either using {opt ivregress} or {opt ivreg2}.
 
-{pmore} {opt ivreg2} needs to be installed for that option to work.
-
-{phang}
-{opth est:imator(est)}
-currently only {opt estimator(2sls)} allowed
-
-{pmore}
-Additional estimators, such as {cmd liml} or {cmd gmm2s} could be implemented in the future.{p_end}
+{pmore} {opt ivreg2} is the default, but needs to be installed for that option to work.
 
 {phang}
 {opt first}
@@ -261,40 +363,23 @@ The downside is that it will have temporary names in place of whenever factors v
 
 {phang}
 {opt dofminus(small|large)}
-indicates whether {it:ivreg2} should substract the number of fixed effects using either the option {it:sdofminus} (treating them as partialled-out regressors) or the option {it:dofminus} (treating them as "fixed effects").
+indicates whether {it:ivreg2} should substract the number of fixed effects using either the option {it:sdofminus} (treating them as partialled-out regressors)
+or the option {it:dofminus} (treating them as "fixed effects").
 
 {pmore} This is only relevant under clustered errors, and only applies to the fixed effects not nested within a the cluster categories.
 
+{marker opt_diagnostic}{...}
+{dlgtab:Diagnostic}
 
-{dlgtab:"Average Effects" (AvgE)}
-
-{phang}
-{opt avge(avgevars)}
-will attempt to control for categorical variables using the so-called AvgE correction
-
-{pmore}
-The advantage of this approach, vis-a-vis using {it:absorb()} is its speed and higher reported degrees-of-freedom. It's disadvantage lies in it being inconsistent, as reported by Gormley & Matsa (2013).
-
-{pmore}
-{it:avgevar}
-has the same syntax as {it:absvars}, except that continuous interactions ({cmd:c.}) are not allowed
+{marker opt_dof}{...}
+{dlgtab:Degrees-of-Freedom Adjustments}
 
 {phang}
-{opt excludeself}
-excludes observation at hand when calculating the group average
+{opth group(newvarname)} name of the new variable that will contain the first mobility group.
 
-{dlgtab:SE/Robust}
+{pmore} This option requires at least two {it:absvars}, excluding those with continuous interactions,
+and those nested within the {it:clustervar} (unless {input:dofmethod(naive)} is specified).
 
-{phang}
-{opth vce(vcetype)}
-specifies the type of standard error reported, including types derived from asyptotic theory ({opt un:adjusted}, the default), that are robust to heteroscedasticity
- ({opt r:obust}, the Huber/White/sandwich estimator), or that allow for intragroup correlation ({opt cl:uster} {it:clustvar}).
-
-{pmore}
-{it:clustvar} can also be specified as an interaction between two or more categorical variables.
-
-{pmore}
-options {opt boot:strap} and {opt jack:knife} are planned, and twoway clusters can be made to work when calling {it:ivreg2}.
 
 {phang}
 {opth dofmethod(doftype)}
@@ -329,29 +414,29 @@ This is a conservative number and works reasonably fast in most cases.
 Under the options {opt simple} and {opt naive}, no approximation is made and it is assumed that M=1 (very conservative).
 Additional methods, such as {opt bootstrap} are also possible but not yet implemented.
 
-{dlgtab:Reporting}
+
+{marker opt_speedup}{...}
+{dlgtab:Speeding Up Estimation}
+
+{marker opt_avge}{...}
+{dlgtab:"Average Effects" (AvgE)}
 
 {phang}
-{opt l:evel(#)} sets confidence level; default is {cmd:level(95)}
+{opt avge(avgevars)}
+will attempt to control for categorical variables using the so-called AvgE correction
 
-{marker display_options}{...}
+{pmore}
+The advantage of this approach, vis-a-vis using {it:absorb()} is its speed and higher reported degrees-of-freedom. It's disadvantage lies in it being inconsistent, as reported by Gormley & Matsa (2013).
+
+{pmore}
+{it:avgevar}
+has the same syntax as {it:absvars}, except that continuous interactions ({cmd:c.}) are not allowed
+
 {phang}
-{it:display_options}:
-{opt noomit:ted},
-{opt vsquish},
-{opt noempty:cells},
-{opt base:levels},
-{opt allbase:levels},
-{opt nofvlabel},
-{opt fvwrap(#)},
-{opt fvwrapon(style)},
-{opth cformat(%fmt)},
-{opt pformat(%fmt)},
-{opt sformat(%fmt)}, and
-{opt nolstretch};
-    see {helpb estimation options##display_options:[R] estimation options}.
-{p_end}
+{opt excludeself}
+excludes observation at hand when calculating the group average
 
+{marker opt_maximization}{...}
 {dlgtab:Maximization}
 
 {phang}
@@ -367,7 +452,6 @@ At the other end, is not tight enough, the regression may not identify perfectly
 {opth maxit:erations(#)}
 specifies the maximum number of iterations; the default is {cmd:maxiterations(10000)}; 0 means run forever until convergence.
 
-{marker maximize_options}{...}
 {phang}
 {it:Advanced options:}
 
@@ -400,6 +484,31 @@ This will be much slower but may avoid situations where the acceleration gets st
 
 {pmore}
 Note that this is in terms of acceleration steps, not iterations (so if accel_freq=3 and pause_length=20, 60 iterations will pass until the acceleration resumes)
+
+{marker opt_reporting}{...}
+{dlgtab:Reporting}
+
+{phang}
+{opt l:evel(#)} sets confidence level; default is {cmd:level(95)}
+
+{marker display_options}{...}
+{phang}
+{it:display_options}:
+{opt noomit:ted},
+{opt vsquish},
+{opt noempty:cells},
+{opt base:levels},
+{opt allbase:levels},
+{opt nofvlabel},
+{opt fvwrap(#)},
+{opt fvwrapon(style)},
+{opth cformat(%fmt)},
+{opt pformat(%fmt)},
+{opt sformat(%fmt)}, and
+{opt nolstretch};
+    see {helpb estimation options##display_options:[R] estimation options}.
+{p_end}
+
 
 {dlgtab:Diagnostic and Experimental}
 

@@ -66,15 +66,26 @@ syntax varlist(min=1 numeric fv ts) [if] [,setname(string)] [CACHE]
 					local newvarbase : subinstr local name "." "__", all // pray that no variable has three _
 					local newvarbase : subinstr local newvarbase "#" "_X_", all // idem
 					local newvarbase : permname __`newvarbase', length(30)
-					local i 0
+
+					* In what cases will just using newvarbase fail???
+					local i // Empty
 					while (1) {
-						local newvar "`newvarbase'`++i'"
+						local newvar "`newvarbase'`i'"
+					
+						if ("`i'"=="") {
+							local i 1
+						}
+						else {
+							local ++i
+						}
+
 						Assert `i'<1000, msg("Couldn't create tempvar for `var' (`name')")
 						cap conf new var `newvar', exact
 						if _rc==0 {
 							continue, break
 						}
 					}
+
 					rename `var' `newvar'
 					local var `newvar'
 				}
