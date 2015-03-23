@@ -6,9 +6,14 @@ d Author: Sergio Correia, Duke University
 d Support: sergio.correia@duke.edu
 d
 d hdfe will partial out a varlist with respect to a set of fixed effects. It will either overwrite the dataset in memory, or generate new variables.
-d hdfe is the underlying procedure for the reghdfe module, which contains more details about the routine. It can be used as a building block for any regression command that wishes to include multiple high-dimensional fixed effects. It is not a package intended for an end user, but for a package developer.
+d
+d hdfe is the underlying procedure for the reghdfe module, which contains more details about the routine.
+d It can be used as a building block for any regression command that wishes to include multiple high-dimensional fixed effects.
+dIt is not a package intended for an end user, but for a package developer.
+d
 d The partialling out is done employing an extension of the methodology of Guimaraes & Portugal (2010), described in detail by Correia (2015, mimeo). It generalizes the within transformation thanks to an iterated application of the Frisch-Waugh-Lovell theorem.
-d For more details, see the help file or the ancilliary PDF
+d
+d For more details, see the Guimaraes & Portugal paper, the help file, or the ancilliary PDF
 d
 d KW: fixed effects
 d KW: high dimensional fixed effects

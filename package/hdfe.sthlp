@@ -24,7 +24,7 @@
 {cmd:,}
 {opth a:bsorb(hdfe##absvar:absvars)}
 [{opt g:enerate(stubname)} | clear]
-[{opth cluster:vars(hdfe##vcetype:vcetype)}
+[{opth cluster:vars(varlist)}
 {opth cores(#)}
 {opt v:erbose(#)}
 {opt tol:erance(#)}
@@ -34,10 +34,13 @@
 
 {pstd}{it: Notes:}{p_end}
 {p 5 7 2}
+- this is a programmers' command, like -avar-. For a detailed explanation and comments, see the help and website for the reghdfe package.
+{p_end}
+{p 5 7 2}
 - does not accept time series or factor variables
 {p_end}
 {p 5 7 2}
-- variables MUST BE FULLY spelled out (i.e. you need to use unab beforehand!)
+- varlist and clustervars MUST BE FULLY spelled out (i.e. you need to use unab beforehand!), but that is not needed at all for the absvars.
 {p_end}
 
 {marker absvar}{...}
@@ -91,11 +94,27 @@ but at most one continuous interaction
 Use {cmd: char list} to see details of those ancillary variables.
 {p_end}
 
-{synopt: {opt cluster:vars(varlist)}}list of variables containing cluster categories{p_end}
+{synopt: {opt cluster:vars(varlist)}}list of variables containing cluster categories. This is used to give more accurate number of degrees of freedom lost due to the fixed effects, as reported on r(df_a).{p_end}
 {synopt: {opth cores(#)}}will run the demeaning algorithm in # parallel instances.{p_end}
 {synopt :{opt v:erbose(#)}}amount of debugging information to show (0=None, 1=Some, 2=More, 3=Parsing/convergence details, 4=Every iteration){p_end}
 {synopt :{opth maxit:erations(#)}}specify maximum number of iterations; default is {cmd:maxiterations(1000)}; 0 means run forever until convergence{p_end}
 {synopt :{it:maximize_options}}there are several advanced maximization options, useful for tweaking the iteration. See the {help reghdfe##maximize_options:help for reghdfe} for details.{p_end}
+
+{marker results}{...}
+{title:Stored results}
+
+{pstd}
+{cmd:hdfe} stores the following in {cmd:r()}:
+
+{synoptset 24 tabbed}{...}
+{p2col 5 24 28 2: Scalars}{p_end}
+{synopt:{cmd:r(df_a)}}degrees of freedom lost due to the fixed effects (taking into account the cluster structure and whether the FEs are nested within the clusters){p_end}
+{synopt:{cmd:r(N_hdfe)}}number of sets of fixed effects{p_end}
+{synopt:{cmd:r(df_a#)}}degrees of freedom lost due to the #th fixed effect (excluding those collinear with the #th-1 first FEs){p_end}
+
+{synoptset 24 tabbed}{...}
+{p2col 5 24 28 2: Macros}{p_end}
+{synopt:{cmd:r(hdfe#)}}canonical expansion of the fixed effects (e.g. for#turn is expanded into i.foreign#i.turn){p_end}
 
 {marker contact}{...}
 {title:Author}
