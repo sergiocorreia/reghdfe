@@ -604,7 +604,7 @@ The user should be very careful not to change the dataset between calls, as the 
 {marker postestimation}{...}
 {title:Postestimation Syntax}
 
-Only {cmd:estat summarize} and {cmd:predict} are currently implemented.
+Only {cmd:estat summarize}, {cmd:predict} and {cmd:test} are currently supported and tested.
 
 {p 8 13 2}
 {cmd:estat summarize}
@@ -629,6 +629,23 @@ Only {cmd:estat summarize} and {cmd:predict} are currently implemented.
 {p2coldent: {opt sc:ore}}score; equivalent to {opt residuals}{p_end}
 {synoptline}
 {p2colreset}{...}
+
+{p 8 13 2}
+{cmd:test}
+{p_end}{col 23}Performs significance test on the parameters, see the {help test:stata help}
+
+{p 8 13 2}
+{cmd:suest}
+{p_end}
+
+{pstd}
+If you want to perform tests that are usually run with {cmd:suest},
+such as non-nested models, tests using alternative specifications of the variables,
+or tests on different groups, you can replicate it manually, as described 
+{browse "http://www.stata.com/statalist/archive/2009-11/msg01485.html":here}.
+{p_end}
+
+{pstd}Note: do not use {cmd:suest}. It will run, but the results will be incorrect.{p_end}
 
 {title:Implementation Details}
 
@@ -655,20 +672,25 @@ Even better, use {opt noconstant} to drop it (although it's not really dropped a
 {p 5 8 2}5. If you use {opt vce(cluster ...)}, check that your number of clusters is high enough (50+ is a rule of thumb). If not, you are making the SEs even worse!{p_end}
 {p 5 8 2}6. The panel variables (absvars) should probably be nested within the clusters (clustervars) due to the within-panel correlation induced by the FEs.
 (this is not the case for *all* the absvars, only those that are treated as growing as N grows){p_end}
+{p 5 8 2}7. If you run analytic or probability weights,
+you are responsible for ensuring that the weights stay
+constant within each unit of a fixed effect (e.g. individual),
+or that it is correct to allow varying-weights for that case.
+{p_end}
 
 {title:Missing Features}
 
 {phang}(If you are interested in discussing these or others, feel free to {help reghdfe##contact:contact me})
 
 {p2col 5 7 7 2: -}Add a more thorough discussion on the possible identification issues{p_end}
-{p2col 5 7 7 2: -}Find out a way to use HDFEs with efficient GMM (right now only OSL and 2SLS work correctly){p_end}
-{p2col 5 7 7 2: -}Implement -bootstrap- option in DoF estimation{p_end}
-{p2col 5 7 7 2: -}Implement a more extensive test suite{p_end}
+{p2col 5 7 7 2: -}Find out a way to use HDFEs with CUE (right now only OLS/2SLS/2SGMM/LIML work correctly){p_end}
+{p2col 5 7 7 2: -}Implement a -bootstrap- option in DoF estimation{p_end}
 {p2col 5 7 7 2: -}The interaction with cont vars (i.a#c.b) may suffer from numerical accuracy issues, as we are dividing by a sum of squares{p_end}
 {p2col 5 7 7 2: -}Calculate exact DoF adjustment for 3+ HDFEs (note: not a problem with cluster VCE when one FE is nested within the cluster){p_end}
-{p2col 5 7 7 2: -}More postestimation commands (lincom? margins?; test?). Todo: Call estat_summ after it gets patched{p_end}
-{p2col 5 7 7 2: -}Implement two-way clustering ({it:clustvar2}) proposed by Cameron and implemented in twfe.ado.{p_end}
-{p2col 5 7 7 2: -}Not sure if I should leave the F-test (or any alternative) in the vce(robust) case. Discussion on e.g. -areg- (methods and formulas) suggests not; on the other hand, this may help:
+{p2col 5 7 7 2: -}More postestimation commands (lincom? margins?){p_end}
+{p2col 5 7 7 2: -}Not sure if I should add an F-test for the absvars in the vce(robust) and vce(cluster) cases.
+Discussion on e.g. -areg- (methods and formulas) and textbooks suggests not;
+on the other hand, there may be alternatives:
 {it:{browse "http://www.socialsciences.manchester.ac.uk/disciplines/economics/research/discussionpapers/pdf/EDP-1124.pdf" :A Heteroskedasticity-Robust F-Test Statistic for Individual Effects}}{p_end}
 
 {marker examples}{...}

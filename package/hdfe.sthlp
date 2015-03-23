@@ -26,6 +26,7 @@
 [{opt g:enerate(stubname)} | clear]
 [{opth cluster:vars(varlist)}
 {opt dropsi:ngletons}
+{opt sample:(newvarname)}
 {opth cores(#)}
 {opt v:erbose(#)}
 {opt tol:erance(#)}
@@ -96,10 +97,36 @@ Use {cmd: char list} to see details of those ancillary variables.
 {p_end}
 {synopt: {opt cluster:vars(varlist)}}list of variables containing cluster categories. This is used to give more accurate number of degrees of freedom lost due to the fixed effects, as reported on r(df_a).{p_end}
 {synopt: {opt dropsi:ngletons}}remove singleton groups from the sample; once per {it:absvar}.{p_end}
+{synopt: {opt sample:(newvarname)}}will save the equivalent of e(sample) in this variable;
+useful when dropping singletons.
+Used with the {opt g:enerate} option.{p_end}
 {synopt: {opth cores(#)}}will run the demeaning algorithm in # parallel instances.{p_end}
 {synopt :{opt v:erbose(#)}}amount of debugging information to show (0=None, 1=Some, 2=More, 3=Parsing/convergence details, 4=Every iteration){p_end}
 {synopt :{opth maxit:erations(#)}}specify maximum number of iterations; default is {cmd:maxiterations(1000)}; 0 means run forever until convergence{p_end}
 {synopt :{it:maximize_options}}there are several advanced maximization options, useful for tweaking the iteration. See the {help reghdfe##maximize_options:help for reghdfe} for details.{p_end}
+
+{marker recovering}{...}
+{title:Recovering Fixed Effects}
+
+{pstd}You can use {cmd:hdfe} again to recover the fixed effects. For instance, in the least-squares case:{p_end}
+
+{phang2}{cmd:. sysuse auto, clear}{p_end}
+{phang2}{cmd:. * Demean variables}{p_end}
+{phang2}{cmd:. hdfe price weight length, a(turn trunk) gen(RESID_)}{p_end}
+{phang2}{cmd:. * Run regression}{p_end}
+{phang2}{cmd:. reg RESID_*}{p_end}
+{phang2}{cmd:. * Predict using original variables}{p_end}
+{phang2}{cmd:. drop RESID_*}{p_end}
+{phang2}{cmd:. rename (price weight length) RESID_=}{p_end}
+{phang2}{cmd:. predict double resid, resid}{p_end}
+{phang2}{cmd:. rename RESID_* *}{p_end}
+{phang2}{cmd:. * Obtain fixed effects}{p_end}
+{phang2}{cmd:. hdfe resid, a(FE1=turn FE2=trunk) savefe gen(temp_)}{p_end}
+
+{phang2}{cmd:. * Benchmark and verification}{p_end}
+{phang2}{cmd:. reghdfe price weight length, a(BENCH1=turn BENCH2=trunk)}{p_end}
+{phang2}{cmd:. gen double delta = abs(BENCH1-FE1) + abs(BENCH2-FE2)}{p_end}
+{phang2}{cmd:. su delta}{p_end}
 
 {marker results}{...}
 {title:Stored results}

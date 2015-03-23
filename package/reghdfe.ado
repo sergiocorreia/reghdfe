@@ -1,4 +1,4 @@
-*! reghdfe 2.0.85 23mar2015
+*! reghdfe 2.0.109 23mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 // -------------------------------------------------------------
@@ -4300,8 +4300,8 @@ program define Save, rclass
 		}
 		else {
 			qui su `target' `weightexp', mean
-			// qui replace `target' = `target' - r(mean)
-			// BUGBUG BUGBUG
+			qui replace `target' = `target' - r(mean)
+			// BUGBUG BUGBUG -> WHAT WAS THE PROBLEM WITH THIS?
 		}
 
 		local keepvars `keepvars' `target'

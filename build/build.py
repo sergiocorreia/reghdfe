@@ -16,7 +16,7 @@ Note: Wrote in Python 2.7 but should work with Python 3.
 from __future__ import print_function
 from __future__ import division
 
-import os, time, re, shutil, zipfile
+import os, time, re, shutil, zipfile, subprocess
 
 # -------------------------------------------------------------
 # Functions
@@ -29,6 +29,9 @@ def zipdir(path, zip):
 # -------------------------------------------------------------
 # Main
 # -------------------------------------------------------------
+
+# Build html help files
+subprocess.call(['create_html_help.do'])
 
 # Filenames
 output_filenames = ["reghdfe.ado", "reghdfe_estat.ado", "reghdfe_p.ado", "reghdfe_footnote.ado", "hdfe.ado"]

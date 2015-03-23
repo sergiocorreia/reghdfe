@@ -28,8 +28,8 @@ program define Save, rclass
 		}
 		else {
 			qui su `target' `weightexp', mean
-			// qui replace `target' = `target' - r(mean)
-			// BUGBUG BUGBUG
+			qui replace `target' = `target' - r(mean)
+			// BUGBUG BUGBUG -> WHAT WAS THE PROBLEM WITH THIS?
 		}
 
 		local keepvars `keepvars' `target'

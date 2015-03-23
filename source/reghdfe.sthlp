@@ -21,59 +21,6 @@
 {p2col :{cmd:reghdfe} {hline 2}}Linear and instrumental-variable/GMM regression absorbing any number of fixed effects{p_end}
 {p2colreset}{...}
 
-Note: this help file has not yet been fully updated.
-
-{marker fullsyntax}{...}
-{title:Full Syntax}
-
-{pstd}This list enumerates all the options, most of which you {it:do not} need:{p_end}
-
-{p 8 15 2}
-{cmd:reghdfe}
-{depvar}
-[{indepvars}]
-    [{cmd:(}{it:{help varlist:endogvars}}
-    {cmd:=}
-    {it:{help varlist:iv_vars}}{cmd:)}]
-{ifin}
-{it:{weight}}
-{cmd:,}
-{opth a:bsorb(reghdfe##absvar:absvars)}
-{cmd:vce(}{help reghdfe##vcetype:vcetype}{cmd:)}
-{opt gmm:2s}
-{opt dof:adjustments(doflist)}
-{opt dropsi:ngletons}
-{opth tol:erance(#)}
-{opth maxit:erations(#)}
-{opt fast}
-{opth cores(#)}
-{opt v:erbose(#)}
-{opt nested}
-{opt stage:s(stage_list)}
-{opt nocon:stant}
-{opt su:mmarize(summ_list)}
-{opth group(newvarname)}
-{opth avge(varlist)}
-{opt excludeself}
-{opth iv:suite(subcmd)}
-{opt first}
-{opt savefirst}
-{opt showraw}
-{opt sub:options(...)}
-{opt check}
-{opth save:cache(filename)}
-{opth use:cache(filename)}
-{opth over(varname)}
-{opt l:evel(#)}
-{it:{help reghdfe##display_options:display_options}}
-{opt noaccel:erate}
-{opth accel_start(#)}
-{opth accel_freq(#)}
-{opth bad_loop_threshold(#)}
-{opth stuck_threshold(#)}
-{opth pause_length(#)}
-{p_end}
-
 {marker syntax}{...}
 {title:Syntax}
 
@@ -88,12 +35,16 @@ Note: this help file has not yet been fully updated.
 {it:{weight}}
 {cmd:,}
 {opth a:bsorb(reghdfe##absvar:absvars)}
-[{opth vce:(reghdfe##vcetype:vcetype)}
-{help reghdfe##options:options}]
+[{opth vce:(reghdfe##vcetype:vcetype)}]
+[{help reghdfe##options:more_options}]
 {p_end}
 
+{ul:Variables and Weights:}
+{p2col 4 6 6 2:   }- all varlists allow for time-series and factor variables{p_end}
+{p2col 4 6 6 2:   }- {cmd:fweight}s, {cmd:aweight}s and {cmd:pweight}s are allowed; see {help weight}.{p_end}
+
 {marker absvar}{...}
-{it:Absvars:}
+{ul:Absvars:}
 
 {synoptset 22}{...}
 {synopthdr:absvar}
@@ -134,63 +85,8 @@ but at most one continuous interaction
 "{newvar}{cmd:=}{it:varname1} {newvar:_slope}{cmd:=}{it:varname1}{cmd:#c.}{it:varname2}"
 {p_end}
 
-{it:Summary of Options:}
-
-{synoptset 22 tabbed}{...}
-{synopthdr}
-{synoptline}
-{syntab:Model}
-{p2coldent:* {opth a:bsorb(reghdfe##absvar:absvars)}   }identifiers of the fixed effects that will be absorbed{p_end}
-{synopt: {opth group(newvarname)}}unique identifier for the first mobility group{p_end}
-{synopt: {opt nested}}Add each {it:absvar} recursively, reporting the R2 at each stage and the associated F-test of significance
-(only under linear regression and unadjusted standard errors){p_end}
-{synopt :{opt nocon:stant}}do not add back constant to regression ({cmd:ivreg2} will always do that). Rarely used.{p_end}
-{synopt : {opt sub:options(...)}}options that will be passed to the regression command (either {help regress}, {help ivreg2}, or {help ivregress}){p_end}
-
-{syntab:IV/2SLS}
-{synopt :{opth iv:suite(subcmd)}}package used in the IV/2SLS regressions; either {opt ivregress} or {opt ivreg2} (if installed){p_end}
-{synopt : {opt first}}report first stage regression (but sadly not first-stage summary results){p_end}
-{synopt : {opt showraw}}show the entire output of ivreg2 (if that's the ivsuite used); useful to see first-stage summary results{p_end}
-{synopt :}the downside is that it will have tempnames in place of meaningful names when factors and time-series operators are used{p_end}
-{synopt : {opt dofminus(small|large)}}indicates whether {it:ivreg2} should substract the number of fixed effects using either the option {it:sdofminus} 
-(treating them as partialled-out regressors) or the option {it:dofminus} (treating them as "fixed effects"){p_end}
-
-{syntab:"Average Effects" ({it:AvgE})}
-{synopt: {opt avge(avgevars)}}Attempt to control for categorical variables using the so-called AvgE correction (see Gormley & Matsa 2013 for why this is wrong){p_end}
-{synopt:}{it:avgevar} has the same syntax as {it:absvars}, except that continuous interactions ({cmd:c.}) are not allowed{p_end}
-{synopt: {opt excludeself}}excludes observation at hand when calculating the group average{p_end}
-
-{syntab:SE/Robust}
-{synopt :{opth vce(vcetype)}}{it:vcetype} may be {opt un:adjusted} (default), {opt r:obust}, or {opt cl:uster} {it:clustvar} ({it:clustvar} can also be an interaction between categorical variables){p_end}
-{synopt :{opt dofmethod(doftype)}}it is {it:hard} to calculate the exact number of absorbed parameters beyond the two first sets of FE (or three if one is nested in a cluster){p_end}
-{synopt :} - this option allows for different DoF adjustements, but the default should work decently well.{p_end}
-{synopt :} - note that this does not matter for two or less sets of FE{p_end}
-{synopt :} - {it:doftype} may be {opt bounds} (default, gives a conservative bound for df_a), {opt simple} (ignore pairwise collinearity between FEs) or
-{opt naive} (same as -simple- but also ignore FE nested in clustervar).{p_end}
-
-{syntab:Maximization}
-{synopt :{opth tol:erance(#)}}specify tolerance criterion for convergence; default is {cmd:tolerance(1e-7)}{p_end}
-{synopt :{opth maxit:erations(#)}}specify maximum number of iterations; default is {cmd:maxiterations(1000)}; 0 means run forever until convergence{p_end}
-{synopt :{it:{help reghdfe##maximize_options:maximize_options}}}advanced maximization options; seldom used{p_end}
-
-{syntab:Diagnostic and Experimental}
-{synopt :{opt v:erbose(#)}}amount of debugging information to show (0=None, 1=Some, 2=More, 3=Parsing/convergence details, 4=Every iteration){p_end}
-{synopt : {opt check}}if convergence was achieved, the fixed effects should have a 1.0 coeficient in each step{p_end}
-{synopt :{it:{help reghdfe##experimental_options:experimental_options}}}experimental options that may not work under all versions of Stata or variants of the command. Treat with care.{p_end}
-
-{syntab:Reporting}
-{synopt :{opt l:evel(#)}}set confidence level; default is {cmd:level(95)}{p_end}
-{synopt :{it:{help reghdfe##display_options:display_options}}}control column formats, row spacing, line width, display of omitted variables and base and empty cells, and factor-variable labeling{p_end}
-{synoptline}
-{p2colreset}{...}
-{p 4 6 2}* {opt absorb(varlist)} is required.{p_end}
-{p 4 6 2}all varlists allow for time-series and factor variables{p_end}
-{p 4 6 2} {cmd:fweight}s, {cmd:aweight}s and {cmd:pweight}s are allowed; see {help weight}.{p_end}
-
-
-
-TODO:Move most of the bla bla to the section below
-
+{marker opt_summary}{...}
+{ul:Summary of Options:}
 
 {synoptset 22 tabbed}{...}
 {synopthdr}
@@ -205,26 +101,29 @@ in the computation of the VCV.
 {p2coldent:+ {opt nocon:stant}}do not add back constant to regression ({cmd:ivreg2} will always do that).{p_end}
 {synopt: {opt nested}}add each {it:absvar} recursively, reporting the R2 and associated F-test
 at each stage (only under linear regression and unadjusted standard errors){p_end}
-{synopt : {opt sub:options(...)}}options that will be passed to the regression command (either {help regress}, {help ivreg2}, or {help ivregress}){p_end}
 {synopt :{opth su:mmarize(tabstat##statname:stats)}}equivalent to running {cmd:estat summarize} afterwards,
 but faster, includes instruments, saves results on {it:e(stats)},
 and accepts more statistics (default is {it:mean min max}).
 Use the suboption [{it:,} {opt qui:etly}] to store the table without reporting it.{p_end}
+{synopt : {opt sub:options(...)}}options that will be passed to the regression command (either {help regress}, {help ivreg2}, or {help ivregress}){p_end}
 
 {syntab:SE/Robust {help reghdfe##opt_vce:[+]}}
-{p2coldent:+ {opth vce:(reghdfe##vcetype:vcetype, subopt)}  }
-{it:vcetype} may be {opt un:adjusted}/{opt ols} (default), {opt r:obust}, or {opt cl:uster} {it:clustervars}.
+{p2coldent:+ {opth vce:(reghdfe##vcetype:vcetype, subopt)}  }{it:vcetype} may
+ be {opt un:adjusted}/{opt ols} (default), {opt r:obust}, or {opt cl:uster} {it:clustervars}.
 In addition, you can add HAC estimates.{p_end}
 {synopt :} - {opt cl:uster} allows any number of cluster variables,
  but remember that there must be {it:enough} categories for each cluster variable.{p_end}
-{synopt :} - each {it:clustervar} permits {it:var1{cmd:#}var2} interactions.{p_end}
+{synopt :} - each {it:clustervar} permits interactions of the type {it:var1{cmd:#}var2}
+(this is faster than using {cmd:egen group()} for a one-off regression).{p_end}
 {synopt :} - for HAC variance estimates, use the suboptions {opt bw(#)}, {opt dkraay(#)}, {opt ker:nel(str)}, {opt kiefer};
 see {help ivreg2##s_robust:ivreg2}.{p_end}
+{synopt :}{it:Advanced:}{p_end}
 {synopt :} - under ols, the suboption {opt suite(default|mwc|avar)} will override the package that computes the VCE matrix;
 rarely used.{p_end}
 
 {syntab:IV/2SLS/GMM {help reghdfe##opt_iv:[+]}}
 {synopt :{opt gmm:2s}}use two-stage GMM for estimation.{p_end}
+{synopt :{opt liml:}}use LIML for estimation.{p_end}
 {synopt :{opth iv:suite(subcmd)}}package used in the regressions;
 either {opt ivregress} or {opt ivreg2} (default; needs installing).{p_end}
 {synopt :{opt first}}report first stage regression (but sadly not first-stage summary results){p_end}
@@ -245,12 +144,12 @@ either {opt ivregress} or {opt ivreg2} (default; needs installing).{p_end}
 {synopt: {opth group(newvarname)}}unique identifier for the first mobility group{p_end}
 
 {syntab:Speeding Up Estimation {help reghdfe##opt_speedup:[+]}}
-{synopt :{opt fast}}avoids one {it:save}, one {it:use}, and one {it:merge} operation.{p_end}
-{synopt :{opth cores(#)}}run the demeaning algorithm in # parallel instances{p_end}
+{synopt :{opt fast}}avoids one {it:save}, one {it:use}, and one {it:merge} operation{p_end}
+{synopt :{opth cores(#)}}run the demeaning algorithm in # parallel instances of Stata{p_end}
 {synopt :{opth save:cache(filename)}}compute the demeaning for a list of variables and save in the file;
-allows for multiple regressions later.{p_end}
+allows for multiple regressions later{p_end}
 {synopt :{opth use:cache(filename)}}run regression using results previously computed and stored in {it:filename}.
-requires a previous {cmd:usecache} call with the same {it:absvars} and sample.{p_end}
+requires a previous {cmd:usecache} call with the same {it:absvars} and sample{p_end}
 {synopt :{opth over(varname)}}run regression for different groups. used together with {opt savecache} and {opt usecache}{p_end}
 
 {syntab:"Average Effects" ({it:AvgE}) {help reghdfe##opt_avge:[+]}}
@@ -261,6 +160,7 @@ requires a previous {cmd:usecache} call with the same {it:absvars} and sample.{p
 {syntab:Maximization {help reghdfe##opt_maximization:[+]}}
 {p2coldent:+ {opth tol:erance(#)}}criterion for convergence (default=1e-7){p_end}
 {synopt :{opth maxit:erations(#)}}maximum number of iterations to attempt for each variable (default=10000). if set to 0, it will run for as long as it takes.{p_end}
+{synopt :Advanced Options, rarely used:}{p_end}
 {synopt :{opt noaccel:erate}}apply fixed point iteration without applying Aitken's acceleration{p_end}
 {synopt :{opth accel_start(#)}}how many iterations to wait until the Aitken's acceleration starts (default=6){p_end}
 {synopt :{opth accel_freq(#)}}how often the acceleration occurs (default=3){p_end}
@@ -269,21 +169,19 @@ requires a previous {cmd:usecache} call with the same {it:absvars} and sample.{p
 {synopt :{opth pause_length(#)}}how many acceleration steps to pause after the iteration got stuck (default=20){p_end}
 
 {syntab:Reporting {help reghdfe##opt_reporting:[+]}}
-{synopt :{opt l:evel(#)}}.{p_end}
+{synopt :{opt l:evel(#)}}set confidence level; default is {cmd:level(95)}{p_end}
 {synopt :{it:{help reghdfe##display_options:display_options}}}control column formats, row spacing, line width, display of omitted variables and base and empty cells, and factor-variable labeling{p_end}
 {synoptline}
 {p2colreset}{...}
 {p 4 6 2}* {opt absorb(varlist)} is required.{p_end}
 {p 4 6 2}+ indicates a recommended or important option.{p_end}
-{p2col 4 6 6 2:   } all varlists allow for time-series and factor variables{p_end}
-{p2col 4 6 6 2:   } {cmd:fweight}s, {cmd:aweight}s and {cmd:pweight}s are allowed; see {help weight}.{p_end}
 
 {marker description}{...}
 {title:Description}
 
 {pstd}
 {cmd:reghdfe} fits a linear regression of {depvar} on {indepvars} while absorbing an arbitrary number of fixed effects indicated by the categories of {help reghdfe##absvar:absvars}. It also supports regressing
- on {it:endogvars}, in which case it uses {it:iv_vars} (along with {it:indepvars} and the fixed effects) as instruments for {it:endogvars}.{p_end}
+ on {it:endogvars}, in which case it uses {it:iv_vars} (along with {it:indepvars} and the fixed effects) as instruments for {it:endogvars} (either with 2SLS or GMM/LIML).{p_end}
 
 {pstd}The reported constant is obtained from normalizing the first fixed effect so it has a mean of zero.{p_end}
 
@@ -300,7 +198,8 @@ within each subgraph (see {help reghdfe##references:references}).{p_end}
 {marker options}{...}
 {title:Options}
 
-{dlgtab:Model}
+{marker opt_model}{...}
+{dlgtab:Model and Miscellanea}
 
 {phang}
 {opth a:bsorb(reghdfe##absvar:absvars)} list of categorical variables (or interactions) representing the fixed effects to be absorbed. this is equivalent to including a dummy variable for each category of each {it:absvar}. {cmd:absorb()} is required.
@@ -604,7 +503,7 @@ The user should be very careful not to change the dataset between calls, as the 
 {marker postestimation}{...}
 {title:Postestimation Syntax}
 
-Only {cmd:estat summarize} and {cmd:predict} are currently implemented.
+Only {cmd:estat summarize}, {cmd:predict} and {cmd:test} are currently supported and tested.
 
 {p 8 13 2}
 {cmd:estat summarize}
@@ -629,6 +528,23 @@ Only {cmd:estat summarize} and {cmd:predict} are currently implemented.
 {p2coldent: {opt sc:ore}}score; equivalent to {opt residuals}{p_end}
 {synoptline}
 {p2colreset}{...}
+
+{p 8 13 2}
+{cmd:test}
+{p_end}{col 23}Performs significance test on the parameters, see the {help test:stata help}
+
+{p 8 13 2}
+{cmd:suest}
+{p_end}
+
+{pstd}
+If you want to perform tests that are usually run with {cmd:suest},
+such as non-nested models, tests using alternative specifications of the variables,
+or tests on different groups, you can replicate it manually, as described 
+{browse "http://www.stata.com/statalist/archive/2009-11/msg01485.html":here}.
+{p_end}
+
+{pstd}Note: do not use {cmd:suest}. It will run, but the results will be incorrect.{p_end}
 
 {title:Implementation Details}
 
@@ -655,20 +571,25 @@ Even better, use {opt noconstant} to drop it (although it's not really dropped a
 {p 5 8 2}5. If you use {opt vce(cluster ...)}, check that your number of clusters is high enough (50+ is a rule of thumb). If not, you are making the SEs even worse!{p_end}
 {p 5 8 2}6. The panel variables (absvars) should probably be nested within the clusters (clustervars) due to the within-panel correlation induced by the FEs.
 (this is not the case for *all* the absvars, only those that are treated as growing as N grows){p_end}
+{p 5 8 2}7. If you run analytic or probability weights,
+you are responsible for ensuring that the weights stay
+constant within each unit of a fixed effect (e.g. individual),
+or that it is correct to allow varying-weights for that case.
+{p_end}
 
 {title:Missing Features}
 
 {phang}(If you are interested in discussing these or others, feel free to {help reghdfe##contact:contact me})
 
 {p2col 5 7 7 2: -}Add a more thorough discussion on the possible identification issues{p_end}
-{p2col 5 7 7 2: -}Find out a way to use HDFEs with efficient GMM (right now only OSL and 2SLS work correctly){p_end}
-{p2col 5 7 7 2: -}Implement -bootstrap- option in DoF estimation{p_end}
-{p2col 5 7 7 2: -}Implement a more extensive test suite{p_end}
+{p2col 5 7 7 2: -}Find out a way to use HDFEs with CUE (right now only OLS/2SLS/2SGMM/LIML work correctly){p_end}
+{p2col 5 7 7 2: -}Implement a -bootstrap- option in DoF estimation{p_end}
 {p2col 5 7 7 2: -}The interaction with cont vars (i.a#c.b) may suffer from numerical accuracy issues, as we are dividing by a sum of squares{p_end}
 {p2col 5 7 7 2: -}Calculate exact DoF adjustment for 3+ HDFEs (note: not a problem with cluster VCE when one FE is nested within the cluster){p_end}
-{p2col 5 7 7 2: -}More postestimation commands (lincom? margins?; test?). Todo: Call estat_summ after it gets patched{p_end}
-{p2col 5 7 7 2: -}Implement two-way clustering ({it:clustvar2}) proposed by Cameron and implemented in twfe.ado.{p_end}
-{p2col 5 7 7 2: -}Not sure if I should leave the F-test (or any alternative) in the vce(robust) case. Discussion on e.g. -areg- (methods and formulas) suggests not; on the other hand, this may help:
+{p2col 5 7 7 2: -}More postestimation commands (lincom? margins?){p_end}
+{p2col 5 7 7 2: -}Not sure if I should add an F-test for the absvars in the vce(robust) and vce(cluster) cases.
+Discussion on e.g. -areg- (methods and formulas) and textbooks suggests not;
+on the other hand, there may be alternatives:
 {it:{browse "http://www.socialsciences.manchester.ac.uk/disciplines/economics/research/discussionpapers/pdf/EDP-1124.pdf" :A Heteroskedasticity-Robust F-Test Statistic for Individual Effects}}{p_end}
 
 {marker examples}{...}

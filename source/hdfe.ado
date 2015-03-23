@@ -1,4 +1,4 @@
-*! hdfe 2.0.85 23mar2015
+*! hdfe 2.0.109 23mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 
@@ -21,9 +21,21 @@ program define hdfe, rclass
 	syntax varlist [if] [in] [fweight aweight pweight/] , Absorb(string) ///
 		[CORES(integer 1)] ///
 		[DROPSIngletons] ///
-		[CLUSTERvars(string) Verbose(integer 0) TOLerance(real 1e-7) MAXITerations(integer 10000)] [GENerate(name)] [CLEAR] [*]
+		[SAMPLE(name)] ///
+		[GENerate(name)] [CLEAR] ///
+		[CLUSTERvars(string) Verbose(integer 0) TOLerance(real 1e-7) MAXITerations(integer 10000)] ///
+		[SAVEFE] ///
+		[*]
 
 	Assert ("`generate'"!="") + ("`clear'"!="") == 1 , msg("hdfe error: you need to specify one and only one of the following options: clear generate(...)")
+
+	if ("`savefe'"!="") {
+		local numvars : word count `varlist'
+		Assert `numvars'==1 , msg("hdfe error: option savefe only allows one variable")
+		local opt_savefe "save_fe(1)"
+	}
+
+	if ("`sample'"!="") conf new var `sample'
 
 	if ("`weight'"!="") {
 		local weightvar `exp'
@@ -83,14 +95,19 @@ program define hdfe, rclass
 	*drop __FE*__
 
 * Demean variables wrt to the fixed effects
-	local opt varlist(`varlist') tol(`tolerance') maxiterations(`maxiterations') `options'
+	local opt varlist(`varlist') tol(`tolerance') maxiterations(`maxiterations') `options' `opt_savefe'
 	if (`cores'>1) {
 		DemeanParallel, `opt' self(hdfe) cores(`cores')
 	}
 	else {
-		Demean, `opt'	
+		Demean, `opt'
 	}
-	
+
+	if ("`savefe'"!="") {
+		Save, original_depvar(`varlist')
+		local saved_fe = r(keepvars)
+	}
+
 	return scalar df_a = `kk'
 	return scalar N_hdfe = `N_hdfe'
 	forv g=1/`N_hdfe' {
@@ -105,7 +122,7 @@ program define hdfe, rclass
 	Stop
 
 	if ("`generate'"!="") {
-		keep `varlist' `uid'
+		keep `varlist' `uid' `saved_fe'
 		foreach var of local varlist {
 			rename `var' `generate'`var'
 		}
@@ -114,7 +131,7 @@ program define hdfe, rclass
 		sort `uid'
 		qui save "`output'"
 		restore
-		SafeMerge, uid(`uid') file("`output'")
+		SafeMerge, uid(`uid') file("`output'") sample(`sample')
 	}
 end
 
@@ -122,9 +139,17 @@ end
 * The idea of this program is to keep the sort order when doing the merges
 cap pr drop SafeMerge
 program define SafeMerge, eclass sortpreserve
-syntax, uid(varname numeric) file(string)
+syntax, uid(varname numeric) file(string) [sample(string)]
 	* Merging gives us e(sample) and the FEs / AvgEs
-	merge 1:1 `uid' using "`file'", assert(master match) nolabel nonotes noreport nogen
+	if ("`sample'"!="") {
+		tempvar smpl
+		merge 1:1 `uid' using "`file'", assert(master match) nolabel nonotes noreport gen(`smpl')
+		gen byte `sample' = (`smpl'==3)
+		drop `smpl' // redundant
+	}
+	else {
+		merge 1:1 `uid' using "`file'", assert(master match) nolabel nonotes noreport nogen
+	}
 end
 
 include "_common/Assert.ado"
