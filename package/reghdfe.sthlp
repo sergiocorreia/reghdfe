@@ -162,6 +162,7 @@ requires a previous {cmd:usecache} call with the same {it:absvars} and sample{p_
 {syntab:Reporting {help reghdfe##opt_reporting:[+]}}
 {synopt :{opt l:evel(#)}}set confidence level; default is {cmd:level(95)}{p_end}
 {synopt :{it:{help reghdfe##display_options:display_options}}}control column formats, row spacing, line width, display of omitted variables and base and empty cells, and factor-variable labeling{p_end}
+{synopt :{opt version:}}reports the version number and date of reghdfe, and saves it in e(version). standalone option{p_end}
 {synoptline}
 {p2colreset}{...}
 {p 4 6 2}* {opt absorb(varlist)} is required.{p_end}
@@ -702,6 +703,11 @@ you are responsible for ensuring that the weights stay
 constant within each unit of a fixed effect (e.g. individual),
 or that it is correct to allow varying-weights for that case.
 {p_end}
+{p 5 8 2}8. Be aware that adding several HDFEs is not a panacea.
+The first limitation is that it only uses within variation (more than acceptable if you have a large enough dataset).
+The second and subtler limitation occurs if the fixed effects are "endogenous"
+(e.g. a firm chooses a worker based on unobservables, then the identity
+of the worker is not exogenous and adding fixed effects may bias the other regressors).{p_end}
 
 {title:Missing Features}
 

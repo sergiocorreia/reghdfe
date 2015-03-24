@@ -1,4 +1,4 @@
-*! hdfe 2.0.188 23mar2015
+*! hdfe VERSION_NUMBER
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 
@@ -8,6 +8,14 @@ cap pr drop hdfe
 program define hdfe, rclass
 	local version `=clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
 	qui version `version'
+
+* Intercept version calls
+	cap syntax, version
+	local rc = _rc
+	 if (`rc'==0) {
+		Version
+		exit
+	}
 
 * Intercept multiprocessor/parallel calls
 	cap syntax, instance [*]
@@ -23,7 +31,7 @@ program define hdfe, rclass
 		[DROPSIngletons] ///
 		[SAMPLE(name)] ///
 		[GENerate(name)] [CLEAR] ///
-		[CLUSTERvars(string) Verbose(integer 0) TOLerance(real 1e-7) MAXITerations(integer 10000)] ///
+		[CLUSTERVARs(string) Verbose(integer 0) TOLerance(real 1e-7) MAXITerations(integer 10000)] ///
 		[SAVEFE] ///
 		[*]
 
@@ -154,6 +162,7 @@ end
 
 include "_common/Assert.ado"
 include "_common/Debug.ado"
+include "_common/Version.ado"
 
 include "_hdfe/ConnectedGroups.ado"
 include "_hdfe/GenerateID.ado"

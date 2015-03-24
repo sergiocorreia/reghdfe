@@ -22,7 +22,7 @@ BODY{background-color: ffffff;
 <br><br>
 <a name="syntax"></a><span class=result><u>Syntax</u></span>
 <br><br>
-        <span class=result>hdfe</span> varlist <i>[</i><i>weight</i><i>]</i> <span class=result>,</span> <span class=result><u>a</u></span><span class=result>bsorb(</span><i>absvars</i><span class=result>)</span> [<span class=result><u>g</u></span><span class=result>enerate(</span><i>stubname</i><span class=result>)</span> | clear] [<span class=result><u>cluster</u></span><span class=result>vars(</span><i>varlist</i><span class=result>)</span>
+        <span class=result>hdfe</span> varlist <i>[</i><i>weight</i><i>]</i> <span class=result>,</span> <span class=result><u>a</u></span><span class=result>bsorb(</span><i>absvars</i><span class=result>)</span> [<span class=result><u>g</u></span><span class=result>enerate(</span><i>stubname</i><span class=result>)</span> | clear] [<span class=result><u>clustervar</u></span><span class=result>s(</span><i>varlist</i><span class=result>)</span>
                <span class=result><u>dropsi</u></span><span class=result>ngletons</span> <span class=result>sample(</span><i>newvarname</i><span class=result>)</span> <span class=result>cores(</span><i>#</i><span class=result>)</span> <span class=result><u>v</u></span><span class=result>erbose(</span><i>#</i><span class=result>)</span> <span class=result><u>tol</u></span><span class=result>erance(</span><i>#</i><span class=result>)</span>
                <span class=result><u>maxi</u></span><span class=result>terations(</span><i>#</i><span class=result>)</span>]<i> maximize_options</i>]
 <br><br>
@@ -87,6 +87,8 @@ BODY{background-color: ffffff;
                               0 means run forever until convergence
       <i>maximize_options</i>      there are several advanced maximization options, useful for tweaking
                               the iteration. See the help for reghdfe for details.
+      <span class=result>version</span>               reports the version number and date of hdfe, and saves it in
+                              e(version). standalone option
 <br><br>
 <a name="recovering"></a><span class=result><u>Recovering Fixed Effects</u></span>
 <br><br>

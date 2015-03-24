@@ -152,6 +152,8 @@ BUGBUG
       <span class=result><u>l</u></span><span class=result>evel(</span><i>#</i><span class=result>)</span>              set confidence level; default is <span class=result>level(95)</span>
       <i>display_options</i>       control column formats, row spacing, line width, display of omitted
                               variables and base and empty cells, and factor-variable labeling
+      <span class=result>version</span>               reports the version number and date of reghdfe, and saves it in
+                              e(version). standalone option
     ----------------------------------------------------------------------------------------------
     * <span class=result>absorb(</span><i>varlist</i><span class=result>)</span> is required.
     + indicates a recommended or important option.
@@ -653,6 +655,11 @@ Only <span class=result>estat summarize</span>, <span class=result>predict</span
      7. If you run analytic or probability weights, you are responsible for ensuring that the
         weights stay constant within each unit of a fixed effect (e.g. individual), or that it is
         correct to allow varying-weights for that case.
+     8. Be aware that adding several HDFEs is not a panacea.  The first limitation is that it only
+        uses within variation (more than acceptable if you have a large enough dataset).  The
+        second and subtler limitation occurs if the fixed effects are "endogenous" (e.g. a firm
+        chooses a worker based on unobservables, then the identity of the worker is not exogenous
+        and adding fixed effects may bias the other regressors).
 <br><br>
 <span class=result><u>Missing Features</u></span>
 <br><br>

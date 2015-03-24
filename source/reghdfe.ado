@@ -1,4 +1,4 @@
-*! reghdfe 2.0.188 23mar2015
+*! reghdfe VERSION_NUMBER
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 
@@ -8,6 +8,14 @@ cap pr drop reghdfe
 program define reghdfe
 	local version `=clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
 	qui version `version'
+
+	* Intercept version calls
+	cap syntax, version
+	local rc = _rc
+	 if (`rc'==0) {
+		Version
+		exit
+	}
 
 	* Intercept multiprocessor/parallel calls
 	cap syntax, instance [*]
@@ -37,6 +45,7 @@ end
 * Note: Assert and Debug must go first
 include "_common/Assert.ado"
 include "_common/Debug.ado"
+include "_common/Version.ado"
 
 include "_mata/fix_psd.mata"
 

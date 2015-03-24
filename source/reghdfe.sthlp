@@ -162,6 +162,7 @@ requires a previous {cmd:usecache} call with the same {it:absvars} and sample{p_
 {syntab:Reporting {help reghdfe##opt_reporting:[+]}}
 {synopt :{opt l:evel(#)}}set confidence level; default is {cmd:level(95)}{p_end}
 {synopt :{it:{help reghdfe##display_options:display_options}}}control column formats, row spacing, line width, display of omitted variables and base and empty cells, and factor-variable labeling{p_end}
+{synopt :{opt version:}}reports the version number and date of reghdfe, and saves it in e(version). standalone option{p_end}
 {synoptline}
 {p2colreset}{...}
 {p 4 6 2}* {opt absorb(varlist)} is required.{p_end}
