@@ -1,6 +1,6 @@
 # REGHDFE: Linear and IV Regressions With Many Fixed Effects
 
-This is the *readme* file for developing the reghdfe project, which is comprised of the reghdfe package and the underlying hdfe package. What you probably want is the tutorial/documentation, available [here](scorreia.com/reghdfe).
+This is the *readme* file for developing the reghdfe project, which is comprised of the reghdfe package and the underlying hdfe package. What you probably want is the tutorial/documentation, available [here](http://scorreia.com/reghdfe).
 
 * Version 2.0.213
 * Date: March 24, 2015
