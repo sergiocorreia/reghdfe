@@ -11,7 +11,8 @@ foreach fn in reghdfe hdfe {
 
 * scheme(yellow) /// black white yellow // Ugly: blue
 
-
+* This creates the website scorreia.com/reghdfe
+* We still need to manually upload the other git repo
 cd ..
 shell mkdocs build --clean
 shell rmdir ..\sergiocorreia.github.io\reghdfe /S /Q
