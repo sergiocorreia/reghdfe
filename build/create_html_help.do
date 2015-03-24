@@ -14,6 +14,9 @@ foreach fn in reghdfe hdfe {
 
 cd ..
 shell mkdocs build --clean
+shell rmdir ..\sergiocorreia.github.io\reghdfe /S /Q
+shell move site ..\sergiocorreia.github.io\
+shell rename ..\sergiocorreia.github.io\site reghdfe
+
 cd build
-		
 exit
