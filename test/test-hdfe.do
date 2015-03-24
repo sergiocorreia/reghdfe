@@ -54,7 +54,7 @@ cscript "reghdfe with clusters" adofile reghdfe
 
 	* 2. Run -hdfe-
 	preserve
-	hdfe `lhs' `rhs', abs(`absvars') cluster(`clustervar') clear
+	hdfe `lhs' `rhs', abs(`absvars') clustervars(`clustervar') clear
 	local df_a = r(df_a)
 	return list
 	qui regress `lhs' `rhs' , vce(cluster `clustervar') nocons // this will have different DoF so of course different VCE
@@ -73,7 +73,7 @@ cscript "reghdfe with clusters" adofile reghdfe
 		matrix: b V ///
 		macros: wexp wtype)
 
-	hdfe `lhs' `rhs', abs(`absvars') cluster(`clustervar') gen(resid_)
+	hdfe `lhs' `rhs', abs(`absvars') clustervars(`clustervar') gen(resid_)
 	qui reg resid_* , vce(cluster `clustervar') nocons
 		local n = e(N)
 		local wrong = `n' - e(df_m)
