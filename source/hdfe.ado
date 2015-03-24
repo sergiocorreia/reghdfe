@@ -40,6 +40,10 @@ program define hdfe, rclass
 
 	opts_exclusive "(`partial') `savefe'"
 
+	* Check that intersection(partial,varlist) = Null
+	local intersection : list varlist & partial
+	Assert "`intersection'"=="", msg("variables in varlist cannot appear in partial()")
+
 	if ("`savefe'"!="") {
 		local numvars : word count `varlist'
 		Assert `numvars'==1 , msg("hdfe error: option savefe only allows one variable")

@@ -1,4 +1,4 @@
-*! hdfe 2.0.266 24mar2015
+*! hdfe 2.0.273 24mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 // -------------------------------------------------------------
@@ -790,6 +790,10 @@ program define hdfe, rclass
 
 	opts_exclusive "(`partial') `savefe'"
 
+	* Check that intersection(partial,varlist) = Null
+	local intersection : list varlist & partial
+	Assert "`intersection'"=="", msg("variables in varlist cannot appear in partial()")
+
 	if ("`savefe'"!="") {
 		local numvars : word count `varlist'
 		Assert `numvars'==1 , msg("hdfe error: option savefe only allows one variable")
@@ -999,7 +1003,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "2.0.266 24mar2015"
+    local version "2.0.273 24mar2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"

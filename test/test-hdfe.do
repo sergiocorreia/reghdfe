@@ -85,7 +85,32 @@ cscript "reghdfe with clusters" adofile reghdfe
 	storedresults compare benchmark e(), tol(1e-12) include( ///
 		scalar: N rss df_r ///
 		matrix: b V ///
-		macros: wexp wtype)	
+		macros: wexp wtype)
+
+	storedresults drop benchmark
+
+* partial()
+	sysuse auto, clear
+	areg price weight length gear disp i.trunk, absorb(turn)
+	*reghdfe price weight length gear disp, a(turn trunk)
+	TrimMatrix `K'
+	storedresults save benchmark e()
+
+	hdfe price weight length, a(turn trunk) partial(gear disp) clear
+	*return list
+	local df_a = r(df_a) + r(df_partial)
+
+	qui regress price weight length
+	local dof = e(df_r) - `df_a'
+	regress price weight length, dof(`dof') nocons
+	TrimMatrix `K'
 	
+	storedresults compare benchmark e(), tol(1e-12) include( ///
+		scalar: N rss df_r ///
+		matrix: trim_b trim_V ///
+		macros: wexp wtype)
+
+	storedresults drop benchmark
+
 cd "D:/Github/reghdfe/test"
 exit
