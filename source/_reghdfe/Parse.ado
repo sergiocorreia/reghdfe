@@ -239,7 +239,8 @@ if (!`savingcache') {
 	* but it's too messy to add -if-s everywhere just for this rare case (see also Mark Schaffer's email)
 
 	local 0 `vce'
-	syntax [anything(id="VCE type")] , [bw(integer 1)] [KERnel(string)] [dkraay(integer 1)] [kiefer] [suite(string)]
+	syntax [anything(id="VCE type")] , [bw(integer 1)] [KERnel(string)] [dkraay(integer 1)] [kiefer] ///
+		[suite(string) TWICErobust]
 	if ("`anything'"=="") local anything unadjusted
 	Assert `bw'>0, msg("VCE bandwidth must be a positive integer")
 	gettoken vcetype clustervars : anything
@@ -400,7 +401,7 @@ if (!`savingcache') {
 		weight weightvar exp weightexp /// type of weight (fw,aw,pw), weight var., and full expr. ([fw=n])
 		cores savingcache usecache over ///
 		stats summarize_quietly notes stages ///
-		dropsingletons estimator
+		dropsingletons estimator twicerobust
 }
 
 if (`savingcache') {

@@ -87,6 +87,8 @@ BODY{background-color: ffffff;
       <span class=result><u>est</u></span><span class=result>imator(</span><i>str</i><span class=result>)</span>        estimator used in the instrumental-variable regression.  The default
                               is <span class=result>2sls</span>, valid options are <span class=result><u>gmm</u></span><span class=result>2s</span> (two-stage GMM estimator), <span class=result>liml</span> and
                               <span class=result>cue</span> (which gives approximate results, as discussed in detail below)
+      <span class=result><u>stage</u></span><span class=result>s(</span><i>stage_list</i><span class=result>)</span>    runs and saves additional or alternative regression stages. the four
+                              possible stages are: <i>ols first acid reduced</i>.
       <span class=result><u>iv</u></span><span class=result>suite(</span><i>subcmd</i><span class=result>)</span>       package used in the regressions; either <span class=result>ivreg2</span> (default; needs
                               installing) or <span class=result>ivregress</span>
       <span class=result>first</span>                 report first stage regression (but sadly not first-stage summary
@@ -94,8 +96,6 @@ BODY{background-color: ffffff;
       <span class=result>savefirst</span>             saves the first-stage regressions results; requires <span class=result>first</span>
       <span class=result>showraw</span>               show the raw output of ivreg2 (if that's the ivsuite used); useful to
                               see first-stage summary results
-      <span class=result><u>stage</u></span><span class=result>s(</span><i>stage_list</i><span class=result>)</span>    runs and saves additional or alternative regression stages. the four
-                              possible stages are: <i>ols first acid reduced</i>.
 <br><br>
     Diagnostic [+]
       <span class=result><u>v</u></span><span class=result>erbose(</span><i>#</i><span class=result>)</span>            amount of debugging information to show (0=None, 1=Some, 2=More,
@@ -104,18 +104,11 @@ BODY{background-color: ffffff;
                               coeficient in each step
 <br><br>
     Degrees-of-Freedom Adjustments [+]
-      <span class=result><u>dof</u></span><span class=result>adjustments(</span><i>list</i><span class=result>)</span>  allows selecting the desired adjustments for degrees of freedom.
-                             - rarely used except for a marginal speed-up, or when comparing with
-                              packages that do not allow some adjustments.
-                             - possible values are: <i>[pairwise|firstpair] clusters continuous</i>.
-                             - <span class=result>dof(</span><i>all</i><span class=result>)</span> is the default, equivalent to <i>pairwise clusters</i>
-                              <i>continuous</i>.
-                             - <span class=result>dof(</span><i>none</i><span class=result>)</span> will not do any adjustments and provide overtly
-                              conservative degrees of freedom.
+      <span class=result><u>dof</u></span><span class=result>adjustments(</span><i>list</i><span class=result>)</span>  allows selecting the desired adjustments for degrees of freedom;
+                              rarely used
       <span class=result>group(</span><i>newvarname</i><span class=result>)</span>     unique identifier for the first mobility group
 <br><br>
     Speeding Up Estimation [+]
-BUGBUG
       <span class=result>fast</span>                  avoids one <i>save</i>, one <i>use</i>, and one <i>merge</i> operation
       <span class=result>cores(</span><i>#</i><span class=result>)</span>              run the demeaning algorithm in # parallel instances of Stata
       <span class=result><u>save</u></span><span class=result>cache(</span><i>filename</i><span class=result>)</span>   compute the demeaning for a list of variables and save in the file;
@@ -303,7 +296,7 @@ BUGBUG
         (thann); Tukey-Hamming (thamm); Daniell (dan); Tent (ten); and Quadratic-Spectral (qua or
         qs).
 <br><br>
-    Advanced suboption:
+    Advanced suboptions:
 <br><br>
         <span class=result>, suite(</span><i>default</i>|<i>mwc</i>|<i>avar</i><span class=result>)</span> overrides the package chosen by reghdfe to estimate the VCE.
         <i>default</i> uses the default Stata computation (allows unadjusted, robust, and at most one
@@ -312,8 +305,26 @@ BUGBUG
         package used by ivreg2, and allows the <i>bw</i>, <i>kernel</i>, <i>dkraay</i> and <i>kiefer</i> suboptions.  This is
         useful almost exclusively for debugging.
 <br><br>
+        <span class=result>, </span><span class=result><u>twice</u></span><span class=result>robust</span> will compute robust standard errors not only on the first but on the second
+        step of the gmm2s estimation. Requires <span class=result>ivsuite(</span><i>ivregress</i><span class=result>)</span>, but will not give the exact
+        same results as ivregress.
+<br><br>
+        <i>Explanation:</i> When running instrumental-variable regressions with the <span class=result>ivregress</span> package,
+        robust standard errors, and a gmm2s estimator, <span class=result>vce(</span><i>robust</i><span class=result>)</span> is translated into
+        <span class=result>wmatrix(</span><i>robust</i><span class=result>)</span> <span class=result>vce(</span><i>unadjusted</i><span class=result>)</span>.  This maintains compatibility with <span class=result>ivreg2</span> and other
+        packages, but may unadvisable as described in ivregress (technical note). Specifying this
+        option will instead use <span class=result>wmatrix(</span><i>robust</i><span class=result>)</span> <span class=result>vce(</span><i>robust</i><span class=result>)</span>.
+<br><br>
+        However, computing the second-step vce matrix requires computing updated estimates
+        (including updated fixed effects).  Since reghdfe currently does not allow this, the
+        resulting standard errors <span class=result>will not be exactly the same as with ivregress</span>.  This issue is
+        similar to applying the CUE estimator, described further below.
+<br><br>
+        Note: The above comments are also appliable to clustered standard error.
+<br><br>
     Options <span class=result><u>boot</u></span><span class=result>strap</span> and <span class=result><u>jack</u></span><span class=result>knife</span> could be implemented, although their execution would be
     extremely slow.
+<br><br>
 <br><br>
 <a name="opt_iv"></a>        +-------------+
     ----+ IV/2SLS/GMM +---------------------------------------------------------------------------
@@ -329,6 +340,17 @@ BUGBUG
         variables/GMM estimation and testing." Stata Journal 7.4 (2007): 465-506 (page 484).  Note
         that even if this is not exactly <span class=result>cue</span>, it may still be a desirable/useful alternative to
         standard cue, as explained in the article.
+<br><br>
+    <span class=result><u>stage</u></span><span class=result>s(</span><i>stage_list</i><span class=result>)</span> adds and saves up to four auxiliary regressions useful when running
+        instrumental-variable regressions:
+<br><br>
+        <span class=result>ols</span> an equivalent ols regression (as a benchmark/comparison)
+        <span class=result>first</span> all the first stage regressions
+        <span class=result>acid</span> an "acid" regression that includes both the instruments, exogenous regressors (i.e.
+            included instruments), and endogenous regressors, against the dependent variable.  In
+            this setup, the instruments should not be significant.
+        <span class=result>reduced</span> the reduced-form regression, between the instruments and exogenous regressors, and
+            the dependent variable (excludes the endogenous regressor).
 <br><br>
     <span class=result><u>iv</u></span><span class=result>suite(</span><i>subcmd</i><span class=result>)</span> allows the IV/2SLS regression to be run either using <span class=result>ivregress</span> or <span class=result>ivreg2</span>.
 <br><br>
@@ -347,17 +369,6 @@ BUGBUG
         The downside is that it will have temporary names in place of whenever factors variables
         and time-series operators are used.
 <br><br>
-    <span class=result><u>stage</u></span><span class=result>s(</span><i>stage_list</i><span class=result>)</span> adds and saves up to four auxiliary regressions useful when running
-        instrumental-variable regressions:
-<br><br>
-        <span class=result>ols</span> an equivalent ols regression (as a benchmark/comparison)
-        <span class=result>first</span> all the first stage regressions
-        <span class=result>acid</span> an "acid" regression that includes both the instruments, exogenous regressors (i.e.
-            included instruments), and endogenous regressors, against the dependent variable.  In
-            this setup, the instruments should not be significant.
-        <span class=result>reduced</span> the reduced-form regression, between the instruments and exogenous regressors, and
-            the dependent variable (excludes the endogenous regressor).
-<br><br>
 <a name="opt_diagnostic"></a>        +------------+
     ----+ Diagnostic +----------------------------------------------------------------------------
 <br><br>
@@ -375,76 +386,88 @@ BUGBUG
 <a name="opt_dof"></a>        +--------------------------------+
     ----+ Degrees-of-Freedom Adjustments +--------------------------------------------------------
 <br><br>
-    <span class=result><u>dof</u></span><span class=result>adjustments(</span><i>doflist</i><span class=result>)</span> selects how will the degrees-of-freedom, as well as e(df_a), are
-        adjusted due to the absorbed fixed effects
+    <span class=result><u>dof</u></span><span class=result>adjustments(</span><i>doflist</i><span class=result>)</span> selects how the degrees-of-freedom, as well as e(df_a), are adjusted
+        due to the absorbed fixed effects.
 <br><br>
-<span class=result>(all</span>|<span class=result>none</span>|<span class=result><u>pair</u></span><span class=result>wise</span> <span class=result><u>first</u></span><span class=result>pair</span>|<span class=result>none)</span>
+        Without any adjustment, we would assume that the degrees-of-freedom used by the fixed
+        effects is equal to the count of all the fixed effects (e.g. number of individuals +
+        number of years in a typical panel).  However, in complex setups (e.g. fixed effects by
+        individual, firm, job position, and year), there may be a huge number of fixed effects
+        collinear with each other, so we want to adjust for that.
 <br><br>
-<span class=result><u>dof</u></span><span class=result>adjustments(</span><i>list</i><span class=result>)</span>          allows selecting the desired adjustments for degrees of freedom.
-                               - rarely used except for a marginal speed-up, or when comparing with
-                                  packages that do not allow some adjustments.
-                               - possible values are: <i>[pairwise|firstpair] clusters continuous</i>.
-                               - <span class=result>dof(</span><i>all</i><span class=result>)</span> is the default, equivalent to <i>pairwise clusters</i>
-                                  <i>continuous</i>.
-                               - <span class=result>dof(</span><i>none</i><span class=result>)</span> will not do any adjustments and provide overtly
-                                  conservative degrees of freedom.
+        Note: changing the default option is rarely needed, except in benchmarks, and to obtain a
+        marginal speed-up by excluding the <span class=result><u>pair</u></span><span class=result>wise</span> option.
+<br><br>
+        <span class=result>all</span> is the default and almost always the best alternative. It is equivalent to
+        <span class=result>dof(</span><i>pairwise clusters continuous</i><span class=result>)</span>
+<br><br>
+        <span class=result>none</span> assumes no collinearity across the fixed effects (i.e. no redundant fixed effects).
+        This is overtly conservative, although it is the faster method by virtue of not doing
+        anything.
+<br><br>
+        <span class=result><u>first</u></span><span class=result>pair</span> will exactly identify the number of collinear fixed effects across the first two
+        sets of fixed effects (i.e. the first absvar and the second absvar).  The algorithm used
+        for this is described in Abowd et al (1999), and relies on results from graph theory
+        (finding the number of connected sub-graphs in a bipartite graph).  It will not do
+        anything for the third and subsequent sets of fixed effects.
+<br><br>
+        For more than two sets of fixed effects, there are no known results that provide exact
+        degrees-of-freedom as in the case above.  One solution is to ignore subsequent fixed
+        effects (and thus oversestimate e(df_a) and understimate the degrees-of-freedom).  Another
+        solution, described below, applies the algorithm between pairs of fixed effects to obtain
+        a better (but not exact) estimate:
+<br><br>
+        <span class=result><u>pair</u></span><span class=result>wise</span> applies the aforementioned connected-subgraphs algorithm between pairs of fixed
+        effects.  For instance, if there are four sets of FEs, we already know that there is one
+        redundant fixed effect for the first dimension (i.e. e(M1)==1), because of collinearity
+        with the constant.  For the second FE, the number of connected subgraphs with respect to
+        the first FE will provide an exact estimate of the degrees-of-freedom lost, e(M2).
+<br><br>
+        For the third FE, we do not know exactly.  However, we can compute the number of connected
+        subgraphs between the first and third <i>G(1,3)</i>, and second and third <i>G(2,3)</i> fixed effects,
+        and choose the higher of those as the closest estimate for e(M3).  For the fourth FE, we
+        compute <i>G(1,4)</i>, <i>G(2,4)</i> and <i>G(3,4)</i> and again choose the highest for e(M4).
+<br><br>
+        Finally, we compute e(df_a) = e(K1) - e(M1) + e(K2) - e(M2) + e(K3) - e(M3) + e(K4) -
+        e(M4); where e(K#) is the number of levels or dimensions for the #-th fixed effect (e.g.
+        number of individuals or years).  Note that e(M3) and e(M4) are only conservative
+        estimates and thus we will usually be overestimating the standard errors. However, given
+        the sizes of the datasets typically used with reghdfe, the difference should be small.
+<br><br>
+        Since the gain from <span class=result><u>pair</u></span><span class=result>wise</span> is usually <i>minuscule</i> for large datasets, and the computation
+        is expensive, it may be a good practice to exclude this option for speedups.
+<br><br>
+        <span class=result><u>cl</u></span><span class=result>usters</span> will check if a fixed effect is nested within a <i>clustervar</i>.  In that case, it
+        will set e(K#)==e(M#) and no degrees-of-freedom will be lost due to this fixed effect.
+        The rationale is that we are already assuming that the number of effective observations is
+        the number of cluster levels.  This is the same adjustment that <span class=result>xtreg, fe</span> does, but <span class=result>areg</span>
+        does not use it.
+<br><br>
+        <span class=result><u>cont</u></span><span class=result>inuous</span> Fixed effects with continuous interactions (i.e. individual slopes, instead of
+        individual intercepts) are dealt with differently.  In an i.categorical#c.continuous
+        interaction, we will do one check: we count the number of categories where c.continuous is
+        always zero.  In an i.categorical##c.continuous interaction, we do the above check but
+        replace zero for any particular constant.  In the case where continuous is constant for a
+        level of categorical, we know it is collinear with the intercept, so we adjust for it.
+<br><br>
+        Additional methods, such as <span class=result>bootstrap</span> are also possible but not yet implemented.  Some
+        preliminary simulations done by the author showed a very poor convergence of this method.
 <br><br>
     <span class=result>group(</span><i>newvarname</i><span class=result>)</span> name of the new variable that will contain the first mobility group.
-<br><br>
-        This option requires at least two <i>absvars</i>, excluding those with continuous interactions,
-        and those nested within the <i>clustervar</i> (unless <span class=result>dofmethod(naive)</span> is specified).
-<br><br>
-<br><br>
-    <span class=result>dofmethod(</span><i>doftype</i><span class=result>)</span> details the adjustement to degrees-of-freedom due to the estimated fixed
-        effects. This is an advanced option, and the default (<span class=result>bounds</span>) should work reasonably well.
-<br><br>
-    <span class=result>dofminus(</span><i>small</i>|<i>large</i><span class=result>)</span> indicates whether <i>ivreg2</i> should substract the number of fixed effects
-        using either the option <i>sdofminus</i> (treating them as partialled-out regressors) or the
-        option <i>dofminus</i> (treating them as "fixed effects").
-<br><br>
-        This is only relevant under clustered errors, and only applies to the fixed effects not
-        nested within a the cluster categories.
-<br><br>
-        Notation: There are G sets of fixed effects (G absvars).  K is the degrees of freedom lost
-        due to the included regressors, and KK=(K1-M1)+(K2-M2)+...+(KG-MG) is the degrees of
-        freedom lost due to the G absorbed fixed effects.  Kn denotes the number of levels of the
-        n-th fixed effect, and Mn denotes the number of fixed effects of that set that are
-        collinear with all the previous sets of fixed effects.
-<br><br>
-        The degrees of freedom of the model should be reduced by the number of estimated
-        parameters of each <i>absvar</i>. Calculating the number of categories of an <i>absvar</i> (K<i>n</i>) is
-        straightforward, but the these categories are often collinear between each other, and in
-        some cases failing to take this into account could severely underestimate the true number
-        of degrees-of-freedom.
-<br><br>
-        The fixed effects with continuous interactions are usually not collinear with other sets
-        of fixed effects so no adjustement will be made in these cases (M=0 for those absvars).
-        The exception is when the categories of the interactions are nested within the <i>clustervar</i>,
-        as discussed below.
-<br><br>
-        If a fixed effect is nested within the <i>clustervar</i>, and <span class=result>naive</span> is <i>not</i> specified, then it is
-        assumed that no degrees-of-freedom are lost due to the fixed effect (M=K).  This is
-        because we are already assuming that the number of effective observations is the number of
-        cluster levels.
-<br><br>
-        The first fixed effect (of the remaining) has M=1 due to the sum of its indicators being
-        equal to the constant.
-<br><br>
-        For the second fixed effect, the number of collinear levels is computed exactly using the
-        method discussed by Abowd et al (2002).
-<br><br>
-        For the third fixed effect and beyond, there is no existing method to efficiently compute
-        the number of collinear levels.  If the option <span class=result>bounds</span> is set (the default), the program
-        will use the Abowd et al algorithm pairwise between the <i>absvar</i> and all of the previous
-        <i>absvars</i> and set M to the highest of those.  This is a conservative number and works
-        reasonably fast in most cases.  Under the options <span class=result>simple</span> and <span class=result>naive</span>, no approximation is
-        made and it is assumed that M=1 (very conservative).  Additional methods, such as
-        <span class=result>bootstrap</span> are also possible but not yet implemented.
+        Requires <span class=result><u>pair</u></span><span class=result>wise</span>, <span class=result><u>first</u></span><span class=result>pair</span>, or the default <span class=result>all</span>.
 <br><br>
 <a name="opt_speedup"></a>        +------------------------+
     ----+ Speeding Up Estimation +----------------------------------------------------------------
 <br><br>
     <u>Parallel Computing</u>
+<br><br>
+    <span class=result>fast</span> avoids one <i>save</i>, one <i>use</i>, and one <i>merge</i> operation.  It usually makes the regression 30%
+        faster, but comes at a cost:  you cannot save the FEs with predict, you cannot predict the
+        residuals, e(sample) is not saved, and the correlation between the FEs and xb are not
+        reported.  Also, savecache, usecache, nested, check, group options are not compatible with
+        fast.
+<br><br>
+        If you wish to use <span class=result>fast</span> while reporting <span class=result>estat summarize</span>, see the <span class=result>summarize</span> option.
 <br><br>
     <span class=result>cores(</span><i>#</i><span class=result>)</span> will run the demeaning algorithm in # parallel instances.
 <br><br>
@@ -452,8 +475,11 @@ BUGBUG
         variables will be distributed amongst them.  This option requires the package parallel by
         George Vega Yon (run <i>ssc install parallel</i> to download it)
 <br><br>
-        Disclaimer: there may still be some rough corners (e.g. sometimes not deleting temporary
+        Disclaimer1: there may still be some rough corners (e.g. sometimes not deleting temporary
         files)
+<br><br>
+        Disclaimer2: cores() has been tested under Windows. Volunteers under OSX and Linux are
+        welcome!
 <br><br>
         Example:
         <span class=input>. sysuse auto</span>
@@ -657,9 +683,18 @@ Only <span class=result>estat summarize</span>, <span class=result>predict</span
         correct to allow varying-weights for that case.
      8. Be aware that adding several HDFEs is not a panacea.  The first limitation is that it only
         uses within variation (more than acceptable if you have a large enough dataset).  The
-        second and subtler limitation occurs if the fixed effects are "endogenous" (e.g. a firm
-        chooses a worker based on unobservables, then the identity of the worker is not exogenous
-        and adding fixed effects may bias the other regressors).
+        second and subtler limitation occurs if the fixed effects are themselves outcomes of the
+        variable of interest (as crazy as it sounds).  For instance, imagine a regression where we
+        study the effect of past corporate fraud on future firm performance.  We add firm, CEO and
+        time fixed-effects (standard practice). This introduces a serious flaw: whenever a fraud
+        event is discovered, i) future firm performance will suffer, and ii) a CEO turnover will
+        likely occur.  Moreover, after fraud events, the new CEOs are usually specialized in
+        dealing with the aftershocks of such events (and are usually accountants or lawyers).  The
+        fixed effects of these CEOs will also tend to be quite low, as they tend to manage firms
+        with very risky outcomes.  Therefore, the regressor (fraud) affects the fixed effect
+        (identity of the incoming CEO).  Adding particularly low CEO fixed effects will then
+        overstate the performance of the firm, and thus <i>understate</i> the negative effects of fraud
+        on future firm performance.
 <br><br>
 <span class=result><u>Missing Features</u></span>
 <br><br>

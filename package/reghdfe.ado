@@ -1,4 +1,4 @@
-*! reghdfe 2.0.195 23mar2015
+*! reghdfe 2.0.212 23mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 // -------------------------------------------------------------
@@ -859,7 +859,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "2.0.195 23mar2015"
+    local version "2.0.212 23mar2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -1327,7 +1327,7 @@ else if ("`stage'"=="first") {
 		vceoption vcetype vcesuite ///
 		kk suboptions showraw vceunadjusted first weightexp ///
 		addconstant /// tells -regress- to hide _cons
-		estimator // Whether to run or not two-step gmm
+		estimator twicerobust // Whether to run or not two-step gmm
 	foreach opt of local option_list {
 		if ("``opt''"!="") local options `options' `opt'(``opt'')
 	}
@@ -1917,7 +1917,8 @@ if (!`savingcache') {
 	* but it's too messy to add -if-s everywhere just for this rare case (see also Mark Schaffer's email)
 
 	local 0 `vce'
-	syntax [anything(id="VCE type")] , [bw(integer 1)] [KERnel(string)] [dkraay(integer 1)] [kiefer] [suite(string)]
+	syntax [anything(id="VCE type")] , [bw(integer 1)] [KERnel(string)] [dkraay(integer 1)] [kiefer] ///
+		[suite(string) TWICErobust]
 	if ("`anything'"=="") local anything unadjusted
 	Assert `bw'>0, msg("VCE bandwidth must be a positive integer")
 	gettoken vcetype clustervars : anything
@@ -2078,7 +2079,7 @@ if (!`savingcache') {
 		weight weightvar exp weightexp /// type of weight (fw,aw,pw), weight var., and full expr. ([fw=n])
 		cores savingcache usecache over ///
 		stats summarize_quietly notes stages ///
-		dropsingletons estimator
+		dropsingletons estimator twicerobust
 }
 
 if (`savingcache') {
@@ -2773,7 +2774,7 @@ program define Wrapper_ivregress, eclass
 		[weightexp(string)] ///
 		addconstant(integer) ///
 		SHOWRAW(integer) first(integer) vceunadjusted(integer) ///
-		[ESTimator(string)] ///
+		[ESTimator(string) TWICErobust(string)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
@@ -2793,7 +2794,9 @@ program define Wrapper_ivregress, eclass
 
 	if ("`estimator'"=="gmm2s") {
 		local wmatrix : subinstr local vceoption "vce(" "wmatrix("
-		local vceoption = cond(`vceunadjusted', "vce(unadjusted)", "")
+		if ("`twicerobust'"=="") {
+			local vceoption = cond(`vceunadjusted', "vce(unadjusted)", "")			
+		}
 	}
 	
 	* Note: the call to -ivregress- could be optimized.
