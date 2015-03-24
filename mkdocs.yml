@@ -1,8 +1,10 @@
 site_name: Sergio Correia - reghdfe
-site_url: http://scorreia.com/reghdfe/
+site_url: http://scorreia.com
 site_description: User guide for the Stata reghdfe package
+site_author: Sergio Correia
 
 repo_url: https://github.com/sergiocorreia/reghdfe
+
 
 pages:
 - [index.md, Home]
@@ -18,4 +20,4 @@ pages:
 
 theme: readthedocs
 copyright: Copyright &copy; 2015, <a href="http://scorreia.com">Sergio Correia</a>.
-google_analytics: ['UA-56468515-1', 'scorreia.com']
+google_analytics: ['UA-56468515-1', 'mkdocs.org']
