@@ -1,4 +1,4 @@
-*! reghdfe 2.0.227 24mar2015
+*! reghdfe 2.0.266 24mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 // -------------------------------------------------------------
@@ -859,7 +859,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "2.0.227 24mar2015"
+    local version "2.0.266 24mar2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -4052,10 +4052,10 @@ program define Demean
 
 	tempvar resid
 	local save = `save_fe' | `check' // check=1 implies save_fe=1
-	local base_args `" "`resid'", `tolerance', `maxiterations', `save', `accelerate', `num_fe'  "'
-	local adv_args `" `bad_loop_threshold', `stuck_threshold', `pause_length', `accel_freq', `accel_start' "'
-	local args `" `base_args' , `adv_args' "'
-	* di in red `"<`args'>"'
+	local base_args `""`resid'", `tolerance', `maxiterations', `save', `accelerate', `num_fe'"'
+	local adv_args `"`bad_loop_threshold', `stuck_threshold', `pause_length', `accel_freq', `accel_start'"'
+	local args `"`base_args', `adv_args'"'
+	Debug, level(3) msg(" - Structure of Mata calls: make_residual(" as result "{variable}" as text `", `args')"')
 
 	Debug, level(2) tic(30)
 	mata: st_local("weightexp", weightexp)

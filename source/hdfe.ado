@@ -27,6 +27,7 @@ program define hdfe, rclass
 
 * Parse
 	syntax varlist [if] [in] [fweight aweight pweight/] , Absorb(string) ///
+		[PARTIAL(varlist numeric)] ///
 		[CORES(integer 1)] ///
 		[DROPSIngletons] ///
 		[SAMPLE(name)] ///
@@ -36,6 +37,8 @@ program define hdfe, rclass
 		[*]
 
 	Assert ("`generate'"!="") + ("`clear'"!="") == 1 , msg("hdfe error: you need to specify one and only one of the following options: clear generate(...)")
+
+	opts_exclusive "(`partial') `savefe'"
 
 	if ("`savefe'"!="") {
 		local numvars : word count `varlist'
@@ -49,6 +52,7 @@ program define hdfe, rclass
 		local weightvar `exp'
 		conf var `weightvar' // just allow simple weights
 		local weighttype `weight'
+		local weightequal =
 	}
 
 * Preserve if asked to
@@ -82,28 +86,33 @@ program define hdfe, rclass
 	
 * Keep relevant observations
 	marksample touse, novar
-	markout `touse' `varlist' `absorb_keepvars'
+	markout `touse' `varlist' `partial' `absorb_keepvars'
 	qui keep if `touse'
 	
 * Keep relevant variables
-	keep `varlist' `clustervars' `weightvar' `panelvar' `timevar' `absorb_keepvars' `uid'
+	keep `varlist' `partial' `clustervars' `weightvar' `panelvar' `timevar' `uid' `absorb_keepvars'
 
 * Drop singletons
 	if ("`dropsingletons'"!="") DropSingletons, num_absvars(`N_hdfe')
 	
 * Construct Mata objects and auxiliary variables
-	Precompute, keep(`varlist' `clustervars' `weightvar' `panelvar' `timevar' `uid') tsvars(`panelvar' `timevar')
+	Precompute, ///
+		keep(`varlist' `partial' `clustervars' `weightvar' `panelvar' `timevar' `uid') ///
+		tsvars(`panelvar' `timevar')
 	
 * Compute e(df_a)
 	EstimateDoF, dofadjustments(pairwise clusters continuous)
 	* return list // what matters is r(kk) which will be e(df_a)
 	local kk = r(kk)
+	forval g = 1/`N_hdfe' {
+		local df_a`g' = r(K`g') - r(M`g')
+	}
 	
 * We don't need the FE variables (they are in mata objects now)
 	*drop __FE*__
 
 * Demean variables wrt to the fixed effects
-	local opt varlist(`varlist') tol(`tolerance') maxiterations(`maxiterations') `options' `opt_savefe'
+	local opt varlist(`varlist' `partial') tol(`tolerance') maxiterations(`maxiterations') `options' `opt_savefe'
 	if (`cores'>1) {
 		DemeanParallel, `opt' self(hdfe) cores(`cores')
 	}
@@ -123,11 +132,25 @@ program define hdfe, rclass
 		* Will inject the following with c_local:
 		* ivars cvars target varname varlabel is_interaction is_cont_interaction is_bivariate is_mock levels
 		return local hdfe`g' = "`varlabel'"
-		return scalar df_a`g' = `levels'
+		return scalar df_a`g' = `df_a`g'' // `levels'
 	}
 	
 * Clean up Mata objects
 	Stop
+
+	if ("`partial'"!="") {
+		tempvar resid
+		_rmcoll `partial', forcedrop
+		local partial = r(varlist)
+		foreach var of local varlist {
+			_regress `var' `partial' `weightexp' [`weighttype'`weightequal'`weightvar'], nohead notable
+			_predict double `resid', resid
+			qui replace `var' = `resid' // preserve labels
+			drop `resid'
+		}
+		local numpartial : word count `partial'
+		return scalar df_partial = `numpartial'
+	}
 
 	if ("`generate'"!="") {
 		keep `varlist' `uid' `saved_fe'

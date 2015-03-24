@@ -25,6 +25,7 @@
 {opth a:bsorb(hdfe##absvar:absvars)}
 [{opt g:enerate(stubname)} | clear]
 [{opth clustervar:s(varlist)}
+{opth partial:(varlist)}
 {opt dropsi:ngletons}
 {opt sample:(newvarname)}
 {opth cores(#)}
@@ -95,7 +96,10 @@ but at most one continuous interaction
 {synopt :{opt clear:}}will overwrite the dataset; leaving the transformed variables, as well as some ancillary ones (such as the fixed effects, weights, cluster variables, etc.).
 Use {cmd: char list} to see details of those ancillary variables.
 {p_end}
-{synopt: {opt cluster:vars(varlist)}}list of variables containing cluster categories. This is used to give more accurate number of degrees of freedom lost due to the fixed effects, as reported on r(df_a).{p_end}
+{synopt: {opth cluster:vars(varlist)}}list of variables containing cluster categories.
+This is used to give more accurate number of degrees of freedom lost due to the fixed effects, as reported on r(df_a).{p_end}
+{synopt: {opth partial:(varlist)}}will partial-out the variables in the given varlist, {it:in addition} of the partialled-out fixed effects indicated in {it:absorb()}.
+Also returns r(df_partial) with the number of partialled out variables (excluding collinear).{p_end}
 {synopt: {opt dropsi:ngletons}}remove singleton groups from the sample; once per {it:absvar}.{p_end}
 {synopt: {opt sample:(newvarname)}}will save the equivalent of e(sample) in this variable;
 useful when dropping singletons.

@@ -31,7 +31,8 @@ def zipdir(path, zip):
 # -------------------------------------------------------------
 
 # Build html help files
-os.system('C:\Bin\Stata13\StataMP-64.exe /e do "create_html_help"')
+#os.system('C:\Bin\Stata13\StataMP-64.exe /e do "create_html_help"')
+#THIS IS NOT WORKING CORRECTLY.. MAYBE DO IT BY HAND??
 
 # Misc
 os.chdir(os.path.split(__file__)[0])
