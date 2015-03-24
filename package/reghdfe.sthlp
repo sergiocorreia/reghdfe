@@ -504,14 +504,14 @@ If you wish to use {opt fast} while reporting {cmd:estat summarize}, see the {op
 {opth cores(#)} will run the demeaning algorithm in # parallel instances.
 
 {pmore}
+currently, cores() only runs on Windows, although the code is already generalized for Linux and OSX. Volunteers for bugfixing or testing are welcome!
+
+{pmore}
 Several Stata processes will be created, and the task of demeaning all the required variables will be distributed amongst them.
 This option requires the package {help parallel:parallel} by George Vega Yon (run {it:ssc install parallel} to download it)
 
 {pmore}
-Disclaimer1: there may still be some rough corners (e.g. sometimes not deleting temporary files)
-
-{pmore}
-Disclaimer2: cores() has been tested under Windows. Volunteers under OSX and Linux are welcome!
+Disclaimer: there may still be some rough corners (e.g. sometimes not deleting temporary files)
 
 {pmore}Example:{p_end}
 {phang2}{cmd:. sysuse auto}{p_end}

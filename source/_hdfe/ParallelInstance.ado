@@ -3,7 +3,7 @@ program define ParallelInstance
 	syntax, core(integer) code(string asis)
 	set more off
 	assert inrange(`core',1,32)
-	local path "`c(tmpdir)'hdfe_`code'`c(dirsep)'"
+	local path "`c(tmpdir)'`c(dirsep)'hdfe_`code'`c(dirsep)'"
 	cd "`path'"
 	set processors 1
 

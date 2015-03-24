@@ -34,7 +34,10 @@ program define DemeanParallel
 	local code = string(int( uniform() * 1e6 ), "%08.0f")
 
 	* Prepare
-	local path "`c(tmpdir)'hdfe_`code'`c(dirsep)'"
+	* Note: On windows, tmpdir has a trailing / but on Linux it doesn't!
+	local path "`c(tmpdir)'`c(dirsep)'hdfe_`code'`c(dirsep)'"
+	* NOTE: Copy any changes to this line into ParallelInstance.ado
+
 	Debug, level(1) msg(" - tempdir will be " as input "`path'")
 	mata: parallel_cores = `cores'
 	mata: parallel_dta = `"`filename'"'
@@ -56,17 +59,23 @@ program define DemeanParallel
 
 	* Call -parallel-
 	Debug, level(1) msg(" - running parallel instances")
-	qui mata: parallel_setstatadir("")
+	*qui mata: parallel_setstatadir("")
+	qui parallel setclusters 1 // I just want the global PLL_DIR
 	local binary `"$PLL_DIR"'
+	Assert `"`binary'"'!="", msg("`self' error: after parallel, global PLL_DIR was empty")
 	global PLL_DIR
+	global PLL_CLUSTERS
+	global PLL_STATA_PATH
 
 	cap mata: st_local("VERBOSE",strofreal(VERBOSE))
 	if (`VERBOSE'==0) local qui qui
-	`qui' di as text _n 44 * "_" + "/ PARALLEL \" + 44 * "_"
+	`qui' di as text _n "{dup 44:_}/ PARALLEL \{dup 44:_}"
+
+	local flag = cond("`c(os)'"=="Windows", "/q", "-q")
 
 	* Create instances
 	forv i=2/`cores' {
-		local cmd `"winexec `binary' /q  `self', instance core(`i') code(`code') "'
+		local cmd `"winexec `binary' `flag'  `self', instance core(`i') code(`code') "'
 		Debug, level(1) msg(" - Executing " in ye `"`cmd' "')
 		`cmd'
 		Debug, level(1) msg(" - Sleeping `wait'ms")
@@ -145,6 +154,6 @@ program define DemeanParallel
 	qui cd "${hdfe_pwd}"
 	erase "`path'hdfe_mata.mo"
 	cap rmdir `"`path'"'
-	`qui' di as text 44 * "_" + "\ PARALLEL /" + 44 * "_"
+	`qui' di as text _n "{dup 44:_}\ PARALLEL /{dup 44:_}"
 
 end
