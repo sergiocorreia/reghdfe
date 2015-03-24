@@ -4,95 +4,102 @@
 <title>help for hdfe.ado</title>
 <meta http-equiv="Content-type" content="text/html; charset=iso-8859-1">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<style type="text/css">
-BODY{background-color: ffffff;
-    font-family: monaco, "courier new", monospace;
-     color: #000000}
-.input {color: #CC6600}
-.result{color: #000099}
-.error{color: #dd0000}
-</style>
+<link rel="stylesheet" href="help.css">
 </head>
 <body>
 <h2>help for hdfe.ado</h2>
 <pre>
 <span class=result><u>Title</u></span>
 <br><br>
-    <span class=result>hdfe</span> --      Partial-out variables with respect to a series of fixed-effects
+    <span class=result>hdfe</span> --      Partial-out variables with respect to a series of
+                   fixed-effects
 <br><br>
 <a name="syntax"></a><span class=result><u>Syntax</u></span>
 <br><br>
-        <span class=result>hdfe</span> varlist <i>[</i><i>weight</i><i>]</i> <span class=result>,</span> <span class=result><u>a</u></span><span class=result>bsorb(</span><i>absvars</i><span class=result>)</span> [<span class=result><u>g</u></span><span class=result>enerate(</span><i>stubname</i><span class=result>)</span> | clear] [<span class=result><u>clustervar</u></span><span class=result>s(</span><i>varlist</i><span class=result>)</span>
-               <span class=result><u>dropsi</u></span><span class=result>ngletons</span> <span class=result>sample(</span><i>newvarname</i><span class=result>)</span> <span class=result>cores(</span><i>#</i><span class=result>)</span> <span class=result><u>v</u></span><span class=result>erbose(</span><i>#</i><span class=result>)</span> <span class=result><u>tol</u></span><span class=result>erance(</span><i>#</i><span class=result>)</span>
-               <span class=result><u>maxi</u></span><span class=result>terations(</span><i>#</i><span class=result>)</span>]<i> maximize_options</i>]
+        <span class=result>hdfe</span> varlist <i>[</i><i>weight</i><i>]</i> <span class=result>,</span> <span class=result><u>a</u></span><span class=result>bsorb(</span><i>absvars</i><span class=result>)</span> [<span class=result><u>g</u></span><span class=result>enerate(</span><i>stubname</i><span class=result>)</span> | clear]
+               [<span class=result><u>clustervar</u></span><span class=result>s(</span><i>varlist</i><span class=result>)</span> <span class=result><u>dropsi</u></span><span class=result>ngletons</span> <span class=result>sample(</span><i>newvarname</i><span class=result>)</span> <span class=result>cores(</span>
+               <i>#</i><span class=result>)</span> <span class=result><u>v</u></span><span class=result>erbose(</span><i>#</i><span class=result>)</span> <span class=result><u>tol</u></span><span class=result>erance(</span><i>#</i><span class=result>)</span> <span class=result><u>maxi</u></span><span class=result>terations(</span><i>#</i><span class=result>)</span>]<i> maximize_options</i>]
 <br><br>
     <i>Notes:</i>
-     - this is a programmers' command, like -avar-. For a detailed explanation and comments, see
-       the help and website for the reghdfe package.
+     - this is a programmers' command, like -avar-. For a detailed explanation
+       and comments, see the help and website for the reghdfe package.
      - does not accept time series or factor variables
-     - varlist and clustervars MUST BE FULLY spelled out (i.e. you need to use unab beforehand!),
-       but that is not needed at all for the absvars.
+     - varlist and clustervars MUST BE FULLY spelled out (i.e. you need to use
+       unab beforehand!), but that is not needed at all for the absvars.
 <br><br>
 <a name="absvar"></a><i>Absvars:</i>
 <br><br>
     <i>absvar</i>                  Description
-    ----------------------------------------------------------------------------------------------
-    <span class=result>i.</span><i>varname</i>               indicators for each level of <i>varname</i> (the <span class=result>i.</span> prefix is tacit and can
-                              be omitted).
-    <i>var1</i><span class=result>#</span><i>var2</i>               indicators for each combination of levels of <i>var1</i> and <i>var2</i> (same as
-                              <span class=result>i.</span><i>var1</i><span class=result>#i.</span><i>var2</i>).
-    <i>var1</i><span class=result>#c.</span><i>var2</i>             indicators for each level of <i>var1</i>, multiplied by <i>var2</i>
-    <i>var1</i><span class=result>##c.</span><i>var2</i>            equivalent to "<span class=result>i.</span><i>var1</i> <span class=result>i.</span><i>var1</i><span class=result>#c.</span><i>var2</i>", but <i>much</i> faster (the two sets of
-                              fixed effects are absorbed jointly at each iteration)
-    ----------------------------------------------------------------------------------------------
+    --------------------------------------------------------------------------
+    <span class=result>i.</span><i>varname</i>               indicators for each level of <i>varname</i> (the <span class=result>i.</span>
+                              prefix is tacit and can be omitted).
+    <i>var1</i><span class=result>#</span><i>var2</i>               indicators for each combination of levels of <i>var1</i>
+                              and <i>var2</i> (same as <span class=result>i.</span><i>var1</i><span class=result>#i.</span><i>var2</i>).
+    <i>var1</i><span class=result>#c.</span><i>var2</i>             indicators for each level of <i>var1</i>, multiplied by
+                              <i>var2</i>
+    <i>var1</i><span class=result>##c.</span><i>var2</i>            equivalent to "<span class=result>i.</span><i>var1</i> <span class=result>i.</span><i>var1</i><span class=result>#c.</span><i>var2</i>", but <i>much</i>
+                              faster (the two sets of fixed effects are
+                              absorbed jointly at each iteration)
+    --------------------------------------------------------------------------
 <br><br>
     <i>Notes:</i>
-     - Each <i>absvar</i> in the <i>absvars</i> list represents a fixed effect that you wish to absorb (like
-       <i>individual</i>, <i>firm</i> or <i>time</i>).
+     - Each <i>absvar</i> in the <i>absvars</i> list represents a fixed effect that you wish
+       to absorb (like <i>individual</i>, <i>firm</i> or <i>time</i>).
      - It is good practice to put the absvars with more dimensions first.
-     - Interactions (e.g. <i>x</i><i>#</i><i>z</i>) are supported. Using categorical interactions is faster than
-       running <i>egen group(...)</i> beforehand.
-     - To partial-out fixed <i>slopes</i> (and not just fixed intercepts), use continuous interactions
-       (e.g. <i>x</i><i>#c.</i><i>z</i>).
-     - Each <i>absvar</i> can contain any number of categorical interactions (e.g. <span class=result>i.</span><i>var1</i><span class=result>#i.</span><i>var2</i><span class=result>#i.</span><i>var3</i>)
-       but at most one continuous interaction (thus, <span class=result>i.</span><i>var1</i><span class=result>#c.</span><i>var2</i><span class=result>#c.</span><i>var3</i> is not allowed).
-     - The first <i>absvar</i> cannot contain a continuous variable (<span class=result>i.</span><i>var1</i><span class=result>#c.</span><i>var2</i> is not allowed,
-       although <span class=result>i.</span><i>var1</i><span class=result>##c.</span><i>var2</i> is ok).
+     - Interactions (e.g. <i>x</i><i>#</i><i>z</i>) are supported. Using categorical interactions
+       is faster than running <i>egen group(...)</i> beforehand.
+     - To partial-out fixed <i>slopes</i> (and not just fixed intercepts), use
+       continuous interactions (e.g. <i>x</i><i>#c.</i><i>z</i>).
+     - Each <i>absvar</i> can contain any number of categorical interactions (e.g.
+       <span class=result>i.</span><i>var1</i><span class=result>#i.</span><i>var2</i><span class=result>#i.</span><i>var3</i>) but at most one continuous interaction (thus,
+       <span class=result>i.</span><i>var1</i><span class=result>#c.</span><i>var2</i><span class=result>#c.</span><i>var3</i> is not allowed).
+     - The first <i>absvar</i> cannot contain a continuous variable (<span class=result>i.</span><i>var1</i><span class=result>#c.</span><i>var2</i> is
+       not allowed, although <span class=result>i.</span><i>var1</i><span class=result>##c.</span><i>var2</i> is ok).
      - When saving fixed effects and using <span class=result>##</span> interactions, remember that 
-       <i>newvar</i><span class=result>=</span><i>varname1</i><span class=result>##c.</span><i>varname2</i> will be expanded to "<i>newvar</i><span class=result>=</span><i>varname1</i> 
+       <i>newvar</i><span class=result>=</span><i>varname1</i><span class=result>##c.</span><i>varname2</i> will be expanded to "<i>newvar</i><span class=result>=</span><i>varname1</i>
        <i>newvar_slope</i><span class=result>=</span><i>varname1</i><span class=result>#c.</span><i>varname2</i>"
 <br><br>
 <i>Summary of Options:</i>
 <br><br>
     <i>options</i>                 Description
-    ----------------------------------------------------------------------------------------------
+    --------------------------------------------------------------------------
     Model
-    * <span class=result><u>a</u></span><span class=result>bsorb(</span><i>absvars</i><span class=result>)</span>       identifiers of the fixed effects that will be absorbed
-      <span class=result><u>g</u></span><span class=result>enerate(</span><i>stubname</i><span class=result>)</span>    will not overwrite the variables; instead creating new demeaned
-                              variables with the <i>stubname</i> prefix
-      <span class=result>clear</span>                 will overwrite the dataset; leaving the transformed variables, as well
-                              as some ancillary ones (such as the fixed effects, weights, cluster
-                              variables, etc.).  Use<span class=result> char list</span> to see details of those ancillary
-                              variables.
-      <span class=result><u>cluster</u></span><span class=result>vars(</span><i>varlist</i><span class=result>)</span>  list of variables containing cluster categories. This is used to give
-                              more accurate number of degrees of freedom lost due to the fixed
+    * <span class=result><u>a</u></span><span class=result>bsorb(</span><i>absvars</i><span class=result>)</span>       identifiers of the fixed effects that will be
+                              absorbed
+      <span class=result><u>g</u></span><span class=result>enerate(</span><i>stubname</i><span class=result>)</span>    will not overwrite the variables; instead creating
+                              new demeaned variables with the <i>stubname</i> prefix
+      <span class=result>clear</span>                 will overwrite the dataset; leaving the
+                              transformed variables, as well as some ancillary
+                              ones (such as the fixed effects, weights,
+                              cluster variables, etc.).  Use<span class=result> char list</span> to see
+                              details of those ancillary variables.
+      <span class=result><u>cluster</u></span><span class=result>vars(</span><i>varlist</i><span class=result>)</span>  list of variables containing cluster categories.
+                              This is used to give more accurate number of
+                              degrees of freedom lost due to the fixed
                               effects, as reported on r(df_a).
-      <span class=result><u>dropsi</u></span><span class=result>ngletons</span>        remove singleton groups from the sample; once per <i>absvar</i>.
-      <span class=result>sample(</span><i>newvarname</i><span class=result>)</span>    will save the equivalent of e(sample) in this variable; useful when
-                              dropping singletons.  Used with the <span class=result><u>g</u></span><span class=result>enerate</span> option.
-      <span class=result>cores(</span><i>#</i><span class=result>)</span>              will run the demeaning algorithm in # parallel instances.
-      <span class=result><u>v</u></span><span class=result>erbose(</span><i>#</i><span class=result>)</span>            amount of debugging information to show (0=None, 1=Some, 2=More,
-                              3=Parsing/convergence details, 4=Every iteration)
-      <span class=result><u>maxit</u></span><span class=result>erations(</span><i>#</i><span class=result>)</span>      specify maximum number of iterations; default is <span class=result>maxiterations(1000)</span>;
-                              0 means run forever until convergence
-      <i>maximize_options</i>      there are several advanced maximization options, useful for tweaking
-                              the iteration. See the help for reghdfe for details.
-      <span class=result>version</span>               reports the version number and date of hdfe, and saves it in
-                              e(version). standalone option
+      <span class=result><u>dropsi</u></span><span class=result>ngletons</span>        remove singleton groups from the sample; once per
+                              <i>absvar</i>.
+      <span class=result>sample(</span><i>newvarname</i><span class=result>)</span>    will save the equivalent of e(sample) in this
+                              variable; useful when dropping singletons.  Used
+                              with the <span class=result><u>g</u></span><span class=result>enerate</span> option.
+      <span class=result>cores(</span><i>#</i><span class=result>)</span>              will run the demeaning algorithm in # parallel
+                              instances.
+      <span class=result><u>v</u></span><span class=result>erbose(</span><i>#</i><span class=result>)</span>            amount of debugging information to show (0=None,
+                              1=Some, 2=More, 3=Parsing/convergence details,
+                              4=Every iteration)
+      <span class=result><u>maxit</u></span><span class=result>erations(</span><i>#</i><span class=result>)</span>      specify maximum number of iterations; default is
+                              <span class=result>maxiterations(1000)</span>; 0 means run forever until
+                              convergence
+      <i>maximize_options</i>      there are several advanced maximization options,
+                              useful for tweaking the iteration. See the help
+                              for reghdfe for details.
+      <span class=result>version</span>               reports the version number and date of hdfe, and
+                              saves it in e(version). standalone option
 <br><br>
 <a name="recovering"></a><span class=result><u>Recovering Fixed Effects</u></span>
 <br><br>
-    You can use <span class=result>hdfe</span> again to recover the fixed effects. For instance, in the least-squares case:
+    You can use <span class=result>hdfe</span> again to recover the fixed effects. For instance, in the
+    least-squares case:
 <br><br>
         <span class=input>. sysuse auto, clear</span>
         <span class=input>. * Demean variables</span>
@@ -117,16 +124,18 @@ BODY{background-color: ffffff;
     <span class=result>hdfe</span> stores the following in <span class=result>r()</span>:
 <br><br>
     Scalars            
-      <span class=result>r(df_a)</span>                 degrees of freedom lost due to the fixed effects (taking into
-                                account the cluster structure and whether the FEs are nested
-                                within the clusters)
+      <span class=result>r(df_a)</span>                 degrees of freedom lost due to the fixed effects
+                                (taking into account the cluster structure and
+                                whether the FEs are nested within the
+                                clusters)
       <span class=result>r(N_hdfe)</span>               number of sets of fixed effects
-      <span class=result>r(df_a#)</span>                degrees of freedom lost due to the #th fixed effect (excluding those
-                                collinear with the #th-1 first FEs)
+      <span class=result>r(df_a#)</span>                degrees of freedom lost due to the #th fixed
+                                effect (excluding those collinear with the
+                                #th-1 first FEs)
 <br><br>
     Macros             
-      <span class=result>r(hdfe#)</span>                canonical expansion of the fixed effects (e.g. for#turn is expanded
-                                into i.foreign#i.turn)
+      <span class=result>r(hdfe#)</span>                canonical expansion of the fixed effects (e.g.
+                                for#turn is expanded into i.foreign#i.turn)
 <br><br>
 <a name="contact"></a><span class=result><u>Author</u></span>
 <br><br>
@@ -138,9 +147,9 @@ BODY{background-color: ffffff;
 <br><br>
 <a name="updates"></a><span class=result><u>Latest Updates</u></span>
 <br><br>
-    <span class=result>reghdfe</span> and <span class=result>hdfe</span> are updated frequently, and upgrades or minor bug fixes may not be
-    immediately available in SSC.  To check or contribute to the latest version of reghdfe,
-    explore the Github repository.
+    <span class=result>reghdfe</span> and <span class=result>hdfe</span> are updated frequently, and upgrades or minor bug fixes
+    may not be immediately available in SSC.  To check or contribute to the
+    latest version of reghdfe, explore the Github repository.
 <br><br>
 </pre>
 </body>

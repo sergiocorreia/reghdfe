@@ -5,5 +5,15 @@ foreach fn in reghdfe hdfe {
 	cd ../docs
 	log2html `fn'.smcl, replace erase ///
 		title("help for `fn'.ado") ///
-		line(100)
+		line(80) ///
+		css(help.css)
 }
+
+* scheme(yellow) /// black white yellow // Ugly: blue
+
+
+cd ..
+shell mkdocs build --clean
+cd build
+		
+exit

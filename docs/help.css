@@ -1,0 +1,14 @@
+.input {
+	color: #cc00cc;
+}
+.result{
+	color: #0000cc;
+	font-weight: 550;
+}
+.error{
+	color: #ff0000;
+}
+
+pre {
+	font-family: Pragmata, Menlo, 'DejaVu LGC Sans Mono', 'DejaVu Sans Mono', Consolas, 'Everson Mono', 'Lucida Console', 'Andale Mono', 'Nimbus Mono L', 'Liberation Mono', FreeMono, 'Osaka Monospaced', Courier, 'New Courier', monospace;
+}
