@@ -190,3 +190,23 @@ Simplifies to cross(X,w,Z)
 Then, assuming constant was excluded from Xs
 C = cross(X2, 1, v2^2 zhat ztilde, X1, 1)
 R = cross(X2, 1, v2 v1, X1, 1)
+
+
+
+Murphy-Topel -> Sandwich version is in fact "Robust Murphy-Topel (Hardin 2002)"
+
+MT can be thought of just an M-estimator, and we can then use Huber's sandwich estimator
+A^-1 B A -T
+(See http://www4.stat.ncsu.edu/~boos/papers/mest6.pdf)
+
+MT is very similar to sandwich but more restrictive (requires logl functions instead of estimating eqns, etc)
+Formal name: partial M-estimator
+
+
+VVV2 = V2* + V2 W* V2
+V2* is sandwich version
+W* = C* V1* C*' - R V1 C*' - C* V1 R'
+- Now we use both V and V* (ols and robust!!!)
+C* does not use OPG! It uses second derivatives!
+
+http://www.stata.com/statalist/archive/2011-01/msg00954.html
