@@ -1,4 +1,6 @@
 
+(* TO DO *)
+
 Syntax:
 
     *reghdfe* _a_ *b* __c__ `x`
