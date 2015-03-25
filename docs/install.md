@@ -1,4 +1,4 @@
-# Installing <reghdfe>
+# Installing reghdfe.ado
 
 There are two versions: the stable version, which contains an older-but-proven version, and the development version, which contains the latest updates and improvements.
 
@@ -33,7 +33,7 @@ net install reghdfe
 
 reghdfe is now installed, and you can delete the zip file and the temporary folder.
 
-# Installing <hdfe>
+# Installing hdfe.ado
 
 ## Installing the Stable Version
 
