@@ -1,4 +1,4 @@
-# Installation
+# Installing <reghdfe>
 
 There are two versions: the stable version, which contains an older-but-proven version, and the development version, which contains the latest updates and improvements.
 
@@ -33,3 +33,20 @@ net install reghdfe
 
 reghdfe is now installed, and you can delete the zip file and the temporary folder.
 
+# Installing <hdfe>
+
+## Installing the Stable Version
+
+```stata
+ssc install hdfe
+```
+
+## Installing the Development Version
+
+Users with Stata 13 or newer can download it with:
+
+```stata
+cap ado uninstall hdfe
+net from https://raw.githubusercontent.com/sergiocorreia/reghdfe/master/package/
+net install hdfe
+```

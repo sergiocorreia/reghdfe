@@ -17,8 +17,9 @@
 <a name="syntax"></a><span class=result><u>Syntax</u></span>
 <br><br>
         <span class=result>hdfe</span> varlist <i>[</i><i>weight</i><i>]</i> <span class=result>,</span> <span class=result><u>a</u></span><span class=result>bsorb(</span><i>absvars</i><span class=result>)</span> [<span class=result><u>g</u></span><span class=result>enerate(</span><i>stubname</i><span class=result>)</span> | clear]
-               [<span class=result><u>clustervar</u></span><span class=result>s(</span><i>varlist</i><span class=result>)</span> <span class=result><u>dropsi</u></span><span class=result>ngletons</span> <span class=result>sample(</span><i>newvarname</i><span class=result>)</span> <span class=result>cores(</span>
-               <i>#</i><span class=result>)</span> <span class=result><u>v</u></span><span class=result>erbose(</span><i>#</i><span class=result>)</span> <span class=result><u>tol</u></span><span class=result>erance(</span><i>#</i><span class=result>)</span> <span class=result><u>maxi</u></span><span class=result>terations(</span><i>#</i><span class=result>)</span>]<i> maximize_options</i>]
+               [<span class=result><u>clustervar</u></span><span class=result>s(</span><i>varlist</i><span class=result>)</span> <span class=result>partial(</span><i>varlist</i><span class=result>)</span> <span class=result><u>dropsi</u></span><span class=result>ngletons</span>
+               <span class=result>sample(</span><i>newvarname</i><span class=result>)</span> <span class=result>cores(</span><i>#</i><span class=result>)</span> <span class=result><u>v</u></span><span class=result>erbose(</span><i>#</i><span class=result>)</span> <span class=result><u>tol</u></span><span class=result>erance(</span><i>#</i><span class=result>)</span>
+               <span class=result><u>maxi</u></span><span class=result>terations(</span><i>#</i><span class=result>)</span>]<i> maximize_options</i>]
 <br><br>
     <i>Notes:</i>
      - this is a programmers' command, like -avar-. For a detailed explanation
@@ -77,6 +78,11 @@
                               This is used to give more accurate number of
                               degrees of freedom lost due to the fixed
                               effects, as reported on r(df_a).
+      <span class=result>partial(</span><i>varlist</i><span class=result>)</span>      will partial-out the variables in the given
+                              varlist, <i>in addition</i> of the partialled-out fixed
+                              effects indicated in <i>absorb()</i>.  Also returns
+                              r(df_partial) with the number of partialled out
+                              variables (excluding collinear).
       <span class=result><u>dropsi</u></span><span class=result>ngletons</span>        remove singleton groups from the sample; once per
                               <i>absvar</i>.
       <span class=result>sample(</span><i>newvarname</i><span class=result>)</span>    will save the equivalent of e(sample) in this
