@@ -1,4 +1,4 @@
-*! hdfe 2.0.276 24mar2015
+*! hdfe 2.0.279 27mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 // -------------------------------------------------------------
@@ -892,6 +892,7 @@ program define hdfe, rclass
 * Clean up Mata objects
 	Stop
 
+* Deal with partial() option (Alternative: do as ivreg-partial: precompute inv x'x )
 	if ("`partial'"!="") {
 		tempvar resid
 		_rmcoll `partial', forcedrop
@@ -1003,10 +1004,22 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "2.0.276 24mar2015"
+    local version "2.0.279 27mar2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
+
+    di as text _n "Dependencies installed?"
+    local dependencies ivreg2 avar tuples parallel
+    foreach dependency of local dependencies {
+    	cap findfile `dependency'.ado
+    	if (_rc) {
+    		di as text "{lalign 20:- `dependency'}" as error "not"
+    	}
+    	else {
+    		di as text "{lalign 20:- `dependency'}" as result "yes"
+    	}
+    }
 
 end
 
