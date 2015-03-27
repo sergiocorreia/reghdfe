@@ -142,6 +142,7 @@ program define hdfe, rclass
 * Clean up Mata objects
 	Stop
 
+* Deal with partial() option (Alternative: do as ivreg-partial: precompute inv x'x )
 	if ("`partial'"!="") {
 		tempvar resid
 		_rmcoll `partial', forcedrop

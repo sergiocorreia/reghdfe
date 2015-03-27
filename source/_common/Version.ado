@@ -8,4 +8,16 @@ program define Version, eclass
     di as text "`version'"
     ereturn local version "`version'"
 
+    di as text _n "Dependencies installed?"
+    local dependencies ivreg2 avar tuples parallel
+    foreach dependency of local dependencies {
+    	cap findfile `dependency'.ado
+    	if (_rc) {
+    		di as text "{lalign 20:- `dependency'}" as error "not"
+    	}
+    	else {
+    		di as text "{lalign 20:- `dependency'}" as result "yes"
+    	}
+    }
+
 end
