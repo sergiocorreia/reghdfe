@@ -1,4 +1,4 @@
-*! reghdfe 2.0.279 27mar2015
+*! reghdfe 2.0.286 27mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 // -------------------------------------------------------------
@@ -859,7 +859,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "2.0.279 27mar2015"
+    local version "2.0.286 27mar2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -1073,6 +1073,7 @@ else {
 		local M`g' = r(M`g')
 		local K`g' = r(K`g')
 		local M`g'_exact = r(M`g'_exact)
+		local M`g'_nested = r(M`g'_nested)
 
 		assert inlist(`M`g'_exact',0,1) // 1 or 0 whether M`g' was calculated exactly or not
 		assert `M`g''<. & `K`g''<.
@@ -1540,6 +1541,7 @@ else {
 		ereturn `hidden' local corr`g' = "`corr`g''" //  cond("`corr`g''"=="", ., "`corr`g''")
 		ereturn `hidden' local hdfe_target`g' = "`hdfe_target`g''"
 		ereturn `hidden' local hdfe_cvar`g' = "`hdfe_cvar`g''"
+		ereturn `hidden' scalar M`g'_nested = `M`g'_nested'
 	}
 
 	Assert e(df_r)<. , msg("e(df_r) is missing")
@@ -3537,6 +3539,7 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 		*i) nested in cluster, ii) first pure FE, iii) second pure FE if checked with connected groups
 		local exact`g' 0
 		local drop`g' = !(`is_bivariate' & `is_mock')
+		local M`g'_nested = 0
 	}
 
 * Check if an absvar is a clustervar or is nested in a clustervar
@@ -3576,6 +3579,7 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 				local redundant`g' 1
 				local exact`g' 1
 				local M_due_to_nested = `M_due_to_nested' + `levels' - 1
+				local M`g'_nested = 1
 			}
 		} // end for over absvars
 	} // end cluster adjustment
@@ -3661,6 +3665,7 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 		return scalar M`g' = `M`g''
 		return scalar K`g' = `levels'
 		return scalar M`g'_exact = `exact`g''
+		return scalar M`g'_nested = `M`g'_nested'
 		return scalar drop`g' = `drop`g''
 		Debug, level(2) msg("   - FE`g' ({res}`varlabel'{txt}): {col 40}K=`levels' {col 50}M=`M`g'' {col 60}is_exact=`exact`g''")
 	}

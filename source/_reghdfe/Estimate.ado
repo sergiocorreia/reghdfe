@@ -165,6 +165,7 @@ else {
 		local M`g' = r(M`g')
 		local K`g' = r(K`g')
 		local M`g'_exact = r(M`g'_exact)
+		local M`g'_nested = r(M`g'_nested)
 
 		assert inlist(`M`g'_exact',0,1) // 1 or 0 whether M`g' was calculated exactly or not
 		assert `M`g''<. & `K`g''<.
@@ -632,6 +633,7 @@ else {
 		ereturn `hidden' local corr`g' = "`corr`g''" //  cond("`corr`g''"=="", ., "`corr`g''")
 		ereturn `hidden' local hdfe_target`g' = "`hdfe_target`g''"
 		ereturn `hidden' local hdfe_cvar`g' = "`hdfe_cvar`g''"
+		ereturn `hidden' scalar M`g'_nested = `M`g'_nested'
 	}
 
 	Assert e(df_r)<. , msg("e(df_r) is missing")

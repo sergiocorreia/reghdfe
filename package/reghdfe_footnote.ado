@@ -67,7 +67,9 @@ else {
 }
 
 * Show category data
-di as text _n "{hline `WX'}{c TT}{hline 49}{c TT}{hline 14}"
+di as text
+di as text "Absorbed degrees of freedom"
+di as text "{hline `WX'}{c TT}{hline 49}{c TT}{hline 14}"
 di as text %`skip1's "Absorbed FE" " {c |}" ///
 	%13s "Num. Coefs." ///
 	%16s "=   Categories" ///
@@ -78,25 +80,35 @@ if ("`e(corr1)'"!="") di as text %13s "Corr. w/xb" _continue
 di as text _n "{hline `WX'}{c +}{hline 49}{c +}{hline 14}"
 
 	local i 0
-	local explain_questionmark 0
+	local explain_exact 0
+	local explain_nested 0
 	foreach fe in `e(absvars)' {
 		local ++i
 		di as text %`skip1's "`fe'" " {c |}" _continue
 		local numcoefs = e(K`i') - e(M`i')
-		local exact = cond(`i'>=3, "?", " ")
-		local exact = cond(`e(M`i'_exact)'==0, "?", " ")
-		if ("`exact'"=="?") local explain_questionmark 1
+
+		local note = cond(e(M`i'_exact)==0, "?", " ")
+		if ("`note'"=="?") {
+			local explain_exact 1
+		}
+		else if (e(M`i'_nested)==1) {
+			local note *
+			local explain_nested 1
+		}
+		
 		di as text %13s "`numcoefs'" _continue
 		di as text %16s "`e(K`i')'" _continue
+		
 		di as text %15s "`e(M`i')'" _continue
-		di as text %2s "`exact'" "   {c |} " _continue
+		di as text %2s "`note'" "   {c |} " _continue
 		if ("`e(corr`i')'"!="") {
 			di as text %13.4f `e(corr`i')' _continue
 		}
 		di
 	}
 di as text "{hline `WX'}{c BT}{hline 49}{c BT}{hline 14}"
-if (`explain_questionmark') di as text "? = number of redundant parameters may be higher"
+if (`explain_exact') di as text "? = number of redundant parameters may be higher"
+if (`explain_nested') di as text "* = fixed effect nested within a cluster; all coefs. redundant"
 // di as text _skip(4) "Fixed effect indicators: " in ye "`e(absvars)'"
 
 end
