@@ -108,7 +108,7 @@ di as text _n "{hline `WX'}{c +}{hline 49}{c +}{hline 14}"
 	}
 di as text "{hline `WX'}{c BT}{hline 49}{c BT}{hline 14}"
 if (`explain_exact') di as text "? = number of redundant parameters may be higher"
-if (`explain_nested') di as text "* = fixed effect nested within a cluster; all coefs. redundant"
+if (`explain_nested') di as text `"* = fixed effect nested within cluster; treated as redundant for DoF computation"'
 // di as text _skip(4) "Fixed effect indicators: " in ye "`e(absvars)'"
 
 end
