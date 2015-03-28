@@ -81,7 +81,7 @@ program define Demean
 		qui su `resid' `tmpweightexp'
 		local prettyvar `var'
 		if (substr("`var'", 1, 2)=="__") local prettyvar : var label `var'
-		if inrange(r(sd), 1e-20 , epsfloat()) di in ye "(warning: variable `prettyvar' is probably collinear, maybe try a tighter tolerance)"
+		if inrange(r(sd), 1e-20 , epsfloat()) di in ye "(warning: variable `prettyvar' is probably collinear with the fixed effects, maybe try a tighter tolerance)"
 
 		qui replace `var' = `resid' // This way I keep labels and so on
 		drop `resid'

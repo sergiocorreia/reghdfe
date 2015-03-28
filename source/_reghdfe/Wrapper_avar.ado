@@ -9,7 +9,7 @@ program define Wrapper_avar, eclass
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
-	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars'" )) ) // Just for esthetic purposes
+	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars'" )) ) // Just for aesthetic purposes
 	if (`c(version)'>=12) local hidden hidden
 
 	local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)

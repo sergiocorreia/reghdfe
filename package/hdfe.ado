@@ -1,4 +1,4 @@
-*! hdfe 2.0.294 27mar2015
+*! hdfe 2.0.307 28mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 // -------------------------------------------------------------
@@ -1004,7 +1004,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "2.0.294 27mar2015"
+    local version "2.0.307 28mar2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -1853,7 +1853,7 @@ program define Demean
 		qui su `resid' `tmpweightexp'
 		local prettyvar `var'
 		if (substr("`var'", 1, 2)=="__") local prettyvar : var label `var'
-		if inrange(r(sd), 1e-20 , epsfloat()) di in ye "(warning: variable `prettyvar' is probably collinear, maybe try a tighter tolerance)"
+		if inrange(r(sd), 1e-20 , epsfloat()) di in ye "(warning: variable `prettyvar' is probably collinear with the fixed effects, maybe try a tighter tolerance)"
 
 		qui replace `var' = `resid' // This way I keep labels and so on
 		drop `resid'

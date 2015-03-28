@@ -16,7 +16,7 @@ d KW: instrumental variables
 d
 d Requires: Stata version 11.2
 d
-d Distribution-Date: 20150327
+d Distribution-Date: 20150328
 d
 
 f reghdfe.ado

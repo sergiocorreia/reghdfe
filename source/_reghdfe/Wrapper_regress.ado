@@ -9,7 +9,7 @@ program define Wrapper_regress, eclass
 		[SUBOPTions(string)] [*] // [*] are ignored!
 	
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
-	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars'" )) ) // Just for esthetic purposes
+	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars'" )) ) // Just for aesthetic purposes
 	if (`c(version)'>=12) local hidden hidden
 
 * Convert -vceoption- to what -regress- expects
@@ -43,9 +43,14 @@ program define Wrapper_regress, eclass
 	
 	local N = e(N) // We couldn't just use c(N) due to possible frequency weights
 	local WrongDoF = `N' - `addconstant' - `K'
+	if ("`vcetype'"!="cluster" & e(df_r)!=`WrongDoF') {
+		local difference = `WrongDoF' - e(df_r)
+		local NewDFM = e(df_m) - `difference'	
+		di as result "(warning: regress returned e(df_r)==`e(df_r)', but we expected it to be `WrongDoF')"
+		Assert e(df_m)>=0, msg("try removing collinear regressors or setting a higher tol()")
+		di as result "(workaround: we will set e(df_m)=`NewDFM' instead of `e(df_m)')"
+	}
 	local CorrectDoF = `WrongDoF' - `kk' // kk = Absorbed DoF
-	if ("`vcetype'"!="cluster") Assert e(df_r)==`WrongDoF', msg("e(df_r) doesn't match: `e(df_r)'!=`WrongDoF'")
-
 
 * Store results for the -ereturn post-
 	tempname b V

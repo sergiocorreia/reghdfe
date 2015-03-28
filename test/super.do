@@ -38,6 +38,8 @@
 	run test-singletons
 	run test-iv
 	run test-slope
+
+	run test-rank
 	
 	run test-avar
 	
