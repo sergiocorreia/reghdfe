@@ -1,4 +1,4 @@
-*! reghdfe 2.0.307 28mar2015
+*! reghdfe 2.0.322 30mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 // -------------------------------------------------------------
@@ -859,7 +859,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "2.0.307 28mar2015"
+    local version "2.0.322 30mar2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -3715,19 +3715,25 @@ end
 
 program define Start, rclass
 	CheckCorrectOrder start
-	syntax, Absorb(string) [AVGE(string)] [CLUSTERVARS(string)] [OVER(varname numeric)] [WEIGHT(string) WEIGHTVAR(varname numeric)]
+	syntax, Absorb(string) [AVGE(string)] [CLUSTERVARS(string)] [OVER(varname numeric)] [WEIGHTtype(string) WEIGHTVAR(varname numeric)]
 	Assert !regexm("`absorb'","[*?-]"), ///
 		msg("error: please avoid pattern matching in -absorb-")
 
 	if ("`over'"!="") Assert "`avge'"=="", msg("-avge- needs to be empty if -over- is used")
 
-	Assert inlist("`weight'", "", "fweight", "aweight", "pweight")
+	Assert inlist("`weighttype'", "", "fweight", "aweight", "pweight")
 
 **** ABSORB PART ****
 
 * First pass to get the true number of FEs
 	local i 0
 	Debug, level(3) msg(_n "Fixed effects:")
+	
+	* Deal with -savefe- option
+	local 0 `absorb'
+	syntax anything(everything equalok name=absorb id="absvars"), [SAVEfe]
+	if ("`savefe'"!="") cap drop __hdfe*__
+
 	foreach var of local absorb {
 		ParseOneAbsvar, absvar(`var')
 		local i = `i' + cond(r(is_bivariate), 2, 1)
@@ -3755,8 +3761,8 @@ program define Start, rclass
 	mata: weightexp = ""
 	mata: weightvar = ""
 	if ("`weightvar'"!="") {
-		Debug, msg(`"(`weight': "' as result "`weightvar'" as text ")")
-		mata: weightexp = "[`weight'=`weightvar']"
+		Debug, msg(`"(`weighttype': "' as result "`weightvar'" as text ")")
+		mata: weightexp = "[`weighttype'=`weightvar']"
 		mata: weightvar = "`weightvar'"
 		**qui cou if `fweight'<=0 | `fweight'>=. | (`fweight'!=int(`fweight'))
 		** Move this somewhere else.. else it will fail needlesly if some excluded obs. have missing weights
@@ -3767,13 +3773,19 @@ program define Start, rclass
 
 * Second pass to save the values
 	local i 0
+	local j 0
 	foreach var of local absorb {
 		qui ParseOneAbsvar, absvar(`over_prefix'`var')
 		local keepvars `keepvars' `r(ivars)' `r(cvars)'
 		local varlabel = "i." + subinstr("`r(ivars)'", " ", "#i.", .)
 		if (`r(is_cont_interaction)' & !`r(is_bivariate)') local varlabel "`varlabel'#c.`r(cvars)'"
 		
-		local args `" "`r(target)'", "`r(ivars)'", "`r(cvars)'", `r(is_interaction)', `r(is_cont_interaction)', `r(is_bivariate)', "`weightvar'" "'
+		local target = "`r(target)'"
+		if ("`savefe'"!="" & "`target'"=="") {
+			local target __hdfe`++j'__
+		}
+		
+		local args `" "`target'", "`r(ivars)'", "`r(cvars)'", `r(is_interaction)', `r(is_cont_interaction)', `r(is_bivariate)', "`weightvar'" "'
 		mata: add_fe(`++i', "`varlabel'", `args', 0)
 		if (`r(is_bivariate)') {
 			local varlabel "`varlabel'#c.`r(cvars)'"
