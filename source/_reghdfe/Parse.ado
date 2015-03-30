@@ -21,7 +21,7 @@ if (`savingcache') {
 
 	syntax anything(name=indepvars) [if] [in] [fweight aweight pweight/] , ///
 		Absorb(string) SAVEcache(string) ///
-		[Verbose(integer 0) CHECK TOLerance(real 1e-7) MAXITerations(integer 10000) noACCELerate ///
+		[Verbose(integer 0) CHECK TOLerance(real 1e-7) MAXITerations(real 1e4) noACCELerate ///
 		bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) ///
 		accel_freq(integer 3) accel_start(integer 6) /// Advanced optimization options
 		CORES(integer 1) OVER(varname numeric) ///
@@ -44,7 +44,7 @@ else {
 		[DOFadjustments(string) GROUP(name)] ///
 		[avge(string) EXCLUDESELF] ///
 		[Verbose(integer 0) CHECK NESTED FAST] ///
-		[TOLerance(real 1e-7) MAXITerations(integer 10000) noACCELerate] ///
+		[TOLerance(real 1e-7) MAXITerations(real 1e4) noACCELerate] ///
 		[IVsuite(string) SAVEFIRST FIRST SHOWRAW] /// ESTimator(string)
 		[VCEUNADJUSTED] /// Option when running gmm2s with ivregress
 		[SMALL Hascons TSSCONS] /// ignored options
@@ -59,6 +59,10 @@ else {
 		[ESTimator(string)] /// GMM2s CUE LIML
 		[*] // For display options ; and SUmmarize(stats)
 }
+
+* Max iterations (make sure int's integer and not real)
+	local maxiterations = int(`maxiterations')
+	Assert `maxiterations'>0, msg("reghdfe error: maxiterations() must be a positive integer")
 
 * Weight
 * We'll have -weight- (fweight|aweight|pweight), -weightvar-, -exp-, and -weightexp-

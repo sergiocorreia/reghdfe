@@ -1,4 +1,4 @@
-*! hdfe 2.0.322 30mar2015
+*! hdfe 2.0.362 30mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 // -------------------------------------------------------------
@@ -483,7 +483,7 @@ void function make_residual(
 	// bad_loop_threshold, stuck_threshold, accel_freq, accel_start, pause_length
 	`Integer'	update_error, converged, iter, accelerate_candidate, accelerated, mu, accelerate_norm
 	`Integer'	eps, g, obs, stdev, levels, gstart, gextra, k // , _
-	`Integer'	acceleration_countdown, old_error, oldest_error, bad_loop, improvement
+	`Integer'	acceleration_countdown, old_error, oldest_error, bad_loop, improvement, tempconst
 	`Series' 	y, resid, ZZZ // ZZZ = sum of Zs except Z1
 	`VarByFE'	P1y
 	string scalar		code, msg
@@ -516,7 +516,7 @@ void function make_residual(
 	// accel_start = 6
 
 	// Initialize vectors of pointers and others
-	gstart = 1 + FEs[1].K
+	gstart = 1 + FEs[1].K // Usually 2, or if bivariate, 3
 	Deltas = oldDeltas = Zs = oldZs = Pytildes = J(num_fe,1,NULL)
 	ZZZ = J(obs, 1, 0) // oldZZZ = 
 	for (g=gstart;g<=num_fe;g++) {
@@ -563,6 +563,16 @@ void function make_residual(
 	stata(sprintf(`"la var %s "[reghdfe residuals of %s]" "', resid_varname, varname)) // Useful to know what is what when debugging
 
 	if (num_fe<gstart) {
+		// Save the part of _cons that we need to add back that comes from the cont. interactions
+		tempconst = 0
+		if (gstart>2) {
+			for (k=2; k<=FEs[1].K; k++) {
+				tempconst = tempconst + mean(FEs[1].v[.,k-1] :* betas[FEs[1].group,k-1])
+			}
+		}
+		st_local("tempconst", strofreal(tempconst))
+
+		// Save FEs
 		if (save_fe!=0) {
 			if (VERBOSE>1) printf("{txt} - Saving FE\n")
 			if (gstart==2) {
@@ -575,6 +585,7 @@ void function make_residual(
 				}
 			}
 		}
+
 		return
 	}
 
@@ -714,6 +725,27 @@ void function make_residual(
 	// Recover resid of y = y - ZZZ - Z1
 	st_store(., resid_varname, y-stdev:*ZZZ-*Zs[1]) // BUGBUG if resid is just a vew, just do resid[.,.] = y-...
 
+	// Save the part of _cons that we need to add back that comes from the cont. interactions
+	tempconst = 0
+	if (gstart>2) {
+		for (k=2; k<=FEs[1].K; k++) {
+			tempconst = tempconst + mean(FEs[1].v[.,k-1] :* betas[FEs[1].group,k-1] )
+		}
+	}
+	for (g=gstart;g<=num_fe;g++) {
+		if (!FEs[g].is_interaction | FEs[g].is_mock) continue
+		if (!FEs[g].is_bivariate) {
+			tempconst = tempconst + mean(transform(stdev :* (*Zs[g]), g, 0))
+		}
+		else {
+			(*Zs[g]) = transform((*Zs[g]), 0, g) // this saves -betas-
+			for (k=2; k<=FEs[g].K; k++) {
+				tempconst = tempconst + mean(stdev :* FEs[g].v[.,k-1] :* betas[FEs[g].group,k-1] )
+			}
+		}
+	}
+	st_local("tempconst", strofreal(tempconst))
+
 	// Save FEs
 	if (save_fe!=0) {
 		if (VERBOSE>1) printf("{txt} - Saving FEs\n")
@@ -783,22 +815,14 @@ program define hdfe, rclass
 		[SAMPLE(name)] ///
 		[GENerate(name)] [CLEAR] ///
 		[CLUSTERVARs(string) Verbose(integer 0) TOLerance(real 1e-7) MAXITerations(integer 10000)] ///
-		[SAVEFE] ///
 		[*]
 
 	Assert ("`generate'"!="") + ("`clear'"!="") == 1 , msg("hdfe error: you need to specify one and only one of the following options: clear generate(...)")
 
-	opts_exclusive "(`partial') `savefe'"
 
 	* Check that intersection(partial,varlist) = Null
 	local intersection : list varlist & partial
 	Assert "`intersection'"=="", msg("variables in varlist cannot appear in partial()")
-
-	if ("`savefe'"!="") {
-		local numvars : word count `varlist'
-		Assert `numvars'==1 , msg("hdfe error: option savefe only allows one variable")
-		local opt_savefe "save_fe(1)"
-	}
 
 	if ("`sample'"!="") conf new var `sample'
 
@@ -812,9 +836,10 @@ program define hdfe, rclass
 * Preserve if asked to
 	if ("`generate'"!="") {
 
-		* The stub must not exist!
-		 cap ds `generate'*
-		 Assert "`r(varlist)'"=="", msg("hdfe error: there are already variables that start with the stub `generate'")
+		* The new var must not exist!
+		foreach var of varlist `varlist' {
+			conf new var `generate'`var', exact
+		}
 
 		tempvar uid
 		gen double `uid' = _n
@@ -823,6 +848,9 @@ program define hdfe, rclass
 
 * Clear previous errors
 	Stop
+
+* From now on, we will pollute the Mata workspace, so wrap this in case of error
+cap noi {
 
 * Time/panel variables
 	cap conf var `_dta[_TStvar]'
@@ -837,7 +865,19 @@ program define hdfe, rclass
 	Start, absorb(`absorb') clustervars(`clustervars') weight(`weighttype') weightvar(`weightvar')
 	local absorb_keepvars = r(keepvars)
 	local N_hdfe = r(N_hdfe)
-	
+
+* Check if we can save FEs
+	forval g = 1/`N_hdfe' {
+		mata: fe2local(`g')
+		local targets "`targets'`target'"
+	}
+	if ("`targets'"!="") {
+		Assert ("`partial'"==""), msg("hdfe error: partial() not allowed when saving fixed effects")
+		local numvars : word count `varlist'
+		Assert `numvars'==1 , msg("hdfe error: to save the fixed effects, you need to demean only one variable")
+		local opt_savefe "save_fe(1)"
+	}
+
 * Keep relevant observations
 	marksample touse, novar
 	markout `touse' `varlist' `partial' `absorb_keepvars'
@@ -874,11 +914,11 @@ program define hdfe, rclass
 		Demean, `opt'
 	}
 
-	if ("`savefe'"!="") {
+	if ("`opt_savefe'"!="") {
 		Save, original_depvar(`varlist')
 		local saved_fe = r(keepvars)
 	}
-
+	
 	return scalar df_a = `kk'
 	return scalar N_hdfe = `N_hdfe'
 	forv g=1/`N_hdfe' {
@@ -888,7 +928,6 @@ program define hdfe, rclass
 		return local hdfe`g' = "`varlabel'"
 		return scalar df_a`g' = `df_a`g'' // `levels'
 	}
-	
 * Clean up Mata objects
 	Stop
 
@@ -919,6 +958,13 @@ program define hdfe, rclass
 		restore
 		SafeMerge, uid(`uid') file("`output'") sample(`sample')
 	}
+
+}
+if (_rc) {
+	local rc = _rc
+	Stop
+	exit `rc'
+}
 end
 
 * [SafeMerge: ADAPTED FROM THE ONE IN ESTIMATE.ADO]
@@ -1004,7 +1050,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "2.0.322 30mar2015"
+    local version "2.0.362 30mar2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -1463,7 +1509,7 @@ program define Start, rclass
 	* Deal with -savefe- option
 	local 0 `absorb'
 	syntax anything(everything equalok name=absorb id="absvars"), [SAVEfe]
-	if ("`savefe'"!="") cap drop __hdfe*__
+	if ("`savefe'"!="") cap drop __hdfe*__* // drop both __hdfe#__ and __hdfe#__slope
 
 	foreach var of local absorb {
 		ParseOneAbsvar, absvar(`var')
@@ -1833,9 +1879,16 @@ program define Demean
 		* Note: summarize doesn't allow pweight ( see http://www.stata.com/support/faqs/statistics/weights-and-summary-statistics/ )
 		* Since we only want to compute means, replace with [aw]
 		local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)
+		
 		qui su `var' `tmpweightexp', mean
-		char define `var'[mean] `r(mean)'
+		local varmean = r(mean)
+
 		mata: make_residual("`var'", `args')
+
+		local varmean = `varmean' - `tempconst'
+		*di as error "tempconst=<`tempconst'>"
+		char define `var'[mean] `varmean'
+
 		assert !missing(`resid')
 
 		* Check that coefs are approximately 1
@@ -2122,7 +2175,6 @@ program define Save, rclass
 
 		local keepvars `keepvars' `target'
 	}
-
 	cap drop __Z*__
 	return local keepvars " `keepvars'" // the space prevents MVs
 end

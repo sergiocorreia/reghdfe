@@ -1,4 +1,4 @@
-*! reghdfe 2.0.322 30mar2015
+*! reghdfe 2.0.362 30mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 // -------------------------------------------------------------
@@ -483,7 +483,7 @@ void function make_residual(
 	// bad_loop_threshold, stuck_threshold, accel_freq, accel_start, pause_length
 	`Integer'	update_error, converged, iter, accelerate_candidate, accelerated, mu, accelerate_norm
 	`Integer'	eps, g, obs, stdev, levels, gstart, gextra, k // , _
-	`Integer'	acceleration_countdown, old_error, oldest_error, bad_loop, improvement
+	`Integer'	acceleration_countdown, old_error, oldest_error, bad_loop, improvement, tempconst
 	`Series' 	y, resid, ZZZ // ZZZ = sum of Zs except Z1
 	`VarByFE'	P1y
 	string scalar		code, msg
@@ -516,7 +516,7 @@ void function make_residual(
 	// accel_start = 6
 
 	// Initialize vectors of pointers and others
-	gstart = 1 + FEs[1].K
+	gstart = 1 + FEs[1].K // Usually 2, or if bivariate, 3
 	Deltas = oldDeltas = Zs = oldZs = Pytildes = J(num_fe,1,NULL)
 	ZZZ = J(obs, 1, 0) // oldZZZ = 
 	for (g=gstart;g<=num_fe;g++) {
@@ -563,6 +563,16 @@ void function make_residual(
 	stata(sprintf(`"la var %s "[reghdfe residuals of %s]" "', resid_varname, varname)) // Useful to know what is what when debugging
 
 	if (num_fe<gstart) {
+		// Save the part of _cons that we need to add back that comes from the cont. interactions
+		tempconst = 0
+		if (gstart>2) {
+			for (k=2; k<=FEs[1].K; k++) {
+				tempconst = tempconst + mean(FEs[1].v[.,k-1] :* betas[FEs[1].group,k-1])
+			}
+		}
+		st_local("tempconst", strofreal(tempconst))
+
+		// Save FEs
 		if (save_fe!=0) {
 			if (VERBOSE>1) printf("{txt} - Saving FE\n")
 			if (gstart==2) {
@@ -575,6 +585,7 @@ void function make_residual(
 				}
 			}
 		}
+
 		return
 	}
 
@@ -713,6 +724,27 @@ void function make_residual(
 	Zs[1] = &transform(transform(y-stdev:*ZZZ, 0, 1), 1, 0)
 	// Recover resid of y = y - ZZZ - Z1
 	st_store(., resid_varname, y-stdev:*ZZZ-*Zs[1]) // BUGBUG if resid is just a vew, just do resid[.,.] = y-...
+
+	// Save the part of _cons that we need to add back that comes from the cont. interactions
+	tempconst = 0
+	if (gstart>2) {
+		for (k=2; k<=FEs[1].K; k++) {
+			tempconst = tempconst + mean(FEs[1].v[.,k-1] :* betas[FEs[1].group,k-1] )
+		}
+	}
+	for (g=gstart;g<=num_fe;g++) {
+		if (!FEs[g].is_interaction | FEs[g].is_mock) continue
+		if (!FEs[g].is_bivariate) {
+			tempconst = tempconst + mean(transform(stdev :* (*Zs[g]), g, 0))
+		}
+		else {
+			(*Zs[g]) = transform((*Zs[g]), 0, g) // this saves -betas-
+			for (k=2; k<=FEs[g].K; k++) {
+				tempconst = tempconst + mean(stdev :* FEs[g].v[.,k-1] :* betas[FEs[g].group,k-1] )
+			}
+		}
+	}
+	st_local("tempconst", strofreal(tempconst))
 
 	// Save FEs
 	if (save_fe!=0) {
@@ -859,7 +891,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "2.0.322 30mar2015"
+    local version "2.0.362 30mar2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -1433,6 +1465,7 @@ else {
 	Save, original_depvar(`original_depvar')
 	local keepvars `r(keepvars)'
 	if ("`keepvars'"!="") format `fe_format' `keepvars'
+	
 * 6) Save AvgEs
 	forv g=1/`N_avge' {
 		local var __W`g'__
@@ -1713,7 +1746,7 @@ if (`savingcache') {
 
 	syntax anything(name=indepvars) [if] [in] [fweight aweight pweight/] , ///
 		Absorb(string) SAVEcache(string) ///
-		[Verbose(integer 0) CHECK TOLerance(real 1e-7) MAXITerations(integer 10000) noACCELerate ///
+		[Verbose(integer 0) CHECK TOLerance(real 1e-7) MAXITerations(real 1e4) noACCELerate ///
 		bad_loop_threshold(integer 1) stuck_threshold(real 5e-3) pause_length(integer 20) ///
 		accel_freq(integer 3) accel_start(integer 6) /// Advanced optimization options
 		CORES(integer 1) OVER(varname numeric) ///
@@ -1736,7 +1769,7 @@ else {
 		[DOFadjustments(string) GROUP(name)] ///
 		[avge(string) EXCLUDESELF] ///
 		[Verbose(integer 0) CHECK NESTED FAST] ///
-		[TOLerance(real 1e-7) MAXITerations(integer 10000) noACCELerate] ///
+		[TOLerance(real 1e-7) MAXITerations(real 1e4) noACCELerate] ///
 		[IVsuite(string) SAVEFIRST FIRST SHOWRAW] /// ESTimator(string)
 		[VCEUNADJUSTED] /// Option when running gmm2s with ivregress
 		[SMALL Hascons TSSCONS] /// ignored options
@@ -1751,6 +1784,10 @@ else {
 		[ESTimator(string)] /// GMM2s CUE LIML
 		[*] // For display options ; and SUmmarize(stats)
 }
+
+* Max iterations (make sure int's integer and not real)
+	local maxiterations = int(`maxiterations')
+	Assert `maxiterations'>0, msg("reghdfe error: maxiterations() must be a positive integer")
 
 * Weight
 * We'll have -weight- (fweight|aweight|pweight), -weightvar-, -exp-, and -weightexp-
@@ -3732,7 +3769,7 @@ program define Start, rclass
 	* Deal with -savefe- option
 	local 0 `absorb'
 	syntax anything(everything equalok name=absorb id="absvars"), [SAVEfe]
-	if ("`savefe'"!="") cap drop __hdfe*__
+	if ("`savefe'"!="") cap drop __hdfe*__* // drop both __hdfe#__ and __hdfe#__slope
 
 	foreach var of local absorb {
 		ParseOneAbsvar, absvar(`var')
@@ -4102,9 +4139,16 @@ program define Demean
 		* Note: summarize doesn't allow pweight ( see http://www.stata.com/support/faqs/statistics/weights-and-summary-statistics/ )
 		* Since we only want to compute means, replace with [aw]
 		local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)
+		
 		qui su `var' `tmpweightexp', mean
-		char define `var'[mean] `r(mean)'
+		local varmean = r(mean)
+
 		mata: make_residual("`var'", `args')
+
+		local varmean = `varmean' - `tempconst'
+		*di as error "tempconst=<`tempconst'>"
+		char define `var'[mean] `varmean'
+
 		assert !missing(`resid')
 
 		* Check that coefs are approximately 1
@@ -4391,7 +4435,6 @@ program define Save, rclass
 
 		local keepvars `keepvars' `target'
 	}
-
 	cap drop __Z*__
 	return local keepvars " `keepvars'" // the space prevents MVs
 end

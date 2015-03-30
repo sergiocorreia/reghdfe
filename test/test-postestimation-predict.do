@@ -99,6 +99,20 @@ noi cscript "reghdfe postestimation: predict" adofile reghdfe
 	_vassert alt score, tol(1e-10)
 	drop FE alt resid
 
+	* 4) Test that the means of resid are zero , with #c. interactions
+	reghdfe price weight, a(turn trunk#c.gear, save) nocons
+	predict resid, resid
+	su resid
+	assert abs(r(mean))<1e-8
+
+	* 5) Check that the means match
+	 areg price weight ibn.trunk#c.gear, a(turn)
+	predict resid_bench, resid
+	corr resid resid_bench
+	su resid*
+	_vassert resid resid_bench, tol(1e-10)
+	drop resid resid_bench
+
 
 cd "D:/Github/reghdfe/test"
 exit

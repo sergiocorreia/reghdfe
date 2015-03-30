@@ -49,9 +49,16 @@ program define Demean
 		* Note: summarize doesn't allow pweight ( see http://www.stata.com/support/faqs/statistics/weights-and-summary-statistics/ )
 		* Since we only want to compute means, replace with [aw]
 		local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)
+		
 		qui su `var' `tmpweightexp', mean
-		char define `var'[mean] `r(mean)'
+		local varmean = r(mean)
+
 		mata: make_residual("`var'", `args')
+
+		local varmean = `varmean' - `tempconst'
+		*di as error "tempconst=<`tempconst'>"
+		char define `var'[mean] `varmean'
+
 		assert !missing(`resid')
 
 		* Check that coefs are approximately 1

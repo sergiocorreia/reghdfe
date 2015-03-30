@@ -33,22 +33,14 @@ program define hdfe, rclass
 		[SAMPLE(name)] ///
 		[GENerate(name)] [CLEAR] ///
 		[CLUSTERVARs(string) Verbose(integer 0) TOLerance(real 1e-7) MAXITerations(integer 10000)] ///
-		[SAVEFE] ///
 		[*]
 
 	Assert ("`generate'"!="") + ("`clear'"!="") == 1 , msg("hdfe error: you need to specify one and only one of the following options: clear generate(...)")
 
-	opts_exclusive "(`partial') `savefe'"
 
 	* Check that intersection(partial,varlist) = Null
 	local intersection : list varlist & partial
 	Assert "`intersection'"=="", msg("variables in varlist cannot appear in partial()")
-
-	if ("`savefe'"!="") {
-		local numvars : word count `varlist'
-		Assert `numvars'==1 , msg("hdfe error: option savefe only allows one variable")
-		local opt_savefe "save_fe(1)"
-	}
 
 	if ("`sample'"!="") conf new var `sample'
 
@@ -62,9 +54,10 @@ program define hdfe, rclass
 * Preserve if asked to
 	if ("`generate'"!="") {
 
-		* The stub must not exist!
-		 cap ds `generate'*
-		 Assert "`r(varlist)'"=="", msg("hdfe error: there are already variables that start with the stub `generate'")
+		* The new var must not exist!
+		foreach var of varlist `varlist' {
+			conf new var `generate'`var', exact
+		}
 
 		tempvar uid
 		gen double `uid' = _n
@@ -73,6 +66,9 @@ program define hdfe, rclass
 
 * Clear previous errors
 	Stop
+
+* From now on, we will pollute the Mata workspace, so wrap this in case of error
+cap noi {
 
 * Time/panel variables
 	cap conf var `_dta[_TStvar]'
@@ -87,7 +83,19 @@ program define hdfe, rclass
 	Start, absorb(`absorb') clustervars(`clustervars') weight(`weighttype') weightvar(`weightvar')
 	local absorb_keepvars = r(keepvars)
 	local N_hdfe = r(N_hdfe)
-	
+
+* Check if we can save FEs
+	forval g = 1/`N_hdfe' {
+		mata: fe2local(`g')
+		local targets "`targets'`target'"
+	}
+	if ("`targets'"!="") {
+		Assert ("`partial'"==""), msg("hdfe error: partial() not allowed when saving fixed effects")
+		local numvars : word count `varlist'
+		Assert `numvars'==1 , msg("hdfe error: to save the fixed effects, you need to demean only one variable")
+		local opt_savefe "save_fe(1)"
+	}
+
 * Keep relevant observations
 	marksample touse, novar
 	markout `touse' `varlist' `partial' `absorb_keepvars'
@@ -124,11 +132,11 @@ program define hdfe, rclass
 		Demean, `opt'
 	}
 
-	if ("`savefe'"!="") {
+	if ("`opt_savefe'"!="") {
 		Save, original_depvar(`varlist')
 		local saved_fe = r(keepvars)
 	}
-
+	
 	return scalar df_a = `kk'
 	return scalar N_hdfe = `N_hdfe'
 	forv g=1/`N_hdfe' {
@@ -138,7 +146,6 @@ program define hdfe, rclass
 		return local hdfe`g' = "`varlabel'"
 		return scalar df_a`g' = `df_a`g'' // `levels'
 	}
-	
 * Clean up Mata objects
 	Stop
 
@@ -169,6 +176,13 @@ program define hdfe, rclass
 		restore
 		SafeMerge, uid(`uid') file("`output'") sample(`sample')
 	}
+
+}
+if (_rc) {
+	local rc = _rc
+	Stop
+	exit `rc'
+}
 end
 
 * [SafeMerge: ADAPTED FROM THE ONE IN ESTIMATE.ADO]

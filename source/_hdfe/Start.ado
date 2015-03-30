@@ -18,7 +18,7 @@ program define Start, rclass
 	* Deal with -savefe- option
 	local 0 `absorb'
 	syntax anything(everything equalok name=absorb id="absvars"), [SAVEfe]
-	if ("`savefe'"!="") cap drop __hdfe*__
+	if ("`savefe'"!="") cap drop __hdfe*__* // drop both __hdfe#__ and __hdfe#__slope
 
 	foreach var of local absorb {
 		ParseOneAbsvar, absvar(`var')

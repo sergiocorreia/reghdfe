@@ -127,7 +127,7 @@ Used with the {opt g:enerate} option.{p_end}
 {phang2}{cmd:. predict double resid, resid}{p_end}
 {phang2}{cmd:. rename RESID_* *}{p_end}
 {phang2}{cmd:. * Obtain fixed effects}{p_end}
-{phang2}{cmd:. hdfe resid, a(FE1=turn FE2=trunk) savefe gen(temp_)}{p_end}
+{phang2}{cmd:. hdfe resid, a(FE1=turn FE2=trunk) gen(temp_)}{p_end}
 
 {phang2}{cmd:. * Benchmark and verification}{p_end}
 {phang2}{cmd:. reghdfe price weight length, a(BENCH1=turn BENCH2=trunk)}{p_end}

@@ -525,6 +525,7 @@ else {
 	Save, original_depvar(`original_depvar')
 	local keepvars `r(keepvars)'
 	if ("`keepvars'"!="") format `fe_format' `keepvars'
+	
 * 6) Save AvgEs
 	forv g=1/`N_avge' {
 		local var __W`g'__

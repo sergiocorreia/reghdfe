@@ -34,7 +34,6 @@ program define Save, rclass
 
 		local keepvars `keepvars' `target'
 	}
-
 	cap drop __Z*__
 	return local keepvars " `keepvars'" // the space prevents MVs
 end

@@ -480,7 +480,7 @@ void function make_residual(
 	// bad_loop_threshold, stuck_threshold, accel_freq, accel_start, pause_length
 	`Integer'	update_error, converged, iter, accelerate_candidate, accelerated, mu, accelerate_norm
 	`Integer'	eps, g, obs, stdev, levels, gstart, gextra, k // , _
-	`Integer'	acceleration_countdown, old_error, oldest_error, bad_loop, improvement
+	`Integer'	acceleration_countdown, old_error, oldest_error, bad_loop, improvement, tempconst
 	`Series' 	y, resid, ZZZ // ZZZ = sum of Zs except Z1
 	`VarByFE'	P1y
 	string scalar		code, msg
@@ -513,7 +513,7 @@ void function make_residual(
 	// accel_start = 6
 
 	// Initialize vectors of pointers and others
-	gstart = 1 + FEs[1].K
+	gstart = 1 + FEs[1].K // Usually 2, or if bivariate, 3
 	Deltas = oldDeltas = Zs = oldZs = Pytildes = J(num_fe,1,NULL)
 	ZZZ = J(obs, 1, 0) // oldZZZ = 
 	for (g=gstart;g<=num_fe;g++) {
@@ -560,6 +560,16 @@ void function make_residual(
 	stata(sprintf(`"la var %s "[reghdfe residuals of %s]" "', resid_varname, varname)) // Useful to know what is what when debugging
 
 	if (num_fe<gstart) {
+		// Save the part of _cons that we need to add back that comes from the cont. interactions
+		tempconst = 0
+		if (gstart>2) {
+			for (k=2; k<=FEs[1].K; k++) {
+				tempconst = tempconst + mean(FEs[1].v[.,k-1] :* betas[FEs[1].group,k-1])
+			}
+		}
+		st_local("tempconst", strofreal(tempconst))
+
+		// Save FEs
 		if (save_fe!=0) {
 			if (VERBOSE>1) printf("{txt} - Saving FE\n")
 			if (gstart==2) {
@@ -572,6 +582,7 @@ void function make_residual(
 				}
 			}
 		}
+
 		return
 	}
 
@@ -710,6 +721,27 @@ void function make_residual(
 	Zs[1] = &transform(transform(y-stdev:*ZZZ, 0, 1), 1, 0)
 	// Recover resid of y = y - ZZZ - Z1
 	st_store(., resid_varname, y-stdev:*ZZZ-*Zs[1]) // BUGBUG if resid is just a vew, just do resid[.,.] = y-...
+
+	// Save the part of _cons that we need to add back that comes from the cont. interactions
+	tempconst = 0
+	if (gstart>2) {
+		for (k=2; k<=FEs[1].K; k++) {
+			tempconst = tempconst + mean(FEs[1].v[.,k-1] :* betas[FEs[1].group,k-1] )
+		}
+	}
+	for (g=gstart;g<=num_fe;g++) {
+		if (!FEs[g].is_interaction | FEs[g].is_mock) continue
+		if (!FEs[g].is_bivariate) {
+			tempconst = tempconst + mean(transform(stdev :* (*Zs[g]), g, 0))
+		}
+		else {
+			(*Zs[g]) = transform((*Zs[g]), 0, g) // this saves -betas-
+			for (k=2; k<=FEs[g].K; k++) {
+				tempconst = tempconst + mean(stdev :* FEs[g].v[.,k-1] :* betas[FEs[g].group,k-1] )
+			}
+		}
+	}
+	st_local("tempconst", strofreal(tempconst))
 
 	// Save FEs
 	if (save_fe!=0) {
