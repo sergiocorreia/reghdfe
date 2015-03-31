@@ -8,13 +8,14 @@ syntax [, linesize(int 79)]
 
 if ("`e(model)'"=="ols" & inlist("`e(vce)'", "unadjusted", "ols")) {
 	local dfa1  = e(df_a) + 1
-	local todisp `"F(`e(df_a)', `e(df_r)') = "'
+	local todisp `"F(`=e(df_a)-1', `e(df_r)') = "'
 	local skip3 = max(23-length(`"`todisp'"')-2,0)
 	local skip2 = max(14-length(`"`dfa1'"')-2,0)
 
 	* This is messy b/c when displaying AvgE(..) we might go beyond 12 chars
 	local vars : colnames e(b)
-	local skip1 12
+	local skip1 = e(width)
+
 	foreach var of local vars {
 		local skip1 = max(`skip1', length("`var'"))
 	}
@@ -40,7 +41,9 @@ if ("`e(model)'"=="ols" & inlist("`e(vce)'", "unadjusted", "ols")) {
 		if (e(F_absorb`i')<.) {
 			di as text %`skip1's "`fe'" " {c |}" _continue
 			
-			local todisp `"F(`e(df_a`i')', `e(df_r`i')') = "'
+			local df_a_i = e(df_a`i') - (`i'==1)
+			local df_r_i = e(df_r`i')
+			local todisp `"F(`df_a_i', `df_r_i') = "'
 			local skip3 = max(23-length(`"`todisp'"')-2,0)
 			di as text _skip(`skip3') `"`todisp'"' _continue
 			
@@ -59,7 +62,7 @@ if ("`e(model)'"=="ols" & inlist("`e(vce)'", "unadjusted", "ols")) {
 	if (e(rss0)<.) di as text " R-squared as we add HDFEs: " `r2_report'
 } // regress-unadjusted specific
 else {
-	local skip1 12
+	local skip1 = e(width)
 	foreach fe in `e(absvars)' {
 		local skip1 = max(`skip1', length("`fe'"))
 	}

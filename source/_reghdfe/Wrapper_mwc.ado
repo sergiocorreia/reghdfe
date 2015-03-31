@@ -6,7 +6,6 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 	vceoption(string asis) ///
 	kk(integer) ///
 	[weightexp(string)] ///
-	addconstant(integer) ///
 	[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
@@ -20,14 +19,8 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 	assert "`vcetype'"=="cluster"
 	local clustervars `clustervars' // Trim
 
-* Hide constant
-	if (!`addconstant') {
-		local nocons noconstant
-		local kk = `kk' + 1
-	}
-
 * Obtain e(b), e(df_m), and resids
-	local subcmd regress `depvar' `indepvars' `avgevars' `weightexp', `nocons'
+	local subcmd regress `depvar' `indepvars' `avgevars' `weightexp', noconstant
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	qui `subcmd'
 
@@ -50,7 +43,7 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 
 	* Compute the bread of the sandwich D := inv(X'X/N)
 	tempname XX invSxx
-	qui mat accum `XX' = `indepvars' `avgevars' `weightexp', `nocons'
+	qui mat accum `XX' = `indepvars' `avgevars' `weightexp', noconstant
 	mat `invSxx' = syminv(`XX') // This line is different from <Wrapper_avar>
 
 	* Resids
@@ -148,13 +141,13 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 		if (r(drop)==1) Debug, level(0) msg("Warning: Some variables were dropped by the F test due to collinearity (or insufficient number of clusters).")
 		ereturn scalar F = r(F)
 		ereturn scalar df_m = r(df)
-		ereturn scalar rank = r(df)+1 // Add constant
+		ereturn scalar rank = r(df) // Not adding constant anymore
 		if missing(e(F)) di as error "WARNING! Missing FStat"
 	}
 	else {
 		ereturn scalar F = 0
 		ereturn df_m = 0
-		ereturn scalar rank = 1
+		ereturn scalar rank = 0 // Not adding constant anymore
 	}
 
 * ereturns specific to this command

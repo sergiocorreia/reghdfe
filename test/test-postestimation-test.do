@@ -6,7 +6,7 @@ cscript "reghdfe postestimation: test" adofile reghdfe
 	set more off
 	* cls
 
-	local included_e scalar: N rmse tss rss r2 r2_a F df_r df_a df_m ///
+	local included_e scalar: N rmse tss rss r2 r2_a F df_r df_m ///
 		matrix: trim_b trim_V ///
 		macros: wexp wtype
 
@@ -47,6 +47,7 @@ cscript "reghdfe postestimation: test" adofile reghdfe
 	* 1. Run benchmark
 	areg `lhs' `rhs', absorb(`absvars')
 	TrimMatrix `K'
+	local bench_df_a = e(df_a)
 	test `testvars'
 	storedresults save bench_r r()
 	storedresults save bench_e e()
@@ -56,6 +57,7 @@ cscript "reghdfe postestimation: test" adofile reghdfe
 	* 2a) vce suite = avar
 	reghdfe `lhs' `rhs', absorb(`absvars') vce(unadjusted, suite(avar))
 	TrimMatrix `K'
+	assert `bench_df_a'==e(df_a)-1
 	storedresults compare bench_e e(), tol(1e-12) include(`included_e')
 	test `testvars'
 	storedresults compare bench_r r(), tol(1e-12) // include(scalar: drop df_r F df p)
@@ -63,6 +65,7 @@ cscript "reghdfe postestimation: test" adofile reghdfe
 	* 2a) vce suite = default
 	reghdfe `lhs' `rhs', absorb(`absvars') vce(unadjusted, suite(default))
 	TrimMatrix `K'
+	assert `bench_df_a'==e(df_a)-1
 	storedresults compare bench_e e(), tol(1e-12) include(`included_e')
 	test `testvars'
 	storedresults compare bench_r r(), tol(1e-12) // include(scalar: drop df_r F df p)
@@ -75,6 +78,7 @@ cscript "reghdfe postestimation: test" adofile reghdfe
 	* 1. Run benchmark
 	areg `lhs' `rhs', absorb(`absvars') robust
 	TrimMatrix `K'
+	local bench_df_a = e(df_a)
 	test `testvars'
 	storedresults save bench_r r()
 	storedresults save bench_e e()
@@ -84,6 +88,7 @@ cscript "reghdfe postestimation: test" adofile reghdfe
 	* 2a) vce suite = avar
 	reghdfe `lhs' `rhs', absorb(`absvars') vce(robust, suite(avar))
 	TrimMatrix `K'
+	assert `bench_df_a'==e(df_a)-1
 	storedresults compare bench_e e(), tol(1e-10) include(`included_e') // Note the lowered tol
 	test `testvars'
 	storedresults compare bench_r r(), tol(1e-12) // include(scalar: drop df_r F df p)
@@ -91,6 +96,7 @@ cscript "reghdfe postestimation: test" adofile reghdfe
 	* 2a) vce suite = default
 	reghdfe `lhs' `rhs', absorb(`absvars') vce(robust, suite(default))
 	TrimMatrix `K'
+	assert `bench_df_a'==e(df_a)-1
 	storedresults compare bench_e e(), tol(1e-10) include(`included_e') // Note the lowered tol
 	test `testvars'
 	storedresults compare bench_r r(), tol(1e-12) // include(scalar: drop df_r F df p)
@@ -103,6 +109,7 @@ cscript "reghdfe postestimation: test" adofile reghdfe
 	* 1. Run benchmark
 	areg `lhs' `rhs', absorb(`absvars') cluster(trunk)
 	TrimMatrix `K'
+	local bench_df_a = e(df_a)
 	test `testvars'
 	storedresults save bench_r r()
 	storedresults save bench_e e()
@@ -112,6 +119,7 @@ cscript "reghdfe postestimation: test" adofile reghdfe
 	* 2a) vce suite = avar
 	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster trunk, suite(avar))
 	TrimMatrix `K'
+	assert `bench_df_a'==e(df_a)-1
 	storedresults compare bench_e e(), tol(1e-10) include(`included_e') // Note the lowered tol
 	test `testvars'
 	storedresults compare bench_r r(), tol(1e-12) // include(scalar: drop df_r F df p)
@@ -119,6 +127,7 @@ cscript "reghdfe postestimation: test" adofile reghdfe
 	* 2a) vce suite = default
 	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster trunk, suite(default))
 	TrimMatrix `K'
+	assert `bench_df_a'==e(df_a)-1
 	storedresults compare bench_e e(), tol(1e-10) include(`included_e') // Note the lowered tol
 	test `testvars'
 	storedresults compare bench_r r(), tol(1e-12) // include(scalar: drop df_r F df p)

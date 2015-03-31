@@ -47,14 +47,14 @@ cscript "reghdfe with ivreg2/ivregress and two-step gmm" adofile reghdfe
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted) ivsuite(ivreg2) tol(1e-12) nocon est(gmm2s)
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted) ivsuite(ivreg2) tol(1e-12) est(gmm2s)
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-10) include(`include')
 
 	* Just for reference
 	ivregress gmm `depvar' `indepvars' ABS_* foreign (`endogvars'=`instruments'), vce(unadjusted) wmatrix(unadjusted) small
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted) ivsuite(ivregress) tol(1e-12) nocon est(gmm2s) v(3)
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted) ivsuite(ivregress) tol(1e-12) est(gmm2s) v(3)
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-8) include(`include')
 

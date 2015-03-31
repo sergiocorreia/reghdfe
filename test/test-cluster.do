@@ -36,8 +36,6 @@ cscript "reghdfe with clusters" adofile reghdfe
 	fvunab tmp : `rhs'
 	local K : list sizeof tmp
 
-	* Custom adjustment: in this simple case we can compare _cons
-	local K = `K' + 1
 	drop if missing(rep)
 
 	* 1. Run benchmark
@@ -45,6 +43,7 @@ cscript "reghdfe with clusters" adofile reghdfe
 	di as result "areg `lhs' `rhs', absorb(`absvars') cluster(`clustervar')"
 	matrix list e(V)
 	TrimMatrix `K'
+	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe
@@ -55,11 +54,12 @@ cscript "reghdfe with clusters" adofile reghdfe
 	
 	* 3. Compare
 	storedresults compare benchmark e(), tol(1e-12) include( ///
-		scalar: N rmse tss rss r2 r2_a F df_r df_a df_m /// F_absorb 
+		scalar: N rmse tss rss r2 r2_a F df_r df_m /// F_absorb 
 		matrix: trim_b trim_V ///
 		macros: wexp wtype )
 	storedresults drop benchmark
 	* NOTE: What should I use to build F_absorb in this case?
+	assert `bench_df_a'==e(df_a)-1
 
 * [TEST] Interacted cluster
 	local lhs price
@@ -69,14 +69,13 @@ cscript "reghdfe with clusters" adofile reghdfe
 	fvunab tmp : `rhs'
 	local K : list sizeof tmp
 
-	* Custom adjustment: in this simple case we can compare _cons
-	local K = `K' + 1
 	drop if missing(rep)
 
 	* 1. Run benchmark
 	egen turn_trunk = group(turn trunk)
 	areg `lhs' `rhs', absorb(`absvars') cluster(turn_trunk)
 	TrimMatrix `K'
+	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe
@@ -85,10 +84,11 @@ cscript "reghdfe with clusters" adofile reghdfe
 	
 	* 3. Compare
 	storedresults compare benchmark e(), tol(1e-12) include( ///
-		scalar: N rmse tss rss r2 r2_a F df_r df_a df_m /// F_absorb 
+		scalar: N rmse tss rss r2 r2_a F df_r df_m /// F_absorb 
 		matrix: trim_b trim_V ///
 		macros: wexp wtype )
 	storedresults drop benchmark
+	assert `bench_df_a'==e(df_a)-1
 
 	
 cd "D:/Github/reghdfe/test"

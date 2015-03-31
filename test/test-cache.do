@@ -39,16 +39,14 @@ cscript "reghdfe with cache" adofile reghdfe
 	local K : list sizeof tmp
 
 	local include ///
-		scalar: N rmse tss rss mss r2 r2_a F df_r df_a df_m F_absorb ///
+		scalar: N rmse tss rss mss r2 r2_a F df_r df_m F_absorb ///
 		matrix: trim_b trim_V ///
 		macros: wexp wtype 
-
-	* Custom adjustment: in this simple case we can compare _cons
-	local K = `K' + 1
 
 	* 1. Run benchmark
 	areg `lhs' `rhs', absorb(`absvars')
 	TrimMatrix `K'
+	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 	
 	* 2. Save cache
@@ -61,6 +59,7 @@ cscript "reghdfe with cache" adofile reghdfe
 	TrimMatrix `K'
 	
 	* 3. Compare
+	assert `bench_df_a'==e(df_a)-1
 	storedresults compare benchmark e(), tol(1e-12) include(`include')
 
 	* Repeat with -fast- in usecache
@@ -68,6 +67,7 @@ cscript "reghdfe with cache" adofile reghdfe
 	reghdfe `lhs' `othervar' `rhs', absorb(`absvars') savecache("`fn'")
 	reghdfe `lhs' `rhs', absorb(`absvars') usecache("`fn'") fast
 	TrimMatrix `K'
+	assert `bench_df_a'==e(df_a)-1
 	storedresults compare benchmark e(), tol(1e-12) include(`include')
 
 	* Repeat with multiple cores
@@ -75,6 +75,7 @@ cscript "reghdfe with cache" adofile reghdfe
 	reghdfe `lhs' `othervar' `rhs', absorb(`absvars') savecache("`fn'") cores(3)
 	reghdfe `lhs' `rhs', absorb(`absvars') usecache("`fn'") fast
 	TrimMatrix `K'
+	assert `bench_df_a'==e(df_a)-1
 	storedresults compare benchmark e(), tol(1e-12) include(`include')
 
 	storedresults drop benchmark

@@ -29,7 +29,7 @@ cscript "reghdfe test bugfix ibn.x1#c.x2 do not drop base cat." adofile reghdfe
 	tsset turn t
 	drop if missing(rep)
 	
-	local included_e scalar: N rmse tss rss r2 r2_a F df_r df_a df_m F_absorb ///
+	local included_e scalar: N rmse tss rss r2 r2_a F df_r df_m F_absorb ///
 		matrix: trim_b trim_V ///
 		macros: wexp wtype
 
@@ -43,6 +43,7 @@ cscript "reghdfe test bugfix ibn.x1#c.x2 do not drop base cat." adofile reghdfe
 	* 1. Run benchmark
 	areg `lhs' `rhs', absorb(`absvars')
 	local K = e(df_m) - 1
+	local bench_df_a = e(df_a)
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
@@ -50,15 +51,16 @@ cscript "reghdfe test bugfix ibn.x1#c.x2 do not drop base cat." adofile reghdfe
 	reghdfe `lhs' `rhs', absorb(`absvars') vce(unadjusted, suite(default))
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-12) include(`included_e')
+	assert `bench_df_a'==e(df_a)-1
 
 	storedresults drop benchmark
 
 	* 3. Ensure that it doesn't die with multi
-	reghdfe `lhs' `rhs', absorb(`absvars') nocons
-	reghdfe `lhs' `rhs' weight, absorb(`absvars') nocons
-	reghdfe `lhs' weight `rhs', absorb(`absvars') nocons
+	reghdfe `lhs' `rhs', absorb(`absvars')
+	reghdfe `lhs' `rhs' weight, absorb(`absvars')
+	reghdfe `lhs' weight `rhs', absorb(`absvars')
 	egen x = std(weight)
-	reghdfe `lhs' x c.x#i.rep weight c.weight#i.rep, absorb(`absvars') nocons
+	reghdfe `lhs' x c.x#i.rep weight c.weight#i.rep, absorb(`absvars')
 
 cd "D:/Github/reghdfe/test"
 exit

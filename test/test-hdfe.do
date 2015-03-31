@@ -47,7 +47,7 @@ cscript "reghdfe with clusters" adofile reghdfe
 
 	* 1. Run -reghdfe- as benchmark
 	di as result "reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervar')"
-	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervar') nocons
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervar')
 	TrimMatrix `K'
 	matrix list e(trim_V)
 	storedresults save benchmark e()
@@ -60,7 +60,7 @@ cscript "reghdfe with clusters" adofile reghdfe
 	qui regress `lhs' `rhs' , vce(cluster `clustervar') nocons // this will have different DoF so of course different VCE
 	local n = e(N)
 	local wrong = `n' - e(df_m)
-	local correct = `wrong' - `df_a' - 1
+	local correct = `wrong' - `df_a' // - 1
 	local q = `wrong' / `correct'
 	di as text "wrong=<`wrong'> correct=<`correct'> q=<`q'>"
 	TrimMatrix `K' `q'
@@ -70,37 +70,41 @@ cscript "reghdfe with clusters" adofile reghdfe
 
 	storedresults compare benchmark e(), tol(1e-12) include( ///
 		scalar: N rss df_r ///
-		matrix: b V ///
+		matrix: trim_b trim_V ///
 		macros: wexp wtype)
 
 	hdfe `lhs' `rhs', abs(`absvars') clustervars(`clustervar') gen(resid_)
 	qui reg resid_* , vce(cluster `clustervar') nocons
 		local n = e(N)
 		local wrong = `n' - e(df_m)
-		local correct = `wrong' - `df_a' - 1
+		local correct = `wrong' - `df_a' // - 1
 		local q = `wrong' / `correct'
 	TrimMatrix `K' `q'
 	`e(cmd)'
 
 	storedresults compare benchmark e(), tol(1e-12) include( ///
 		scalar: N rss df_r ///
-		matrix: b V ///
+		matrix: trim_b trim_V ///
 		macros: wexp wtype)
 
 	storedresults drop benchmark
 
 * partial()
 	sysuse auto, clear
+	
+	* benchmark
+	reghdfe price weight length gear disp, absorb(turn trunk)
+
 	areg price weight length gear disp i.trunk, absorb(turn)
 	*reghdfe price weight length gear disp, a(turn trunk)
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
 	hdfe price weight length, a(turn trunk) partial(gear disp) clear
-	*return list
+	return list
 	local df_a = r(df_a) + r(df_partial)
 
-	qui regress price weight length
+	qui regress price weight length, nocons
 	local dof = e(df_r) - `df_a'
 	regress price weight length, dof(`dof') nocons
 	TrimMatrix `K'

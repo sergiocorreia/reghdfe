@@ -5,7 +5,6 @@ program define Wrapper_regress, eclass
 		vceoption(string asis) ///
 		kk(integer) ///
 		[weightexp(string)] ///
-		addconstant(integer) ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 	
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
@@ -17,12 +16,6 @@ program define Wrapper_regress, eclass
 	local clustervars `clustervars' // Trim
 	local vceoption : subinstr local vceoption "unadjusted" "ols"
 	local vceoption "vce(`vceoption')"
-
-* Hide constant
-	if (!`addconstant') {
-		local nocons noconstant
-		local kk = `kk' + 1
-	}
 
 * Note: the dof() option of regress is *useless* with robust errors,
 * and overriding e(df_r) is also useless because -test- ignores it,
@@ -37,12 +30,12 @@ program define Wrapper_regress, eclass
 	local K : list sizeof varlist
 
 * Run -regress-
-	local subcmd regress `vars' `weightexp', `vceoption' `suboptions' `nocons' noheader notable
+	local subcmd regress `vars' `weightexp', `vceoption' `suboptions' noconstant noheader notable
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	qui `subcmd'
 	
 	local N = e(N) // We couldn't just use c(N) due to possible frequency weights
-	local WrongDoF = `N' - `addconstant' - `K'
+	local WrongDoF = `N' - `K'
 	if ("`vcetype'"!="cluster" & e(df_r)!=`WrongDoF') {
 		local difference = `WrongDoF' - e(df_r)
 		local NewDFM = e(df_m) - `difference'	
@@ -94,16 +87,16 @@ program define Wrapper_regress, eclass
 
 * Compute model F-test
 	if (`K'>0) {
-		qui test `indepvars' `avge' // Wald test
+		qui test `indepvars' `avgevars' // Wald test
 		ereturn scalar F = r(F)
 		ereturn scalar df_m = r(df)
-		ereturn scalar rank = r(df)+1 // Add constant
+		ereturn scalar rank = r(df) // Not adding constant anymore
 		if missing(e(F)) di as error "WARNING! Missing FStat"
 	}
 	else {
 		ereturn scalar F = 0
 		ereturn scalar df_m = 0
-		ereturn scalar rank = 1
+		ereturn scalar rank = 0 // Not adding constant anymore
 	}
 
 	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars'" )) )

@@ -42,7 +42,7 @@ cscript "reghdfe with singletons" adofile reghdfe
 	local K : list sizeof tmp
 	
 * Unadjusted
-	reghdfe `lhs' `rhs', absorb(`absvars') nocons
+	reghdfe `lhs' `rhs', absorb(`absvars')
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
@@ -65,7 +65,7 @@ cscript "reghdfe with singletons" adofile reghdfe
 	* This DOESNT MATCH (!!) because when dropping singletons we get a better DoF (closer to the truth). All in all, this makes the variances *lower*
 	local absvars turn trunk##c.gear foreign
 	
-	reghdfe `lhs' `rhs', absorb(`absvars') nocons
+	reghdfe `lhs' `rhs', absorb(`absvars')
 	tempname trim_diag_V
 	TrimMatrix `K'
 	matrix `trim_diag_V' = vecdiag(e(trim_V))
@@ -82,7 +82,7 @@ cscript "reghdfe with singletons" adofile reghdfe
 * Many more absvars
 	local absvars turn trunk rep foreign
 
-	reghdfe `lhs' `rhs', absorb(`absvars') nocons
+	reghdfe `lhs' `rhs', absorb(`absvars')
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
@@ -96,7 +96,7 @@ cscript "reghdfe with singletons" adofile reghdfe
 
 	**local absvars turn trunk // foreign
 	**
-	**reghdfe `lhs' `rhs', absorb(`absvars') nocons vce(robust)
+	**reghdfe `lhs' `rhs', absorb(`absvars') vce(robust)
 	**TrimMatrix `K'
 	**storedresults save benchmark e()
 	**

@@ -1,4 +1,4 @@
-*! reghdfe 2.0.362 30mar2015
+*! reghdfe 2.0.429 30mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 // -------------------------------------------------------------
@@ -483,7 +483,7 @@ void function make_residual(
 	// bad_loop_threshold, stuck_threshold, accel_freq, accel_start, pause_length
 	`Integer'	update_error, converged, iter, accelerate_candidate, accelerated, mu, accelerate_norm
 	`Integer'	eps, g, obs, stdev, levels, gstart, gextra, k // , _
-	`Integer'	acceleration_countdown, old_error, oldest_error, bad_loop, improvement, tempconst
+	`Integer'	acceleration_countdown, old_error, oldest_error, bad_loop, improvement
 	`Series' 	y, resid, ZZZ // ZZZ = sum of Zs except Z1
 	`VarByFE'	P1y
 	string scalar		code, msg
@@ -563,15 +563,6 @@ void function make_residual(
 	stata(sprintf(`"la var %s "[reghdfe residuals of %s]" "', resid_varname, varname)) // Useful to know what is what when debugging
 
 	if (num_fe<gstart) {
-		// Save the part of _cons that we need to add back that comes from the cont. interactions
-		tempconst = 0
-		if (gstart>2) {
-			for (k=2; k<=FEs[1].K; k++) {
-				tempconst = tempconst + mean(FEs[1].v[.,k-1] :* betas[FEs[1].group,k-1])
-			}
-		}
-		st_local("tempconst", strofreal(tempconst))
-
 		// Save FEs
 		if (save_fe!=0) {
 			if (VERBOSE>1) printf("{txt} - Saving FE\n")
@@ -724,28 +715,7 @@ void function make_residual(
 	Zs[1] = &transform(transform(y-stdev:*ZZZ, 0, 1), 1, 0)
 	// Recover resid of y = y - ZZZ - Z1
 	st_store(., resid_varname, y-stdev:*ZZZ-*Zs[1]) // BUGBUG if resid is just a vew, just do resid[.,.] = y-...
-
-	// Save the part of _cons that we need to add back that comes from the cont. interactions
-	tempconst = 0
-	if (gstart>2) {
-		for (k=2; k<=FEs[1].K; k++) {
-			tempconst = tempconst + mean(FEs[1].v[.,k-1] :* betas[FEs[1].group,k-1] )
-		}
-	}
-	for (g=gstart;g<=num_fe;g++) {
-		if (!FEs[g].is_interaction | FEs[g].is_mock) continue
-		if (!FEs[g].is_bivariate) {
-			tempconst = tempconst + mean(transform(stdev :* (*Zs[g]), g, 0))
-		}
-		else {
-			(*Zs[g]) = transform((*Zs[g]), 0, g) // this saves -betas-
-			for (k=2; k<=FEs[g].K; k++) {
-				tempconst = tempconst + mean(stdev :* FEs[g].v[.,k-1] :* betas[FEs[g].group,k-1] )
-			}
-		}
-	}
-	st_local("tempconst", strofreal(tempconst))
-
+	
 	// Save FEs
 	if (save_fe!=0) {
 		if (VERBOSE>1) printf("{txt} - Saving FEs\n")
@@ -891,7 +861,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "2.0.362 30mar2015"
+    local version "2.0.429 30mar2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -1355,12 +1325,6 @@ else if ("`stage'"=="first") {
 * Cleanup
 	ereturn clear
 
-* Add back constant
-	if (`addconstant') {
-		Debug, level(3) msg(_n "adding back constant to regression")
-		AddConstant `depvar' `indepvars' `avgevars' `endogvars' `instruments'
-	}
-
 * Regress
 	if ("`stage'"=="none") Debug, level(2) msg("(running regresion: `model'.`ivsuite')")
 	local avge = cond(`N_avge'>0, "__W*__", "")
@@ -1371,7 +1335,6 @@ else if ("`stage'"=="first") {
 		original_instruments original_absvars avge_targets ///
 		vceoption vcetype vcesuite ///
 		kk suboptions showraw vceunadjusted first weightexp ///
-		addconstant /// tells -regress- to hide _cons
 		estimator twicerobust // Whether to run or not two-step gmm
 	foreach opt of local option_list {
 		if ("``opt''"!="") local options `options' `opt'(``opt'')
@@ -1425,11 +1388,11 @@ else {
 		gen double `resid_d' = `depvar'
 	}
 
-	* If the eqn doesn't have a constant, we need to save the mean of the resid in order to add it when predicting xb
-	if (!`addconstant') {
-		su `resid_d', mean
-		ereturn `hidden' scalar _cons = r(mean)
-	}
+	** If the eqn doesn't have a constant, we need to save the mean of the resid in order to add it when predicting xb
+	*if (!`addconstant') {
+	*	su `resid_d', mean
+	*	ereturn `hidden' scalar _cons = r(mean)
+	*}
 
 	Debug, level(2) msg("(loaded untransformed variables, predicted residuals)")
 
@@ -1610,10 +1573,10 @@ else {
 	if ("`weightvar'"!="") ereturn scalar sumweights = `sumweights'
 
 	if ("`model'"=="ols" & inlist("`vcetype'", "unadjusted", "ols")) {
-		ereturn scalar F_absorb = (e(r2)-`r2c') / (1-e(r2)) * e(df_r) / `kk'
+		ereturn scalar F_absorb = (e(r2)-`r2c') / (1-e(r2)) * e(df_r) / (`kk'-1) // -1 b/c we exclude constant for this
 		if (`nested') {
 			local rss`N_hdfe' = e(rss)
-			local temp_dof = e(N) - 1 - e(df_m) // What if there are absorbed collinear with the other RHS vars?
+			local temp_dof = e(N) - e(df_m) // What if there are absorbed collinear with the other RHS vars?
 			local j 0
 			ereturn `hidden' scalar rss0 = `rss0'
 			forv g=1/`N_hdfe' {
@@ -1621,7 +1584,8 @@ else {
 				*di in red "g=`g' RSS=`rss`g'' and was `rss`j''.  dof=`temp_dof'"
 				ereturn `hidden' scalar rss`g' = `rss`g''
 				ereturn `hidden' scalar df_a`g' = e(K`g') - e(M`g')
-				ereturn scalar F_absorb`g' = (`rss`j''-`rss`g'') / `rss`g'' * `temp_dof' / e(df_a`g')
+				local df_a_g = e(df_a`g') - (`g'==1)
+				ereturn scalar F_absorb`g' = (`rss`j''-`rss`g'') / `rss`g'' * `temp_dof' / `df_a_g'
 				ereturn `hidden' scalar df_r`g' = `temp_dof'
 				local j `g'
 			}   
@@ -1779,7 +1743,6 @@ else {
 		[CORES(integer 1)] [USEcache(string)] [OVER(varname numeric)] ///
 		[NOTES(string)] /// NOTES(key=value ..)
 		[STAGEs(string)] ///
-		[noCONstant] /// Disable adding back the intercept (mandatory with -ivreg2-)
 		[DROPSIngletons] ///
 		[ESTimator(string)] /// GMM2s CUE LIML
 		[*] // For display options ; and SUmmarize(stats)
@@ -1954,13 +1917,6 @@ if (!`savingcache') {
 		local stages none // So we can loop over stages
 	}
 
-* Add back constants (place this *after* we define `model')
-	local addconstant = ("`constant'"!="noconstant") & !("`model'"=="iv" & "`ivsuite'"=="ivreg2") // also see below
-	if (`addconstant' & "`over'"!="") {
-		local addconstant 0
-		Debug, level(0) msg("Constant will not be reported due to over(); use option -summarize()- or run the command -estat summ- to obtain the summary stats")
-	}
-
 * Parse VCE options:
 	
 	* Note: bw=1 *usually* means just do HC instead of HAC
@@ -2010,7 +1966,6 @@ if (!`savingcache') {
 	}
 
 	Assert inlist("`vcesuite'", "default", "mwc", "avar"), msg("Wrong vce suite: `vcesuite'")
-	if (inlist("`vcesuite'", "avar", "mwc")) local addconstant 0 // The constant messes up the VCV
 
 	if ("`vcesuite'"=="mwc") {
 		cap findfile tuples.ado
@@ -2068,12 +2023,6 @@ if (!`savingcache') {
 
 } // End of !`savingcache'
 
-* Add constant if -dropsingletons-; this applies for both savingcache and normal estimation
-	if ("`addconstant'"=="1" & "`dropsingletons'"!="") {
-		local addconstant 0
-		Debug, level(0) msg("(constant will not be reported because -dropsingletons- changes the reported constant)")
-	} 
-
 * Optimization
 	if (`maxiterations'==0) local maxiterations 1e8
 	Assert (`maxiterations'>0)
@@ -2126,7 +2075,6 @@ if (!`savingcache') {
 		subcmd suboptions ///
 		absorb avge excludeself ///
 		timevar panelvar basevars ///
-		addconstant ///
 		weight weightvar exp weightexp /// type of weight (fw,aw,pw), weight var., and full expr. ([fw=n])
 		cores savingcache usecache over ///
 		stats summarize_quietly notes stages ///
@@ -2398,7 +2346,6 @@ program define Wrapper_regress, eclass
 		vceoption(string asis) ///
 		kk(integer) ///
 		[weightexp(string)] ///
-		addconstant(integer) ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 	
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
@@ -2410,12 +2357,6 @@ program define Wrapper_regress, eclass
 	local clustervars `clustervars' // Trim
 	local vceoption : subinstr local vceoption "unadjusted" "ols"
 	local vceoption "vce(`vceoption')"
-
-* Hide constant
-	if (!`addconstant') {
-		local nocons noconstant
-		local kk = `kk' + 1
-	}
 
 * Note: the dof() option of regress is *useless* with robust errors,
 * and overriding e(df_r) is also useless because -test- ignores it,
@@ -2430,12 +2371,12 @@ program define Wrapper_regress, eclass
 	local K : list sizeof varlist
 
 * Run -regress-
-	local subcmd regress `vars' `weightexp', `vceoption' `suboptions' `nocons' noheader notable
+	local subcmd regress `vars' `weightexp', `vceoption' `suboptions' noconstant noheader notable
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	qui `subcmd'
 	
 	local N = e(N) // We couldn't just use c(N) due to possible frequency weights
-	local WrongDoF = `N' - `addconstant' - `K'
+	local WrongDoF = `N' - `K'
 	if ("`vcetype'"!="cluster" & e(df_r)!=`WrongDoF') {
 		local difference = `WrongDoF' - e(df_r)
 		local NewDFM = e(df_m) - `difference'	
@@ -2487,16 +2428,16 @@ program define Wrapper_regress, eclass
 
 * Compute model F-test
 	if (`K'>0) {
-		qui test `indepvars' `avge' // Wald test
+		qui test `indepvars' `avgevars' // Wald test
 		ereturn scalar F = r(F)
 		ereturn scalar df_m = r(df)
-		ereturn scalar rank = r(df)+1 // Add constant
+		ereturn scalar rank = r(df) // Not adding constant anymore
 		if missing(e(F)) di as error "WARNING! Missing FStat"
 	}
 	else {
 		ereturn scalar F = 0
 		ereturn scalar df_m = 0
-		ereturn scalar rank = 1
+		ereturn scalar rank = 0 // Not adding constant anymore
 	}
 
 	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars'" )) )
@@ -2509,7 +2450,6 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 	vceoption(string asis) ///
 	kk(integer) ///
 	[weightexp(string)] ///
-	addconstant(integer) ///
 	[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
@@ -2523,14 +2463,8 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 	assert "`vcetype'"=="cluster"
 	local clustervars `clustervars' // Trim
 
-* Hide constant
-	if (!`addconstant') {
-		local nocons noconstant
-		local kk = `kk' + 1
-	}
-
 * Obtain e(b), e(df_m), and resids
-	local subcmd regress `depvar' `indepvars' `avgevars' `weightexp', `nocons'
+	local subcmd regress `depvar' `indepvars' `avgevars' `weightexp', noconstant
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	qui `subcmd'
 
@@ -2553,7 +2487,7 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 
 	* Compute the bread of the sandwich D := inv(X'X/N)
 	tempname XX invSxx
-	qui mat accum `XX' = `indepvars' `avgevars' `weightexp', `nocons'
+	qui mat accum `XX' = `indepvars' `avgevars' `weightexp', noconstant
 	mat `invSxx' = syminv(`XX') // This line is different from <Wrapper_avar>
 
 	* Resids
@@ -2651,13 +2585,13 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 		if (r(drop)==1) Debug, level(0) msg("Warning: Some variables were dropped by the F test due to collinearity (or insufficient number of clusters).")
 		ereturn scalar F = r(F)
 		ereturn scalar df_m = r(df)
-		ereturn scalar rank = r(df)+1 // Add constant
+		ereturn scalar rank = r(df) // Not adding constant anymore
 		if missing(e(F)) di as error "WARNING! Missing FStat"
 	}
 	else {
 		ereturn scalar F = 0
 		ereturn df_m = 0
-		ereturn scalar rank = 1
+		ereturn scalar rank = 0 // Not adding constant anymore
 	}
 
 * ereturns specific to this command
@@ -2671,7 +2605,6 @@ program define Wrapper_avar, eclass
 		vceoption(string asis) ///
 		kk(integer) ///
 		[weightexp(string)] ///
-		addconstant(integer) ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
@@ -2693,18 +2626,12 @@ program define Wrapper_avar, eclass
 	if ("`kernel'"!="") local vceoption `vceoption' kernel(`kernel')
 	if ("`kiefer'"!="") local vceoption `vceoption' kiefer
 
-* Hide constant
-	if (!`addconstant') {
-		local nocons noconstant
-		local kk = `kk' + 1
-	}
-
 * Before -avar- we need:
 *	i) inv(X'X)
 *	ii) DoF lost due to included indepvars
 *	iii) resids
 * Note: It would be shorter to use -mse1- (b/c then invSxx==e(V)*e(N)) but then I don't know e(df_r)
-	local subcmd regress `depvar' `indepvars' `avgevars' `weightexp', `nocons'
+	local subcmd regress `depvar' `indepvars' `avgevars' `weightexp', noconstant
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	qui `subcmd'
 	qui cou if !e(sample)
@@ -2729,7 +2656,7 @@ program define Wrapper_avar, eclass
 
 	* Compute the bread of the sandwich inv(X'X/N)
 	tempname XX invSxx
-	qui mat accum `XX' = `indepvars' `avgevars' `tmpweightexp', `nocons'
+	qui mat accum `XX' = `indepvars' `avgevars' `tmpweightexp', noconstant
 	* WHY DO I NEED TO REPLACE PWEIGHT WITH AWEIGHT HERE?!?
 	
 	* (Is this precise enough? i.e. using -matrix- commands instead of mata?)
@@ -2743,7 +2670,7 @@ program define Wrapper_avar, eclass
 	local df_r = max( `WrongDoF' - `kk' , 0 )
 
 * Use -avar- to get meat of sandwich
-	local subcmd avar `resid' (`indepvars' `avgevars') `weightexp', `vceoption' `nocons' // dofminus(0)
+	local subcmd avar `resid' (`indepvars' `avgevars') `weightexp', `vceoption' noconstant // dofminus(0)
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	cap `subcmd'
 	local rc = _rc
@@ -2807,13 +2734,13 @@ program define Wrapper_avar, eclass
 		if (r(drop)==1) Debug, level(0) msg("Warning: Some variables were dropped by the F test due to collinearity (or insufficient number of clusters).")
 		ereturn scalar F = r(F)
 		ereturn scalar df_m = r(df)
-		ereturn scalar rank = r(df)+1 // Add constant
+		ereturn scalar rank = r(df) // Not adding constant anymore
 		if missing(e(F)) di as error "WARNING! Missing FStat"
 	}
 	else {
 		ereturn scalar F = 0
 		ereturn df_m = 0
-		ereturn scalar rank = 1
+		ereturn scalar rank = 0 // Not adding constant anymore
 	}
 	
 * ereturns specific to this command
@@ -2828,7 +2755,6 @@ program define Wrapper_ivregress, eclass
 		vceoption(string asis) ///
 		KK(integer) ///
 		[weightexp(string)] ///
-		addconstant(integer) ///
 		SHOWRAW(integer) first(integer) vceunadjusted(integer) ///
 		[ESTimator(string) TWICErobust(string)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
@@ -2859,27 +2785,24 @@ program define Wrapper_ivregress, eclass
 	* EG: -ivregress- calls ereturn post .. ESAMPLE(..) but we overwrite the esample and its SLOW
 	* But it's a 1700 line program so let's not worry about it
 
-* Hide constant
-	if (!`addconstant') {
-		local nocons noconstant
-		local kk = `kk' + 1
-	}
-
 * Show first stage
 	if (`first') {
 		local firstoption "first"
 	}
 
 * Subcmd
-	local subcmd ivregress `opt_estimator' `vars' `weightexp', `wmatrix' `vceoption' small `nocons' `firstoption' `suboptions'
+	local subcmd ivregress `opt_estimator' `vars' `weightexp', `wmatrix' `vceoption' small noconstant `firstoption' `suboptions'
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'
+	qui test `indepvars' `avgevars' `endogvars' // Wald test
+	ereturn scalar F = r(F)
+
 	
 	* Fix DoF if needed
 	local N = e(N)
 	local K = e(df_m)
-	local WrongDoF = `N' - `addconstant' - `K'
+	local WrongDoF = `N' - `K'
 	local CorrectDoF = `WrongDoF' - `kk'
 	Assert !missing(`CorrectDoF')
 
@@ -2919,7 +2842,6 @@ program define Wrapper_ivreg2, eclass
 		vceoption(string asis) ///
 		KK(integer) ///
 		[SHOWRAW(integer 0)] first(integer) [weightexp(string)] ///
-		addconstant(integer) ///
 		[ESTimator(string)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
@@ -2929,7 +2851,6 @@ program define Wrapper_ivreg2, eclass
 	local 0 , `suboptions'
 	syntax , [SAVEFPrefix(name)] [*] // Will ignore SAVEFPREFIX
 	local suboptions `options'
-	assert (`addconstant'==0)
 
 	* Convert -vceoption- to what -ivreg2- expects
 	local 0 `vceoption'
@@ -2960,7 +2881,7 @@ program define Wrapper_ivreg2, eclass
 		local nocons nocons // partial(cons)
 	}
 
-	local subcmd ivreg2 `vars' `weightexp', `vceoption' `firstoption' small sdofminus(`=`kk'+1') `nocons' `opt_estimator' `suboptions'
+	local subcmd ivreg2 `vars' `weightexp', `vceoption' `firstoption' small sdofminus(`kk') `nocons' `opt_estimator' `suboptions'
 	Debug, level(3) msg(_n "call to subcommand: " _n as result "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'
@@ -3016,16 +2937,6 @@ program define Wrapper_ivreg2, eclass
 	mata: st_local("original_vars", strtrim(stritrim( "`original_depvar' `original_indepvars' `avge_targets' `original_absvars' (`original_endogvars'=`original_instruments')" )) )
 end
 
-program define AddConstant
-	syntax varlist(numeric)
-	foreach var of local varlist {
-		local mean : char `var'[mean]
-		assert "`mean'"!=""
-		assert !missing(`mean')
-		qui replace `var' = `var' + `mean'
-	}
-end
-
 program define Attach, eclass
 	syntax, [NOTES(string)] [statsmatrix(string)] summarize_quietly(integer)
 	
@@ -3067,6 +2978,7 @@ end
 	Assert e(cmd)=="reghdfe"
 	local subcmd = e(subcmd)
 	Assert "`subcmd'"!="" , msg("e(subcmd) is empty")
+	if (`c(version)'>=12) local hidden hidden
 
 	* Add pretty names for AvgE variables
 	tempname b
@@ -3139,7 +3051,11 @@ end
 		local plus = cond(e(model)=="ols" & inlist("`e(vce)'", "unadjusted", "ols"), "plus", "")
 		_coef_table, `plus' `diopts' bmatrix(`b') vmatrix(e(V))
 	}
-
+	mata: reghdfe_width = max(strlen(st_matrixcolstripe_split("r(table)", 32, 0)))
+	mata: st_local("width" , strofreal(reghdfe_width))
+	mata: mata drop reghdfe_width
+	if (`width'<12) local width 12
+	ereturn `hidden' scalar width = `width'
 	reghdfe_footnote
 	* Revert AvgE else -predict- and other commands will choke
 
@@ -3576,6 +3492,7 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 		local redundant`g' = 0 // will be 1 if we don't penalize at all for this absvar (i.e. if it's nested with cluster or collinear with another absvar)
 		local is_slope`g' = ("`cvars'"!="") & (!`is_bivariate' | `is_mock') // two cases: i.a#c.b , i.a##c.b (which expands to <i.a i.a#c.b> and we want the second part)
 		local M`g' = !`is_slope`g'' // Start with 0 with cont. interaction, 1 w/out cont interaction
+		if (`g'==1) local M`g' = 0 // First FE has no redundant b/c it now includes the constant
 
 		*For each FE, only know exactly parameters are redundant in a few cases:
 		*i) nested in cluster, ii) first pure FE, iii) second pure FE if checked with connected groups
@@ -3617,7 +3534,7 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 			if (`absvar_is_clustervar') local drop`g' 0
 
 			if ( `adj_clusters' & (`absvar_is_clustervar' | `absvar_in_clustervar') ) {
-				local M`g' = `levels'
+				local M`g' = `levels' - (`g'==1) // First FE will always have at least one coef due to constant
 				local redundant`g' 1
 				local exact`g' 1
 				local M_due_to_nested = `M_due_to_nested' + `levels' - 1
@@ -4140,15 +4057,7 @@ program define Demean
 		* Since we only want to compute means, replace with [aw]
 		local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)
 		
-		qui su `var' `tmpweightexp', mean
-		local varmean = r(mean)
-
 		mata: make_residual("`var'", `args')
-
-		local varmean = `varmean' - `tempconst'
-		*di as error "tempconst=<`tempconst'>"
-		char define `var'[mean] `varmean'
-
 		assert !missing(`resid')
 
 		* Check that coefs are approximately 1
