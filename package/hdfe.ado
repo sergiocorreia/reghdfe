@@ -1,4 +1,4 @@
-*! hdfe 2.0.429 30mar2015
+*! hdfe 2.1.1 30mar2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 // -------------------------------------------------------------
@@ -1020,7 +1020,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "2.0.429 30mar2015"
+    local version "2.1.1 30mar2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
