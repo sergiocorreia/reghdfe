@@ -89,14 +89,17 @@ program define reghdfe_p, // sortpreserve properties(default_xb)
 
 		if ("`option'"=="d") {
 			rename `d' `varlist'
+			la var `varlist' "d[`fixed_effects']"
 		}
 		else if ("`option'"=="xbd") {
 			qui replace `xb' = `xb' + `d' `if' `in'
 			rename `xb' `varlist'
+			la var `varlist' "Xb + d[`fixed_effects']"
 		}
 		else if ("`option'"=="residuals") {
 			qui replace `xb' = `e(depvar)' - `xb' - `d' `if' `in'
 			rename `xb' `varlist'
+			la var `varlist' "Residuals"
 		}
 		else {
 			error 112
