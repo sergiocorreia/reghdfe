@@ -1,9 +1,14 @@
 # REGHDFE: Linear and IV Regressions With Many Fixed Effects
 
+### News
+
+* 2.1.x reghdfe does not report constants anymore. If you really want to see them, run *summarize* on the first fixed effect. The last version that supported constants is available with `net from https://raw.githubusercontent.com/sergiocorreia/reghdfe/866f85551b77fe7fda2af0aafccbbf87f8a01987/package/`
+* 2.2.x [internal] murphy-topel (unadjusted, robust, cluster), double-or-nothing IV/control function
+
 This is the *readme* file for developing the reghdfe project, which is comprised of the reghdfe package and the underlying hdfe package. What you probably want is the tutorial/documentation, available [here](http://scorreia.com/reghdfe).
 
-* Version 2.0.213
-* Date: March 24, 2015
+* Version 2.1.6
+* Date: April 2, 2015
 
 Reghdfe is a [Stata](http://stata.com) package that estimates linear and instrumental variable regressions while controlling for any number of fixed effects. It is most useful when dealing with two or more highly dimensional fixed effects (HDFE).
 
