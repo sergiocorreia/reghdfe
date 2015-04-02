@@ -9,7 +9,6 @@ program define reghdfe_p, // sortpreserve properties(default_xb)
 	*if "`e(cmd)'" != "reghdfe" {
 	*	error 301
 	*}
-
 	syntax anything [if] [in] , [XB XBD D Residuals SCores]
 	if (`"`scores'"' != "") {
 		_score_spec	`anything'
@@ -20,6 +19,7 @@ program define reghdfe_p, // sortpreserve properties(default_xb)
 		syntax newvarname  // [if] [in] , [XB XBD D Residuals SCores]
 	}
 
+	local weight "[`e(wtype)'`e(wexp)']" // After -syntax-!!!
 	local option `xb' `xbd' `d' `residuals' `scores'
 	if ("`option'"=="") local option xb // The default, as in -areg-
 	local numoptions : word count `option'
@@ -87,11 +87,11 @@ program define reghdfe_p, // sortpreserve properties(default_xb)
 	}
 	else {
 		* Make residual have mean zero (and add that to -d-)
-		su `e(depvar)' `if' `in', mean
+		su `e(depvar)' `if' `in' `weight', mean
 		local mean = r(mean)
-		su `xb' `if' `in', mean
+		su `xb' `if' `in' `weight', mean
 		local mean = `mean' - r(mean)
-		su `d' `if' `in', mean
+		su `d' `if' `in' `weight', mean
 		local mean = `mean' - r(mean)
 		qui replace `d' = `d' + `mean' `if' `in'
 
