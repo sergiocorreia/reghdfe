@@ -27,11 +27,11 @@ assert inlist(`i',1,2)
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
-	reghdfe `lhs' `rhs', absorb(`absvars') nocons vce(unadjusted)
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(unadjusted)
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-6) include(`included')
 
-	reghdfe `lhs' `rhs', absorb(`absvars') nocons vce(unadjusted, suite(avar))
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(unadjusted, suite(avar))
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-6) include(`included')
 
@@ -42,11 +42,11 @@ assert inlist(`i',1,2)
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
-	reghdfe `lhs' `rhs', absorb(`absvars') nocons vce(robust)
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(robust)
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-6) include(`included')
 
-	reghdfe `lhs' `rhs', absorb(`absvars') nocons vce(robust, suite(avar))
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(robust, suite(avar))
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-6) include(`included')
 	
@@ -57,11 +57,11 @@ assert inlist(`i',1,2)
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
-	reghdfe `lhs' `rhs', absorb(`absvars') nocons vce(, bw(2))
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(, bw(2))
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-6) include(`included')
 
-	reghdfe `lhs' `rhs', absorb(`absvars') nocons vce(, bw(2) suite(avar))
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(, bw(2) suite(avar))
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-6) include(`included')
 
@@ -71,7 +71,7 @@ assert inlist(`i',1,2)
 	ivreg2 `lhs' `rhs' ABS_*, small partial(ABS_*) bw(2) kernel(par)
 	TrimMatrix `K'
 	storedresults save benchmark e()
-	reghdfe `lhs' `rhs', absorb(`absvars') nocons vce(, bw(2) kernel(par))
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(, bw(2) kernel(par))
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-6) include(`included')
 	storedresults drop benchmark
@@ -80,7 +80,7 @@ assert inlist(`i',1,2)
 	ivreg2 `lhs' `rhs' ABS_*, small partial(ABS_*) dkraay(3)
 	TrimMatrix `K'
 	storedresults save benchmark e()
-	reghdfe `lhs' `rhs', absorb(`absvars') nocons vce(, dkraay(3))
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(, dkraay(3))
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-6) include(`included')
 	storedresults drop benchmark
@@ -89,7 +89,7 @@ assert inlist(`i',1,2)
 	ivreg2 `lhs' `rhs' ABS_*, small partial(ABS_*) kiefer
 	TrimMatrix `K'
 	storedresults save benchmark e()
-	reghdfe `lhs' `rhs', absorb(`absvars') nocons vce(, kiefer)
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(, kiefer)
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-6) include(`included')
 	storedresults drop benchmark
@@ -100,17 +100,17 @@ assert inlist(`i',1,2)
 	local fullrank = (e(rankS)==e(rankzz))
 	storedresults save benchmark e()
 
-	reghdfe `lhs' `rhs', absorb(`absvars') nocons vce(cluster turn t`i', suite(default)) dof(none) tol(1e-12)
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster turn t`i', suite(default)) dof(none) tol(1e-12)
 	TrimMatrix `K'
 	if (`fullrank') storedresults compare benchmark e(), tol(1e-6) include(`included')
 	if (!`fullrank') storedresults compare benchmark e(), tol(1e-6) include(`included_subset')
 
-	reghdfe `lhs' `rhs', absorb(`absvars') nocons vce(cluster turn t`i', suite(mwc)) dof(none) tol(1e-12)
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster turn t`i', suite(mwc)) dof(none) tol(1e-12)
 	TrimMatrix `K'
 	if (`fullrank') storedresults compare benchmark e(), tol(1e-6) include(`included')
 	if (!`fullrank') storedresults compare benchmark e(), tol(1e-6) include(`included_subset')
 
-	reghdfe `lhs' `rhs', absorb(`absvars') nocons vce(cluster turn t`i', suite(avar)) dof(none) tol(1e-12)
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster turn t`i', suite(avar)) dof(none) tol(1e-12)
 	TrimMatrix `K'
 	if (`fullrank') storedresults compare benchmark e(), tol(1e-6) include(`included')
 	if (!`fullrank') storedresults compare benchmark e(), tol(1e-6) include(`included_subset')
@@ -123,7 +123,7 @@ assert inlist(`i',1,2)
 	local fullrank = (e(rankS)==e(rankzz))
 	storedresults save benchmark e()
 
-	reghdfe `lhs' `rhs', absorb(`absvars') nocons vce(cluster turn t`i', bw(5)) dof(none)
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster turn t`i', bw(5)) dof(none)
 	TrimMatrix `K'
 	if (`fullrank') storedresults compare benchmark e(), tol(1e-6) include(`included')
 	if (!`fullrank') storedresults compare benchmark e(), tol(1e-6) include(`included_subset')
@@ -133,7 +133,7 @@ assert inlist(`i',1,2)
 	ivreg2 `lhs' `rhs' ABS_*, small partial(ABS_*) cluster(turn t`i') bw(5) kernel(thann)
 	TrimMatrix `K'
 	storedresults save benchmark e()
-	reghdfe `lhs' `rhs', absorb(`absvars') nocons vce(cluster turn t`i', bw(5) kernel(thann)) dof(none)
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster turn t`i', bw(5) kernel(thann)) dof(none)
 	TrimMatrix `K'
 	if (`fullrank') storedresults compare benchmark e(), tol(1e-6) include(`included')
 	if (!`fullrank') storedresults compare benchmark e(), tol(1e-6) include(`included_subset')

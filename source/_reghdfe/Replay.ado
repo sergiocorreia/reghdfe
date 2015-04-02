@@ -7,6 +7,7 @@ cap pr drop Replay
 	Assert e(cmd)=="reghdfe"
 	local subcmd = e(subcmd)
 	Assert "`subcmd'"!="" , msg("e(subcmd) is empty")
+	if (`c(version)'>=12) local hidden hidden
 
 	* Add pretty names for AvgE variables
 	tempname b
@@ -79,7 +80,11 @@ cap pr drop Replay
 		local plus = cond(e(model)=="ols" & inlist("`e(vce)'", "unadjusted", "ols"), "plus", "")
 		_coef_table, `plus' `diopts' bmatrix(`b') vmatrix(e(V))
 	}
-
+	mata: reghdfe_width = max(strlen(st_matrixcolstripe_split("r(table)", 32, 0)))
+	mata: st_local("width" , strofreal(reghdfe_width))
+	mata: mata drop reghdfe_width
+	if (`width'<12) local width 12
+	ereturn `hidden' scalar width = `width'
 	reghdfe_footnote
 	* Revert AvgE else -predict- and other commands will choke
 

@@ -415,12 +415,6 @@ else if ("`stage'"=="first") {
 * Cleanup
 	ereturn clear
 
-* Add back constant
-	if (`addconstant') {
-		Debug, level(3) msg(_n "adding back constant to regression")
-		AddConstant `depvar' `indepvars' `avgevars' `endogvars' `instruments'
-	}
-
 * Regress
 	if ("`stage'"=="none") Debug, level(2) msg("(running regresion: `model'.`ivsuite')")
 	local avge = cond(`N_avge'>0, "__W*__", "")
@@ -431,7 +425,6 @@ else if ("`stage'"=="first") {
 		original_instruments original_absvars avge_targets ///
 		vceoption vcetype vcesuite ///
 		kk suboptions showraw vceunadjusted first weightexp ///
-		addconstant /// tells -regress- to hide _cons
 		estimator twicerobust // Whether to run or not two-step gmm
 	foreach opt of local option_list {
 		if ("``opt''"!="") local options `options' `opt'(``opt'')
@@ -485,11 +478,11 @@ else {
 		gen double `resid_d' = `depvar'
 	}
 
-	* If the eqn doesn't have a constant, we need to save the mean of the resid in order to add it when predicting xb
-	if (!`addconstant') {
-		su `resid_d', mean
-		ereturn `hidden' scalar _cons = r(mean)
-	}
+	** If the eqn doesn't have a constant, we need to save the mean of the resid in order to add it when predicting xb
+	*if (!`addconstant') {
+	*	su `resid_d', mean
+	*	ereturn `hidden' scalar _cons = r(mean)
+	*}
 
 	Debug, level(2) msg("(loaded untransformed variables, predicted residuals)")
 
@@ -670,10 +663,10 @@ else {
 	if ("`weightvar'"!="") ereturn scalar sumweights = `sumweights'
 
 	if ("`model'"=="ols" & inlist("`vcetype'", "unadjusted", "ols")) {
-		ereturn scalar F_absorb = (e(r2)-`r2c') / (1-e(r2)) * e(df_r) / `kk'
+		ereturn scalar F_absorb = (e(r2)-`r2c') / (1-e(r2)) * e(df_r) / (`kk'-1) // -1 b/c we exclude constant for this
 		if (`nested') {
 			local rss`N_hdfe' = e(rss)
-			local temp_dof = e(N) - 1 - e(df_m) // What if there are absorbed collinear with the other RHS vars?
+			local temp_dof = e(N) - e(df_m) // What if there are absorbed collinear with the other RHS vars?
 			local j 0
 			ereturn `hidden' scalar rss0 = `rss0'
 			forv g=1/`N_hdfe' {
@@ -681,7 +674,8 @@ else {
 				*di in red "g=`g' RSS=`rss`g'' and was `rss`j''.  dof=`temp_dof'"
 				ereturn `hidden' scalar rss`g' = `rss`g''
 				ereturn `hidden' scalar df_a`g' = e(K`g') - e(M`g')
-				ereturn scalar F_absorb`g' = (`rss`j''-`rss`g'') / `rss`g'' * `temp_dof' / e(df_a`g')
+				local df_a_g = e(df_a`g') - (`g'==1)
+				ereturn scalar F_absorb`g' = (`rss`j''-`rss`g'') / `rss`g'' * `temp_dof' / `df_a_g'
 				ereturn `hidden' scalar df_r`g' = `temp_dof'
 				local j `g'
 			}   

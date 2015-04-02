@@ -41,6 +41,7 @@ noi cscript "reghdfe with multi-way clustering" adofile reghdfe
 
 	* 1. Run benchmark
 	areg `lhs' `rhs', absorb(`absvars') cluster(`clustervars')
+	local areg_df_a = e(df_a)
 	TrimMatrix `K'
 	storedresults save bench_areg e()
 	
@@ -66,9 +67,10 @@ noi cscript "reghdfe with multi-way clustering" adofile reghdfe
 	
 	* Compare
 	storedresults compare bench_areg e(), tol(1e-12) include( ///
-		scalar: N rmse tss rss r2 r2_a F df_r df_a df_m N_clust /// 
+		scalar: N rmse tss rss r2 r2_a F df_r df_m N_clust /// 
 		matrix: trim_b trim_V ///
 		macros: wexp wtype )
+	assert `areg_df_a'==e(df_a)-1
 	storedresults drop bench_areg
 	
 	storedresults compare bench_def e(), tol(1e-12) include( ///

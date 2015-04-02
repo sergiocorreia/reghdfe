@@ -5,7 +5,6 @@ program define Wrapper_avar, eclass
 		vceoption(string asis) ///
 		kk(integer) ///
 		[weightexp(string)] ///
-		addconstant(integer) ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
@@ -27,18 +26,12 @@ program define Wrapper_avar, eclass
 	if ("`kernel'"!="") local vceoption `vceoption' kernel(`kernel')
 	if ("`kiefer'"!="") local vceoption `vceoption' kiefer
 
-* Hide constant
-	if (!`addconstant') {
-		local nocons noconstant
-		local kk = `kk' + 1
-	}
-
 * Before -avar- we need:
 *	i) inv(X'X)
 *	ii) DoF lost due to included indepvars
 *	iii) resids
 * Note: It would be shorter to use -mse1- (b/c then invSxx==e(V)*e(N)) but then I don't know e(df_r)
-	local subcmd regress `depvar' `indepvars' `avgevars' `weightexp', `nocons'
+	local subcmd regress `depvar' `indepvars' `avgevars' `weightexp', noconstant
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	qui `subcmd'
 	qui cou if !e(sample)
@@ -63,7 +56,7 @@ program define Wrapper_avar, eclass
 
 	* Compute the bread of the sandwich inv(X'X/N)
 	tempname XX invSxx
-	qui mat accum `XX' = `indepvars' `avgevars' `tmpweightexp', `nocons'
+	qui mat accum `XX' = `indepvars' `avgevars' `tmpweightexp', noconstant
 	* WHY DO I NEED TO REPLACE PWEIGHT WITH AWEIGHT HERE?!?
 	
 	* (Is this precise enough? i.e. using -matrix- commands instead of mata?)
@@ -77,7 +70,7 @@ program define Wrapper_avar, eclass
 	local df_r = max( `WrongDoF' - `kk' , 0 )
 
 * Use -avar- to get meat of sandwich
-	local subcmd avar `resid' (`indepvars' `avgevars') `weightexp', `vceoption' `nocons' // dofminus(0)
+	local subcmd avar `resid' (`indepvars' `avgevars') `weightexp', `vceoption' noconstant // dofminus(0)
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	cap `subcmd'
 	local rc = _rc
@@ -141,13 +134,13 @@ program define Wrapper_avar, eclass
 		if (r(drop)==1) Debug, level(0) msg("Warning: Some variables were dropped by the F test due to collinearity (or insufficient number of clusters).")
 		ereturn scalar F = r(F)
 		ereturn scalar df_m = r(df)
-		ereturn scalar rank = r(df)+1 // Add constant
+		ereturn scalar rank = r(df) // Not adding constant anymore
 		if missing(e(F)) di as error "WARNING! Missing FStat"
 	}
 	else {
 		ereturn scalar F = 0
 		ereturn df_m = 0
-		ereturn scalar rank = 1
+		ereturn scalar rank = 0 // Not adding constant anymore
 	}
 	
 * ereturns specific to this command

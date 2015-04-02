@@ -54,7 +54,6 @@ else {
 		[CORES(integer 1)] [USEcache(string)] [OVER(varname numeric)] ///
 		[NOTES(string)] /// NOTES(key=value ..)
 		[STAGEs(string)] ///
-		[noCONstant] /// Disable adding back the intercept (mandatory with -ivreg2-)
 		[DROPSIngletons] ///
 		[ESTimator(string)] /// GMM2s CUE LIML
 		[*] // For display options ; and SUmmarize(stats)
@@ -229,13 +228,6 @@ if (!`savingcache') {
 		local stages none // So we can loop over stages
 	}
 
-* Add back constants (place this *after* we define `model')
-	local addconstant = ("`constant'"!="noconstant") & !("`model'"=="iv" & "`ivsuite'"=="ivreg2") // also see below
-	if (`addconstant' & "`over'"!="") {
-		local addconstant 0
-		Debug, level(0) msg("Constant will not be reported due to over(); use option -summarize()- or run the command -estat summ- to obtain the summary stats")
-	}
-
 * Parse VCE options:
 	
 	* Note: bw=1 *usually* means just do HC instead of HAC
@@ -285,7 +277,6 @@ if (!`savingcache') {
 	}
 
 	Assert inlist("`vcesuite'", "default", "mwc", "avar"), msg("Wrong vce suite: `vcesuite'")
-	if (inlist("`vcesuite'", "avar", "mwc")) local addconstant 0 // The constant messes up the VCV
 
 	if ("`vcesuite'"=="mwc") {
 		cap findfile tuples.ado
@@ -343,12 +334,6 @@ if (!`savingcache') {
 
 } // End of !`savingcache'
 
-* Add constant if -dropsingletons-; this applies for both savingcache and normal estimation
-	if ("`addconstant'"=="1" & "`dropsingletons'"!="") {
-		local addconstant 0
-		Debug, level(0) msg("(constant will not be reported because -dropsingletons- changes the reported constant)")
-	} 
-
 * Optimization
 	if (`maxiterations'==0) local maxiterations 1e8
 	Assert (`maxiterations'>0)
@@ -401,7 +386,6 @@ if (!`savingcache') {
 		subcmd suboptions ///
 		absorb avge excludeself ///
 		timevar panelvar basevars ///
-		addconstant ///
 		weight weightvar exp weightexp /// type of weight (fw,aw,pw), weight var., and full expr. ([fw=n])
 		cores savingcache usecache over ///
 		stats summarize_quietly notes stages ///

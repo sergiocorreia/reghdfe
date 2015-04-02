@@ -22,20 +22,19 @@ noi cscript "reghdfe with ivreg2 should use nocons" adofile reghdfe
 	sysuse auto
 
 	
-* [TEST] One core
+* [TEST] One core (what was the point of this?)
 set trace off
 	
 	areg price weight length, absorb(turn)
 	TrimMatrix 2
+	local areg_df_a = e(df_a)
 	storedresults save areg e()
 
 	reghdfe price weight length, a(turn)
 	TrimMatrix 2
-	storedresults compare areg e(), tol(1e-10) include(scalar: df_r df_a F N r2 matrix: trim_b trim_V macros: wexp wtype)
+	storedresults compare areg e(), tol(1e-10) include(scalar: df_r F N r2 matrix: trim_b trim_V macros: wexp wtype)
+	assert `areg_df_a'==e(df_a)-1
 
-	reghdfe price weight length, a(turn) nocons
-	TrimMatrix 2
-	storedresults compare areg e(), tol(1e-10) include(scalar: df_r df_a F N r2 matrix: trim_b trim_V macros: wexp wtype)
 	storedresults drop areg
 
 * [TEST] IV
@@ -49,13 +48,7 @@ set trace off
 	TrimMatrix 2
 	storedresults compare benchmark e(), tol(1e-10) include(scalar: df_r df_a F N r2 matrix: trim_b trim_V macros: wexp wtype)
 
-	reghdfe price weight (length=disp), a(turn) ivsuite(ivregress) nocons
-	TrimMatrix 2
-	storedresults compare benchmark e(), tol(1e-10) include(scalar: df_r df_a /* F */ N r2 matrix: trim_b trim_V macros: wexp wtype)
-	* Sadly the FStat is missing since -ivregress- believes there is no constant
-
 	storedresults drop benchmark
-	
 	
 * Misc
 	reghdfe price weight (length=disp), a(turn)

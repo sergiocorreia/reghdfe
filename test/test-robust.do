@@ -29,7 +29,7 @@ noi cscript "reghdfe with robust VCV" adofile reghdfe
 	tsset turn t
 	drop if missing(rep)
 	
-	local included_e scalar: N rmse tss rss r2 r2_a F df_r df_a df_m /// F_absorb
+	local included_e scalar: N rmse tss rss r2 r2_a F df_r df_m /// F_absorb
 		matrix: trim_b trim_V ///
 		macros: wexp wtype
 
@@ -43,17 +43,20 @@ noi cscript "reghdfe with robust VCV" adofile reghdfe
 	* 1. Run benchmark
 	areg `lhs' `rhs', absorb(`absvars') robust
 	TrimMatrix `K'
+	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe-avar and compare
 	reghdfe `lhs' `rhs', absorb(`absvars') vce(robust, suite(avar))
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-12) include(`included_e')
+	assert `bench_df_a'==e(df_a)-1
 
 	* 3. Run reghdfe-default and compare
 	reghdfe `lhs' `rhs', absorb(`absvars') vce(robust, suite(default))
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-12) include(`included_e')
+	assert `bench_df_a'==e(df_a)-1
 
 	storedresults drop benchmark
 	

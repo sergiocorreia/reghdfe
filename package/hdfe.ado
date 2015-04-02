@@ -1,4 +1,4 @@
-*! hdfe 2.0.362 30mar2015
+*! hdfe 2.1.6 02apr2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 // -------------------------------------------------------------
@@ -483,7 +483,7 @@ void function make_residual(
 	// bad_loop_threshold, stuck_threshold, accel_freq, accel_start, pause_length
 	`Integer'	update_error, converged, iter, accelerate_candidate, accelerated, mu, accelerate_norm
 	`Integer'	eps, g, obs, stdev, levels, gstart, gextra, k // , _
-	`Integer'	acceleration_countdown, old_error, oldest_error, bad_loop, improvement, tempconst
+	`Integer'	acceleration_countdown, old_error, oldest_error, bad_loop, improvement
 	`Series' 	y, resid, ZZZ // ZZZ = sum of Zs except Z1
 	`VarByFE'	P1y
 	string scalar		code, msg
@@ -563,15 +563,6 @@ void function make_residual(
 	stata(sprintf(`"la var %s "[reghdfe residuals of %s]" "', resid_varname, varname)) // Useful to know what is what when debugging
 
 	if (num_fe<gstart) {
-		// Save the part of _cons that we need to add back that comes from the cont. interactions
-		tempconst = 0
-		if (gstart>2) {
-			for (k=2; k<=FEs[1].K; k++) {
-				tempconst = tempconst + mean(FEs[1].v[.,k-1] :* betas[FEs[1].group,k-1])
-			}
-		}
-		st_local("tempconst", strofreal(tempconst))
-
 		// Save FEs
 		if (save_fe!=0) {
 			if (VERBOSE>1) printf("{txt} - Saving FE\n")
@@ -724,28 +715,7 @@ void function make_residual(
 	Zs[1] = &transform(transform(y-stdev:*ZZZ, 0, 1), 1, 0)
 	// Recover resid of y = y - ZZZ - Z1
 	st_store(., resid_varname, y-stdev:*ZZZ-*Zs[1]) // BUGBUG if resid is just a vew, just do resid[.,.] = y-...
-
-	// Save the part of _cons that we need to add back that comes from the cont. interactions
-	tempconst = 0
-	if (gstart>2) {
-		for (k=2; k<=FEs[1].K; k++) {
-			tempconst = tempconst + mean(FEs[1].v[.,k-1] :* betas[FEs[1].group,k-1] )
-		}
-	}
-	for (g=gstart;g<=num_fe;g++) {
-		if (!FEs[g].is_interaction | FEs[g].is_mock) continue
-		if (!FEs[g].is_bivariate) {
-			tempconst = tempconst + mean(transform(stdev :* (*Zs[g]), g, 0))
-		}
-		else {
-			(*Zs[g]) = transform((*Zs[g]), 0, g) // this saves -betas-
-			for (k=2; k<=FEs[g].K; k++) {
-				tempconst = tempconst + mean(stdev :* FEs[g].v[.,k-1] :* betas[FEs[g].group,k-1] )
-			}
-		}
-	}
-	st_local("tempconst", strofreal(tempconst))
-
+	
 	// Save FEs
 	if (save_fe!=0) {
 		if (VERBOSE>1) printf("{txt} - Saving FEs\n")
@@ -1050,7 +1020,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "2.0.362 30mar2015"
+    local version "2.1.6 02apr2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -1316,6 +1286,7 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 		local redundant`g' = 0 // will be 1 if we don't penalize at all for this absvar (i.e. if it's nested with cluster or collinear with another absvar)
 		local is_slope`g' = ("`cvars'"!="") & (!`is_bivariate' | `is_mock') // two cases: i.a#c.b , i.a##c.b (which expands to <i.a i.a#c.b> and we want the second part)
 		local M`g' = !`is_slope`g'' // Start with 0 with cont. interaction, 1 w/out cont interaction
+		if (`g'==1) local M`g' = 0 // First FE has no redundant b/c it now includes the constant
 
 		*For each FE, only know exactly parameters are redundant in a few cases:
 		*i) nested in cluster, ii) first pure FE, iii) second pure FE if checked with connected groups
@@ -1357,7 +1328,7 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 			if (`absvar_is_clustervar') local drop`g' 0
 
 			if ( `adj_clusters' & (`absvar_is_clustervar' | `absvar_in_clustervar') ) {
-				local M`g' = `levels'
+				local M`g' = `levels' - (`g'==1) // First FE will always have at least one coef due to constant
 				local redundant`g' 1
 				local exact`g' 1
 				local M_due_to_nested = `M_due_to_nested' + `levels' - 1
@@ -1880,15 +1851,7 @@ program define Demean
 		* Since we only want to compute means, replace with [aw]
 		local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)
 		
-		qui su `var' `tmpweightexp', mean
-		local varmean = r(mean)
-
 		mata: make_residual("`var'", `args')
-
-		local varmean = `varmean' - `tempconst'
-		*di as error "tempconst=<`tempconst'>"
-		char define `var'[mean] `varmean'
-
 		assert !missing(`resid')
 
 		* Check that coefs are approximately 1

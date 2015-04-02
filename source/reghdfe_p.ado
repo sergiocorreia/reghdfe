@@ -9,7 +9,6 @@ program define reghdfe_p, // sortpreserve properties(default_xb)
 	*if "`e(cmd)'" != "reghdfe" {
 	*	error 301
 	*}
-
 	syntax anything [if] [in] , [XB XBD D Residuals SCores]
 	if (`"`scores'"' != "") {
 		_score_spec	`anything'
@@ -20,6 +19,7 @@ program define reghdfe_p, // sortpreserve properties(default_xb)
 		syntax newvarname  // [if] [in] , [XB XBD D Residuals SCores]
 	}
 
+	local weight "[`e(wtype)'`e(wexp)']" // After -syntax-!!!
 	local option `xb' `xbd' `d' `residuals' `scores'
 	if ("`option'"=="") local option xb // The default, as in -areg-
 	local numoptions : word count `option'
@@ -34,6 +34,14 @@ program define reghdfe_p, // sortpreserve properties(default_xb)
 	* We need to have saved FEs and AvgEs for every option except -xb-
 	if ("`option'"!="xb") {
 		
+		* Only estimate using e(sample) except when computing xb (when we don't need -d- and can predict out-of-sample)
+		if (`"`if'"'!="") {
+			local if `if' & e(sample)==1
+		}
+		else {
+			local if "if e(sample)==1"
+		}
+
 		* Construct -d- if needed (sum of FEs)
 		tempvar d
 		qui gen double `d' = 0 `if' `in'
@@ -50,10 +58,10 @@ program define reghdfe_p, // sortpreserve properties(default_xb)
 			}
 
 			if missing("`e(hdfe_cvar`g')'") {
-				qui replace `d' = `d' + `e(hdfe_target`g')'
+				qui replace `d' = `d' + `e(hdfe_target`g')' `if' `in'
 			}
 			else {
-				qui replace `d' = `d' + `e(hdfe_target`g')' * `e(hdfe_cvar`g')'
+				qui replace `d' = `d' + `e(hdfe_target`g')' * `e(hdfe_cvar`g')' `if' `in'
 			}
 		}
 		local K = cond( e(N_avge)==. , 0 , e(N_avge) )
@@ -67,37 +75,39 @@ program define reghdfe_p, // sortpreserve properties(default_xb)
 				di as error "(predict reghdfe) you need to save all AvgEs in reghdfe, AvgE`g' not saved"
 				exit 112
 			}
-			qui replace `d' = `d' + `e(avge_target`g')'
+			qui replace `d' = `d' + `e(avge_target`g')' `if' `in'
 		}
 	} // Finished creating `d' if needed
-	
-	
-	* Construct -xb- if needed
-	if ("`option'"!="d") {
-		tempvar xb
-		_predict double `xb' `if' `in', xb
-	}
-	
-	* Adjusting for -noconstant- option
-	local adj_cons = cond(e(_cons)<., e(_cons), 0)
 
-	cap replace `xb' = `xb' + `adj_cons'
-	* cap replace `d' = `d' // - `adj_cons'
-	
+	tempvar xb // XB will eventually contain XBD and RESID if that's the output
+	_predict double `xb' `if' `in', xb
+
 	if ("`option'"=="xb") {
 		rename `xb' `varlist'
 	}
-	else if ("`option'"=="d") {
-		rename `d' `varlist'
-	}
 	else {
-		qui replace `xb' = `xb' + `d' `if' `in'
-		if ("`option'"=="xbd") {
+		* Make residual have mean zero (and add that to -d-)
+		su `e(depvar)' `if' `in' `weight', mean
+		local mean = r(mean)
+		su `xb' `if' `in' `weight', mean
+		local mean = `mean' - r(mean)
+		su `d' `if' `in' `weight', mean
+		local mean = `mean' - r(mean)
+		qui replace `d' = `d' + `mean' `if' `in'
+
+		if ("`option'"=="d") {
+			rename `d' `varlist'
+			la var `varlist' "d[`fixed_effects']"
+		}
+		else if ("`option'"=="xbd") {
+			qui replace `xb' = `xb' + `d' `if' `in'
 			rename `xb' `varlist'
+			la var `varlist' "Xb + d[`fixed_effects']"
 		}
 		else if ("`option'"=="residuals") {
-			qui replace `xb' = `e(depvar)' - `xb' `if' `in'
+			qui replace `xb' = `e(depvar)' - `xb' - `d' `if' `in'
 			rename `xb' `varlist'
+			la var `varlist' "Residuals"
 		}
 		else {
 			error 112
@@ -107,5 +117,4 @@ program define reghdfe_p, // sortpreserve properties(default_xb)
 	fvrevar `e(depvar)', list
 	local format : format `r(varlist)'
 	format `format' `varlist'
-	* TODO: Allow [type] and recast to that, as -predict- usually does
 end

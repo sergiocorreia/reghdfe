@@ -55,7 +55,7 @@ noi cscript "reghdfe comparison with iv" adofile reghdfe
 	matrix list e(trim_V)
 	storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' `endogvars', absorb(`absvars') vce(cluster `absvars', suite(avar)) nocon dropsingletons
+	reghdfe `depvar' `indepvars' `endogvars', absorb(`absvars') vce(cluster `absvars', suite(avar)) dropsingletons
 	estadd scalar r2 = e(r2_within), replace
 	local scale = e(unclustered_df_r) / (e(unclustered_df_r) + 1)
 	TrimMatrix `K' `scale'
@@ -72,7 +72,7 @@ noi cscript "reghdfe comparison with iv" adofile reghdfe
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted, suite(avar)) tol(1e-12) nocon // dropsingletons
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted, suite(avar)) tol(1e-12) // dropsingletons
 	estadd scalar r2 = e(r2_within), replace
 	*local scale = 1 // e(unclustered_df_r) / (e(unclustered_df_r) + 1)
 	TrimMatrix `K' // `scale'
@@ -88,7 +88,7 @@ noi cscript "reghdfe comparison with iv" adofile reghdfe
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust, suite(avar)) tol(1e-12) nocon // dropsingletons
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust, suite(avar)) tol(1e-12) // dropsingletons
 	estadd scalar r2 = e(r2_within), replace
 	*local scale = 1 // e(unclustered_df_r) / (e(unclustered_df_r) + 1)
 	TrimMatrix `K' // `scale'
@@ -105,7 +105,7 @@ noi cscript "reghdfe comparison with iv" adofile reghdfe
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(cluster `clustervars', suite(avar)) tol(1e-12) nocon // dropsingletons
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(cluster `clustervars', suite(avar)) tol(1e-12) // dropsingletons
 	estadd scalar r2 = e(r2_within), replace
 	*local scale = 1 // e(unclustered_df_r) / (e(unclustered_df_r) + 1)
 	TrimMatrix `K' // `scale'

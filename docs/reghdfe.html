@@ -69,7 +69,6 @@
                               useful when running predict afterwards
     + <span class=result><u>dropsi</u></span><span class=result>ngletons</span>        remove singleton groups from the sample; once per
                               <i>absvar</i> (<span class=result>recommended</span>)
-    + <span class=result><u>nocon</u></span><span class=result>stant</span>            do not report the constant (<span class=result>recommended</span>)
       <span class=result>nested</span>                add each <i>absvar</i> recursively, reporting the R2 and
                               associated F-test at each stage (only under
                               linear regression and unadjusted standard
@@ -181,8 +180,9 @@
     (along with <i>indepvars</i> and the fixed effects) as instruments for <i>endogvars</i>
     (either with 2SLS or GMM/LIML).
  
-    The reported constant is obtained from normalizing the first fixed effect
-    so it has a mean of zero.
+    No constant is reported as that is absorbed by the fixed effects. However,
+    if you wish to recover it, after the regression run <span class=result>predict dummies, d</span>
+    followed by <span class=result>su dummies</span>, <span class=result>di r(mean)</span>.
 <br><br>
     The estimates for the fixed effects (including those with continous
     interactions) can be saved, although their standard errors are not
@@ -231,27 +231,10 @@
         observations and fixed effects) and less change of problems when
         estimating the VCE matrix.
 <br><br>
-        This option changes the reported constant (but the other estimates),
-        but as discussed below, the usefulness of the constant (and its
-        interpretation) is very limited.
-<br><br>
         Note that after dropping singletons on the first fixed effect, a value
         of the second fixed effect that previously appeared in two
         observations may now appear in only one and thus will be dropped.
         Also note that only one check will be done for each fixed effect.
-<br><br>
-    <span class=result><u>nocon</u></span><span class=result>stant</span> removes the constant from the reported model. <span class=result>Also strongly</span>
-        <span class=result>recommended</span>.
-<br><br>
-        Since the constant is perfectly collinear with the absorbed fixed
-        effects, it is usually a good idea to remove it from the regression.
-        For instance, for some advanced VCE estimations, removing the constant
-        will allow us to have a VCE matrix of full rank.
-<br><br>
-        There is no really good reason to keep the constant in an HDFE model,
-        but for historical reasons it will be reported in most cases. Note
-        that a better alternative to obtain summary statistics is with the
-        <span class=result><u>su</u></span><span class=result>mmarize</span> option, or through the<span class=result> estat summ</span> postestimation command.
 <br><br>
     <span class=result>nested</span> Add each <i>absvar</i> recursively into the model
 <br><br>
@@ -447,10 +430,8 @@
 <br><br>
     <span class=result>check</span> will regress the variable against the calculated fixed effects. If
         convergence was indeed achieved, the coefficients should be 1.0 in
-        each step (except under perfect collinearity situations.)
-<br><br>
-<a name="opt_dof"></a>        +--------------------------------+
-    ----+ Degrees-of-Freedom Adjustments +------------------------------------
+<a name="opt_dof"></a>        each step (except under perfect collinearity situations.)
+        :Degrees-of-Freedom Adjustments
 <br><br>
     <span class=result><u>dof</u></span><span class=result>adjustments(</span><i>doflist</i><span class=result>)</span> selects how the degrees-of-freedom, as well as
         e(df_a), are adjusted due to the absorbed fixed effects.
@@ -489,8 +470,8 @@
 <br><br>
         <span class=result><u>pair</u></span><span class=result>wise</span> applies the aforementioned connected-subgraphs algorithm
         between pairs of fixed effects.  For instance, if there are four sets
-        of FEs, we already know that there is one redundant fixed effect for
-        the first dimension (i.e. e(M1)==1), because of collinearity with the
+        of FEs, the first dimension will usually have no redundant
+        coefficients (i.e. e(M1)==1), since we are running the model without a
         constant.  For the second FE, the number of connected subgraphs with
         respect to the first FE will provide an exact estimate of the
         degrees-of-freedom lost, e(M2).
@@ -772,10 +753,11 @@ Only <span class=result>estat summarize</span>, <span class=result>predict</span
 <br><br>
 <span class=result><u>Possible Pitfalls and Common Mistakes</u></span>
 <br><br>
-     1. Ignore the constant; it doesn't tell you much. If you want to use
-        descriptive stats, that's what the <span class=result><u>sum</u></span><span class=result>marize()</span> and <span class=result>estat summ</span> commands
-        are for.  Even better, use <span class=result>noconstant</span> to drop it (although it's not
-        really dropped as it never existed on the first place!)
+     1. (note: as of version 2.1, the constant is no longer reported) Ignore
+        the constant; it doesn't tell you much. If you want to use descriptive
+        stats, that's what the <span class=result><u>sum</u></span><span class=result>marize()</span> and <span class=result>estat summ</span> commands are for.
+        Even better, use <span class=result>noconstant</span> to drop it (although it's not really
+        dropped as it never existed on the first place!)
      2. Think twice before saving the fixed effects. They are probably
         inconsistent / not identified and you will likely be using them wrong.
      3. It's good practice to drop singletons. <span class=result><u>dropsi</u></span><span class=result>ngleton</span> is your friend.

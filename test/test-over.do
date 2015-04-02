@@ -42,17 +42,19 @@ noi cscript "reghdfe with cache" adofile reghdfe
 	local K : list sizeof tmp
 
 	local include ///
-		scalar: N rmse tss rss mss r2 r2_a F df_r df_a df_m F_absorb ///
+		scalar: N rmse tss rss mss r2 r2_a F df_r df_m F_absorb ///
 		matrix: trim_b trim_V ///
 		macros: wexp wtype 
 
 	* 1. Run benchmarks
 	areg `lhs' `rhs' if foreign==10, absorb(`absvars')
 	TrimMatrix `K'
+	local bench_df_a0 = e(df_a)
 	storedresults save benchmark0 e()
 
 	areg `lhs' `rhs' if foreign==11, absorb(`absvars')
 	TrimMatrix `K'
+	local bench_df_a1 = e(df_a)
 	storedresults save benchmark1 e()
 	
 	* 2. Save cache
@@ -64,39 +66,12 @@ noi cscript "reghdfe with cache" adofile reghdfe
 	* 3. Use cache and compare
 	reghdfe `lhs' `rhs' if foreign==10, absorb(`absvars') usecache("`fn'") over(foreign) cores(2)
 	TrimMatrix `K'
+	assert `bench_df_a0'==e(df_a)-1
 	storedresults compare benchmark0 e(), tol(1e-12) include(`include')
 
 	reghdfe `lhs' `rhs' if foreign==11, absorb(`absvars') usecache("`fn'") over(foreign) cores(2)
 	TrimMatrix `K'
-	storedresults compare benchmark1 e(), tol(1e-12) include(`include')
-
-	storedresults drop benchmark0 benchmark1
-
-	// -------------------------------------------------------------------------------------------------
-	* Now with nocons!
-
-	* 1. Run benchmarks
-	areg `lhs' `rhs' if foreign==10, absorb(`absvars')
-	TrimMatrix `K'
-	storedresults save benchmark0 e()
-
-	areg `lhs' `rhs' if foreign==11, absorb(`absvars')
-	TrimMatrix `K'
-	storedresults save benchmark1 e()
-
-	
-	* 2. Save cache
-	local fn "D:/Github/tmp/thecache"
-	set trace off
-	reghdfe `lhs' `othervar' `rhs', absorb(`absvars') savecache("`fn'") over(fore)
-
-	* 3. Use cache and compare
-	reghdfe `lhs' `rhs' if for==10, absorb(`absvars') usecache("`fn'") over(foreig) nocons
-	TrimMatrix `K'
-	storedresults compare benchmark0 e(), tol(1e-12) include(`include')
-
-	reghdfe `lhs' `rhs' if foreig==11, absorb(`absvars') usecache("`fn'") over(fo) nocons
-	TrimMatrix `K'
+	assert `bench_df_a1'==e(df_a)-1
 	storedresults compare benchmark1 e(), tol(1e-12) include(`include')
 
 	storedresults drop benchmark0 benchmark1
@@ -105,10 +80,12 @@ noi cscript "reghdfe with cache" adofile reghdfe
 
 	* 1. Run benchmarks
 	areg `lhs' `rhs' if foreign==10, absorb(`absvars')
+	local bench_df_a0 = e(df_a)
 	TrimMatrix `K'
 	storedresults save benchmark0 e()
 
 	areg `lhs' `rhs' if foreign==11, absorb(`absvars')
+	local bench_df_a1 = e(df_a)
 	TrimMatrix `K'
 	storedresults save benchmark1 e()
 	
@@ -120,10 +97,12 @@ noi cscript "reghdfe with cache" adofile reghdfe
 	* 3. Use cache and compare
 	reghdfe `lhs' `rhs' if foreign==10, absorb(`absvars') usecache("`fn'") over(foreign) summarize
 	TrimMatrix `K'
+	assert `bench_df_a0'==e(df_a)-1
 	storedresults compare benchmark0 e(), tol(1e-12) include(`include')
 
 	reghdfe `lhs' `rhs' if foreign==11, absorb(`absvars') usecache("`fn'") over(foreign) summarize
 	TrimMatrix `K'
+	assert `bench_df_a1'==e(df_a)-1
 	storedresults compare benchmark1 e(), tol(1e-12) include(`include')
 
 	storedresults drop benchmark0 benchmark1

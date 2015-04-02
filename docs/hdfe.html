@@ -121,7 +121,7 @@
         <span class=input>. predict double resid, resid</span>
         <span class=input>. rename RESID_* *</span>
         <span class=input>. * Obtain fixed effects</span>
-        <span class=input>. hdfe resid, a(FE1=turn FE2=trunk) savefe gen(temp_)</span>
+        <span class=input>. hdfe resid, a(FE1=turn FE2=trunk) gen(temp_)</span>
 <br><br>
         <span class=input>. * Benchmark and verification</span>
         <span class=input>. reghdfe price weight length, a(BENCH1=turn BENCH2=trunk)</span>

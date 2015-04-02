@@ -87,6 +87,7 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 		local redundant`g' = 0 // will be 1 if we don't penalize at all for this absvar (i.e. if it's nested with cluster or collinear with another absvar)
 		local is_slope`g' = ("`cvars'"!="") & (!`is_bivariate' | `is_mock') // two cases: i.a#c.b , i.a##c.b (which expands to <i.a i.a#c.b> and we want the second part)
 		local M`g' = !`is_slope`g'' // Start with 0 with cont. interaction, 1 w/out cont interaction
+		if (`g'==1) local M`g' = 0 // First FE has no redundant b/c it now includes the constant
 
 		*For each FE, only know exactly parameters are redundant in a few cases:
 		*i) nested in cluster, ii) first pure FE, iii) second pure FE if checked with connected groups
@@ -128,7 +129,7 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 			if (`absvar_is_clustervar') local drop`g' 0
 
 			if ( `adj_clusters' & (`absvar_is_clustervar' | `absvar_in_clustervar') ) {
-				local M`g' = `levels'
+				local M`g' = `levels' - (`g'==1) // First FE will always have at least one coef due to constant
 				local redundant`g' 1
 				local exact`g' 1
 				local M_due_to_nested = `M_due_to_nested' + `levels' - 1

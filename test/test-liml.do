@@ -51,11 +51,11 @@ noi cscript "reghdfe with liml" adofile reghdfe
 	*TrimMatrix `K'
 	*storedresults compare benchmark e(), tol(1e-6) include(`include')
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted) ivsuite(ivreg2) tol(1e-12) nocon est(liml)
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted) ivsuite(ivreg2) tol(1e-12) est(liml)
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-10) include(`include')
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted) ivsuite(ivregress) tol(1e-12) nocon est(liml)
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted) ivsuite(ivregress) tol(1e-12) est(liml)
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-10) include(`include')
 

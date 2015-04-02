@@ -8,7 +8,6 @@ program define Wrapper_ivreg2, eclass
 		vceoption(string asis) ///
 		KK(integer) ///
 		[SHOWRAW(integer 0)] first(integer) [weightexp(string)] ///
-		addconstant(integer) ///
 		[ESTimator(string)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
@@ -18,7 +17,6 @@ program define Wrapper_ivreg2, eclass
 	local 0 , `suboptions'
 	syntax , [SAVEFPrefix(name)] [*] // Will ignore SAVEFPREFIX
 	local suboptions `options'
-	assert (`addconstant'==0)
 
 	* Convert -vceoption- to what -ivreg2- expects
 	local 0 `vceoption'
@@ -49,7 +47,7 @@ program define Wrapper_ivreg2, eclass
 		local nocons nocons // partial(cons)
 	}
 
-	local subcmd ivreg2 `vars' `weightexp', `vceoption' `firstoption' small sdofminus(`=`kk'+1') `nocons' `opt_estimator' `suboptions'
+	local subcmd ivreg2 `vars' `weightexp', `vceoption' `firstoption' small sdofminus(`kk') `nocons' `opt_estimator' `suboptions'
 	Debug, level(3) msg(_n "call to subcommand: " _n as result "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'

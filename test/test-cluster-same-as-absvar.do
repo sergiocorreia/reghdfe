@@ -45,6 +45,7 @@ cscript "reghdfe clustering and absorbing by the same variable" adofile reghdfe
 	* 1. Run benchmark
 	areg `lhs' `rhs', absorb(`absvars') cluster(`clustervar')
 	TrimMatrix `K'
+	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe
@@ -54,9 +55,10 @@ cscript "reghdfe clustering and absorbing by the same variable" adofile reghdfe
 
 	* 3. Compare
 	storedresults compare benchmark e(), tol(1e-12) include( ///
-		scalar: N rmse tss rss r2 r2_a F df_r df_a df_m rmse ///  
+		scalar: N rmse tss rss r2 r2_a F df_r df_m rmse ///  
 		matrix: trim_b trim_V ///
 		macros: wexp wtype )
+	assert `bench_df_a'==e(df_a)-1
 	storedresults drop benchmark
 
 // -------------------------------------------------------------------------------------------------
@@ -65,6 +67,7 @@ cscript "reghdfe clustering and absorbing by the same variable" adofile reghdfe
 	* 1. Run benchmark
 	xtreg `lhs' `rhs', fe cluster(`clustervar')
 	TrimMatrix `K'
+	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 		di e(df_m)
 	* 2. Run reghdfe

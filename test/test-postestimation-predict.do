@@ -6,7 +6,7 @@ noi cscript "reghdfe postestimation: predict" adofile reghdfe
 	set more off
 	* cls
 
-	local included_e scalar: N rmse tss rss r2 r2_a F df_r df_a df_m ///
+	local included_e scalar: N rmse tss rss r2 r2_a F df_r df_m ///
 		matrix: trim_b trim_V ///
 		macros: wexp wtype
 
@@ -47,48 +47,37 @@ noi cscript "reghdfe postestimation: predict" adofile reghdfe
 	* 1. Run benchmark
 	areg `lhs' `rhs', absorb(`absvars')
 	TrimMatrix `K'
+	local bench_df_a = e(df_a)
 	storedresults save bench_e e()
 	predict double xb, xb
 	predict double d, d
 	predict double xbd, xbd
 	predict double resid, resid
 
+	* DIFFERENCE BETWEEN METHODS, XB HAS CONSTANT IN AREG BUT NOT IN REGHDFE
+	replace xb = xb - _b[_cons]
+	replace d = d + _b[_cons]
+	su resid, mean
+
 	* 2. Run reghdfe and compare
 	
-	* 2a) With constant
 	reghdfe `lhs' `rhs', absorb(FE=`absvars') vce(, suite(default))
 	TrimMatrix `K'
+	assert `bench_df_a'==e(df_a)-1
 	storedresults compare bench_e e(), tol(1e-10) include(`included_e') // Note the lowered tol
 	predict double xb_test, xb
 	predict double d_test, d
 	predict double xbd_test, xbd
 	predict double resid_test, resid
 	*su d d_test xb xb_test xbd xbd_test resid resid_test, sep(2)
-	
+
+
 	_vassert xb xb_test, tol(1e-10)
 	_vassert d d_test, tol(1e-10)
 	_vassert xbd xbd_test, tol(1e-10)
 	_vassert resid resid_test, tol(1e-10)
 	
 	drop *_test FE
-
-	* 2a) Without constant
-	reghdfe `lhs' `rhs', absorb(FE=`absvars') vce(, suite(default)) nocons
-	TrimMatrix `K'
-	storedresults compare bench_e e(), tol(1e-10) include(`included_e') // Note the lowered tol
-	predict double xb_test, xb
-	predict double d_test, d
-	predict double xbd_test, xbd
-	predict double resid_test, resid
-	*su d d_test xb xb_test xbd xbd_test resid resid_test, sep(2)
-	
-	_vassert xb xb_test, tol(1e-10)
-	_vassert d d_test, tol(1e-10)
-	_vassert xbd xbd_test, tol(1e-10)
-	_vassert resid resid_test, tol(1e-10)
-	
-	drop *_test FE
-
 	storedresults drop bench_e
 
 	* 3) Check that we can run with score
@@ -100,19 +89,23 @@ noi cscript "reghdfe postestimation: predict" adofile reghdfe
 	drop FE alt resid
 
 	* 4) Test that the means of resid are zero , with #c. interactions
-	reghdfe price weight, a(turn trunk#c.gear, save) nocons
-	predict resid, resid
+	di as error "WARNING: Note the numerical inaccuracy of interacting with c.vars" // this is for step 5)
+	reghdfe price weight, a(turn trunk##c.gear, save) tol(1e-12)
+	predict double resid, resid
 	su resid
 	assert abs(r(mean))<1e-8
 
 	* 5) Check that the means match
-	 areg price weight ibn.trunk#c.gear, a(turn)
-	predict resid_bench, resid
+	 areg price weight ibn.trunk##c.gear, a(turn)
+	predict double resid_bench, resid
 	corr resid resid_bench
 	su resid*
-	_vassert resid resid_bench, tol(1e-10)
+	gen delta = abs(resid_bench - resid) // / abs(price)
+	su delta
+	*_vassert resid resid_bench, tol(1e-10)
+	assert delta<1e-5
 	drop resid resid_bench
-
+	* BUGBUG:
 
 cd "D:/Github/reghdfe/test"
 exit
