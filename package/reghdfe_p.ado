@@ -34,6 +34,14 @@ program define reghdfe_p, // sortpreserve properties(default_xb)
 	* We need to have saved FEs and AvgEs for every option except -xb-
 	if ("`option'"!="xb") {
 		
+		* Only estimate using e(sample) except when computing xb (when we don't need -d- and can predict out-of-sample)
+		if (`"`if'"'!="") {
+			local if `if' & e(sample)==1
+		}
+		else {
+			local if "if e(sample)==1"
+		}
+
 		* Construct -d- if needed (sum of FEs)
 		tempvar d
 		qui gen double `d' = 0 `if' `in'
@@ -89,14 +97,17 @@ program define reghdfe_p, // sortpreserve properties(default_xb)
 
 		if ("`option'"=="d") {
 			rename `d' `varlist'
+			la var `varlist' "d[`fixed_effects']"
 		}
 		else if ("`option'"=="xbd") {
 			qui replace `xb' = `xb' + `d' `if' `in'
 			rename `xb' `varlist'
+			la var `varlist' "Xb + d[`fixed_effects']"
 		}
 		else if ("`option'"=="residuals") {
 			qui replace `xb' = `e(depvar)' - `xb' - `d' `if' `in'
 			rename `xb' `varlist'
+			la var `varlist' "Residuals"
 		}
 		else {
 			error 112
