@@ -21,6 +21,7 @@
 	run test-cluster
 	run test-ivreg2
 	run test-cluster-same-as-absvar
+	run test-cluster-nested // Prevent regression of bug reported by Michael Wittry (see email)
 	run test-vce-complex-bw
 	run test-weights
 	run test-mwc

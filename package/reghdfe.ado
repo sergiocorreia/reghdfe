@@ -1,4 +1,4 @@
-*! reghdfe 2.1.6 02apr2015
+*! reghdfe 2.1.8 03apr2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 // -------------------------------------------------------------
@@ -861,7 +861,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "2.1.6 02apr2015"
+    local version "2.1.8 03apr2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -3526,6 +3526,7 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 					assert inlist(_rc, 0, 498)
 					if (!_rc) {
 						Debug, level(1) msg("(categorical variable " as result "`varlabel'" as text " is nested within cluster variable " as result "`clustervar_original'" as text ", so it doesn't count towards DoF)")
+						local absvar_in_clustervar 1
 						continue, break
 					}
 				}
