@@ -55,7 +55,7 @@ noi cscript "reghdfe with HAC VCE (bw>1)" adofile reghdfe
 	
 	* 2. Run reghdfe
 	reghdfe `lhs' `rhs', a(`absvars') vce(cluster `absvars', suite(avar))
-	reghdfe `lhs' `rhs', a(`absvars') vce(cluster `absvars', bw(2))
+	reghdfe `lhs' `rhs', a(`absvars') vce(cluster `absvars', bw(2)) dof(none)
 	TrimMatrix `K'
 
 	* 3. Compare
