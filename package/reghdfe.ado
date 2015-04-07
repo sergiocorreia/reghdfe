@@ -1,4 +1,4 @@
-*! reghdfe 2.1.9 03apr2015
+*! reghdfe 2.1.10 07apr2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 // -------------------------------------------------------------
@@ -861,7 +861,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "2.1.9 03apr2015"
+    local version "2.1.10 07apr2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"

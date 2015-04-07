@@ -898,7 +898,10 @@ Email: {browse "mailto:sergio.correia@duke.edu":sergio.correia@duke.edu}
 {pstd}
 {cmd:reghdfe} is updated frequently, and upgrades or minor bug fixes may not be immediately available in SSC.
 To check or contribute to the latest version of reghdfe, explore the
-{browse "https://github.com/sergiocorreia/reghdfe":Github repository}.
+{browse "https://github.com/sergiocorreia/reghdfe":Github repository}.{p_end}
+
+{pstd}
+To see your current version and installed dependencies, type {cmd:reghdfe, version}
 {p_end}
 
 {marker acknowledgements}{...}
