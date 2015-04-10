@@ -837,8 +837,12 @@ on the other hand, there may be alternatives:
 {synopt:{cmd:e(df_r)}}residual degrees of freedom{p_end}
 {synopt:{cmd:e(r2)}}R-squared{p_end}
 {synopt:{cmd:e(r2_a)}}adjusted R-squared{p_end}
+{synopt:{cmd:e(r2_within)}}Within R-squared{p_end}
+{synopt:{cmd:e(r2_a_within)}}Adjusted Within R-squared{p_end}
 {synopt:{cmd:e(df_a)}}degrees of freedom lost due to the fixed effects{p_end}
 {synopt:{cmd:e(rmse)}}root mean squared error{p_end}
+{synopt:{cmd:e(ll)}}log-likelihood{p_end}
+{synopt:{cmd:e(ll_0)}}log-likelihood of fixed-effect-only regression{p_end}
 {synopt:{cmd:e(N_clust)}}number of clusters{p_end}
 {synopt:{cmd:e(F)}}F statistic{p_end}
 {synopt:{cmd:e(F_absorb)}}F statistic for absorbed effect (when

@@ -609,10 +609,6 @@ else {
 	if (e(vcetype)=="Unadjusted") ereturn local vcetype
 	if ("`e(vce)'"=="." | "`e(vce)'"=="") ereturn local vce = "`vcetype'" // +-+-
 	Assert inlist("`e(vcetype)'", "", "Robust", "Jackknife", "Bootstrap")
-	
-	* Clear results that are wrong
-	ereturn local ll
-	ereturn local ll_0
 
 	ereturn scalar N_hdfe = `N_hdfe'
 	if ("`N_avge'"!="") ereturn scalar N_avge = `N_avge'
@@ -631,10 +627,15 @@ else {
 	}
 
 	Assert e(df_r)<. , msg("e(df_r) is missing")
-	ereturn scalar r2_within = 1 - e(rss) / e(tss)
+	ereturn `hidden' scalar tss_within = e(tss)
 	ereturn scalar tss = `tss'
+
+	ereturn scalar ll   = -0.5 * (e(N)*ln(2*_pi) + e(N)*ln(e(rss)       /e(N)) + e(N))
+	ereturn scalar ll_0 = -0.5 * (e(N)*ln(2*_pi) + e(N)*ln(e(tss_within)/e(N)) + e(N))
+
+	ereturn scalar r2 = 1 - e(rss) / e(tss)
+	ereturn scalar r2_within = 1 - e(rss) / e(tss_within)
 	ereturn scalar mss = e(tss) - e(rss)
-	ereturn scalar r2 = 1 - e(rss) / `tss'
 
 	* ivreg2 uses e(r2c) and e(r2u) for centered/uncetered R2; overwrite first and discard second
 	if (e(r2c)!=.) {
@@ -642,7 +643,7 @@ else {
 		ereturn scalar r2u = .
 	}
 
-	* Computing Adj R2 with custered SEs is tricky because it doesn't use the adjusted inputs:
+	* Computing Adj R2 with clustered SEs is tricky because it doesn't use the adjusted inputs:
 	* 1) It uses N instead of N_clust
 	* 2) For the DoFs, it uses N - Parameters instead of N_clust-1
 	* 3) Further, to compute the parameters, it includes those nested within clusters
@@ -653,9 +654,10 @@ else {
 
 	if ("`model'"=="ols" & `num_clusters'>0) Assert e(unclustered_df_r)<., msg("wtf-`vcesuite'")
 	local used_df_r = cond(e(unclustered_df_r)<., e(unclustered_df_r), e(df_r)) - `M_due_to_nested'
-	ereturn scalar r2_a = 1 - (e(rss)/`used_df_r') / (`tss' / (e(N)-1) )
-
+	ereturn scalar r2_a = 1 - (e(rss)/`used_df_r') / ( e(tss) / (e(N)-1) )
 	ereturn scalar rmse = sqrt( e(rss) / `used_df_r' )
+
+	ereturn scalar r2_a_within = 1 - (e(rss)/`used_df_r') / ( e(tss_within) / (`used_df_r'+e(df_m)) )
 
 	if (e(N_clust)<.) Assert e(df_r) == e(N_clust) - 1, msg("Error, `wrapper' should have made sure that N_clust-1==df_r")
 	*if (e(N_clust)<.) ereturn scalar df_r = e(N_clust) - 1

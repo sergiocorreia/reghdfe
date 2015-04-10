@@ -29,7 +29,7 @@ noi cscript "reghdfe with unadjusted/ols VCV" adofile reghdfe
 	tsset turn t
 	drop if missing(rep)
 	
-	local included_e scalar: N rmse tss rss r2 r2_a F df_r df_m F_absorb ///
+	local included_e scalar: N rmse tss rss r2 r2_a F df_r df_m F_absorb ll ll_0 ///
 		matrix: trim_b trim_V ///
 		macros: wexp wtype
 

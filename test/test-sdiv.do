@@ -37,13 +37,32 @@ cls
 	compress
 	tsset id t
 
+	* Fixed Effects
 	bys id: gen fe1 = rnormal()
 	bys id: replace fe1 = fe1[1]
 
 	bys t: gen fe2 = rnormal()
 	bys t: replace fe2 = fe2[1]
 
-	tsset 
+	* True model:
+	* 1) One first stage
+	* 2) Dynamic second stage
+
+	gen double u = rnormal()
+	gen double v = rnormal()
+	gen double latent = rnormal()
+
+	gen double iv = rnormal() + latent
+	gen double z  = rnormal() + 0.4 * F.iv + 1.2 * iv + 0.8 * L.iv ///
+		+ u + 0.2*L.u + 0.1*L2.u + 0.05*L3.u + 0.05*L4.u
+
+	gen double x = rnormal() + 0.5 * latent
+	gen double y = 10 + x ///
+		+ z + 0.9*L.z + 0.8*L2.z + 0.7*L3.z + 0.6*L4.z + 0.5*L5.z + 0.4*L6.z + 0.3*L7.z + 0.2*L8.z + 0.1*L9.z ///
+		+ u + 0.3*L.u + 0.2*L2.u + 0.1*L3.u
+
+
+
 
 	foreach var in `exogvars' `instruments' error1 error2 {
 		gen double `var' = rnormal()

@@ -54,7 +54,7 @@ cscript "reghdfe with clusters" adofile reghdfe
 	
 	* 3. Compare
 	storedresults compare benchmark e(), tol(1e-12) include( ///
-		scalar: N rmse tss rss r2 r2_a F df_r df_m /// F_absorb 
+		scalar: N rmse tss rss r2 r2_a F df_r df_m ll ll_0 /// F_absorb 
 		matrix: trim_b trim_V ///
 		macros: wexp wtype )
 	storedresults drop benchmark
@@ -84,7 +84,7 @@ cscript "reghdfe with clusters" adofile reghdfe
 	
 	* 3. Compare
 	storedresults compare benchmark e(), tol(1e-12) include( ///
-		scalar: N rmse tss rss r2 r2_a F df_r df_m /// F_absorb 
+		scalar: N rmse tss rss r2 r2_a F df_r df_m ll ll_0 /// F_absorb 
 		matrix: trim_b trim_V ///
 		macros: wexp wtype )
 	storedresults drop benchmark

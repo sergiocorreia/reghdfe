@@ -26,7 +26,7 @@ d KW: within
 d
 d Requires: Stata version 11.2
 d
-d Distribution-Date: 20150407
+d Distribution-Date: 20150409
 d
 
 f hdfe.ado

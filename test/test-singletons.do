@@ -30,7 +30,7 @@ cscript "reghdfe with singletons" adofile reghdfe
 	drop if missing(rep)
 
 	local excluded 	macro: cmdline corr1 corr2 corr3 corr4 prettynames ///
-					scalar: N df_a K1 K2 M2 r2 r2_a tss mss _cons mobility F_absorb ///
+					scalar: N df_a K1 K2 M2 r2 r2_a tss mss _cons mobility F_absorb ll ll_0 ///
 					matrix: b V
 	* Note that R2-within shouldn't change; also we don't compare -b- instead we compare trim_b
 

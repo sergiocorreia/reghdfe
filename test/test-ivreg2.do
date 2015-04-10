@@ -56,7 +56,7 @@ noi cscript "reghdfe comparison with ivreg2" adofile reghdfe
 	* - tss: ivreg2 doesn't set it
 	* - F df_a df_m -> Because ivreg2 doesn't absorb the FEs
 	storedresults compare benchmark e(), tol(1e-8) include( ///
-		scalar: N rmse rss mss r2 r2_a df_r ///
+		scalar: N rmse rss mss r2 r2_a df_r ll ///
 		matrix: trim_b trim_V ///
 		macros: wexp wtype )
 	storedresults drop benchmark
