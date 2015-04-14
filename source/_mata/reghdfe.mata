@@ -624,6 +624,11 @@ void function make_residual(
 
 			(*Zs[g]) = (*Zs[g]) + (*Deltas[g])
 			ZZZ = ZZZ + transform(*Deltas[g], g, 0)
+
+			if (VERBOSE==5) {
+				g
+				(*Zs[g])
+			}
 		}
 		
 		if (VERBOSE>1) timer_off(40)
@@ -692,6 +697,7 @@ void function make_residual(
 
 		if (VERBOSE>=2 & VERBOSE<=3 & mod(iter,99)==0) printf("%9.1f\n", update_error/tolerance)
 		if (VERBOSE>=4) printf("%12.7e %1.0f \n", update_error, accelerate_candidate + accelerate_candidate*(acceleration_countdown==pause_length) ) // 0=Normal 1=Accel 2=BadAccel
+
 		
 		if ( (accelerated==0) & (update_error<tolerance) ) {
 			converged = 1

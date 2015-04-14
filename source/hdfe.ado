@@ -33,9 +33,11 @@ program define hdfe, rclass
 		[SAMPLE(name)] ///
 		[GENerate(name)] [CLEAR] ///
 		[CLUSTERVARs(string) Verbose(integer 0) TOLerance(real 1e-7) MAXITerations(integer 10000)] ///
-		[*]
+		[noACCELerate*]
 
 	Assert ("`generate'"!="") + ("`clear'"!="") == 1 , msg("hdfe error: you need to specify one and only one of the following options: clear generate(...)")
+
+	if ("`accelerate'"!="") local options `options' accelerate(0) // Deal with noACCELerate
 
 
 	* Check that intersection(partial,varlist) = Null

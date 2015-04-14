@@ -108,7 +108,7 @@ Used with the {opt g:enerate} option.{p_end}
 {synopt: {opth cores(#)}}will run the demeaning algorithm in # parallel instances.{p_end}
 {synopt :{opt v:erbose(#)}}amount of debugging information to show (0=None, 1=Some, 2=More, 3=Parsing/convergence details, 4=Every iteration){p_end}
 {synopt :{opth maxit:erations(#)}}specify maximum number of iterations; default is {cmd:maxiterations(1000)}; 0 means run forever until convergence{p_end}
-{synopt :{it:maximize_options}}there are several advanced maximization options, useful for tweaking the iteration. See the {help reghdfe##maximize_options:help for reghdfe} for details.{p_end}
+{synopt :{it:maximize_options}}there are several advanced maximization options, useful for tweaking the iteration. See the {help reghdfe##opt_maximization:help for reghdfe} for details.{p_end}
 {synopt :{opt version:}}reports the version number and date of hdfe, and saves it in e(version). standalone option{p_end}
 
 {marker recovering}{...}
