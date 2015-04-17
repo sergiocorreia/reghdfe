@@ -1,4 +1,4 @@
-*! reghdfe 2.1.31 14apr2015
+*! reghdfe 2.1.41 17apr2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 // -------------------------------------------------------------
@@ -869,7 +869,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "2.1.31 14apr2015"
+    local version "2.1.41 17apr2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2166,116 +2166,89 @@ syntax, num_absvars(integer)
 end
 
 
-//------------------------------------------------------------------------------
-// Expand Factor Variables, interactions, and time-series vars
-//------------------------------------------------------------------------------
-// This basically wraps -fvrevar-, adds labels, and drops omitted/base
+// -------------------------------------------------------------------------------------------------
+// Expand factor time-series variables
+// -------------------------------------------------------------------------------------------------
+* Steps:
+* 1) Call -fvrevar-
+* 2) Label newly generated temporary variables
+* 3) Drop i) omitted variables, and ii) base variables (if not part of a #c.var interaction)
 
 program define ExpandFactorVariables, rclass
 syntax varlist(min=1 numeric fv ts) [if] [,setname(string)] [CACHE]
-
-	local expanded_msg `"" - variable expansion for `setname': " as result "`varlist'" as text " ->""'
-
-	* It's (usually) a waste to add base and omitted categories
-	* EG: if we use i.foreign#i.rep78 , several categories will be redundant, seen as e.g. "0b.foreign" in -char list-
-	* We'll also exclude base categories that don't have the "bn" option (to have no base)
-
-	* However, if there is a cont. interaction, then we DO want the base categories!
-
-	* Loop for each var and then expand them into i.var -> 1.var.. and loop
-	* Why two loops? B/c I want to save each var expansion to allow for a cache
-
+	
+	* If saving the data for later regressions -savecache(..)- we will need to match each expansion to its newvars
+	* This mata array is used for that
+	* Note: This explains why we need to wrap -fvrevar- in a loop
 	if ("`cache'"!="") mata: varlist_cache = asarray_create()
 
-	local newvarlist
-	* I can't do a simple foreach!
-	* Because a factor expression could be io(3 4).rep78
-	* and foreach would split the parens in half
+	* Building the debug message may be slow, only do it if requested with verbose
+	cap mata: st_local("VERBOSE",strofreal(VERBOSE))
+	if ("`VERBOSE'"=="") local VERBOSE 3
+
+	local expanded_msg `"" - variable expansion for `setname': " as result "`varlist'" as text " ->""'
 	while (1) {
-	gettoken fvvar varlist : varlist, bind
-	if ("`fvvar'"=="") continue, break
+		gettoken factorvar varlist : varlist, bind
+		if ("`factorvar'"=="") continue, break
 
-		fvrevar `fvvar' `if' // , stub(__V__) // stub doesn't work in 11.2
+		fvrevar `factorvar' `if' // , stub(__V__) // stub doesn't work in Stata 11.2
 		local contents
-
 		foreach var of varlist `r(varlist)' {
-			
-			* Get readable varname
-			local fvchar : char `var'[fvrevar]
-			local tschar : char `var'[tsrevar]
-			local name `fvchar'`tschar'
-			local color input
-			if ("`name'"=="") {
-				local name `var'
-				local color result
+			LabelRenameVariable `var' // Tempvars not renamed will be dropped automatically
+			if !r(is_dropped) local contents `contents' `r(varname)'
+			* Yellow=Already existed, White=Created, Red=NotCreated (omitted or base)
+			local color = cond(r(is_dropped), "error", cond(r(is_newvar), "input", "result"))
+			if (`VERBOSE'>3) {
+				local expanded_msg `"`expanded_msg' as `color' " `r(name)'" as text " (`r(varname)')""'
 			}
-			char `var'[name] `name'
-			la var `var' "[Tempvar] `name'"
-
-			* See if the factor can be dropped safely
-			if (substr("`var'", 1, 2)=="__") {
-				local color result
-				local parts : subinstr local fvchar "#" " ", all
-				local continteraction = strpos("`fvchar'", "c.")>0
-				foreach part of local parts {
-					*di as error "part=<`part'> cont=`continteraction' all=<`fvchar'>"
-					* "^[0-9]+b\." -> "b.*\."
-					if (regexm("`part'", "b.*\.") & !`continteraction') | regexm("`part'", "o.*\.") {
-						local color error	
-					}
-				}
-				if ("`color'"=="error") {
-					local color result
-				}
-
-
-				* Need to rename it, or else it gets dropped since its a tempvar
-				if ("`color'"!="error") {
-					local newvarbase : subinstr local name "." "__", all // pray that no variable has three _
-					local newvarbase : subinstr local newvarbase "#" "_X_", all // idem
-					local newvarbase : permname __`newvarbase', length(30)
-
-					* In what cases will just using newvarbase fail???
-					local i // Empty
-					while (1) {
-						local newvar "`newvarbase'`i'"
-					
-						if ("`i'"=="") {
-							local i 1
-						}
-						else {
-							local ++i
-						}
-
-						Assert `i'<1000, msg("Couldn't create tempvar for `var' (`name')")
-						cap conf new var `newvar', exact
-						if _rc==0 {
-							continue, break
-						}
-					}
-
-					rename `var' `newvar'
-					local var `newvar'
-				}
-			}
-
-			* Save contents of the expansion for optional -cache-			
-			if ("`color'"!="error") {
-				local contents `contents' `var'
-			}
-			
-			* Set debug message
-			local expanded_msg `"`expanded_msg' as `color' " `name'" as text " (`var')""'
 		}
-
+		Assert "`contents'"!="", msg("error: variable -`fvvar'- in varlist -`varlist'- in category -`setname'- is  empty after factor/time expansion")
 		if ("`cache'"!="") mata: asarray(varlist_cache, "`fvvar'", "`contents'")
-		Assert "`contents'"!="", msg("error: variable -`fvvar'- in varlist -`varlist'- in category -`setname'- is  empty after factor expansion")
 		local newvarlist `newvarlist' `contents'
 	}
 
-	* Yellow=Already existed, White=Created, Red=NotCreated (omitted or base)
 	Debug, level(3) msg(`expanded_msg')
+	return clear
 	return local varlist "`newvarlist'"
+end
+
+program define LabelRenameVariable, rclass
+syntax varname
+	local var `varlist'
+	local fvchar : char `var'[fvrevar]
+	local tschar : char `var'[tsrevar]
+	local is_newvar = ("`fvchar'`tschar'"!="") & substr("`var'", 1, 2)=="__"
+	local name "`var'"
+	local will_drop 0
+
+	if (`is_newvar') {
+		local name "`fvchar'`tschar'"
+		local parts : subinstr local fvchar "#" " ", all
+		local has_cont_interaction = strpos("`fvchar'", "c.")>0
+		local is_omitted 0
+		local is_base 0
+		foreach part of local parts {
+			if (regexm("`part'", "b.*\.")) local is_base 1
+			if (regexm("`part'", "o.*\.")) local is_omitted 1
+		}
+
+		local will_drop = (`is_omitted') | (`is_base' & !`has_cont_interaction')
+		if (!`will_drop') {
+			char `var'[name] `name'
+			la var `var' "[Tempvar] `name'"
+			local newvar : subinstr local name "." "__", all
+			local newvar : subinstr local newvar "#" "_X_", all
+			* -permname- selects newname# if newname is taken (# is the first number available)
+			local newvar : permname __`newvar', length(30)
+			rename `var' `newvar'
+			local var `newvar'
+		}
+	}
+
+	return scalar is_newvar = `is_newvar'
+	return scalar is_dropped = `will_drop'
+	return local varname "`var'"
+	return local name "`name'"
 end
 
 
