@@ -1,8 +1,0 @@
-Several possibilities:
-1) Rewrite in threaded C and use as a plugin
-2) Change the acceleration method (e.g. use some new type of Kaczmarz)
-3) Instead of iterating in cycles (i.e. update one FE after another and so on), notice that
-- Picking random FEs to iterate/accelerate may be more efficient
-- Focusing on the GROUPS/INDIVIDUALS THAT ARE KEY NODES IN THE UNDERLYING NETWORK. AND ACCELERATING THEM MORE,
-will be very efficient b/c most of the speed problems with the iteration occur with networks that are not very dense
-(This problem was also mentioned by S. Gaure, P. Guimaraes, etc.)

@@ -627,7 +627,9 @@ void function make_residual(
 
 			if (VERBOSE==5) {
 				g
-				(*Zs[g])
+				(*Deltas[g]) // transform(transform(ZZZ,0,1), 1, g) - (*Zs[g])
+				transform(transform(*Deltas[g],g,0),0,1)
+				// 	(*Zs[g])
 			}
 		}
 		
@@ -637,7 +639,7 @@ void function make_residual(
 		// Also: "when numerically computing the sequence.. stop..  when rounding errors become too 
 		// important in the denominator, where the ^2 operation may cancel too many significant digits"
 
-		// Sometimes the iteration gets "stuck"; can we unstuck it with adding randomness in the accelerate decision?
+ 		// Sometimes the iteration gets "stuck"; can we unstuck it with adding randomness in the accelerate decision?
 		// There should be better ways too..
 		
 		if (accelerate_candidate) {
