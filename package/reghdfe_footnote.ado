@@ -14,7 +14,7 @@ if ("`e(model)'"=="ols" & inlist("`e(vce)'", "unadjusted", "ols")) {
 
 	* This is messy b/c when displaying AvgE(..) we might go beyond 12 chars
 	local vars : colnames e(b)
-	local skip1 = e(width)
+	local skip1 = max(e(width), 12)
 
 	foreach var of local vars {
 		local skip1 = max(`skip1', length("`var'"))
@@ -71,7 +71,7 @@ else {
 
 * Show category data
 di as text
-di as text "Absorbed degrees of freedom"
+di as text "Absorbed degrees of freedom:"
 di as text "{hline `WX'}{c TT}{hline 49}{c TT}{hline 14}"
 di as text %`skip1's "Absorbed FE" " {c |}" ///
 	%13s "Num. Coefs." ///
