@@ -46,6 +46,7 @@ end
 include "_common/Assert.ado"
 include "_common/Debug.ado"
 include "_common/Version.ado"
+include "_common/SortPreserve.ado"
 
 include "_mata/fix_psd.mata"
 
