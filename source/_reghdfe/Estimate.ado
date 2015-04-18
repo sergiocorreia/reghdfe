@@ -99,7 +99,7 @@ else {
 	if ("`over'"!="" & `savingcache') qui levelsof `over', local(over_levels)
 
 * 8) Fill Mata structures, create FE identifiers, avge vars and clustervars if needed
-	Precompute, keep(`uid' `expandedvars' `tsvars') depvar("`depvar'") `excludeself' tsvars(`tsvars') over(`over')
+	Precompute, keep(`uid' `expandedvars' `tsvars') depvar("`depvar'") `excludeself' tsvars(`tsvars') over(`over') dofadjustments(`dofadjustments')
 	Debug, level(2) msg("(dataset compacted: observations " as result "`RAW_N' -> `c(N)'" as text " ; variables " as result "`RAW_K' -> `c(k)'" as text ")")
 	local avgevars = cond("`avge'"=="", "", "__W*__")
 	local vars `expandedvars' `avgevars'

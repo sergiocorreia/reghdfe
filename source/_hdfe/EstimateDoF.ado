@@ -102,29 +102,26 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 
 	local M_due_to_nested 0 // Redundant DoFs due to nesting within clusters
 	if (`N_clustervars'>0) {
-		mata: st_local("clustervars", invtokens(clustervars))
+
+		forval i = 1/`N_clustervars' {
+			mata: st_local("clustervar", clustervars[`i'])
+			mata: st_local("clustervar_original", clustervars_original[`i'])
+			local `clustervar'_original `clustervar_original'
+		}
+
 		forv g=1/`G' {
 			mata: fe2local(`g')
 			local gg = `g' - `is_mock'
-			local absvar_in_clustervar 0 // 1 if absvar is nested in a clustervar
-			
-			* Trick: if the absvar is also a clustervar, then its name will be __FE*__
-			local absvar_is_clustervar : list varname in clustervars
+
+			local absvar_is_clustervar : char __FE`gg'__[is_clustervar]
+			local absvar_in_clustervar : char __FE`gg'__[in_clustervar]
+			local nesting_clustervar : char __FE`gg'__[nesting_clustervar]
+
 			if (`adj_clusters' & `absvar_is_clustervar') {
 				Debug, level(1) msg("(categorical variable " as result "`varlabel'"as text " is also a cluster variable, so it doesn't count towards DoF)")
 			}
-			else if (`adj_clusters') {
-				forval i = 1/`N_clustervars' {
-					mata: st_local("clustervar", clustervars[`i'])
-					mata: st_local("clustervar_original", clustervars_original[`i'])
-					cap _xtreg_chk_cl2 `clustervar' __FE`gg'__
-					assert inlist(_rc, 0, 498)
-					if (!_rc) {
-						Debug, level(1) msg("(categorical variable " as result "`varlabel'" as text " is nested within cluster variable " as result "`clustervar_original'" as text ", so it doesn't count towards DoF)")
-						local absvar_in_clustervar 1
-						continue, break
-					}
-				}
+			if (`adj_clusters' & `absvar_in_clustervar') {
+				Debug, level(1) msg("(categorical variable " as result "`varlabel'" as text " is nested within cluster variable " as result "``clustervar'_original'" as text ", so it doesn't count towards DoF)")
 			}
 
 			if (`absvar_is_clustervar') local drop`g' 0

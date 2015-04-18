@@ -112,7 +112,7 @@ cap noi {
 * Construct Mata objects and auxiliary variables
 	Precompute, ///
 		keep(`varlist' `partial' `clustervars' `weightvar' `panelvar' `timevar' `uid') ///
-		tsvars(`panelvar' `timevar')
+		tsvars(`panelvar' `timevar') dofadjustments(pairwise clusters continuous)
 	
 * Compute e(df_a)
 	EstimateDoF, dofadjustments(pairwise clusters continuous)
@@ -207,6 +207,7 @@ end
 include "_common/Assert.ado"
 include "_common/Debug.ado"
 include "_common/Version.ado"
+include "_common/SortPreserve.ado"
 
 include "_hdfe/ConnectedGroups.ado"
 include "_hdfe/GenerateID.ado"

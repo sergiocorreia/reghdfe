@@ -1,7 +1,7 @@
 cap pr drop Precompute
 program define Precompute, rclass
 	CheckCorrectOrder precompute
-	syntax, KEEPvars(varlist) [DEPVAR(varname numeric) EXCLUDESELF] [TSVARS(varlist)] [OVER(varname numeric)]
+	syntax, KEEPvars(varlist) [DEPVAR(varname numeric) EXCLUDESELF] [TSVARS(varlist)] [OVER(varname numeric)] [DOFadjustments(string)]
 
 **** AVGE PART ****
 mata: st_local("N_avge", strofreal(avge_num))
@@ -89,6 +89,8 @@ if (`N_avge'>0) {
 	* Will replace the varname except if i) is interaction so we can't, and ii) it's not interaction but the ivar is the cvar of something else
 	* Also, if its in keepvars we can't replace it
 
+	if (strpos("`dofadjustments'","cluster")) local nested nested
+
 	forv g=1/`G' {
 		mata: fe2local(`g')
 		if (`is_mock') continue
@@ -99,13 +101,9 @@ if (`N_avge'>0) {
 
 		local in_keepvars 0
 		if (`num_ivars'==1) local in_keepvars : list ivars in keepvars
-
-		if (`num_ivars'>1 | `is_cvar' | `in_keepvars' | `is_over') {
-			GenerateID `ivars',  gen(__FE`g'__)
-		}
-		else {
-			GenerateID `ivars' , replace
-			rename `ivars' __FE`g'__
+		GenerateID `ivars',  gen(__FE`g'__) clustervars(`clustervars') `nested'
+		if (`num_ivars'==1 & !`is_cvar' & !`in_keepvars' & !`is_over') {
+			drop `ivars'
 		}
 
 		qui su __FE`g'__, mean
