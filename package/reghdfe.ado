@@ -1,4 +1,4 @@
-*! reghdfe 2.1.44 17apr2015
+*! reghdfe 2.1.45 18apr2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 // -------------------------------------------------------------
@@ -869,7 +869,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "2.1.44 17apr2015"
+    local version "2.1.45 18apr2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -886,6 +886,11 @@ program define Version, eclass
     	}
     }
 
+end
+
+program define SortPreserve, sortpreserve
+	_on_colon_parse `0'
+	`s(after)'
 end
 
 
@@ -1017,7 +1022,7 @@ else {
 	if ("`over'"!="" & `savingcache') qui levelsof `over', local(over_levels)
 
 * 8) Fill Mata structures, create FE identifiers, avge vars and clustervars if needed
-	Precompute, keep(`uid' `expandedvars' `tsvars') depvar("`depvar'") `excludeself' tsvars(`tsvars') over(`over')
+	Precompute, keep(`uid' `expandedvars' `tsvars') depvar("`depvar'") `excludeself' tsvars(`tsvars') over(`over') dofadjustments(`dofadjustments')
 	Debug, level(2) msg("(dataset compacted: observations " as result "`RAW_N' -> `c(N)'" as text " ; variables " as result "`RAW_K' -> `c(k)'" as text ")")
 	local avgevars = cond("`avge'"=="", "", "__W*__")
 	local vars `expandedvars' `avgevars'
@@ -3294,10 +3299,9 @@ end
 // -------------------------------------------------------------
 
 program define GenerateID, sortpreserve
-syntax varlist(numeric) , [REPLACE Generate(name)]
+syntax varlist(numeric) , [REPLACE Generate(name)] [CLUSTERVARS(namelist) NESTED]
+assert ("`replace'"!="") + ("`generate'"!="") == 1
 
-	assert ("`replace'"!="") + ("`generate'"!="") == 1
-	// replace XOR generate, could also use -opts_exclusive -
 	foreach var of varlist `varlist' {
 		assert !missing(`var')
 	}
@@ -3317,15 +3321,61 @@ syntax varlist(numeric) , [REPLACE Generate(name)]
 	char `new_id'[name] `name'
 	la var `new_id' "[ID] `name'"
 
+	// Could use these chars to speed up DropSingletons	and Wrapper_mwc
+	*char `new_id'[obs] `c(N)' 
+	*char `new_id'[id] 1 
+
 	// Either replace or generate
 	if ("`replace'"!="") {
 		drop `varlist'
 		rename `new_id' `varlist'
+		local new_id `varlist' // I need to keep track of the variable for the clustervar part
 	}
 	else {
 		rename `new_id' `generate'
+		local new_id `generate'
 	}
 
+	// See if var. is nested within a clustervar
+	local in_clustervar 0
+	local is_clustervar 0
+
+	if ("`clustervars'"!="") {
+		
+		* Check if clustervar===ID
+		foreach clustervar of local clustervars {
+			if ("`new_id'"=="`clustervar'") {
+				local is_clustervar 1
+				local nesting_clustervar "`clustervar'"
+				continue, break
+			}
+		}
+		
+		* Check if ID is nested within cluster ("if two obs. belong to the same ID, they belong to the same cluster")
+		if (!`is_clustervar' & "`nested'"!="") {
+			tempvar same
+			qui gen byte `same' = .
+			foreach clustervar of local clustervars {
+
+				* Avoid check if clustervar is another absvar
+				* Reason: it would be stupid to have one absvar nested in another (same result as dropping nesting one)
+				local clustervar_is_absvar = regexm("`clustervar'","__FE[0-9]+__")
+				if (`clustervar_is_absvar') continue
+
+				qui bys `new_id' (`clustervar'): replace `same' = (`clustervar'[1] == `clustervar'[_N])
+				qui cou if (`same'==0)
+				if r(N)==0 {
+					local in_clustervar 1
+					local nesting_clustervar "`clustervar'"
+					continue, break
+				}
+			}
+		}
+	}
+
+	char `new_id'[is_clustervar] `is_clustervar'
+	char `new_id'[in_clustervar] `in_clustervar'
+	char `new_id'[nesting_clustervar] `nesting_clustervar' 
 end
 
 
@@ -3490,29 +3540,26 @@ syntax, [DOFadjustments(string) group(name) uid(varname) groupdta(string)]
 
 	local M_due_to_nested 0 // Redundant DoFs due to nesting within clusters
 	if (`N_clustervars'>0) {
-		mata: st_local("clustervars", invtokens(clustervars))
+
+		forval i = 1/`N_clustervars' {
+			mata: st_local("clustervar", clustervars[`i'])
+			mata: st_local("clustervar_original", clustervars_original[`i'])
+			local `clustervar'_original `clustervar_original'
+		}
+
 		forv g=1/`G' {
 			mata: fe2local(`g')
 			local gg = `g' - `is_mock'
-			local absvar_in_clustervar 0 // 1 if absvar is nested in a clustervar
-			
-			* Trick: if the absvar is also a clustervar, then its name will be __FE*__
-			local absvar_is_clustervar : list varname in clustervars
+
+			local absvar_is_clustervar : char __FE`gg'__[is_clustervar]
+			local absvar_in_clustervar : char __FE`gg'__[in_clustervar]
+			local nesting_clustervar : char __FE`gg'__[nesting_clustervar]
+
 			if (`adj_clusters' & `absvar_is_clustervar') {
 				Debug, level(1) msg("(categorical variable " as result "`varlabel'"as text " is also a cluster variable, so it doesn't count towards DoF)")
 			}
-			else if (`adj_clusters') {
-				forval i = 1/`N_clustervars' {
-					mata: st_local("clustervar", clustervars[`i'])
-					mata: st_local("clustervar_original", clustervars_original[`i'])
-					cap _xtreg_chk_cl2 `clustervar' __FE`gg'__
-					assert inlist(_rc, 0, 498)
-					if (!_rc) {
-						Debug, level(1) msg("(categorical variable " as result "`varlabel'" as text " is nested within cluster variable " as result "`clustervar_original'" as text ", so it doesn't count towards DoF)")
-						local absvar_in_clustervar 1
-						continue, break
-					}
-				}
+			if (`adj_clusters' & `absvar_in_clustervar') {
+				Debug, level(1) msg("(categorical variable " as result "`varlabel'" as text " is nested within cluster variable " as result "``clustervar'_original'" as text ", so it doesn't count towards DoF)")
 			}
 
 			if (`absvar_is_clustervar') local drop`g' 0
@@ -3863,7 +3910,7 @@ end
 
 program define Precompute, rclass
 	CheckCorrectOrder precompute
-	syntax, KEEPvars(varlist) [DEPVAR(varname numeric) EXCLUDESELF] [TSVARS(varlist)] [OVER(varname numeric)]
+	syntax, KEEPvars(varlist) [DEPVAR(varname numeric) EXCLUDESELF] [TSVARS(varlist)] [OVER(varname numeric)] [DOFadjustments(string)]
 
 **** AVGE PART ****
 mata: st_local("N_avge", strofreal(avge_num))
@@ -3951,6 +3998,8 @@ if (`N_avge'>0) {
 	* Will replace the varname except if i) is interaction so we can't, and ii) it's not interaction but the ivar is the cvar of something else
 	* Also, if its in keepvars we can't replace it
 
+	if (strpos("`dofadjustments'","cluster")) local nested nested
+
 	forv g=1/`G' {
 		mata: fe2local(`g')
 		if (`is_mock') continue
@@ -3961,13 +4010,9 @@ if (`N_avge'>0) {
 
 		local in_keepvars 0
 		if (`num_ivars'==1) local in_keepvars : list ivars in keepvars
-
-		if (`num_ivars'>1 | `is_cvar' | `in_keepvars' | `is_over') {
-			GenerateID `ivars',  gen(__FE`g'__)
-		}
-		else {
-			GenerateID `ivars' , replace
-			rename `ivars' __FE`g'__
+		GenerateID `ivars',  gen(__FE`g'__) clustervars(`clustervars') `nested'
+		if (`num_ivars'==1 & !`is_cvar' & !`in_keepvars' & !`is_over') {
+			drop `ivars'
 		}
 
 		qui su __FE`g'__, mean
