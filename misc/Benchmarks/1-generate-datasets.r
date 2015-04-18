@@ -1,7 +1,8 @@
 library(data.table)
 K <- 100
 set.seed(1)
-for (file in c("2e6", "1e7", "1e8")){
+#for (file in c("2e6", "1e7", "1e8")){
+for (file in c("1e5")){
 	N <- as.integer(file)
 	DT <- data.table(
 	  id1 = sample(sprintf("id%03d",1:K), N, TRUE),      # large groups (char)
