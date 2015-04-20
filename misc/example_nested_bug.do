@@ -3,15 +3,15 @@ set more off
 cls
 
 * Params
-	local N 200
-	local reps 500
+	local N 100
+	local reps 100
 
 	local dtasize = max(`N', `reps')
 
 * Create dataset
 	set obs `N'
 	gen id = _n in 1/`N'
-	replace id = (id - 1) if mod(id,2)==0 & id<=100 in 1/`N'
+	replace id = (id - 1) if mod(id,2)==0 & id<=10 in 1/`N'
 	bys id: gen t = _n if id<.
 	xtset id t
 	by id: gen N = _N if id<.
@@ -20,7 +20,7 @@ cls
 	compress
 
 	* X = xtreg_fe A = areg B = xtreg_fe
-	* C=cluster O=ols R=robust B=bootstrap
+	* C=cluster O=ols R=robust B=bootstrap J=Jacknife
 	* F=Full Sample S = Small Sample
 	gen pvalue_AOF = .
 	gen pvalue_XOF = .
@@ -36,6 +36,7 @@ cls
 	gen pvalue_XCS = .
 	gen pvalue_XBF = .
 	gen pvalue_XBS = .
+	gen pvalue_XJF = .
 
 	gen y = .
 	gen x = .
@@ -117,15 +118,20 @@ forval rep = 1/`reps' {
 
 // -------------------------------------------------------------------------------------------------
 
-	* XTREG Bootstrap all obs
-	qui xtreg y x in 1/`N', fe vce(boot, reps(400))
+	*** XTREG Bootstrap all obs
+	**qui xtreg y x in 1/`N', fe vce(boot, reps(400))
+	**test x // avoids writing the formula for the pvalue
+	**replace pvalue_XBF = r(p) in `rep'
+
+	*** XTREG Bootstrap useful obs
+	**qui xtreg y x if !singleton in 1/`N', fe vce(boot, reps(400))
+	**test x // avoids writing the formula for the pvalue
+	**replace pvalue_XBS = r(p) in `rep'
+
+	* XTREG Jacknife all obs
+	qui xtreg y x in 1/`N', fe vce(jack)
 	test x // avoids writing the formula for the pvalue
 	replace pvalue_XBF = r(p) in `rep'
-
-	* XTREG Bootstrap useful obs
-	qui xtreg y x if !singleton in 1/`N', fe vce(boot, reps(400))
-	test x // avoids writing the formula for the pvalue
-	replace pvalue_XBS = r(p) in `rep'
 
 // -------------------------------------------------------------------------------------------------
 	if mod(`rep',10)==0 {
@@ -158,17 +164,19 @@ exit
 cls
 clear all
 set more off
-sysuse auto
 
-gen id = _n
-replace id = 1 if id==2
-replace id = 3 if id==4
-replace id = 5 if id==6
+sysuse auto, clear
+gen id = _n - (id<=6 & mod(id,2)==0)
+tab id
 bys id: gen t = _n
-
-
 xtset id t
-xtreg price weight length if id<=6, fe vce(cluster id)
+bys id: gen is_singleton = (_N==1)
+
+xtreg price weight length, fe vce(cluster id)
+drop if is_singleton
+xtreg price weight length, fe vce(cluster id)
+
+
 
 global vce vce(cluster id) // vce(robust) vce(cluster t)
 cap noi xtreg price weight length, fe $vce // dfadj

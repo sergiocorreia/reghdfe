@@ -1,6 +1,38 @@
 
 # Singletons and Cluster-Robust Standard Errors
 
+## Summary
+
+There is nothing to gain from including singleton groups in a regression. On the other hand, there are three reasons why excluding those observations is useful:
+
+1. When using clustered standard errors and fixed effects, including singletons with commands such as `xtreg,fe` may underestimate the standard errors and an overestimate the P-Values associated with the parameters of interest.
+This is problem is particularly problematic when running regressions with high-dimensional fixed effects (HDFE). In those cases, a large number of observations may be perfectly predicted (in-sample) just by the fixed effects. For instance, in matched CEO-Firm regressions many individuals and firms may be short-lived enough in the sample so that singletons abound.
+(TODO) If those fixed effects are nested within clusters, the degrees of freedom will not be adjusted ...
+2. Another benefit of removing singletons is that it shows the *effective* number of clusters, which helps in knowing if the cluster size is large enough for the asymptotics to kick in.
+3. Finally, excluding singletons speeds up the computation of HDFE regressions, as it reduces the number of ancilliary parameters that are estimated.
+
+### Example
+
+As an extreme but illustrative example of the first problem, consider the following regressions using the sample Stata dataset:
+
+```stata
+sysuse auto, clear
+gen id = _n
+replace id = id-1 if _n<8 & mod(id,2)==0
+bys id: gen t = _n
+xtset id t
+bys id: gen is_singleton = (_N==1)
+tab is_singleton
+
+xtreg price weight length, fe vce(cluster id)
+xtreg price weight length, fe vce(cluster id) dfadj
+drop if is_singleton
+xtreg price weight length, fe vce(cluster id)
+xtreg price weight length, fe vce(cluster id) dfadj
+```
+
+The first regression reports a P-Value of 0.007 for the *weight* regressor, while the subsequent regressions (those dropping singletons and/or subtracting the fixed effects from the degrees-of-freedom) report much higher P-Values ranging from 0.212 to 0.796.
+
 ## Singletons and Fixed-Effects
 
 Singletons are individuals that appear in only one observation. If we are using individual fixed-effects, then the fixed effect will perfectly explain the value of the dependent variable for the singleton individuals. Therefore, *singletons do not contribute any useful information when estimating the regressors of interest*.
@@ -18,6 +50,8 @@ Singleton individuals have no effect on the estimates of the coefficients, but t
 
 A simulation on an [extreme scenario](https://github.com/sergiocorreia/reghdfe/blob/master/misc/example_nested_bug.do), with 100 observations distributed between i) 90 singletons individuals, and i) 5 singleton individuals with two obs. each, showed that robust standard errors do differ slightly, but clustered standard errors diverge *massively* from their correct values, accepting the null in many cases.
 
+Extreme Scenario (v1)
+
 |   Estimator  |          Sample         |      S.E.     | % with Pvalue < 5%    | % with Pvalue < 10%   |
 |:------------:|:-----------------------:|:-------------:|:---------------------:|:---------------------:|
 | areg & xtreg | full & w/out singletons |   unadjusted  |                     % |                  4.0% |
@@ -31,11 +65,27 @@ A simulation on an [extreme scenario](https://github.com/sergiocorreia/reghdfe/b
 |     xtreg    |     w/out singletons    |   clustered   |                     % |                 14.0% |
 |     xtreg    |           full          | cl. bootstrap |                     % |                  5.0% |
 |     xtreg    |     w/out singletons    | cl. bootstrap |                     % |                 12.0% |
-Notes: Number of iterations = 100.
+Notes: Number of iterations = 100. 100 observations. 10 non-singleton observations (5 groups of 2 obs. each).
+
 
 As we can see, with clustered standard errors and including singleton observations, `areg` will over-reject and `xtreg,fe` will under-reject. On the other hand, excluding singleton observations and/or using bootstrapped standard errors will fix/ameliorate the problem.
 
-(TODO) Moderate Scenario
+(TODO) Moderate Scenario (v2)
+
+|   Estimator  |          Sample         |      S.E.     | % with Pvalue < 5%    | % with Pvalue < 10%   |
+|:------------:|:-----------------------:|:-------------:|:---------------------:|:---------------------:|
+| areg & xtreg | full & w/out singletons |   unadjusted  |                  3.5% |                 11.5% |
+|     areg     |           full          |     robust    |                  0.0% |                  2.0% |
+|     xtreg    |           full          |     robust    |                   N/A |                   N/A |
+|     areg     |     w/out singletons    |     robust    |                  4.5% |                 12.5% |
+|     xtreg    |     w/out singletons    |     robust    |                   N/A |                   N/A |
+|     areg     |           full          |   clustered   |                  0.0% |                  0.0% |
+|     xtreg    |           full          |   clustered   |                  4.5% |                 12.5% |
+|     areg     |     w/out singletons    |   clustered   |                  0.0% |                  2.0% |
+|     xtreg    |     w/out singletons    |   clustered   |                  4.5% |                 12.5% |
+|     xtreg    |           full          | cl. bootstrap |                  5.0% |                 13.0% |
+|     xtreg    |     w/out singletons    | cl. bootstrap |                  4.0% |                 13.0% |
+Notes: Number of iterations = 500. 200 observations. 100 non-singleton observations (50 groups of 2 obs. each).
 
 
 ## Why Singletons Affect The Bias of Clustered SEs
@@ -43,6 +93,7 @@ As we can see, with clustered standard errors and including singleton observatio
 (TODO)
 1. Use formulas for robust standard errors
 2. Explain how nested adjustment messes things up
+3. Mention the need for asymptotics in the number of clusters.
 
 ## References
 
