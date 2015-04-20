@@ -4,7 +4,7 @@ cls
 
 * Params
 	local N 1000
-	local reps 100
+	local reps 200
 
 	local dtasize = max(`N', `reps')
 
