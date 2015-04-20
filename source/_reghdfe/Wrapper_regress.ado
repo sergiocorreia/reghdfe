@@ -65,7 +65,10 @@ program define Wrapper_regress, eclass
 	if (`K'>0) matrix `V' = `V' * (`WrongDoF' / `CorrectDoF')
 
 	* DoF
-	if ("`vcetype'"=="cluster") Assert e(df_r) == e(N_clust) - 1
+	if ("`vcetype'"=="cluster") {
+		Assert e(df_r) == e(N_clust) - 1
+		Assert e(N_clust) > `K', msg("insufficient observations (N_clust=`e(N_clust)', K=`K')") rc(2001)
+	}
 	local df_r = cond( "`vcetype'"=="cluster" , e(df_r) , max( `CorrectDoF' , 0 ) )
 
 	capture ereturn post `b' `V' `weightexp', dep(`depvar') obs(`N') dof(`df_r') properties(b V)

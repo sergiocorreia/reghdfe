@@ -685,8 +685,7 @@ else {
 	}
 
 	// There is a big assumption here, that the number of other parameters does not increase asymptotically
-	// BUGBUG: We should allow the option to indicate what parameters do increase asympt.
-	// BUGBUG; xtreg does this: est scalar df_r = min(`df_r':=N-1-K, `df_cl') why was that?
+	// BUGBUG: We could allow the option to indicate what parameters do increase asympt.
 
 	if ("`savefirst'"!="") ereturn `hidden' scalar savefirst = `savefirst'
 
