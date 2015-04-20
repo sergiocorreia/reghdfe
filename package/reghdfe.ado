@@ -1,4 +1,4 @@
-*! reghdfe 2.1.45 18apr2015
+*! reghdfe 2.1.46 20apr2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 // -------------------------------------------------------------
@@ -869,7 +869,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "2.1.45 18apr2015"
+    local version "2.1.46 20apr2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -1608,8 +1608,7 @@ else {
 	}
 
 	// There is a big assumption here, that the number of other parameters does not increase asymptotically
-	// BUGBUG: We should allow the option to indicate what parameters do increase asympt.
-	// BUGBUG; xtreg does this: est scalar df_r = min(`df_r':=N-1-K, `df_cl') why was that?
+	// BUGBUG: We could allow the option to indicate what parameters do increase asympt.
 
 	if ("`savefirst'"!="") ereturn `hidden' scalar savefirst = `savefirst'
 
@@ -2394,7 +2393,10 @@ program define Wrapper_regress, eclass
 	if (`K'>0) matrix `V' = `V' * (`WrongDoF' / `CorrectDoF')
 
 	* DoF
-	if ("`vcetype'"=="cluster") Assert e(df_r) == e(N_clust) - 1
+	if ("`vcetype'"=="cluster") {
+		Assert e(df_r) == e(N_clust) - 1
+		Assert e(N_clust) > `K', msg("insufficient observations (N_clust=`e(N_clust)', K=`K')") rc(2001)
+	}
 	local df_r = cond( "`vcetype'"=="cluster" , e(df_r) , max( `CorrectDoF' , 0 ) )
 
 	capture ereturn post `b' `V' `weightexp', dep(`depvar') obs(`N') dof(`df_r') properties(b V)
