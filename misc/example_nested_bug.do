@@ -3,7 +3,7 @@ set more off
 cls
 
 * Params
-	local N 100
+	local N 1000
 	local reps 100
 
 	local dtasize = max(`N', `reps')
@@ -11,7 +11,7 @@ cls
 * Create dataset
 	set obs `N'
 	gen id = _n in 1/`N'
-	replace id = (id - 1) if mod(id,2)==0 & id<=10 in 1/`N'
+	replace id = (id - 1) if mod(id,2)==0 & id<=500 in 1/`N'
 	bys id: gen t = _n if id<.
 	xtset id t
 	by id: gen N = _N if id<.
