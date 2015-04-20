@@ -18,8 +18,6 @@ pages:
 - [nested_within_cluster.md, Technical Notes, Singleton Groups]
 - [author.md, Author]
 
-markdown_extensions: [mathjax]
-
 theme: readthedocs
 copyright: Copyright &copy; 2015, <a href="http://scorreia.com">Sergio Correia</a>.
 google_analytics: ['UA-56468515-1', 'mkdocs.org']
