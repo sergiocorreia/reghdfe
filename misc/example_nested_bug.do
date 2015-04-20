@@ -19,15 +19,23 @@ cls
 	gen byte singleton = N==1
 
 	* X = xtreg_fe A = areg B = xtreg_fe
-	* C=cluster O=ols B=bootstrap
+	* C=cluster O=ols R=robust B=bootstrap
 	* F=Full Sample S = Small Sample
-	gen pvalue_AO = .
-	gen pvalue_XO = .
+	gen pvalue_AOF = .
+	gen pvalue_XOF = .
+	gen pvalue_AOS = .
+	gen pvalue_XOS = .
+	gen pvalue_ARF = .
+	gen pvalue_XRF = . // --> This would be the same as clustered
+	gen pvalue_ARS = .
+	gen pvalue_XRS = . // --> This would be the same as clustered
 	gen pvalue_ACF = .
 	gen pvalue_XCF = .
 	gen pvalue_ACS = .
 	gen pvalue_XCS = .
 	gen pvalue_XBF = .
+	gen pvalue_XBS = .
+
 	gen y = .
 	gen x = .
 	gen alpha = .
@@ -37,24 +45,53 @@ cls
 
 forval rep = 1/`reps' {
 
-	* Update data	
 	replace x = rnormal() in 1/`N'
 	replace alpha = rnormal() in 1/`N'
 	by id: replace alpha = alpha[1] if id<.
 	replace e = rnormal() // can add AR/MA terms within cluster
 	replace y = alpha + 0 * x + e in 1/`N'
 
-	local vce  // Cluster by ID
+// -------------------------------------------------------------------------------------------------
 
 	* AREG OLS all obs
 	areg y x in 1/`N', absorb(id)
 	test x // avoids writing the formula for the pvalue
-	replace pvalue_AO = r(p)
+	replace pvalue_AOF = r(p)
 
 	* XTREG OLS all obs
 	xtreg y x in 1/`N', fe vce(conventional)
 	test x // avoids writing the formula for the pvalue
-	replace pvalue_XO = r(p)
+	replace pvalue_XOF = r(p)
+
+	* AREG OLS useful obs
+	areg y x if !singleton in 1/`N', absorb(id)
+	test x // avoids writing the formula for the pvalue
+	replace pvalue_AOS = r(p)
+
+	* XTREG OLS useful obs
+	xtreg y x if !singleton in 1/`N', fe vce(conventional)
+	test x // avoids writing the formula for the pvalue
+	replace pvalue_XOS = r(p)
+
+// -------------------------------------------------------------------------------------------------
+
+	* AREG ROBUST all obs
+	areg y x in 1/`N', absorb(id) robust
+	test x // avoids writing the formula for the pvalue
+	replace pvalue_ARF = r(p)
+
+	* XTREG ROBUST all obs
+	* N/A
+	
+	* AREG ROBUST useful obs
+	areg y x if !singleton in 1/`N', absorb(id) robust
+	test x // avoids writing the formula for the pvalue
+	replace pvalue_ARF = r(p)
+
+	* XTREG ROBUST useful obs
+	* N/A
+
+// -------------------------------------------------------------------------------------------------
 
 	* AREG CLUSTER all obs
 	areg y x in 1/`N', absorb(id) vce(cluster id)
@@ -76,10 +113,19 @@ forval rep = 1/`reps' {
 	test x // avoids writing the formula for the pvalue
 	replace pvalue_XCS = r(p)
 
+// -------------------------------------------------------------------------------------------------
+
 	* XTREG Bootstrap all obs
 	xtreg y x in 1/`N', fe vce(boot, reps(400))
 	test x // avoids writing the formula for the pvalue
 	replace pvalue_XBF = r(p)
+
+	* XTREG Bootstrap useful obs
+	xtreg y x if !singleton in 1/`N', fe vce(boot, reps(400))
+	test x // avoids writing the formula for the pvalue
+	replace pvalue_XBS = r(p)
+
+// -------------------------------------------------------------------------------------------------
 
 	su pvalue*, sep(2)
 }
