@@ -15,7 +15,8 @@ pages:
 - [examples.md, Examples]
 - [syntax.md, Detailed Syntax]
 - [warnings.md, Warnings]
-- [technical_notes.md, Technical Notes]
+- [technical_notes.md, Technical Notes, Index]
+- [nested_within_cluster.md, Technical Notes, Singleton Groups]
 - [author.md, Author]
 
 theme: readthedocs

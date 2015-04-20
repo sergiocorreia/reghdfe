@@ -80,7 +80,7 @@ Clustered standard errors do not include the number of fixed effects when comput
 
 ## References and Previous Discussions
 
-[Matsa's post about dealing with fixed effects](http://www.kellogg.northwestern.edu/faculty/matsa/htm/fe.htm)
+[David Matsa's post about dealing with fixed effects](http://www.kellogg.northwestern.edu/faculty/matsa/htm/fe.htm)
 	
 	"XTREG’s approach of not adjusting the degrees of freedom is appropriate
 	when the fixed effects swept away by the within-group transformation are 
@@ -109,13 +109,13 @@ Clustered standard errors do not include the number of fixed effects when comput
 	fixed effects command, should remain okay to use, since they should be 
 	programmed to use G + K in calculating the standard errors.)
 
-It is not well known that if cluster-robust standard errors are used, and cluster 
-sizes are small, then inference should be based on the within estimator standard 
-errors... Within estimation sets $c = G / (G-1) \times (N-1) / (N-K+1)$ since 
-there are only (K-1) regressors--the within model is estimated without an 
-intercept. LSDV estimation uses $c = G / (G-1) \times (N-1) / (N-G-K+1)$ since 
-the G cluster dummies are also included as regressors... Within estimation 
-leads to the correct finite-sample correction"
+	It is not well known that if cluster-robust standard errors are used, and cluster 
+	sizes are small, then inference should be based on the within estimator standard 
+	errors... Within estimation sets $c = G / (G-1) \times (N-1) / (N-K+1)$ since 
+	there are only (K-1) regressors--the within model is estimated without an 
+	intercept. LSDV estimation uses $c = G / (G-1) \times (N-1) / (N-G-K+1)$ since 
+	the G cluster dummies are also included as regressors... Within estimation 
+	leads to the correct finite-sample correction"
 
 [Mark Schaffer's Statalist post](http://www.stata.com/statalist/archive/2006-07/msg00535.html)
 
