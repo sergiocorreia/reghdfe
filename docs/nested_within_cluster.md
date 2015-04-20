@@ -18,19 +18,19 @@ Singleton individuals have no effect on the estimates of the coefficients, but t
 
 A simulation on an [extreme scenario](https://github.com/sergiocorreia/reghdfe/blob/master/misc/example_nested_bug.do), with 100 observations distributed between i) 90 singletons individuals, and i) 5 singleton individuals with two obs. each, showed that robust standard errors do differ slightly, but clustered standard errors diverge *massively* from their correct values, accepting the null in many cases.
 
-|   Estimator  |          Sample         |      S.E.     | % with Pvalue < 10%     |
-|:------------:|:-----------------------:|:-------------:|:-----------------------:|
-| areg & xtreg | full & w/out singletons |   unadjusted  |                    4.0% |
-|     areg     |           full          |     robust    |                    0.0% |
-|     xtreg    |           full          |     robust    |                     N/A |
-|     areg     |     w/out singletons    |     robust    |                   15.0% |
-|     xtreg    |     w/out singletons    |     robust    |                     N/A |
-|     areg     |           full          |   clustered   |                      0% |
-|     xtreg    |           full          |   clustered   |                   33.0% |
-|     areg     |     w/out singletons    |   clustered   |                      5% |
-|     xtreg    |     w/out singletons    |   clustered   |                   14.0% |
-|     xtreg    |           full          | cl. bootstrap |                    5.0% |
-|     xtreg    |     w/out singletons    | cl. bootstrap |                   12.0% |
+|   Estimator  |          Sample         |      S.E.     | % with Pvalue < 5%    | % with Pvalue < 10%   |
+|:------------:|:-----------------------:|:-------------:|:---------------------:|:---------------------:|
+| areg & xtreg | full & w/out singletons |   unadjusted  |                     % |                  4.0% |
+|     areg     |           full          |     robust    |                     % |                  0.0% |
+|     xtreg    |           full          |     robust    |                     A |                   N/A |
+|     areg     |     w/out singletons    |     robust    |                     % |                 15.0% |
+|     xtreg    |     w/out singletons    |     robust    |                     A |                   N/A |
+|     areg     |           full          |   clustered   |                     % |                    0% |
+|     xtreg    |           full          |   clustered   |                     % |                 33.0% |
+|     areg     |     w/out singletons    |   clustered   |                     % |                    5% |
+|     xtreg    |     w/out singletons    |   clustered   |                     % |                 14.0% |
+|     xtreg    |           full          | cl. bootstrap |                     % |                  5.0% |
+|     xtreg    |     w/out singletons    | cl. bootstrap |                     % |                 12.0% |
 Notes: Number of iterations = 100.
 
 As we can see, with clustered standard errors and including singleton observations, `areg` will over-reject and `xtreg,fe` will under-reject. On the other hand, excluding singleton observations and/or using bootstrapped standard errors will fix/ameliorate the problem.
@@ -48,7 +48,12 @@ As we can see, with clustered standard errors and including singleton observatio
 
 [Matsa's post about dealing with fixed effects](http://www.kellogg.northwestern.edu/faculty/matsa/htm/fe.htm)
 	
-	"XTREG’s approach of not adjusting the degrees of freedom is appropriate when the fixed effects swept away by the within-group transformation are nested within clusters (meaning all the observations for any given group are in the same cluster), as is commonly the case (e.g., firm fixed effects are nested within firm, industry, or state clusters). See Wooldridge (2010, Chapter 20)."
+	"XTREG’s approach of not adjusting the degrees of freedom is appropriate
+	when the fixed effects swept away by the within-group transformation are 
+	nested within clusters (meaning all the observations for any given group 
+	are in the same cluster), as is commonly the case (e.g., firm fixed 
+	effects are nested within firm, industry, or state clusters). 
+	See Wooldridge (2010, Chapter 20)."
 
 [A. Colin Cameron and Douglas L. Miller, "A Practitioner's Guide to Cluster-Robust Inference", Journal of Human Resources, forthcoming, Spring 2015](http://cameron.econ.ucdavis.edu/research/Cameron_Miller_Cluster_Robust_October152013.pdf)
 
@@ -63,7 +68,6 @@ As we can see, with clustered standard errors and including singleton observatio
 	singletons.  Explicitly excluding singletons can therefore affect the
 	SEs but will leave the coefficients unchanged
 
-	... it is
-	correct to treat singletons as non-observations, no different from
-	observations that are lost because of missing values ..."
+	... it is correct to treat singletons as non-observations, no different 
+	from observations that are lost because of missing values ..."
 

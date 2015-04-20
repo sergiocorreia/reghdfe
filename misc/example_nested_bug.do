@@ -3,15 +3,15 @@ set more off
 cls
 
 * Params
-	local N 1000
-	local reps 200
+	local N 200
+	local reps 500
 
 	local dtasize = max(`N', `reps')
 
 * Create dataset
 	set obs `N'
 	gen id = _n in 1/`N'
-	replace id = (id - 1) if mod(id,2)==0 & id<=500 in 1/`N'
+	replace id = (id - 1) if mod(id,2)==0 & id<=100 in 1/`N'
 	bys id: gen t = _n if id<.
 	xtset id t
 	by id: gen N = _N if id<.
@@ -147,6 +147,8 @@ forval rep = 1/`reps' {
 
 	su accept05*, sep(2) format
 	su accept10*, sep(2) format
+	tw (kdensity pvalue_AOF) (kdensity pvalue_XCF) (kdensity pvalue_XCS) (kdensity pvalue_XBF)
+
 	collapse (mean) accept*, fast
 
 exit
