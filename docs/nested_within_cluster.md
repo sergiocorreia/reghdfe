@@ -1,21 +1,39 @@
 
-# Singletons and Cluster-Robust Standard Errors
+# Singletons, Cluster-Robust Standard Errors and Fixed Effects: A Bad Mix
 
-## Summary
+(or why `reghdfe` will drop singletons from now on...)
 
-There is nothing to gain from including singleton groups in a regression. On the other hand, there are three reasons why excluding those observations is useful:
+Singleton groups (groups with only one observations) are increasingly common in regressions with many fixed effects, such as regressions with worker/firm/job title fixed effects that were previously unfeasible due to computational limitations [(see e.g. Carneiro *et al*, 2012)](https://www.aeaweb.org/articles.php?doi=10.1257/mac.4.2.133) . Even though some users may drop them, most are not aware that with more than one fixed effect, singletons need to be dropped iteratively, as dropping a singleton individual may induce a firm to become a singleton, and so on.
 
-1. When using clustered standard errors and fixed effects, including singletons with commands such as `xtreg,fe` may underestimate the standard errors and an overestimate the P-Values associated with the parameters of interest.
-This is problem is particularly problematic when running regressions with high-dimensional fixed effects (HDFE). In those cases, a large number of observations may be perfectly predicted (in-sample) just by the fixed effects. For instance, in matched CEO-Firm regressions many individuals and firms may be short-lived enough in the sample so that singletons abound.
-(TODO) If those fixed effects are nested within clusters, the degrees of freedom will not be adjusted ...
-2. Another benefit of removing singletons is that it shows the *effective* number of clusters, which helps in knowing if the cluster size is large enough for the asymptotics to kick in.
-3. Finally, excluding singletons speeds up the computation of HDFE regressions, as it reduces the number of ancilliary parameters that are estimated.
+Now, what are the effects of keeping singleton groups in regressions where the fixed effects are nested within groups/clusters?
 
-### Example
+1. Coefficients don't change, and under unadjusted variance estimators, standard errors are also unaffected.
+2. The finite-sample adjustments of robust variance estimators (including cluster-robust) disappear, converging to 1. The asymptotic part of the robust variance estimator (the usual "bread and meat" of the sandwich estimator) remain unaffected. Therefore, *finite-sample corrections are removed, standard errors will be underestimated, and statistical significance will be overstated*.
+3. The reported number of clusters will be overstated, potentially misleading users into believing that there are enough clusters in the regression to make accurate asymptotic inference (e.g. above 50 clusters)
+4. Estimations will run slower, as there is a larger number of ancillary parameters to estimate.
+
+## Finite-Sample Adjustments
+
+Given an estimate of the asymptotic variance of the regression estimates ($V$), $M$ clusters, $N$ observations, $M$ fixed effects (one for each cluster group), and $K$ regressors of interest, then the finite-sample correction that multiples $V$ is:
+
+$$
+q = M / (M-1) \times (N-1) / (N-K)
+$$
+
+If we add $M_S$ singleton groups, the above becomes
+$$
+q* = (M+M_S) / (M+M_S-1) \times (N+M_S-1) / (N+M_S-K)
+$$
+
+Since $q*$ converges to $1$ as $M_S$ grows, adding enough singleton observations is enough to deem the standard finite-sample corrections moot.
+
+
+## Toy Example
 
 As an extreme but illustrative example of the first problem, consider the following regressions using the sample Stata dataset:
 
 ```stata
+* Create toy data based on auto.dta
 sysuse auto, clear
 gen id = _n
 replace id = id-1 if _n<8 & mod(id,2)==0
@@ -24,6 +42,7 @@ xtset id t
 bys id: gen is_singleton = (_N==1)
 tab is_singleton
 
+* Fixed-effect regression
 xtreg price weight length, fe vce(cluster id)
 xtreg price weight length, fe vce(cluster id) dfadj
 drop if is_singleton
@@ -33,94 +52,33 @@ xtreg price weight length, fe vce(cluster id) dfadj
 
 The first regression reports a P-Value of 0.007 for the *weight* regressor, while the subsequent regressions (those dropping singletons and/or subtracting the fixed effects from the degrees-of-freedom) report much higher P-Values ranging from 0.212 to 0.796.
 
-## Singletons and Fixed-Effects
+## Extensions
 
-Singletons are individuals that appear in only one observation. If we are using individual fixed-effects, then the fixed effect will perfectly explain the value of the dependent variable for the singleton individuals. Therefore, *singletons do not contribute any useful information when estimating the regressors of interest*.
+The inclusion of singletons is part of a larger class of problems. For instance, consider the following scenario:
 
-## Computing Clustered Standard Errors
+### Zipcode-level regression of State-level data
 
-In general,
+Assume all variables are specified at the state level, but we run them at a zipcode level with $Z$ zipcodes per state. Then, the finite-sample correction becomes:
+
 $$
-V = q * {X'X}^{-1} \times (S'S) \times {X'X}^{-1}
-q = M / (M-1) \times (N-1) / (N-K-L)
-$$
-
-Where $q$ is a finite-sample adjustment, $M$ is the number of clusters, $L$ is the number of fixed effects, and $K$ is the number of other regressors excluding the constant (which is grouped with the fixed effects). Note that if the fixed effects are nested within the clusters, $L$ is excluded from $q$.
-
-Also, $X*$ is the matrix of residuals of X over the fixed effects, $S$ is the score matrix, i.e. the sum of $X* . e$ (dot product between regressors and residuals), grouped over the clustered individuals.
-
-Whenever there is a singleton group and the fixed effect is nested within a cluster, the following happens:
-1. The corresponding row of $X*$ becomes zero as the residuals of $X$ wrt. the fixed effects are zero. 
-2. The corresponding row of S becomes a zero row-vector due to both $X*$ and the residuals being zero for that obs.
-3. Since $L$ is excluded from the denominator of $q$ (because it's nested), then that denominator does not change.
-4. Thus, the only thing that changes is $M/(M-1)$ and $N$
-
-In summary, results 1 and 2 mean that both the *bread* and the *meat* of the variance remain unchanged when adding singletons. Thus, only the $q$ (the *wooden stick* of the burger), changes.
-
-A natural solution to the formula would be to remove the singleton clusters from $M$. Calling those $M_S$, then:
-$$
-q* = (M-M_S) / (M-M_S-1) \times (N-M_S-1) / (N-M_S-K-L*)
+q* = (M \times Z) / (M \times Z-1) \times (N \times Z-1) / (N \times Z-K)
 $$
 
-(Where $L*$ represents the degrees of freedom not absorbed by the clusters, if any).
+Which again converges to 1 and is rendered useless as $Z$ increases.
 
-We also see that S gives us bounds to the size of the bias in the S.E.s. For instance, if (excluding singletons) M=10, N=20, K=1, M_S=10, then
-q=1.09, while q*=1.1728, so standard errors should be 3.7% higher than reported.
+A milder but more common version of this extreme scenario occurs whenever there is little variation between zipcodes or counties of the same state, and the regression is clustered by state and contains either state or zipcode fixed effects.
 
-TODO: Recheck what assumptions are needed for always excluding L from q!
+## Solutions
 
-## How Singletons Affect the Bias of Clustered SEs
+The singleton problem can be easily dealt with by either removing singleton groups, or substracting them from the number of clusters $M$ and observations $N$.
 
-Singleton individuals have no effect on the estimates of the coefficients, but they *do* affect the estimates of the standard errors (and thus those of the pvalues).
+The broader problem is an open question.
 
-A simulation on an [extreme scenario](https://github.com/sergiocorreia/reghdfe/blob/master/misc/example_nested_bug.do), with 100 observations distributed between i) 90 singletons individuals, and i) 5 singleton individuals with two obs. each, showed that robust standard errors do differ slightly, but clustered standard errors diverge *massively* from their correct values, accepting the null in many cases.
+## Summary
 
-Extreme Scenario (v1)
+Clustered standard errors do not include the number of fixed effects when computing the finite-sample adjustments of the varianace estimates, as long as the fixed effects are nested within clusters. This adjustment implies that usually irrelevant specification details, such as adding singleton groups or running regressions on less coarser units, will affect variance estimates and potentially understate the significance of fixed effect models.
 
-|   Estimator  |          Sample         |      S.E.     | % with Pvalue < 5%    | % with Pvalue < 10%   |
-|:------------:|:-----------------------:|:-------------:|:---------------------:|:---------------------:|
-| areg & xtreg | full & w/out singletons |   unadjusted  |                     % |                  4.0% |
-|     areg     |           full          |     robust    |                     % |                  0.0% |
-|     xtreg    |           full          |     robust    |                     A |                   N/A |
-|     areg     |     w/out singletons    |     robust    |                     % |                 15.0% |
-|     xtreg    |     w/out singletons    |     robust    |                     A |                   N/A |
-|     areg     |           full          |   clustered   |                     % |                    0% |
-|     xtreg    |           full          |   clustered   |                     % |                 33.0% |
-|     areg     |     w/out singletons    |   clustered   |                     % |                    5% |
-|     xtreg    |     w/out singletons    |   clustered   |                     % |                 14.0% |
-|     xtreg    |           full          | cl. bootstrap |                     % |                  5.0% |
-|     xtreg    |     w/out singletons    | cl. bootstrap |                     % |                 12.0% |
-Notes: Number of iterations = 100. 100 observations. 10 non-singleton observations (5 groups of 2 obs. each).
-
-
-As we can see, with clustered standard errors and including singleton observations, `areg` will over-reject and `xtreg,fe` will under-reject. On the other hand, excluding singleton observations and/or using bootstrapped standard errors will fix/ameliorate the problem.
-
-Moderate Scenario (v2)
-
-|   Estimator  |          Sample         |      S.E.     | % with Pvalue < 5%    | % with Pvalue < 10%   |
-|:------------:|:-----------------------:|:-------------:|:---------------------:|:---------------------:|
-| areg & xtreg | full & w/out singletons |   unadjusted  |                  3.5% |                 11.5% |
-|     areg     |           full          |     robust    |                  0.0% |                  2.0% |
-|     xtreg    |           full          |     robust    |                   N/A |                   N/A |
-|     areg     |     w/out singletons    |     robust    |                  4.5% |                 12.5% |
-|     xtreg    |     w/out singletons    |     robust    |                   N/A |                   N/A |
-|     areg     |           full          |   clustered   |                  0.0% |                  0.0% |
-|     xtreg    |           full          |   clustered   |                  4.5% |                 12.5% |
-|     areg     |     w/out singletons    |   clustered   |                  0.0% |                  2.0% |
-|     xtreg    |     w/out singletons    |   clustered   |                  4.5% |                 12.5% |
-|     xtreg    |           full          | cl. bootstrap |                  5.0% |                 13.0% |
-|     xtreg    |     w/out singletons    | cl. bootstrap |                  4.0% |                 13.0% |
-Notes: Number of iterations = 500. 200 observations. 100 non-singleton observations (50 groups of 2 obs. each).
-
-
-## Why Singletons Affect The Bias of Clustered SEs
-
-(TODO)
-1. Use formulas for robust standard errors
-2. Explain how nested adjustment messes things up
-3. Mention the need for asymptotics in the number of clusters.
-
-## References
+## References and Previous Discussions
 
 [Matsa's post about dealing with fixed effects](http://www.kellogg.northwestern.edu/faculty/matsa/htm/fe.htm)
 	
@@ -138,27 +96,26 @@ Notes: Number of iterations = 500. 200 observations. 100 non-singleton observati
 	c ~= G/(G-1)", though see Section IIIB for an important exception when 
 	fixed effects are directly estimated"
 
-	IIIB: "It is important to note that while LSDV and within estimation lead to identical estimates
-of $\beta$, they can yield different standard errors due to different finite sample degrees-of-freedom
-correction.
+	IIIB: "It is important to note that while LSDV and within estimation lead
+	to identical estimates of $\beta$, they can yield different standard errors
+	due to different finite sample degrees-of-freedom correction.
+	
+	It is well known that if default standard errors are used, i.e. it is assumed 
+	that $u_ig$ in (17) is i.i.d., then one can safely use standard errors after 
+	LSDV estimation as it correctly views the number of parameters as G + K rather
+	than K. If instead the within estimator is used, however, manual OLS estimation 
+	of (18) will mistakenly view the number of parameters to equal K rather than 
+	G + K. (Built-in panel estimation commands for the within estimator, i.e. a 
+	fixed effects command, should remain okay to use, since they should be 
+	programmed to use G + K in calculating the standard errors.)
 
-It is well known that if default standard errors are used, i.e. it is assumed that $u_ig$ in (17)
-is i.i.d., then one can safely use standard errors after LSDV estimation as it correctly views
-the number of parameters as G + K rather than K. If instead the within estimator is used,
-however, manual OLS estimation of (18) will mistakenly view the number of parameters to
-equal K rather than G + K. (Built-in panel estimation commands for the within estimator,
-i.e. a fixed effects command, should remain okay to use, since they should be programmed
-to use G + K in calculating the standard errors.)
-
-It is not well known that if cluster-robust standard errors are used, and cluster sizes are
-small, then inference should be based on the within estimator standard errors... Within estimation
-sets $c = G / (G-1) \times (N-1) / (N-K+1)$ since there are only (K-1) regressors--the within model is estimated
-without an intercept. LSDV estimation uses $c = G / (G-1) \times (N-1) / (N-G-K+1)$ since the G cluster dummies
-are also included as regressors... Within estimation leads to the correct finite-sample correction
-"
-
-
-
+It is not well known that if cluster-robust standard errors are used, and cluster 
+sizes are small, then inference should be based on the within estimator standard 
+errors... Within estimation sets $c = G / (G-1) \times (N-1) / (N-K+1)$ since 
+there are only (K-1) regressors--the within model is estimated without an 
+intercept. LSDV estimation uses $c = G / (G-1) \times (N-1) / (N-G-K+1)$ since 
+the G cluster dummies are also included as regressors... Within estimation 
+leads to the correct finite-sample correction"
 
 [Mark Schaffer's Statalist post](http://www.stata.com/statalist/archive/2006-07/msg00535.html)
 
@@ -176,31 +133,20 @@ are also included as regressors... Within estimation leads to the correct finite
 
 [James G. MacKinnon & Halbert White, "Some Heteroskedasticity Consistent Covariance Matrix Estimators with Improved Finite Sample Properties," Journal of Econometrics 29 (1985)](http://www.sciencedirect.com/science/article/pii/0304407685901587)
 
+	(discussion of alternative finite-sample corrections)
 
-## Finite-Sample Adjustments
+[James G. MacKinnon, 2012. "Thirty Years of Heteroskedasticity-Robust Inference," Working Papers 1268, Queen's University, Department of Economics.](https://ideas.repec.org/p/qed/wpaper/1268.html)
 
-(This follows McKinnon & White)
+	(literature review, including an extensive discussion on finite-sample corrections)
 
-Hinkley (1977) proposed HC1: $q=N/(N-1)$
-HHD (1975) proposed HC2, that replaces the meat instead: `cross(X,e:^2,X)` becomes `cross(X,e:^2 :/ (1-diag(P),X)` where $P$ is the projection matrix. This is unbiased with homoskedasticity, which is a very nice property. Note that HC1 is usually biased.
+[Gormley, Todd A. and Matsa, David A., Common Errors: How to (and Not to) Control for Unobserved Heterogeneity (August 3, 2013). Review of Financial Studies, 2014, 27(2), 617-61](http://ssrn.com/abstract=2023868)
 
-
-## Thought Experiments
-
-1. Expand the dataset, cloning each obs. by e.g. 10. In that case, both meat and bread stay unchanged
-
-```
-sysuse auto, clear
-bys turn: gen t = _n
-gen index = _n
-expand 10
-bys turn t: gen clone = _n
-egen id = group(clone turn)
-xtset id t
-xtreg price weight length if clone==1, fe vce(cluster turn)
-xtreg price weight length, fe vce(cluster turn)
-di 2.083286 * sqrt(73/739 / 71 * 737)
-```
-As we can see, the finite-sample adjustment used is imperfect and could be improved by exploiting the fact that there is no within-cluster variability in the variables. In an extreme case, you could "cheat" in any regression by changing the unit of analysis from e.g. pair of shoes to single shoes, which wouldn't change anything except the finite-sample adjustment.
-
-Can this and the singleton problems be fixed with an unbiased HC# estimator? (See McKinnon's survey)
+	"Typically, the degrees of freedom is adjusted downward (i.e., the estimated 
+	standard errors are increased) to account for the number of fixed effects 
+	removed in the within transformation. However, when estimating cluster-robust 
+	standard errors (which allows for heteroscedasticity and within-group 
+	correlations), this adjustment is not required as long as the fixed effects 
+	swept away by the within-group transformation are nested within clusters 
+	(meaning all the observations for any given group are in the same cluster), 
+	as is commonly the case (e.g., firm fixed effects are nested within firm, 
+	industry, or state clusters)."
