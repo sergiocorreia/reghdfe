@@ -56,29 +56,29 @@ forval rep = 1/`reps' {
 	* AREG OLS all obs
 	areg y x in 1/`N', absorb(id)
 	test x // avoids writing the formula for the pvalue
-	replace pvalue_AOF = r(p)
+	replace pvalue_AOF = r(p) in `rep'
 
 	* XTREG OLS all obs
 	xtreg y x in 1/`N', fe vce(conventional)
 	test x // avoids writing the formula for the pvalue
-	replace pvalue_XOF = r(p)
+	replace pvalue_XOF = r(p) in `rep'
 
 	* AREG OLS useful obs
 	areg y x if !singleton in 1/`N', absorb(id)
 	test x // avoids writing the formula for the pvalue
-	replace pvalue_AOS = r(p)
+	replace pvalue_AOS = r(p) in `rep'
 
 	* XTREG OLS useful obs
 	xtreg y x if !singleton in 1/`N', fe vce(conventional)
 	test x // avoids writing the formula for the pvalue
-	replace pvalue_XOS = r(p)
+	replace pvalue_XOS = r(p) in `rep'
 
 // -------------------------------------------------------------------------------------------------
 
 	* AREG ROBUST all obs
 	areg y x in 1/`N', absorb(id) robust
 	test x // avoids writing the formula for the pvalue
-	replace pvalue_ARF = r(p)
+	replace pvalue_ARF = r(p) in `rep'
 
 	* XTREG ROBUST all obs
 	* N/A
@@ -86,7 +86,7 @@ forval rep = 1/`reps' {
 	* AREG ROBUST useful obs
 	areg y x if !singleton in 1/`N', absorb(id) robust
 	test x // avoids writing the formula for the pvalue
-	replace pvalue_ARF = r(p)
+	replace pvalue_ARS = r(p) in `rep'
 
 	* XTREG ROBUST useful obs
 	* N/A
@@ -96,34 +96,34 @@ forval rep = 1/`reps' {
 	* AREG CLUSTER all obs
 	areg y x in 1/`N', absorb(id) vce(cluster id)
 	test x // avoids writing the formula for the pvalue
-	replace pvalue_ACF = r(p)
+	replace pvalue_ACF = r(p) in `rep'
 
 	* AREG CLUSTER useful obs
 	areg y x if !singleton in 1/`N', absorb(id) vce(cluster id)
 	test x // avoids writing the formula for the pvalue
-	replace pvalue_ACS = r(p)
+	replace pvalue_ACS = r(p) in `rep'
 
 	* XTREG CLUSTER all obs
 	xtreg y x in 1/`N', fe vce(cluster id)
 	test x // avoids writing the formula for the pvalue
-	replace pvalue_XCF = r(p)
+	replace pvalue_XCF = r(p) in `rep'
 
 	* XTREG CLUSTER useful obs
 	xtreg y x if !singleton in 1/`N', fe vce(cluster id)
 	test x // avoids writing the formula for the pvalue
-	replace pvalue_XCS = r(p)
+	replace pvalue_XCS = r(p) in `rep'
 
 // -------------------------------------------------------------------------------------------------
 
 	* XTREG Bootstrap all obs
 	xtreg y x in 1/`N', fe vce(boot, reps(400))
 	test x // avoids writing the formula for the pvalue
-	replace pvalue_XBF = r(p)
+	replace pvalue_XBF = r(p) in `rep'
 
 	* XTREG Bootstrap useful obs
 	xtreg y x if !singleton in 1/`N', fe vce(boot, reps(400))
 	test x // avoids writing the formula for the pvalue
-	replace pvalue_XBS = r(p)
+	replace pvalue_XBS = r(p) in `rep'
 
 // -------------------------------------------------------------------------------------------------
 
@@ -141,7 +141,7 @@ exit
 
 
 
-
+/*
 cls
 clear all
 set more off
@@ -168,3 +168,4 @@ exit
 
 
 cap noi xtreg price weight length, fe vce(boot, reps(500) seed(10101))
+*/
