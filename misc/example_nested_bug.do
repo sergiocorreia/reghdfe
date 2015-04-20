@@ -45,6 +45,7 @@ cls
 	set seed 12345
 
 forval rep = 1/`reps' {
+	di as text "[rep=`rep']"
 
 	replace x = rnormal() in 1/`N'
 	replace alpha = rnormal() in 1/`N'
@@ -138,12 +139,14 @@ forval rep = 1/`reps' {
 	local levels 05 10
 	foreach suffix of local suffixes {
 		foreach level of local levels {
-			gen accept`level'_`suffix' = (pvalue_`suffix' <= `level'/100)
+			gen accept`level'_`suffix' = (pvalue_`suffix' <= `level'/100) if pvalue_`suffix'<.
 		}
 	}
+	format %5.3f accept*
 	save "example_nested_bug.dta", replace
 
-	su accept*, sep(2)
+	su accept05*, sep(2) format
+	su accept10*, sep(2) format
 	collapse (mean) accept*, fast
 
 exit
