@@ -33,6 +33,8 @@ cls
 	gen alpha = .
 	gen e = .
 
+	set seed 2342352
+
 forval rep = 1/`reps' {
 
 	* Update data	
@@ -45,42 +47,43 @@ forval rep = 1/`reps' {
 	local vce  // Cluster by ID
 
 	* AREG OLS all obs
-	cap noi areg y x in 1/`N', absorb(id)
+	areg y x in 1/`N', absorb(id)
 	test x // avoids writing the formula for the pvalue
 	replace pvalue_AO = r(p)
 
 	* XTREG OLS all obs
-	cap noi xtreg y x in 1/`N', fe vce(conventional)
+	xtreg y x in 1/`N', fe vce(conventional)
 	test x // avoids writing the formula for the pvalue
 	replace pvalue_XO = r(p)
 
 	* AREG CLUSTER all obs
-	cap noi areg y x in 1/`N', absorb(id) vce(cluster id)
+	areg y x in 1/`N', absorb(id) vce(cluster id)
 	test x // avoids writing the formula for the pvalue
 	replace pvalue_ACF = r(p)
 
 	* AREG CLUSTER useful obs
-	cap noi areg y x if !singleton in 1/`N', absorb(id) vce(cluster id)
+	areg y x if !singleton in 1/`N', absorb(id) vce(cluster id)
 	test x // avoids writing the formula for the pvalue
 	replace pvalue_ACS = r(p)
 
 	* XTREG CLUSTER all obs
-	cap noi xtreg y x in 1/`N', fe vce(cluster id)
+	xtreg y x in 1/`N', fe vce(cluster id)
 	test x // avoids writing the formula for the pvalue
 	replace pvalue_XCF = r(p)
 
 	* XTREG CLUSTER useful obs
-	cap noi xtreg y x if !singleton in 1/`N', fe vce(cluster id)
+	xtreg y x if !singleton in 1/`N', fe vce(cluster id)
 	test x // avoids writing the formula for the pvalue
 	replace pvalue_XCS = r(p)
 
 	* XTREG Bootstrap all obs
-	cap noi xtreg y x in 1/`N', fe vce(boot, reps(400) seed(10101))
+	xtreg y x in 1/`N', fe vce(boot, reps(400))
 	test x // avoids writing the formula for the pvalue
 	replace pvalue_XBF = r(p)
+
+	su pvalue*, sep(2)
 }
 
-su pvalue*, sep(2)
 collapse (mean) pvalue*, fast
 save "example_nested_bug.dta", replace
 
