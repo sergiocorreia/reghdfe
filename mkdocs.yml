@@ -5,7 +5,6 @@ site_author: Sergio Correia
 
 repo_url: https://github.com/sergiocorreia/reghdfe
 
-
 pages:
 - [index.md, Home]
 - [install.md, Installation]
@@ -18,6 +17,8 @@ pages:
 - [technical_notes.md, Technical Notes, Index]
 - [nested_within_cluster.md, Technical Notes, Singleton Groups]
 - [author.md, Author]
+
+markdown_extensions: [mathjax]
 
 theme: readthedocs
 copyright: Copyright &copy; 2015, <a href="http://scorreia.com">Sergio Correia</a>.
