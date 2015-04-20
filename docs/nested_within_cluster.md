@@ -3,6 +3,8 @@
 
 (or why `reghdfe` will drop singletons from now on...)
 
+Note: [PDF version with math support available here](http://scorreia.com/reghdfe/nested_within_cluster.pdf)
+
 Singleton groups (groups with only one observations) are increasingly common in regressions with many fixed effects, such as regressions with worker/firm/job title fixed effects that were previously unfeasible due to computational limitations [(see e.g. Carneiro *et al*, 2012)](https://www.aeaweb.org/articles.php?doi=10.1257/mac.4.2.133) . Even though some users may drop them, most are not aware that with more than one fixed effect, singletons need to be dropped iteratively, as e.g. dropping a singleton individual may in turn turn the firm he worked into a singleton, and so on.
 
 Now, what are the effects of keeping singleton groups in regressions where fixed effects are nested within groups/clusters?
