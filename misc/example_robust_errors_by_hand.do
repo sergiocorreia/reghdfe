@@ -4,12 +4,22 @@ cls
 * ssc install moremata
 
 set obs 100
+set seed 23432
 gen x = rnormal()
 gen y = 10 + 2 * x + 5 * rnormal()
 gen id = (runiform()>0.8)
 replace id = sum(id)
 replace id = id+1
 tab id
+bys id: gen t = _n
+xtset id t
+
+gen index = _n
+expand 100
+bys id t: gen copy = _n
+egen id2 = group(id copy)
+xtset id2 t
+
 
 * Unadjusted S.E.
 qui regress y x
@@ -39,11 +49,14 @@ matrix list e(V), format("%12.11g")
 * (by hand)
 gen double s1 = x * resid
 gen double s2 = resid
+preserve
 collapse (sum) s1 s2, by(id)
 mata: S = st_data(., tokens("s1 s2"))
 mata: N_clust = rows(S)
 mata: N_clust
+mata: invXX * quadcross(S,S) * invXX
 mata: N_clust / (N_clust-1) * (N-1) / (N-K) * invXX * quadcross(S,S) * invXX
+restore
 
 *
 *li

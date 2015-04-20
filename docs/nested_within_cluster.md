@@ -133,6 +133,33 @@ Notes: Number of iterations = 500. 200 observations. 100 non-singleton observati
 
 [A. Colin Cameron and Douglas L. Miller, "A Practitioner's Guide to Cluster-Robust Inference", Journal of Human Resources, forthcoming, Spring 2015](http://cameron.econ.ucdavis.edu/research/Cameron_Miller_Cluster_Robust_October152013.pdf)
 
+	IIC eq. 12; "Finite-sample modifications of (11) are typically used, 
+	to reduce downwards bias in Vclu[\beta] due to finite G... In general, 
+	c ~= G/(G-1)", though see Section IIIB for an important exception when 
+	fixed effects are directly estimated"
+
+	IIIB: "It is important to note that while LSDV and within estimation lead to identical estimates
+of $\beta$, they can yield different standard errors due to different finite sample degrees-of-freedom
+correction.
+
+It is well known that if default standard errors are used, i.e. it is assumed that $u_ig$ in (17)
+is i.i.d., then one can safely use standard errors after LSDV estimation as it correctly views
+the number of parameters as G + K rather than K. If instead the within estimator is used,
+however, manual OLS estimation of (18) will mistakenly view the number of parameters to
+equal K rather than G + K. (Built-in panel estimation commands for the within estimator,
+i.e. a fixed effects command, should remain okay to use, since they should be programmed
+to use G + K in calculating the standard errors.)
+
+It is not well known that if cluster-robust standard errors are used, and cluster sizes are
+small, then inference should be based on the within estimator standard errors... Within estimation
+sets $c = G / (G-1) \times (N-1) / (N-K+1)$ since there are only (K-1) regressors--the within model is estimated
+without an intercept. LSDV estimation uses $c = G / (G-1) \times (N-1) / (N-G-K+1)$ since the G cluster dummies
+are also included as regressors... Within estimation leads to the correct finite-sample correction
+"
+
+
+
+
 [Mark Schaffer's Statalist post](http://www.stata.com/statalist/archive/2006-07/msg00535.html)
 
 	"In this panel data context, a singleton is a group in which there is
@@ -147,3 +174,33 @@ Notes: Number of iterations = 500. 200 observations. 100 non-singleton observati
 	... it is correct to treat singletons as non-observations, no different 
 	from observations that are lost because of missing values ..."
 
+[James G. MacKinnon & Halbert White, "Some Heteroskedasticity Consistent Covariance Matrix Estimators with Improved Finite Sample Properties," Journal of Econometrics 29 (1985)](http://www.sciencedirect.com/science/article/pii/0304407685901587)
+
+
+## Finite-Sample Adjustments
+
+(This follows McKinnon & White)
+
+Hinkley (1977) proposed HC1: $q=N/(N-1)$
+HHD (1975) proposed HC2, that replaces the meat instead: `cross(X,e:^2,X)` becomes `cross(X,e:^2 :/ (1-diag(P),X)` where $P$ is the projection matrix. This is unbiased with homoskedasticity, which is a very nice property. Note that HC1 is usually biased.
+
+
+## Thought Experiments
+
+1. Expand the dataset, cloning each obs. by e.g. 10. In that case, both meat and bread stay unchanged
+
+```
+sysuse auto, clear
+bys turn: gen t = _n
+gen index = _n
+expand 10
+bys turn t: gen clone = _n
+egen id = group(clone turn)
+xtset id t
+xtreg price weight length if clone==1, fe vce(cluster turn)
+xtreg price weight length, fe vce(cluster turn)
+di 2.083286 * sqrt(73/739 / 71 * 737)
+```
+As we can see, the finite-sample adjustment used is imperfect and could be improved by exploiting the fact that there is no within-cluster variability in the variables. In an extreme case, you could "cheat" in any regression by changing the unit of analysis from e.g. pair of shoes to single shoes, which wouldn't change anything except the finite-sample adjustment.
+
+Can this and the singleton problems be fixed with an unbiased HC# estimator? (See McKinnon's survey)
