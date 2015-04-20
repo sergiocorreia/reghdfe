@@ -4,7 +4,7 @@ cls
 
 * Params
 	local N 100
-	local reps 2
+	local reps 100
 
 	local dtasize = max(`N', `reps')
 
@@ -33,7 +33,7 @@ cls
 	gen alpha = .
 	gen e = .
 
-	set seed 2342352
+	set seed 12345
 
 forval rep = 1/`reps' {
 
