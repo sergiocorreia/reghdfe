@@ -17,6 +17,7 @@ cls
 	by id: gen N = _N if id<.
 	tab N
 	gen byte singleton = N==1
+	compress
 
 	* X = xtreg_fe A = areg B = xtreg_fe
 	* C=cluster O=ols R=robust B=bootstrap
@@ -54,29 +55,29 @@ forval rep = 1/`reps' {
 // -------------------------------------------------------------------------------------------------
 
 	* AREG OLS all obs
-	areg y x in 1/`N', absorb(id)
+	qui areg y x in 1/`N', absorb(id)
 	test x // avoids writing the formula for the pvalue
 	replace pvalue_AOF = r(p) in `rep'
 
 	* XTREG OLS all obs
-	xtreg y x in 1/`N', fe vce(conventional)
+	qui xtreg y x in 1/`N', fe vce(conventional)
 	test x // avoids writing the formula for the pvalue
 	replace pvalue_XOF = r(p) in `rep'
 
 	* AREG OLS useful obs
-	areg y x if !singleton in 1/`N', absorb(id)
+	qui areg y x if !singleton in 1/`N', absorb(id)
 	test x // avoids writing the formula for the pvalue
 	replace pvalue_AOS = r(p) in `rep'
 
 	* XTREG OLS useful obs
-	xtreg y x if !singleton in 1/`N', fe vce(conventional)
+	qui xtreg y x if !singleton in 1/`N', fe vce(conventional)
 	test x // avoids writing the formula for the pvalue
 	replace pvalue_XOS = r(p) in `rep'
 
 // -------------------------------------------------------------------------------------------------
 
 	* AREG ROBUST all obs
-	areg y x in 1/`N', absorb(id) robust
+	qui areg y x in 1/`N', absorb(id) robust
 	test x // avoids writing the formula for the pvalue
 	replace pvalue_ARF = r(p) in `rep'
 
@@ -84,7 +85,7 @@ forval rep = 1/`reps' {
 	* N/A
 	
 	* AREG ROBUST useful obs
-	areg y x if !singleton in 1/`N', absorb(id) robust
+	qui areg y x if !singleton in 1/`N', absorb(id) robust
 	test x // avoids writing the formula for the pvalue
 	replace pvalue_ARS = r(p) in `rep'
 
@@ -94,51 +95,58 @@ forval rep = 1/`reps' {
 // -------------------------------------------------------------------------------------------------
 
 	* AREG CLUSTER all obs
-	areg y x in 1/`N', absorb(id) vce(cluster id)
+	qui areg y x in 1/`N', absorb(id) vce(cluster id)
 	test x // avoids writing the formula for the pvalue
 	replace pvalue_ACF = r(p) in `rep'
 
 	* AREG CLUSTER useful obs
-	areg y x if !singleton in 1/`N', absorb(id) vce(cluster id)
+	qui areg y x if !singleton in 1/`N', absorb(id) vce(cluster id)
 	test x // avoids writing the formula for the pvalue
 	replace pvalue_ACS = r(p) in `rep'
 
 	* XTREG CLUSTER all obs
-	xtreg y x in 1/`N', fe vce(cluster id)
+	qui xtreg y x in 1/`N', fe vce(cluster id)
 	test x // avoids writing the formula for the pvalue
 	replace pvalue_XCF = r(p) in `rep'
 
 	* XTREG CLUSTER useful obs
-	xtreg y x if !singleton in 1/`N', fe vce(cluster id)
+	qui xtreg y x if !singleton in 1/`N', fe vce(cluster id)
 	test x // avoids writing the formula for the pvalue
 	replace pvalue_XCS = r(p) in `rep'
 
 // -------------------------------------------------------------------------------------------------
 
 	* XTREG Bootstrap all obs
-	xtreg y x in 1/`N', fe vce(boot, reps(400))
+	qui xtreg y x in 1/`N', fe vce(boot, reps(400))
 	test x // avoids writing the formula for the pvalue
 	replace pvalue_XBF = r(p) in `rep'
 
 	* XTREG Bootstrap useful obs
-	xtreg y x if !singleton in 1/`N', fe vce(boot, reps(400))
+	qui xtreg y x if !singleton in 1/`N', fe vce(boot, reps(400))
 	test x // avoids writing the formula for the pvalue
 	replace pvalue_XBS = r(p) in `rep'
 
 // -------------------------------------------------------------------------------------------------
-
-	su pvalue*, sep(2)
+	if mod(`rep',10)==0 {
+		save "example_nested_bug.dta", replace
+	}
 }
 
-collapse (mean) pvalue*, fast
-save "example_nested_bug.dta", replace
+// -------------------------------------------------------------------------------------------------
 
+	local suffixes AOF XOF AOS XOS ARF XRF ARS XRS ACF XCF ACS XCS XBF XBS
+	local levels 05 10
+	foreach suffix of local suffixes {
+		foreach level of local levels {
+			gen accept`level'_`suffix' = (pvalue_`suffix' <= `level'/100)
+		}
+	}
+	save "example_nested_bug.dta", replace
+
+	su accept*, sep(2)
+	collapse (mean) accept*, fast
 
 exit
-
-
-
-
 
 
 /*
@@ -169,3 +177,6 @@ exit
 
 cap noi xtreg price weight length, fe vce(boot, reps(500) seed(10101))
 */
+
+
+
