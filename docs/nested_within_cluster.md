@@ -39,10 +39,35 @@ Singletons are individuals that appear in only one observation. If we are using 
 
 ## Computing Clustered Standard Errors
 
-(TODO)
-1. Show formula
-2. Mention that cluster is the same as robust when clustervar == _n
-3. Show the small sample adjustments and how they differ in xtreg and areg
+In general,
+$$
+V = q * {X'X}^{-1} \times (S'S) \times {X'X}^{-1}
+q = M / (M-1) \times (N-1) / (N-K-L)
+$$
+
+Where $q$ is a finite-sample adjustment, $M$ is the number of clusters, $L$ is the number of fixed effects, and $K$ is the number of other regressors excluding the constant (which is grouped with the fixed effects). Note that if the fixed effects are nested within the clusters, $L$ is excluded from $q$.
+
+Also, $X*$ is the matrix of residuals of X over the fixed effects, $S$ is the score matrix, i.e. the sum of $X* . e$ (dot product between regressors and residuals), grouped over the clustered individuals.
+
+Whenever there is a singleton group and the fixed effect is nested within a cluster, the following happens:
+1. The corresponding row of $X*$ becomes zero as the residuals of $X$ wrt. the fixed effects are zero. 
+2. The corresponding row of S becomes a zero row-vector due to both $X*$ and the residuals being zero for that obs.
+3. Since $L$ is excluded from the denominator of $q$ (because it's nested), then that denominator does not change.
+4. Thus, the only thing that changes is $M/(M-1)$ and $N$
+
+In summary, results 1 and 2 mean that both the *bread* and the *meat* of the variance remain unchanged when adding singletons. Thus, only the $q$ (the *wooden stick* of the burger), changes.
+
+A natural solution to the formula would be to remove the singleton clusters from $M$. Calling those $M_S$, then:
+$$
+q* = (M-M_S) / (M-M_S-1) \times (N-M_S-1) / (N-M_S-K-L*)
+$$
+
+(Where $L*$ represents the degrees of freedom not absorbed by the clusters, if any).
+
+We also see that S gives us bounds to the size of the bias in the S.E.s. For instance, if (excluding singletons) M=10, N=20, K=1, M_S=10, then
+q=1.09, while q*=1.1728, so standard errors should be 3.7% higher than reported.
+
+TODO: Recheck what assumptions are needed for always excluding L from q!
 
 ## How Singletons Affect the Bias of Clustered SEs
 
@@ -70,7 +95,7 @@ Notes: Number of iterations = 100. 100 observations. 10 non-singleton observatio
 
 As we can see, with clustered standard errors and including singleton observations, `areg` will over-reject and `xtreg,fe` will under-reject. On the other hand, excluding singleton observations and/or using bootstrapped standard errors will fix/ameliorate the problem.
 
-(TODO) Moderate Scenario (v2)
+Moderate Scenario (v2)
 
 |   Estimator  |          Sample         |      S.E.     | % with Pvalue < 5%    | % with Pvalue < 10%   |
 |:------------:|:-----------------------:|:-------------:|:---------------------:|:---------------------:|
