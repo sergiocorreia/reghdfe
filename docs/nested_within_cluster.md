@@ -72,13 +72,13 @@ A milder but more common version of this extreme scenario occurs whenever there 
 
 ## Solutions
 
-The singleton problem can be easily dealt with by either removing singleton groups, or substracting them from the number of clusters $M$ and observations $N$.
+The singleton problem can be easily dealt with by either removing singleton groups, or keeping them while excluding their count from the number of clusters $M$ and observations $N$.
 
-The broader problem is an open question.
+Solving the more general problem is an open question.
 
 ## Summary
 
-Clustered standard errors do not include the number of fixed effects when computing the finite-sample adjustments of the varianace estimates, as long as the fixed effects are nested within clusters. This adjustment implies that usually irrelevant specification details, such as adding singleton groups or running regressions on less coarser units, will affect variance estimates and potentially understate the significance of fixed effect models.
+Clustered standard errors do not include the number of fixed effects when computing the finite-sample adjustments of the variance estimates, as long as the fixed effects are nested within clusters. This adjustment implies that usually irrelevant specification details, such as adding singleton groups or running regressions on less coarser units, will affect variance estimates and potentially understate the significance of fixed effect models.
 
 ## References and Previous Discussions
 
