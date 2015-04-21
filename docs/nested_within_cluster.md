@@ -1,16 +1,19 @@
-
-# Singletons, Cluster-Robust Standard Errors and Fixed Effects: A Bad Mix[^author]
-
-[^author]: Sergio Correia ([sergio.correia@gmail.com](sergio.correia@gmail.com)), April 2015
-(... or why `reghdfe` will drop singletons from now on.)
-
-Note: [PDF version with math support available here](http://scorreia.com/reghdfe/nested_within_cluster.pdf)
+---
+title:  'Singletons, Cluster-Robust Standard Errors and Fixed Effects: A Bad Mix'
+author: Sergio Correia ([sergio.correia@gmail.com](sergio.correia@gmail.com))
+date: April 2015
+abstract: |
+  Mantaining singleton groups can lead to overstating statistical significance in linear regressions where fixed effects are nested within clusters. Due to this problem, future versions of the `reghdfe` package will automatically drop singletons. However, a broader class of problems related to nested fixed effects and finite-sample adjustments remains.
+tags: [reghdfe, hdfe, fixed effects, singletons] 
+build: pandoc --latex-engine=xelatex -o nested_within_cluster.pdf nested_within_cluster.md
+url: http://scorreia.com/reghdfe/nested_within_cluster.pdf
+...
 
 ## Summary
 
 Singleton groups (groups with only one observations) are increasingly common in regressions with many fixed effects, such as regressions with worker/firm/job title fixed effects that were previously unfeasible due to computational limitations [(see e.g. Carneiro *et al*, 2012)](https://www.aeaweb.org/articles.php?doi=10.1257/mac.4.2.133) . Even though some users may drop them, most are not aware that with more than one fixed effect, singletons need to be dropped iteratively. For instance, in a matched CEO-firm regression, dropping a singleton CEO may reduce the observation count of the firm he managerd from 2 to 1 observations, turning that firm into a singleton group, and so on.
 
-Now, what are the effects of keeping singleton groups in regressions where fixed effects are nested within groups/clusters?
+What are the effects of keeping singleton groups in regressions where fixed effects are nested within groups/clusters?
 
 1. Coefficient estimates and conventional variance estimates remain unchanged.
 2. Robust and cluster-robust variance estimates will decrease due to the finite-sample adjustment $q$ converging to 1. Note that the asymptotic part of the robust variance estimator (the usual "bread and meat" of the sandwich estimator) remains unaffected, so this is as problem only as long as finite-sample adjustments are relevant (which is surprisingly the case in many situations). Therefore, **standard errors will be underestimated, and statistical significance will be overstated**.
