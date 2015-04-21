@@ -9,8 +9,8 @@ Singleton groups (groups with only one observations) are increasingly common in 
 
 Now, what are the effects of keeping singleton groups in regressions where fixed effects are nested within groups/clusters?
 
-1. Coefficients and unadjusted variance estimators remain unchanged.
-2. Robust and cluster-robust estimators of the variance decrease due to finite-sample adjustments converging to 1. Note that the asymptotic part of the robust variance estimator (the usual "bread and meat" of the sandwich estimator) remains unaffected, so this is as problem only as long as finite-sample adjustments are relevant (which is the case more often than not). Therefore, **standard errors will be underestimated, and statistical significance will be overstated**.
+1. The coefficient estimates and the conventional variance estimates remain unchanged.
+2. Robust and cluster-robust variance estimates decrease due to finite-sample adjustments converging to 1. Note that the asymptotic part of the robust variance estimator (the usual "bread and meat" of the sandwich estimator) remains unaffected, so this is as problem only as long as finite-sample adjustments are relevant (which is the case more often than not). Therefore, **standard errors will be underestimated, and statistical significance will be overstated**.
 3. The reported number of clusters will be overstated, potentially misleading users into believing that there are enough clusters to make accurate asymptotic inference (e.g. above 50 clusters).
 4. Estimations will run slower, as there is a larger number of ancillary parameters to estimate.
 
