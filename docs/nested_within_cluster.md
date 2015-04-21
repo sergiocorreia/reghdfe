@@ -1,15 +1,15 @@
 
 # Singletons, Cluster-Robust Standard Errors and Fixed Effects: A Bad Mix
 
-(or why `reghdfe` will drop singletons from now on...)
+(... or why `reghdfe` will drop singletons from now on.)
 
 Note: [PDF version with math support available here](http://scorreia.com/reghdfe/nested_within_cluster.pdf)
 
-Singleton groups (groups with only one observations) are increasingly common in regressions with many fixed effects, such as regressions with worker/firm/job title fixed effects that were previously unfeasible due to computational limitations [(see e.g. Carneiro *et al*, 2012)](https://www.aeaweb.org/articles.php?doi=10.1257/mac.4.2.133) . Even though some users may drop them, most are not aware that with more than one fixed effect, singletons need to be dropped iteratively, as e.g. dropping a singleton individual may in turn turn the firm he worked into a singleton, and so on.
+Singleton groups (groups with only one observations) are increasingly common in regressions with many fixed effects, such as regressions with worker/firm/job title fixed effects that were previously unfeasible due to computational limitations [(see e.g. Carneiro *et al*, 2012)](https://www.aeaweb.org/articles.php?doi=10.1257/mac.4.2.133) . Even though some users may drop them, most are not aware that with more than one fixed effect, singletons need to be dropped iteratively. For instance, in a matched CEO-firm regression, dropping a singleton CEO may reduce the observation count of the firm he managerd from 2 to 1 observations, turning that firm into a singleton group, and so on.
 
 Now, what are the effects of keeping singleton groups in regressions where fixed effects are nested within groups/clusters?
 
-1. Coefficients and unadjusted variance estimators don't change.
+1. Coefficients and unadjusted variance estimators remain unchanged.
 2. Robust and cluster-robust estimators of the variance decrease due to finite-sample adjustments converging to 1. Note that the asymptotic part of the robust variance estimator (the usual "bread and meat" of the sandwich estimator) remains unaffected, so this is as problem only as long as finite-sample adjustments are relevant (which is the case more often than not). Therefore, **standard errors will be underestimated, and statistical significance will be overstated**.
 3. The reported number of clusters will be overstated, potentially misleading users into believing that there are enough clusters to make accurate asymptotic inference (e.g. above 50 clusters).
 4. Estimations will run slower, as there is a larger number of ancillary parameters to estimate.
