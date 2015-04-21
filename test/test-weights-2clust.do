@@ -55,12 +55,12 @@ cscript "reghdfe with weights and MWC" adofile reghdfe
 	matrix list e(trim_V), format(%20.12e)
 	storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' [`weight'=`fweightvar'], absorb(`absvars') vce(cluster `clustervars', suite(avar))
+	reghdfe `depvar' `indepvars' [`weight'=`fweightvar'], absorb(`absvars') vce(cluster `clustervars', suite(avar)) keepsingletons
 	TrimMatrix `K'
 	matrix list e(trim_V), format(%20.12e)
 	storedresults compare benchmark e(), tol(1e-8) include(`include')
 
-	reghdfe `depvar' `indepvars' [`weight'=`fweightvar'], absorb(`absvars') vce(cluster `clustervars', suite(mwc))
+	reghdfe `depvar' `indepvars' [`weight'=`fweightvar'], absorb(`absvars') vce(cluster `clustervars', suite(mwc)) keepsingletons
 	TrimMatrix `K'
 	matrix list e(trim_V), format(%20.12e)
 	storedresults compare benchmark e(), tol(1e-8) include(`include')
@@ -78,12 +78,12 @@ cscript "reghdfe with weights and MWC" adofile reghdfe
 	matrix list e(trim_V), format(%20.12e)
 	storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' [`weight'=`weightvar'], absorb(`absvars') vce(cluster `clustervars', suite(avar)) dof(pairwise continuous) // exclude -clusters- from dof()
+	reghdfe `depvar' `indepvars' [`weight'=`weightvar'], absorb(`absvars') vce(cluster `clustervars', suite(avar)) dof(pairwise continuous) keepsingletons // exclude -clusters- from dof()
 	TrimMatrix `K'
 	matrix list e(trim_V), format(%20.12e)
 	storedresults compare benchmark e(), tol(1e-8) include(`include')
 
-	reghdfe `depvar' `indepvars' [`weight'=`weightvar'], absorb(`absvars') vce(cluster `clustervars', suite(mwc)) dof(pairwise continuous) // exclude -clusters- from dof()
+	reghdfe `depvar' `indepvars' [`weight'=`weightvar'], absorb(`absvars') vce(cluster `clustervars', suite(mwc)) dof(pairwise continuous) keepsingletons // exclude -clusters- from dof()
 	TrimMatrix `K'
 	matrix list e(trim_V), format(%20.12e)
 	storedresults compare benchmark e(), tol(1e-8) include(`include')
@@ -101,12 +101,12 @@ cscript "reghdfe with weights and MWC" adofile reghdfe
 	matrix list e(trim_V), format(%20.12e)
 	storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' [`weight'=`weightvar'], absorb(`absvars') vce(cluster `clustervars', suite(avar)) dof(pairwise continuous) // exclude -clusters- from dof()
+	reghdfe `depvar' `indepvars' [`weight'=`weightvar'], absorb(`absvars') vce(cluster `clustervars', suite(avar)) dof(pairwise continuous) keepsingletons // exclude -clusters- from dof()
 	TrimMatrix `K'
 	matrix list e(trim_V), format(%20.12e)
 	storedresults compare benchmark e(), tol(1e-8) include(`include')
 
-	reghdfe `depvar' `indepvars' [`weight'=`weightvar'], absorb(`absvars') vce(cluster `clustervars', suite(mwc)) dof(pairwise continuous) // exclude -clusters- from dof()
+	reghdfe `depvar' `indepvars' [`weight'=`weightvar'], absorb(`absvars') vce(cluster `clustervars', suite(mwc)) dof(pairwise continuous) keepsingletons // exclude -clusters- from dof()
 	TrimMatrix `K'
 	matrix list e(trim_V), format(%20.12e)
 	storedresults compare benchmark e(), tol(1e-8) include(`include')

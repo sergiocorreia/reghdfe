@@ -11,6 +11,12 @@
 	discard
 	
 * Run scripts
+	adopath + "D:\Github\reghdfe\source\internal"
+	adopath + "D:\Github\reghdfe\source\common"
+	run test-absvars // Need to fix so we can find the path of the ADO
+	adopath - "D:\Github\reghdfe\source\internal"
+	adopath - "D:\Github\reghdfe\source\common"
+
 	*run test-minimal
 	set trace off
 	set tracedepth 5
@@ -20,6 +26,10 @@
 	run test-robust
 	run test-cluster
 	run test-ivreg2
+
+
+	run test-avar
+
 	run test-cluster-same-as-absvar
 	run test-cluster-nested // Prevent regression of bug reported by Michael Wittry (see email)
 	run test-vce-complex-bw
@@ -35,27 +45,25 @@
 	run test-gmm
 	* Doesn't work: run test-cue
 	run test-liml
-
-	run test-singletons
+	// run test-singletons
 	run test-iv
 	run test-slope
 
 	run test-rank
 	
-	run test-avar
-	
-	run test-postestimation-test
 	run test-postestimation-predict
-
-	run test-cores
+	run test-postestimation-test
 	run test-attach
+
+
+	* TODO NOW:
 	run test-stages
-
-	run test-cache
 	run test-over
+	* TODO LATER:
+	// run test-hdfe // just tests that the syntax works, not for correctness
 
-	run test-hdfe // just tests that the syntax works, not for correctness
-
+	//run test-cores
+	//run test-cache
 	* Don't run by default this as it's mostly a test about quipu.ado and not reghdfe.ado
 	*run test-quipu
 

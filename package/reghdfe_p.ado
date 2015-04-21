@@ -1,3 +1,6 @@
+*! hdfe 3.0.1 11may2015
+*! Sergio Correia (sergio.correia@duke.edu)
+
 *! version 1.1.0 10jul2014
 * predict after reghdfe
 * TODO: Not tested for -avge- variables!
@@ -42,41 +45,14 @@ program define reghdfe_p
 			local if "if e(sample)==1"
 		}
 
-		* Construct -d- if needed (sum of FEs)
+		* Construct -d- (sum of FEs)
 		tempvar d
-		qui gen double `d' = 0 `if' `in'
-
-		forv g=1/`e(N_hdfe)' {
-			local ok 0
-			cap conf e `e(hdfe_target`g')'
-			if (_rc==0) {
-				cap conf numeric var `e(hdfe_target`g')'
-			}
-			if (_rc!=0) {
+		if ("`e(equation_d)'"=="") {
 				di as error "In order to predict, all the FEs need to be saved with the absorb option (#`g' was not)" _n "For instance, instead of {it:absorb(i.year i.firm)}, set absorb(FE_YEAR=i.year FE_FIRM=i.firm)"
 				exit 112
-			}
+		}
+		qui gen double `d' = `e(equation_d)' `if' `in'
 
-			if missing("`e(hdfe_cvar`g')'") {
-				qui replace `d' = `d' + `e(hdfe_target`g')' `if' `in'
-			}
-			else {
-				qui replace `d' = `d' + `e(hdfe_target`g')' * `e(hdfe_cvar`g')' `if' `in'
-			}
-		}
-		local K = cond( e(N_avge)==. , 0 , e(N_avge) )
-		forv g=1/`K' {
-			local ok 0
-			cap conf e `e(avge_target`g')'
-			if (_rc==0) {
-				cap conf numeric var `e(avge_target`g')'
-			}
-			if (_rc!=0) {
-				di as error "(predict reghdfe) you need to save all AvgEs in reghdfe, AvgE`g' not saved"
-				exit 112
-			}
-			qui replace `d' = `d' + `e(avge_target`g')' `if' `in'
-		}
 	} // Finished creating `d' if needed
 
 	tempvar xb // XB will eventually contain XBD and RESID if that's the output

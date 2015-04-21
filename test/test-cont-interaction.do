@@ -48,7 +48,7 @@ cscript "reghdfe test bugfix ibn.x1#c.x2 do not drop base cat." adofile reghdfe
 	storedresults save benchmark e()
 
 	* 2. Run reghdfe and compare
-	reghdfe `lhs' `rhs', absorb(`absvars') vce(unadjusted, suite(default))
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(unadjusted, suite(default)) keepsingletons
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-12) include(`included_e')
 	assert `bench_df_a'==e(df_a)-1

@@ -1,226 +1,167 @@
-*! hdfe VERSION_NUMBER
-*! Sergio Correia (sergio.correia@duke.edu)
-* (built from multiple source files using build.py)
 
-include _mata/reghdfe.mata
+// Mata code is first, then main hdfe.ado, then auxiliary .ado files
+clear mata
+include "mata/map.mata"
 
-cap pr drop hdfe
+capture program drop hdfe
 program define hdfe, rclass
-	local version `=clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
-	qui version `version'
+
+* Set Stata version
+	version `=clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
 
 * Intercept version calls
 	cap syntax, version
-	local rc = _rc
-	 if (`rc'==0) {
+	if !c(rc) {
 		Version
 		exit
 	}
 
-* Intercept multiprocessor/parallel calls
-	cap syntax, instance [*]
-	local rc = _rc
-	 if (`rc'==0) {
-		ParallelInstance, `options'
-		exit
-	}
-
 * Parse
-	syntax varlist [if] [in] [fweight aweight pweight/] , Absorb(string) ///
-		[PARTIAL(varlist numeric)] ///
-		[CORES(integer 1)] ///
-		[DROPSIngletons] ///
-		[SAMPLE(name)] ///
-		[GENerate(name)] [CLEAR] ///
-		[CLUSTERVARs(string) Verbose(integer 0) TOLerance(real 1e-7) MAXITerations(integer 10000)] ///
-		[noACCELerate*]
+	syntax varlist(numeric) [if] [in] [fw aw pw/] , ///
+	/// Main Options ///
+		Absorb(string) ///
+		[ ///
+		PARTIAL(varlist numeric) /// Additional regressors besides those in absorb()
+		SAMPLE(name) ///
+		Generate(name) CLEAR /// Replace dataset, or just add new variables
+		GROUPVAR(name) /// Variable that will contain the first connected group between FEs
+		CLUSTERVARs(varlist numeric fv max=10) /// Used to estimate the DoF
+	/// Optimization /// Defaults are handled within Mata
+		GROUPsize(string) /// Process variables in groups of #
+		TRANSFORM(string) ///
+		ACCELeration(string) ///
+		Verbose(string) ///
+		TOLerance(string) ///
+		MAXITerations(string) ///
+		KEEPSINGLETONS(string) /// Only use this option for debugging
+		SUBCMD(string) /// Regression package
+		] [*] // Remaining options 
 
-	Assert ("`generate'"!="") + ("`clear'"!="") == 1 , msg("hdfe error: you need to specify one and only one of the following options: clear generate(...)")
+* Time/panel variables
+	local timevar `_dta[_TStvar]'
+	local panelvar `_dta[_TSpanel]'
 
-	if ("`accelerate'"!="") local options `options' accelerate(0) // Deal with noACCELerate
-
-
-	* Check that intersection(partial,varlist) = Null
-	local intersection : list varlist & partial
-	Assert "`intersection'"=="", msg("variables in varlist cannot appear in partial()")
-
-	if ("`sample'"!="") conf new var `sample'
-
+* Validation
+	local clustervars : subinstr local clustervars "i." "", all // Remove i. prefixes
+	if ("`options'"!="") di as error "unused options: `options'"
+	if ("`sample'"!="") confirm new variable `sample'
+	Assert ("`generate'"!="") + ("`clear'"!="") == 1 , ///
+		msg("hdfe error: you need to specify one and only one of the following options: clear generate(...)")
+	Assert "`: list varlist & partial'"=="", ///
+		msg("variables in varlist cannot appear in partial()")
 	if ("`weight'"!="") {
 		local weightvar `exp'
-		conf var `weightvar' // just allow simple weights
 		local weighttype `weight'
-		local weightequal =
+		confirm var `weightvar', exact // just allow simple weights
+	}
+	if ("`group'"!="") confirm new var `group'
+
+* From now on, we will pollute the Mata workspace, so wrap this in case of error
+	cap noi {
+
+* Create Mata structure
+	ParseAbsvars `absorb' // Stores results in r()
+	// return list
+	mata: HDFE_S = map_init() // Reads results from r()
+	// return list
+	local save_fe = r(save_fe)
+
+	if ("`weightvar'"!="") mata: map_init_weights(HDFE_S, "`weightvar'", "`weighttype'")
+	* String options
+	local optlist transform acceleration clustervars panelvar timevar
+	foreach opt of local optlist {
+		if ("``opt''"!="") mata: map_init_`opt'(HDFE_S, "``opt''")
+	}
+	* Numeric option
+s	local optlist groupsize verbose tolerance maxiterations keepsingletons
+	foreach opt of local optlist {
+		if ("``opt''"!="") mata: map_init_`opt'(HDFE_S, ``opt'')
 	}
 
-* Preserve if asked to
-	if ("`generate'"!="") {
-
-		* The new var must not exist!
-		foreach var of varlist `varlist' {
-			conf new var `generate'`var', exact
-		}
-
+* (Optional) Preserve
+	if ("`generate'"!="" | `save_fe') {
 		tempvar uid
-		gen double `uid' = _n
+		local uid_type = cond(c(N)>c(maxlong), "double", "long")
+		gen `uid_type' `uid' = _n // Useful for later merges
+		la var `uid' "[UID]"
 		preserve
 	}
 
-* Clear previous errors
-	Stop
-
-* From now on, we will pollute the Mata workspace, so wrap this in case of error
-cap noi {
-
-* Time/panel variables
-	cap conf var `_dta[_TStvar]'
-	if (!_rc) local timevar `_dta[_TStvar]'
-	cap conf var `_dta[_TSpanel]'
-	if (!_rc) local panelvar `_dta[_TSpanel]'
-
-* Set Verbosity
-	mata: VERBOSE = `verbose' // Pick a number between 0 (quiet) and 4 (lots of debugging info)
-
-* Parse: absorb, clusters, and weights
-	Start, absorb(`absorb') clustervars(`clustervars') weight(`weighttype') weightvar(`weightvar')
-	local absorb_keepvars = r(keepvars)
-	local N_hdfe = r(N_hdfe)
-
-* Check if we can save FEs
-	forval g = 1/`N_hdfe' {
-		mata: fe2local(`g')
-		local targets "`targets'`target'"
-	}
-	if ("`targets'"!="") {
-		Assert ("`partial'"==""), msg("hdfe error: partial() not allowed when saving fixed effects")
-		local numvars : word count `varlist'
-		Assert `numvars'==1 , msg("hdfe error: to save the fixed effects, you need to demean only one variable")
-		local opt_savefe "save_fe(1)"
-	}
-
-* Keep relevant observations
-	marksample touse, novar
-	markout `touse' `varlist' `partial' `absorb_keepvars'
-	qui keep if `touse'
-	
-* Keep relevant variables
-	keep `varlist' `partial' `clustervars' `weightvar' `panelvar' `timevar' `uid' `absorb_keepvars'
-
-* Drop singletons
-	if ("`dropsingletons'"!="") DropSingletons, num_absvars(`N_hdfe')
-	
-* Construct Mata objects and auxiliary variables
-	Precompute, ///
-		keep(`varlist' `partial' `clustervars' `weightvar' `panelvar' `timevar' `uid') ///
-		tsvars(`panelvar' `timevar') dofadjustments(pairwise clusters continuous)
-	
-* Compute e(df_a)
-	EstimateDoF, dofadjustments(pairwise clusters continuous)
-	* return list // what matters is r(kk) which will be e(df_a)
-	local kk = r(kk)
-	forval g = 1/`N_hdfe' {
-		local df_a`g' = r(K`g') - r(M`g')
-	}
-	
-* We don't need the FE variables (they are in mata objects now)
-	*drop __FE*__
-
-* Demean variables wrt to the fixed effects
-	local opt varlist(`varlist' `partial') tol(`tolerance') maxiterations(`maxiterations') `options' `opt_savefe'
-	if (`cores'>1) {
-		DemeanParallel, `opt' self(hdfe) cores(`cores')
-	}
-	else {
-		Demean, `opt'
-	}
-
-	if ("`opt_savefe'"!="") {
-		Save, original_depvar(`varlist')
-		local saved_fe = r(keepvars)
-	}
-	
-	return scalar df_a = `kk'
-	return scalar N_hdfe = `N_hdfe'
-	forv g=1/`N_hdfe' {
-		mata: fe2local(`g') // copies Mata structure into locals
-		* Will inject the following with c_local:
-		* ivars cvars target varname varlabel is_interaction is_cont_interaction is_bivariate is_mock levels
-		return local hdfe`g' = "`varlabel'"
-		return scalar df_a`g' = `df_a`g'' // `levels'
-	}
-* Clean up Mata objects
-	Stop
-
-* Deal with partial() option (Alternative: do as ivreg-partial: precompute inv x'x )
-	if ("`partial'"!="") {
-		tempvar resid
-		_rmcoll `partial', forcedrop
-		local partial = r(varlist)
-		foreach var of local varlist {
-			_regress `var' `partial' `weightexp' [`weighttype'`weightequal'`weightvar'], nohead notable
-			_predict double `resid', resid
-			qui replace `var' = `resid' // preserve labels
-			drop `resid'
-		}
-		local numpartial : word count `partial'
-		return scalar df_partial = `numpartial'
-	}
-
 	if ("`generate'"!="") {
-		keep `varlist' `uid' `saved_fe'
-		foreach var of local varlist {
-			rename `var' `generate'`var'
+		foreach var of varlist `varlist' {
+			confirm new var `generate'`var'
+			local newvars `newvars' `generate'`var'
 		}
-
-		tempfile output
-		sort `uid'
-		qui save "`output'"
-		restore
-		SafeMerge, uid(`uid') file("`output'") sample(`sample')
 	}
 
-}
-if (_rc) {
-	local rc = _rc
-	Stop
-	exit `rc'
-}
+* Precompute Mata objects
+	mata: map_init_keepvars(HDFE_S, "`varlist' `partial' `uid'") // Non-essential vars will be deleted
+	mata: map_precompute(HDFE_S)
+
+* Compute e(df_a)
+	mata: map_estimate_dof(HDFE_S, "pairwise clusters continuous", "`group'")
+	//return list
+
+* (Optional) Drop IDs, unless i) they are also clusters or ii) we want to save fe
+	// TODO
+
+* (Optional) Need to backup dataset if we want to save FEs
+	if (`save_fe') {
+		tempfile untransformed
+		qui save "`untransformed'"
+	}
+
+* Within Transformation
+	mata: map_solve(HDFE_S, "`varlist'", "`newvars'", "`partial'")
+
+* Run regression
+	if ("`subcmd'"!="") {
+		// TODO
+		// `subcmd' ..  `varlist' `options' ...
+	}
+	else if (`save_fe') { // Need to regress before predicting
+		regress `varlist', noheader notable // qui  // BUGBUG: _regress?
+	}
+
+* (Optional) Save FEs
+	if (`save_fe') {
+		tempvar resid
+		predict double `resid', resid
+		keep `uid' `resid'
+		tempfile transformed
+		qui save "`transformed'"
+
+		qui use "`untransformed'"
+		erase "`untransformed'"
+
+		merge 1:1 `uid' using "`transformed'", assert(match) nolabel nonotes noreport nogen
+		erase "`transformed'"
+		tempvar resid_d
+		predict double `resid_d', resid
+		if ("`weightvar'"!="") local tmp_weight "[fw=`weightvar']" // summarize doesn't work with pweight
+		su `resid_d' `tmp_weight', mean
+		qui replace `resid_d' = `resid_d' - r(mean)
+		tempvar d
+		gen double `d' = `resid_d' - `resid'
+		//clonevar dd = `d'
+		mata: map_solve(HDFE_S, "`d'", "", "`partial'", 1) // Save FE (should fail if partial is set)
+		//regress dd __hdfe*, nocons
+	}
+
+* (Optional) Tempsave, restore and merge with
+	//if ("`esample'"!="" | `save_fe' | "`generate'"!="")
+	//maso menos xq las variables transformadas ya las chanque (estaban en transformed!)
+	//esta parte es medio rara
+	// ...
+	// need to add vars if i) i want e(sample), ii) i want to merge the FEs, iii) i want to merge
+
+	if ("`generate'"!="" | `save_fe') restore
+
+* Cleanup after an error
+	} // cap noi
+	if c(rc) {
+		local rc = c(rc)
+		cap mata: mata drop HDFE_S // overwrites c(rc)
+		exit `rc'
+	}
 end
-
-* [SafeMerge: ADAPTED FROM THE ONE IN ESTIMATE.ADO]
-* The idea of this program is to keep the sort order when doing the merges
-cap pr drop SafeMerge
-program define SafeMerge, eclass sortpreserve
-syntax, uid(varname numeric) file(string) [sample(string)]
-	* Merging gives us e(sample) and the FEs / AvgEs
-	if ("`sample'"!="") {
-		tempvar smpl
-		merge 1:1 `uid' using "`file'", assert(master match) nolabel nonotes noreport gen(`smpl')
-		gen byte `sample' = (`smpl'==3)
-		drop `smpl' // redundant
-	}
-	else {
-		merge 1:1 `uid' using "`file'", assert(master match) nolabel nonotes noreport nogen
-	}
-end
-
-include "_common/Assert.ado"
-include "_common/Debug.ado"
-include "_common/Version.ado"
-include "_common/SortPreserve.ado"
-
-include "_hdfe/ConnectedGroups.ado"
-include "_hdfe/GenerateID.ado"
-include "_hdfe/AverageOthers.ado"
-include "_hdfe/EstimateDoF.ado"
-
-include "_hdfe/Start.ado"
-include "_hdfe/ParseOneAbsvar.ado"
-include "_hdfe/Precompute.ado"
-include "_hdfe/Demean.ado"
-include "_hdfe/DemeanParallel.ado"
-include "_hdfe/ParallelInstance.ado"
-include "_hdfe/Save.ado"
-include "_hdfe/Stop.ado"
-include "_hdfe/CheckCorrectOrder.ado"
-include "_hdfe/DropSingletons.ado"

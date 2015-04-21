@@ -54,7 +54,7 @@ cscript "reghdfe with ivreg2/ivregress and two-step gmm" adofile reghdfe
 	* Just for reference
 	ivregress gmm `depvar' `indepvars' ABS_* foreign (`endogvars'=`instruments'), vce(unadjusted) wmatrix(unadjusted) small
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted) ivsuite(ivregress) tol(1e-12) est(gmm2s) v(3)
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted) ivsuite(ivregress) tol(1e-12) est(gmm2s) v(3) keepsingletons
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-8) include(`include')
 
@@ -66,7 +66,7 @@ cscript "reghdfe with ivreg2/ivregress and two-step gmm" adofile reghdfe
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust) ivsuite(ivreg2) tol(1e-12) estimator(gmm2s)
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust) ivsuite(ivreg2) tol(1e-12) estimator(gmm2s) keepsingletons
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-10) include(`include')
 
@@ -74,7 +74,7 @@ cscript "reghdfe with ivreg2/ivregress and two-step gmm" adofile reghdfe
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-9) include(`include')
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust) ivsuite(ivregress) tol(1e-12) est(gmm2s)  vceunadjusted
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust) ivsuite(ivregress) tol(1e-12) est(gmm2s)  vceunadjusted keepsingletons
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-9) include(`include')
 
@@ -91,9 +91,9 @@ cscript "reghdfe with ivreg2/ivregress and two-step gmm" adofile reghdfe
 	storedresults compare benchmark e(), tol(1e-10) include(`include')
 
 	* How it looks without it
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust) ivsuite(ivregress) estimator(gmm2s)
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust) ivsuite(ivregress) estimator(gmm2s) keepsingletons
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust, twicerobust) ivsuite(ivregress) estimator(gmm2s)
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust, twicerobust) ivsuite(ivregress) estimator(gmm2s) keepsingletons
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-8) include(scalar: N df_r /// rmse rss r2
 		matrix: trim_b ///

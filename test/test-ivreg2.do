@@ -48,7 +48,7 @@ noi cscript "reghdfe comparison with ivreg2" adofile reghdfe
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe
-	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervars')
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervars') keepsingletons
 	TrimMatrix `K'
 	
 	* 3. Compare
@@ -71,7 +71,7 @@ noi cscript "reghdfe comparison with ivreg2" adofile reghdfe
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe
-	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervars')
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervars') keepsingletons
 	TrimMatrix `K'
 	
 	* 3. Compare
@@ -103,7 +103,7 @@ noi cscript "reghdfe comparison with ivreg2" adofile reghdfe
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe
-	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervars', suite(avar))
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervars', suite(avar)) keepsingletons
 	
 	TrimMatrix `K'
 	

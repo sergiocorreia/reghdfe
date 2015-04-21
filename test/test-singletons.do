@@ -46,7 +46,7 @@ cscript "reghdfe with singletons" adofile reghdfe
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
-	reghdfe `lhs' `rhs', absorb(`absvars') dropsingle
+	reghdfe `lhs' `rhs', absorb(`absvars') keepsingletons
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-10) exclude(`excluded')
 	storedresults drop benchmark
@@ -56,7 +56,7 @@ cscript "reghdfe with singletons" adofile reghdfe
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
-	reghdfe `lhs' `rhs', absorb(`absvars') dropsingle
+	reghdfe `lhs' `rhs', absorb(`absvars') keepsingletons
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-10) exclude(`excluded')
 	storedresults drop benchmark
@@ -71,7 +71,7 @@ cscript "reghdfe with singletons" adofile reghdfe
 	matrix `trim_diag_V' = vecdiag(e(trim_V))
 	storedresults save benchmark e()
 
-	reghdfe `lhs' `rhs', absorb(`absvars') dropsingle
+	reghdfe `lhs' `rhs', absorb(`absvars') keepsingletons
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-10) include(matrix: trim_b) // exclude(`excluded')
 	tempname delta zeros
@@ -86,7 +86,7 @@ cscript "reghdfe with singletons" adofile reghdfe
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
-	reghdfe `lhs' `rhs', absorb(`absvars') dropsingle
+	reghdfe `lhs' `rhs', absorb(`absvars') keepsingletons
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-10) exclude(`excluded')
 	storedresults drop benchmark
@@ -100,7 +100,7 @@ cscript "reghdfe with singletons" adofile reghdfe
 	**TrimMatrix `K'
 	**storedresults save benchmark e()
 	**
-	**reghdfe `lhs' `rhs', absorb(`absvars') dropsingle vce(robust)
+	**reghdfe `lhs' `rhs', absorb(`absvars') keepsingletons
 	**TrimMatrix `K'
 	**storedresults compare benchmark e(), tol(1e-10) exclude(`excluded')
 	**storedresults drop benchmark

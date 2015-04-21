@@ -55,7 +55,7 @@ cscript "reghdfe postestimation: test" adofile reghdfe
 	* 2. Run reghdfe and compare
 	
 	* 2a) vce suite = avar
-	reghdfe `lhs' `rhs', absorb(`absvars') vce(unadjusted, suite(avar))
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(unadjusted, suite(avar)) keepsingletons
 	TrimMatrix `K'
 	assert `bench_df_a'==e(df_a)-1
 	storedresults compare bench_e e(), tol(1e-12) include(`included_e')
@@ -63,7 +63,7 @@ cscript "reghdfe postestimation: test" adofile reghdfe
 	storedresults compare bench_r r(), tol(1e-12) // include(scalar: drop df_r F df p)
 
 	* 2a) vce suite = default
-	reghdfe `lhs' `rhs', absorb(`absvars') vce(unadjusted, suite(default))
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(unadjusted, suite(default)) keepsingletons
 	TrimMatrix `K'
 	assert `bench_df_a'==e(df_a)-1
 	storedresults compare bench_e e(), tol(1e-12) include(`included_e')
@@ -86,7 +86,7 @@ cscript "reghdfe postestimation: test" adofile reghdfe
 	* 2. Run reghdfe and compare
 	
 	* 2a) vce suite = avar
-	reghdfe `lhs' `rhs', absorb(`absvars') vce(robust, suite(avar))
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(robust, suite(avar)) keepsingletons
 	TrimMatrix `K'
 	assert `bench_df_a'==e(df_a)-1
 	storedresults compare bench_e e(), tol(1e-10) include(`included_e') // Note the lowered tol
@@ -94,7 +94,7 @@ cscript "reghdfe postestimation: test" adofile reghdfe
 	storedresults compare bench_r r(), tol(1e-12) // include(scalar: drop df_r F df p)
 
 	* 2a) vce suite = default
-	reghdfe `lhs' `rhs', absorb(`absvars') vce(robust, suite(default))
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(robust, suite(default)) keepsingletons
 	TrimMatrix `K'
 	assert `bench_df_a'==e(df_a)-1
 	storedresults compare bench_e e(), tol(1e-10) include(`included_e') // Note the lowered tol
@@ -117,7 +117,7 @@ cscript "reghdfe postestimation: test" adofile reghdfe
 	* 2. Run reghdfe and compare
 	
 	* 2a) vce suite = avar
-	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster trunk, suite(avar))
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster trunk, suite(avar)) keepsingletons
 	TrimMatrix `K'
 	assert `bench_df_a'==e(df_a)-1
 	storedresults compare bench_e e(), tol(1e-10) include(`included_e') // Note the lowered tol
@@ -125,7 +125,7 @@ cscript "reghdfe postestimation: test" adofile reghdfe
 	storedresults compare bench_r r(), tol(1e-12) // include(scalar: drop df_r F df p)
 
 	* 2a) vce suite = default
-	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster trunk, suite(default))
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster trunk, suite(default)) keepsingletons
 	TrimMatrix `K'
 	assert `bench_df_a'==e(df_a)-1
 	storedresults compare bench_e e(), tol(1e-10) include(`included_e') // Note the lowered tol

@@ -64,12 +64,12 @@ noi cscript "reghdfe postestimation: suest" adofile reghdfe
 	test ([bench_e1_mean]displacement==[bench_e2_mean]displacement) ([bench_e1_mean]trunk==[bench_e2_mean]trunk)
 
 	* 2. Run reghdfe and compare
-	reghdfe `lhs' `rhs1', absorb(FE1=`absvars') nocons notes(cmd=regress) // vce(, suite(default))
+	reghdfe `lhs' `rhs1', absorb(FE1=`absvars') notes(cmd=regress) // vce(, suite(default))
 	TrimMatrix `K1'
 	storedresults compare bench_e1 e(), tol(1e-10) include(`included_e')
 	estimates store m1
 
-	reghdfe `lhs' `rhs2', absorb(FE2=`absvars') nocons notes(cmd=regress) // vce(, suite(default))
+	reghdfe `lhs' `rhs2', absorb(FE2=`absvars') notes(cmd=regress) // vce(, suite(default))
 	TrimMatrix `K2'
 	storedresults compare bench_e2 e(), tol(1e-10) include(`included_e')
 	estimates store m2
