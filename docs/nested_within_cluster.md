@@ -1,18 +1,21 @@
 
-# Singletons, Cluster-Robust Standard Errors and Fixed Effects: A Bad Mix
+# Singletons, Cluster-Robust Standard Errors and Fixed Effects: A Bad Mix[^author]
 
+[^author]: Sergio Correia ([sergio.correia@gmail.com](sergio.correia@gmail.com)), April 2015
 (... or why `reghdfe` will drop singletons from now on.)
 
 Note: [PDF version with math support available here](http://scorreia.com/reghdfe/nested_within_cluster.pdf)
+
+## Summary
 
 Singleton groups (groups with only one observations) are increasingly common in regressions with many fixed effects, such as regressions with worker/firm/job title fixed effects that were previously unfeasible due to computational limitations [(see e.g. Carneiro *et al*, 2012)](https://www.aeaweb.org/articles.php?doi=10.1257/mac.4.2.133) . Even though some users may drop them, most are not aware that with more than one fixed effect, singletons need to be dropped iteratively. For instance, in a matched CEO-firm regression, dropping a singleton CEO may reduce the observation count of the firm he managerd from 2 to 1 observations, turning that firm into a singleton group, and so on.
 
 Now, what are the effects of keeping singleton groups in regressions where fixed effects are nested within groups/clusters?
 
-1. The coefficient estimates and the conventional variance estimates remain unchanged.
-2. Robust and cluster-robust variance estimates decrease due to finite-sample adjustments converging to 1. Note that the asymptotic part of the robust variance estimator (the usual "bread and meat" of the sandwich estimator) remains unaffected, so this is as problem only as long as finite-sample adjustments are relevant (which is the case more often than not). Therefore, **standard errors will be underestimated, and statistical significance will be overstated**.
+1. Coefficient estimates and conventional variance estimates remain unchanged.
+2. Robust and cluster-robust variance estimates will decrease due to the finite-sample adjustment $q$ converging to 1. Note that the asymptotic part of the robust variance estimator (the usual "bread and meat" of the sandwich estimator) remains unaffected, so this is as problem only as long as finite-sample adjustments are relevant (which is surprisingly the case in many situations). Therefore, **standard errors will be underestimated, and statistical significance will be overstated**.
 3. The reported number of clusters will be overstated, potentially misleading users into believing that there are enough clusters to make accurate asymptotic inference (e.g. above 50 clusters).
-4. Estimations will run slower, as there is a larger number of ancillary parameters to estimate.
+4. Estimation will be slower, as there is a larger number of ancillary parameters to estimate.
 
 ## Finite-Sample Adjustments
 
@@ -76,7 +79,7 @@ The singleton problem can be easily dealt with by either removing singleton grou
 
 Solving the more general problem is an open question.
 
-## Summary
+## Conclusion
 
 Clustered standard errors do not include the number of fixed effects when computing the finite-sample adjustments of the variance estimates, as long as the fixed effects are nested within clusters. This adjustment implies that usually irrelevant specification details, such as adding singleton groups or running regressions on less coarser units, will affect variance estimates and potentially understate the significance of fixed effect models.
 
