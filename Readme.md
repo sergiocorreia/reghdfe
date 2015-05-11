@@ -2,22 +2,23 @@
 
 ### Quick News
 
-* 2.1.x reghdfe does not report constants anymore. If you really want to see them, run *summarize* on the first fixed effect. The last version that supported constants is available with `net from https://raw.githubusercontent.com/sergiocorreia/reghdfe/866f85551b77fe7fda2af0aafccbbf87f8a01987/package/`
+* 3.0.x three key changes: i) faster underlying algorithm (symmetric transforms and cg acceleration perform much better on "hard" cases); ii) slow parts rewritten in mata, iii) simpler syntax
 * 2.2.x [internal] murphy-topel (unadjusted, robust, cluster), double-or-nothing IV/control function
+* 2.1.x reghdfe does not report constants anymore. If you really want to see them, run *summarize* on the first fixed effect. The last version that supported constants is available with `net from https://raw.githubusercontent.com/sergiocorreia/reghdfe/866f85551b77fe7fda2af0aafccbbf87f8a01987/package/`
 <hr>
 
 ## Description
 
 This is the *readme* file for developing the reghdfe project, which is comprised of the reghdfe package and the underlying hdfe package. What you probably want is the tutorial/documentation, available [here](http://scorreia.com/reghdfe).
 
-* Version 2.1.6
-* Date: April 2, 2015
+* Version 3.0.0
+* Date: May 11, 2015
 
 Reghdfe is a [Stata](http://stata.com) package that estimates linear and instrumental variable regressions while controlling for any number of fixed effects. It is most useful when dealing with two or more highly dimensional fixed effects (HDFE).
 
 It extends the algorithm of *reg2hdfe* (by Paulo Guimaraes and Pedro Portugal) in several aspects, **drastically speeding it up**, as well as **generalizing** it to any number of sets of fixed effects, slope interactions, multicore, etc.
 
-It's objectives are similar to the *lfe* package in R by Simen Gaure, and to several precursor Stata packages, such as *a2reg* by Amine Quazad.
+It's objectives are similar to the *lfe* package in R by Simen Gaure, and to several precursor Stata packages, such as *a2reg* by Amine Ouazad.
 
 HDFE is the package that powers *reghdfe*. It is a utility function, like *avar*, and intended to be used for those that want to allow HDFEs in their own regression packages.
 
@@ -36,6 +37,26 @@ HDFE is the package that powers *reghdfe*. It is a utility function, like *avar*
 * Attention to the detail. For instance, you can just include firm#year instead of writing *egen firm_year = group(firm year)*. This works in the varlist, in the absvars, and even with the vce(cluster ..) option.
 * Many other options.
 
+## Installing the beta version of reghdfe 3.0
+
+With Stata 13:
+
+```stata
+cap ado uninstall reghdfe
+net from https://raw.githubusercontent.com/sergiocorreia/reghdfe/updated_mata/package/
+net install reghdfe
+```
+With Stata 12 or older:
+
+1. Download the [zipfile](/misc/reghdfe.zip)
+2. Extract it into a folder (e.g. C:\SOMEFOLDER)
+3. Run: (changing *SOMEFOLDER* with whatever you picked)
+
+```stata
+cap ado uninstall reghdfe
+net from "C:\SOMEFOLDER"
+net install reghdfe
+```
 ## Installing the development version of reghdfe (i.e. from Github instead of SSC)
 
 ```stata
