@@ -1,4 +1,4 @@
-*! hdfe 3.0.1 11may2015
+*! hdfe 3.0.2 11may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -116,6 +116,7 @@ struct MapProblem {
 	`Boolean'		vce_is_hac
 
 	`Varname' 		by 				// In case we are using reghdfe .. by()
+	`Boolean'		timeit
 	
 	// Optimization parameters	
 	`Integer'		groupsize 		// Group variables when demeaning (more is faster but uses more memory)
@@ -395,6 +396,11 @@ void function map_init_verbose(`Problem' S, `Integer' verbose) {
 	S.verbose = verbose
 }
 
+void function map_init_timeit(`Problem' S, `Integer' timeit) {
+	assert_msg(timeit==0 | timeit==1, "timeit must be 0 or 1")
+	S.timeit = timeit
+}
+
 void function map_init_groupsize(`Problem' S, `Integer' groupsize) {
 	assert_msg(round(groupsize)==groupsize & groupsize>0, "groupsize must be a positive integer")
 	S.groupsize = groupsize
@@ -482,15 +488,33 @@ void function map_precompute(`Problem' S) {
 
 	// 1. Store permutation vectors and their invorder, generate ID variables, drop singletons
 	if (S.verbose>0) printf("{txt}{bf: 1. Storing permutation vectors, generating ids, dropping singletons}\n")
+	if (S.timeit) timer_on(21)
 	map_precompute_part1(S, counter)
+	if (S.timeit) {
+		timer_off(21)
+		printf("{res}{col 20}%6.3f{txt}{col 30}precompute 1 (sorts, ids, drop singletons)\n", timer_value(21)[1])
+		timer_clear(21)
+	} 
 
 	// 2. Store group offsets, group counters; demeaned(x), inv(xx) if num_slopes>0; weightvars
 	if (S.verbose>0) printf("{txt}{bf: 2. Storing counters and offsets; processing cvars}\n")
+	if (S.timeit) timer_on(22)
 	map_precompute_part2(S, counter)
+	if (S.timeit) {
+		timer_off(22)
+		printf("{res}{col 20}%6.3f{txt}{col 30}precompute 2 (counters, offsets, cvars)\n", timer_value(22)[1])
+		timer_clear(22)
+	} 
 
 	// 3. Create cluster IDs, report whether is/in/nested wrt cluster; store precomputed inv(p)
 	if (S.verbose>0) printf("{txt}{bf: 3. Storing reverse permutation vectors, creating cluster IDs}\n")
+	if (S.timeit) timer_on(23)
 	map_precompute_part3(S, counter)
+	if (S.timeit) {
+		timer_off(23)
+		printf("{res}{col 20}%6.3f{txt}{col 30}precompute 3 (reverse permutations, cluster ids)\n", timer_value(23)[1])
+		timer_clear(23)
+	} 
 
 	// 4. Keep only the essential variables
 	keepvars  = J(1,0,"")
@@ -553,7 +577,13 @@ void map_precompute_part1(`Problem' S, transmorphic counter) {
 		if (i<=G) S.fes[g].is_sortedby = already_sorted(idvarnames)
 		sortedby = S.fes[g].is_sortedby
 		if (i<=G & !sortedby) {
+			if (S.timeit) timer_on(31)
 			S.fes[g].p = order( id , 1..length(idvarnames) ) // 55% of function time
+			if (S.timeit) {
+				timer_off(31)
+				printf("{res}{col 30}%6.3f{txt}{col 40}mata order()\n", timer_value(31)[1])
+				timer_clear(31)
+			} 
 		}
 
 		if (!sortedby) {
