@@ -47,7 +47,7 @@ but more flexible, compatible with the {opt fast:} option, and saves the matrix 
 {p2coldent:+ {opt vce}{cmd:(}{help reghdfe##vcetype:vcetype}[, {it:opt}]{cmd:)}}{it:vcetype}
 is {opt un:adjusted}/{opt ols} (default), {opt r:obust}, or {opt cl:uster} {it:clustervars};
 {it:opt} may be {opt bw(#)}, {opt dkraay(#)}, {opt ker:nel(str)}, {opt kiefer}{p_end}
- 
+
 {syntab:IV/2SLS/GMM {help reghdfe##opt_iv:[+]}}
 {synopt :{opt est:imator(str)}}estimator used in the instrumental-variable regression.
 The default is {opt 2sls}, valid options are {opt gmm:2s} (two-stage GMM estimator),
@@ -61,6 +61,7 @@ options are {opt ivreg2} (default; needs installing) and {opt ivregress}{p_end}
 
 {syntab:Diagnostic {help reghdfe##opt_diagnostic:[+]}}
 {synopt :{opt v:erbose(#)}}amount of debugging information to show (0=None, 1=Some, 2=More, 3=Parsing/convergence details, 4=Every iteration){p_end}
+{synopt :{opt time:it}}show elapsed times by stage of computation{p_end}
 
 {syntab:Optimization {help reghdfe##opt_optimization:[+]}}
 {p2coldent:+ {opth tol:erance(#)}}criterion for convergence (default=1e-7){p_end}

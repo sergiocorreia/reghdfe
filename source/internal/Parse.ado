@@ -27,6 +27,7 @@ program define Parse
 		MAXITerations(string) ///
 		KEEPSINgletons /// (UNDOCUMENTED) Will keep singletons
 		CHECK /// TODO: Implement
+		TIMEit ///
 	/// Regression ///
 		ESTimator(string) /// GMM2s CUE LIML
 		IVsuite(string) ///
@@ -47,9 +48,10 @@ program define Parse
 		NOTES(string) /// NOTES(key=value ..)
 		] [*] // For display options ; and SUmmarize(stats)
 
-	local allkeys cmdline if in
+	local allkeys cmdline if in timeit
 
 * Need to do this early
+	local timeit = "`timeit'"!=""
 	local fast = "`fast'"!=""
 	local savecache = "`savecache'"!=""
 	local usecache = "`usecache'"!=""
@@ -132,7 +134,7 @@ else {
 
 	* Numeric options
 	local keepsingletons = ("`keepsingletons'"!="")
-	local optlist groupsize verbose tolerance maxiterations keepsingletons
+	local optlist groupsize verbose tolerance maxiterations keepsingletons timeit
 	foreach opt of local optlist {
 		if ( "``opt''"!="" & (!`usecache' | "`opt'"=="verbose") ) mata: map_init_`opt'(HDFE_S, ``opt'')
 	}

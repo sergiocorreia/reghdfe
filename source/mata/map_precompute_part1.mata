@@ -37,7 +37,13 @@ void map_precompute_part1(`Problem' S, transmorphic counter) {
 		if (i<=G) S.fes[g].is_sortedby = already_sorted(idvarnames)
 		sortedby = S.fes[g].is_sortedby
 		if (i<=G & !sortedby) {
+			if (S.timeit) timer_on(31)
 			S.fes[g].p = order( id , 1..length(idvarnames) ) // 55% of function time
+			if (S.timeit) {
+				timer_off(31)
+				printf("{res}{col 30}%6.3f{txt}{col 40}mata order()\n", timer_value(31)[1])
+				timer_clear(31)
+			} 
 		}
 
 		if (!sortedby) {

@@ -26,6 +26,7 @@ struct MapProblem {
 	`Boolean'		vce_is_hac
 
 	`Varname' 		by 				// In case we are using reghdfe .. by()
+	`Boolean'		timeit
 	
 	// Optimization parameters	
 	`Integer'		groupsize 		// Group variables when demeaning (more is faster but uses more memory)

@@ -152,6 +152,11 @@ void function map_init_verbose(`Problem' S, `Integer' verbose) {
 	S.verbose = verbose
 }
 
+void function map_init_timeit(`Problem' S, `Integer' timeit) {
+	assert_msg(timeit==0 | timeit==1, "timeit must be 0 or 1")
+	S.timeit = timeit
+}
+
 void function map_init_groupsize(`Problem' S, `Integer' groupsize) {
 	assert_msg(round(groupsize)==groupsize & groupsize>0, "groupsize must be a positive integer")
 	S.groupsize = groupsize

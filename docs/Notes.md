@@ -1,3 +1,20 @@
+Quick optimization notes:
+
+For a "best case" scenario such as *benchmark-stata-r*, almost 50% of the time is spend precomputing.
+Within that, most of the time is spend in a couple of sorts, which can't really be improved much (unless Statacorp improves it's Mata sorting speed to match R, which is unlikely to happen)
+
+All in all, this seems "good enough"..
+
+However, average/worst cases are VERY different from this one. In fact, look at the number of iterations.. 2 or 3 iterations, which means we are barely requiring any tune-up or acceleration. We need a benchmark that fits better with the real world in order to compare the different acceleration techniques.
+
+In total, the "best case" improvement is only ~30% with respect to reghdfe v2, but the other cases are where the theoretical improvement kick in, so we either need real-world data or a benchmark where the FEs are not so "connected".
+
+
+
+
+
+
+
 We need a pitfalls section. For instance:
 1. Ignore the constant; it doesn't tell you much. If you want to use descriptive stats, that's what the -summ- commands are for. Even better, use -noconstant- to drop it (although it's not really dropped as it never existed on the first place!)
 2. Do not save the fixed effects. They are probably inconsistent / not identified and you will likely use them wrong.

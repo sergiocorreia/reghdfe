@@ -8,11 +8,14 @@ program define Inner, eclass
 	Parse `0'
 	assert !`savecache'
 	assert !`usecache'
+	if (`timeit') Tic, n(50)
 
 * PRESERVE (optional)
+	if (`timeit') Tic, n(51)
 	preserve
 	Debug, level(2) newline
 	Debug, level(2) msg("(dataset preserved)")
+	if (`timeit') Toc, n(51) msg(preserve)
 
 * MEMORY REPORT - Store dataset size
 	qui de, simple
@@ -22,18 +25,24 @@ program define Inner, eclass
 
 * CREATE UID - allows attaching e(sample) and the FE estimates into the restored dataset
 	if (!`fast') {
+		if (`timeit') Tic, n(52)
 		tempvar uid
 		GenUID `uid'
+		if (`timeit') Toc, n(52) msg(generate uid)
 	}
 
 * COMPACT - Expand time and factor variables, and drop unused variables and obs.
 	local original_depvar "`depvar'"
+	if (`timeit') Tic, n(53)
 	Compact, basevars(`basevars') depvar(`depvar') indepvars(`indepvars') endogvars(`endogvars') instruments(`instruments') uid(`uid') timevar(`timevar') panelvar(`panelvar') weightvar(`weightvar') absorb_keepvars(`absorb_keepvars') clustervars(`clustervars') if(`if') in(`in') verbose(`verbose') vceextra(`vceextra')
 	// Injects locals: depvar indepvars endogvars instruments expandedvars
+	if (`timeit') Toc, n(53) msg(compact)
 
 * PRECOMPUTE MATA OBJECTS (means, counts, etc.)
+	if (`timeit') Tic, n(54)
 	mata: map_init_keepvars(HDFE_S, "`expandedvars' `uid'") 	// Non-essential vars will be deleted (e.g. interactions of a clustervar)
 	mata: map_precompute(HDFE_S)
+	if (`timeit') Toc, n(54) msg(map_precompute())
 	
 	* Replace vceoption with the correct cluster names (e.g. if it's a FE or a new variable)
 	if (`num_clusters'>0) {
@@ -53,8 +62,10 @@ program define Inner, eclass
 	}
 
 * PREPARE - Compute untransformed tss, R2 of eqn w/out FEs
+if (`timeit') Tic, n(55)
 	Prepare, weightexp(`weightexp') depvar(`depvar') stages(`stages') model(`model') expandedvars(`expandedvars') vcetype(`vcetype') endogvars(`endogvars')
 	* Injects tss, tss_`endogvar' (with stages), and r2c
+	if (`timeit') Toc, n(55) msg(prepare)
 
 * STORE UID - Used to add variables to original dataset: e(sample), mobility group, and FE estimates
 	if (!`fast') mata: store_uid(HDFE_S, "`uid'")
@@ -62,23 +73,29 @@ program define Inner, eclass
 
 * BACKUP UNTRANSFORMED VARIABLES - If we are saving the FEs, we need to backup the untransformed variables
 	if (`will_save_fe') {
+		if (`timeit') Tic, n(56)
 		tempfile untransformed
 		qui save "`untransformed'"
+		if (`timeit') Toc, n(56) msg(save untransformed tempfile)
 	}
 
 * COMPUTE e(stats) - Summary statistics for the all the regression variables
 	if ("`stats'"!="") {
+		if (`timeit') Tic, n(57)
 		local tabstat_weight : subinstr local weightexp "[pweight" "[aweight"
 		qui tabstat `expandedvars' `tabstat_weight' , stat(`stats') col(stat) save
 		tempname statsmatrix
 		matrix `statsmatrix' = r(StatTotal)
+		if (`timeit') Toc, n(57) msg(stats matrix)
 	}
 
 * MAP_SOLVE() - WITHIN TRANFORMATION (note: overwrites variables)
+	if (`timeit') Tic, n(60)
 	qui ds `expandedvars'
 	local NUM_VARS : word count `r(varlist)'
 	Debug, msg("(computing residuals for `NUM_VARS' variables)")
 	mata: map_solve(HDFE_S, "`expandedvars'")
+	if (`timeit') Toc, n(60) msg(map_solve())
 
 * STAGES SETUP - Deal with different stages
 	assert "`stages'"!=""
@@ -139,11 +156,15 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * COMPUTE DOF
 * NOTE: could move this to before backup untransformed variables for the stages=none case!!!
+	if (`timeit') Tic, n(62)
 	mata: map_estimate_dof(HDFE_S, "`dofadjustments'", "`groupvar'") // requires the IDs
+	if (`timeit') Toc, n(62) msg(estimate dof)
 	assert e(df_a)<. // estimate_dof() only sets e(df_a); ereturn_dof() is for setting everything aferwards
 	local kk = e(df_a) // we need this for the regression step
 * DROP FE IDs - Except if they are also a clustervar or we are saving their respecting alphas
+	if (`timeit') Tic, n(64)
 	mata: drop_ids(HDFE_S)
+	if (`timeit') Toc, n(64) msg(drop ids)
 
 * REGRESS - Call appropiate wrapper (regress, avar, mwc for ols; ivreg2, ivregress for iv)
 	ereturn clear
@@ -162,12 +183,16 @@ foreach lhs_endogvar of local lhs_endogvars {
 	foreach opt of local opts {
 		local opt_list `opt_list' `opt'(``opt'')
 	}
+	if (`timeit') Tic, n(66)
 	`wrapper', `opt_list'
+	if (`timeit') Toc, n(66) msg(regression)
 
 * SAVE FE
 	if (`will_save_fe') {
+		if (`timeit') Tic, n(68)
 		local subpredict = e(predict) // used to recover the FEs
 		SaveFE, model(`model') depvar(`depvar') untransformed(`untransformed') weightexp(`weightexp') subpredict(`subpredict')
+		if (`timeit') Toc, n(68) msg(save fes in mata)
 	}
 
 * FIX VARNAMES - Replace tempnames in the coefs table (run AFTER regress and BEFORE restore)
@@ -183,26 +208,34 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * (optional) Restore
 	if inlist("`stage'","none", "iv") {
+		if (`timeit') Tic, n(70)
 		restore
 		Debug, level(2) newline
 		Debug, level(2) msg("(dataset restored)")
 		// TODO: Format alphas
+		if (`timeit') Toc, n(70) msg(restore)
 	}
 
 * (optional) Save mobility groups
 	if ("`groupvar'"!="") mata: groupvar2dta(HDFE_S)
 
 * (optional) Save alphas (fixed effect estimates)
-	if (`will_save_fe') mata: alphas2dta(HDFE_S)
+	if (`will_save_fe') {
+		if (`timeit') Tic, n(74)
+		mata: alphas2dta(HDFE_S)
+		if (`timeit') Toc, n(74) msg(save fes in dta)
+	}
 
 * (optional) Add e(sample)
 	if (!`fast') {
+		if (`timeit') Tic, n(76)
 		tempvar sample
 		mata: esample2dta(HDFE_S, "`sample'")
 		qui replace `sample' = 0 if `sample'==.
 		la var `sample' "[HDFE Sample]"
 		ereturn repost , esample(`sample')
 		mata: drop_uid(HDFE_S)
+		if (`timeit') Toc, n(76) msg(add e(sample))
 	}
 
 * POST ERETURN - Add e(...) (besides e(sample) and those added by the wrappers)	
@@ -211,7 +244,9 @@ foreach lhs_endogvar of local lhs_endogvars {
 	foreach opt of local opts {
 		local opt_list `opt_list' `opt'(``opt'')
 	}
+	if (`timeit') Tic, n(78)
 	Post, `opt_list'
+	if (`timeit') Toc, n(78) msg(post)
 
 * REPLAY - Show the regression table	
 	if ("`stage'"!="none") Debug, level(0) msg(_n "{title:Stage: `stage'}" _n)
@@ -239,4 +274,21 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * CLEANUP
 	mata: mata drop HDFE_S // cleanup
+	if (`timeit') Toc, n(50) msg([TOTAL])
+end
+
+capture program drop Tic
+program define Tic
+syntax, n(integer)
+	timer clear `n'
+	timer on `n'
+end
+
+capture program drop Toc
+program define Toc
+syntax, n(integer) msg(string)
+	timer off `n'
+	qui timer list `n'
+	di as text "[timer]{tab}" as result %8.3f `r(t`n')' as text "{col 20}`msg'{col 77}`n'" 
+	timer clear `n'
 end
