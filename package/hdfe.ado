@@ -1,4 +1,4 @@
-*! hdfe 2.1.46 20apr2015
+*! hdfe 2.1.47 12may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 * (built from multiple source files using build.py)
 // -------------------------------------------------------------
@@ -810,7 +810,7 @@ program define hdfe, rclass
 		local weightvar `exp'
 		conf var `weightvar' // just allow simple weights
 		local weighttype `weight'
-		local weightequal =
+		local weightequal "="
 	}
 
 * Preserve if asked to
@@ -1030,7 +1030,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "2.1.46 20apr2015"
+    local version "2.1.47 12may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"

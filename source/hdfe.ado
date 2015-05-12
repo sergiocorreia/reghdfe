@@ -50,7 +50,7 @@ program define hdfe, rclass
 		local weightvar `exp'
 		conf var `weightvar' // just allow simple weights
 		local weighttype `weight'
-		local weightequal =
+		local weightequal "="
 	}
 
 * Preserve if asked to
