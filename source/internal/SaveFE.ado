@@ -1,6 +1,6 @@
 capture program drop SaveFE
 program define SaveFE
-	syntax, model(string) depvar(string) untransformed(string) subpredict(string) [weightexp(string)]
+	syntax, model(string) depvar(string) untransformed(string) subpredict(string) [weightexp(string)] [drop_resid_vector(integer 1)]
 
 	Debug, level(2) msg("(calculating fixed effects)")
 	tempvar resid
@@ -17,7 +17,7 @@ program define SaveFE
 	Debug, level(3) msg(" - reloading untransformed dataset")
 	qui use "`untransformed'", clear
 	erase "`untransformed'"
-	mata: resid2dta(HDFE_S)
+	mata: resid2dta(HDFE_S, 0, `drop_resid_vector')
 
 	Debug, level(3) msg(" - predicting resid+d+cons (equation: y=xb+d+cons+resid)")
 	tempvar resid_d

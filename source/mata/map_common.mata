@@ -32,10 +32,18 @@ void function store_resid(`Problem' S, `Varname' varname) {
 	assert_msg(rows(S.resid)==S.N, "assertion failed: rows(S.resid)==S.N")
 }
 
-void function resid2dta(`Problem' S) {
-	st_store(., st_addvar("double", S.residname), S.resid)
-	S.resid = J(0,0,.)
-	S.residname = ""
+void function resid2dta(`Problem' S, `Boolean' original_dta, `Boolean' cleanup) {
+	if (original_dta) {
+		st_store(S.uid, st_addvar("double", S.residname), S.resid)
+	}
+	else {
+		st_store(., st_addvar("double", S.residname), S.resid)
+	}
+
+	if (cleanup) {
+		S.resid = J(0,0,.)
+		S.residname = ""
+	}	
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -43,7 +51,6 @@ void function resid2dta(`Problem' S) {
 void function groupvar2dta(`Problem' S) {
 	if (S.groupvar!="") {
 		if (S.verbose>2) printf("{txt}    - Saving identifier for the first mobility group: {res}%s\n", S.groupvar)
-		// WRONG: NEED TO INDEX BY UID
 		st_store(S.uid, st_addvar(S.grouptype, S.groupvar), S.groupseries)
 
 		S.groupseries = J(0,0,0)

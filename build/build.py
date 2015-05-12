@@ -41,7 +41,7 @@ fn_mata = ur"map.mata"
 server_path = u"../package"
 source_path = u"../source"
 
-header = """*! hdfe {}
+header = """*! reghdfe {}
 *! Sergio Correia (sergio.correia@duke.edu)
 
 """

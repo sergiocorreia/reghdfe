@@ -38,10 +38,12 @@
 {synoptline}
 {syntab:Model {help reghdfe##opt_model:[+]}}
 {p2coldent:* {opt a:bsorb}{cmd:(}{help reghdfe##absvar:absvar} [...]{cmd:)}   }identifiers of the fixed effects that will be absorbed{p_end}
-{synopt: {cmdab:a:bsorb(}{it:...}{cmd:,} {cmdab:save:fe)}}save estimates of the fixed effects as new variables named {it:__hdfe*}; useful when running {help reghdfe##postestimation:predict} afterwards{p_end}
+{synopt: {cmdab:a:bsorb(}{it:...}{cmd:,} {cmdab:save:fe)}}save all fixed effect estimates ({it:__hdfe*} prefix); useful for a subsequent {help reghdfe##postestimation:predict}.
+However, see also the {it:resid} option.{p_end}
 {synopt :{opth su:mmarize(tabstat##statname:stats)}}equivalent to {help reghdfe##postestimation:estat summarize} after the regression,
 but more flexible, compatible with the {opt fast:} option, and saves the matrix of results on {it:e(summarize)}{p_end}
 {synopt : {opt sub:options(...)}}additional options that will be passed to the regression command (either {help regress}, {help ivreg2}, or {help ivregress}){p_end}
+{synopt : {opth res:iduals(newvar)}}save residuals; more direct and much faster than saving the fixed effects and then running predict{p_end}
 
 {syntab:SE/Robust {help reghdfe##opt_vce:[+]}}
 {p2coldent:+ {opt vce}{cmd:(}{help reghdfe##vcetype:vcetype}[, {it:opt}]{cmd:)}}{it:vcetype}
@@ -75,9 +77,9 @@ options are {opt ivreg2} (default; needs installing) and {opt ivregress}{p_end}
 {synopt :{opt fast}}will not create {it:e(sample)}; disabled when saving fixed effects or mobility groups{p_end}
 {synopt :{opt save:cache}}compute within transformation but do not regress the variables; useful when comparing alternative specifications (combine it with preserve/restore){p_end}
 {synopt :{opt use:cache}}required with data previously transformed by {opt save:cache}{p_end}
-{synopt :{opt by(groupvar)}}similar to {opt save:cache} but will run the transformations independently for each level/category of {it:varname}. Stores the levels in {it:e(levels)}{p_end}
-{synopt :{opt l:evel(value)}}equivalent to regressing "{cmd:if} {it:groupvar}{cmd:==}{it:level}" but faster; needs to be run after {opt by(groupvar)}{p_end}
-{synopt: {opt nested}}add each {it:absvar} recursively, reporting the R2 and associated F-test
+{p2coldent:X {opt by(groupvar)}}similar to {opt save:cache} but will run the transformations independently for each level/category of {it:varname}. Stores the levels in {it:e(levels)}{p_end}
+{p2coldent:X {opt l:evel(value)}}equivalent to regressing "{cmd:if} {it:groupvar}{cmd:==}{it:level}" but faster; needs to be run after {opt by(groupvar)}{p_end}
+{p2coldent:X {opt nested}}add each {it:absvar} recursively, reporting the R2 and associated F-test
 at each stage (only with ols and unadjusted standard errors){p_end}
 
 {syntab:Degrees-of-Freedom Adjustments {help reghdfe##opt_dof:[+]}}
@@ -91,11 +93,13 @@ rarely used{p_end}
 {synopt :{it:{help reghdfe##display_options:display_options}}}control column formats, row spacing, line width, display of omitted variables and base and empty cells, and factor-variable labeling{p_end}
 
 {syntab:Undocumented}
+{synopt :{opt old}}will call the latest 2.x version of reghdfe instead (see {help reghdfe_old}){p_end}
 {synopt :{opt keepsin:gletons}}{p_end}
 {synoptline}
 {p2colreset}{...}
 {p 4 6 2}* {opt absorb(absvars)} is required.{p_end}
 {p 4 6 2}+ indicates a recommended or important option.{p_end}
+{p 4 6 2}X indicates option is still incomplete or not fully tested; proceed with care.{p_end}
 {p 4 6 2}{it:indepvars}, {it:endogvars} and {it:iv_vars} may contain factor variables; see {help fvvarlist}.{p_end}
 {p 4 6 2}all the regression variables may contain time-series operators; see {help tsvarlist}.{p_end}
 {p 4 6 2}{cmd:fweight}s, {cmd:aweight}s and {cmd:pweight}s are allowed; see {help weight}.{p_end}

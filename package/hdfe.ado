@@ -1,4 +1,4 @@
-*! hdfe 3.0.2 11may2015
+*! reghdfe 3.0.3 12may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -6,6 +6,7 @@
 // -------------------------------------------------------------------------------------------------
 // Mata Code: Method of Alternating Projections with Acceleration
 // -------------------------------------------------------------------------------------------------
+	// To debug the mata code, uncomment this three lines, and then -do- the file
 	//discard
 	//pr drop _all
 	//clear all
@@ -26,32 +27,10 @@
 	local FunctionPointer pointer(`Group' function) scalar // Used for the Accelerate & Transform fns
 
 // -------------------------------------------------------------------------------------------------
-	// This is not part of the MAP code but for simplicity we'll put it here
 	
 mata:
 mata set matastrict on
-
-// -------------------------------------------------------------------------------------------------
-// Fix nonpositive VCV; called from Wrapper_mwc.ado 
-// -------------------------------------------------------------------------------------------------
-void function fix_psd(string scalar Vname) {
-	real matrix V, U, lambda
-
-	V = st_matrix(Vname)
-	if (!issymmetric(V)) exit(error(505))
-	symeigensystem(V, U=., lambda=.)
-	st_local("eigenfix", "0")
-	if (min(lambda)<0) {
-		lambda = lambda :* (lambda :>= 0)
-		// V = U * diag(lambda) * U'
-		V = quadcross(U', lambda, U')
-		st_local("eigenfix", "1")
-	}
-	st_replacematrix(Vname, V)
-}
-
-	
-void assert_msg(real scalar t, | string scalar msg)
+	void assert_msg(real scalar t, | string scalar msg)
 	{
 		if (args()<2 | msg=="") msg = "assertion is false"
 	        if (t==0) _error(msg)
@@ -184,10 +163,18 @@ void function store_resid(`Problem' S, `Varname' varname) {
 	assert_msg(rows(S.resid)==S.N, "assertion failed: rows(S.resid)==S.N")
 }
 
-void function resid2dta(`Problem' S) {
-	st_store(., st_addvar("double", S.residname), S.resid)
-	S.resid = J(0,0,.)
-	S.residname = ""
+void function resid2dta(`Problem' S, `Boolean' original_dta, `Boolean' cleanup) {
+	if (original_dta) {
+		st_store(S.uid, st_addvar("double", S.residname), S.resid)
+	}
+	else {
+		st_store(., st_addvar("double", S.residname), S.resid)
+	}
+
+	if (cleanup) {
+		S.resid = J(0,0,.)
+		S.residname = ""
+	}	
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -195,7 +182,6 @@ void function resid2dta(`Problem' S) {
 void function groupvar2dta(`Problem' S) {
 	if (S.groupvar!="") {
 		if (S.verbose>2) printf("{txt}    - Saving identifier for the first mobility group: {res}%s\n", S.groupvar)
-		// WRONG: NEED TO INDEX BY UID
 		st_store(S.uid, st_addvar(S.grouptype, S.groupvar), S.groupseries)
 
 		S.groupseries = J(0,0,0)
@@ -1626,7 +1612,7 @@ void map_estimate_dof(`Problem' S, string rowvector adjustments,
 // -------------------------------------------------------------------------------------------------
 
 void function map_ereturn_dof(`Problem' S) {
-	`Integer' h, g
+	`Integer' h, g, i
 
 	st_numscalar("e(N_hdfe)", S.G)
 	st_numscalar("e(N_hdfe_extended)", S.dof_N_hdfe_extended)
@@ -1771,6 +1757,27 @@ void function map_ereturn_dof(`Problem' S) {
 	S.grouplabel = sprintf("Mobility Group: %s <--> %s", invtokens(S.fes[g1].ivars,"#") , invtokens(S.fes[g2].ivars,"#"))
 	S.groupseries = group
 	return(num_groups)
+}
+
+	// This is not part of the MAP code but for simplicity we'll put it here
+	
+// -------------------------------------------------------------------------------------------------
+// Fix nonpositive VCV; called from Wrapper_mwc.ado 
+// -------------------------------------------------------------------------------------------------
+void function fix_psd(string scalar Vname) {
+	real matrix V, U, lambda
+
+	V = st_matrix(Vname)
+	if (!issymmetric(V)) exit(error(505))
+	symeigensystem(V, U=., lambda=.)
+	st_local("eigenfix", "0")
+	if (min(lambda)<0) {
+		lambda = lambda :* (lambda :>= 0)
+		// V = U * diag(lambda) * U'
+		V = quadcross(U', lambda, U')
+		st_local("eigenfix", "1")
+	}
+	st_replacematrix(Vname, V)
 }
 
 end

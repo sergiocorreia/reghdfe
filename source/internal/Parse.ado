@@ -46,6 +46,7 @@ program define Parse
 		NESTED /// TODO: Implement
 	/// Miscellanea ///
 		NOTES(string) /// NOTES(key=value ..)
+		RESiduals(name) ///
 		] [*] // For display options ; and SUmmarize(stats)
 
 	local allkeys cmdline if in timeit
@@ -123,6 +124,14 @@ else {
 	* Time/panel variables (need to give them to Mata)
 	local panelvar `_dta[_TSpanel]'
 	local timevar `_dta[_TStvar]'
+	if ("`panelvar'"!="") {
+		cap conf var `panelvar'
+		if (c(rc)==111) local panelvar // if the var doesn't exist, set it empty
+	}
+	if ("`timevar'"!="") {
+		cap conf var `timevar'
+		if (c(rc)==111) local timevar // if the var doesn't exist, set it empty
+	}
 
 	* Parse optimization options (pass them to map_init_*)
 	* String options
@@ -166,6 +175,12 @@ else {
 	if ("`groupvar'"!="") conf new var `groupvar'
 	local allkeys `allkeys' dofadjustments groupvar
 
+* Parse residuals
+	if ("`residuals'"!="") {
+		conf new var `residuals'
+		local allkeys `allkeys' residuals
+	}
+
 * Parse summarize option: [summarize | summarize( stats... [,QUIetly])]
 	* Note: ParseImplicit deals with "implicit" options and fills their default values
 	local default_stats mean min max
@@ -175,8 +190,8 @@ else {
 	local allkeys `allkeys' stats summarize_quietly
 
 * Parse speedups
-	if (`fast' & ("`groupvar'"!="" | `will_save_fe'==1)) {
-		di as error "(warning: option -fast- not allowed when saving FEs or mobility groups; disabled)"
+	if (`fast' & ("`groupvar'"!="" | `will_save_fe'==1 | "`residuals'"!="")) {
+		di as error "(warning: option -fast- disabled; not allowed when saving variables: saving fixed effects, mobility groups, residuals)"
 		local fast 0
 	}
  	if ("`by'"!="") {
@@ -186,6 +201,7 @@ else {
 
 * Sanity checks on speedups
 	Assert `usecache' + `savecache' < 2, msg("savecache and usecache are mutually exclusive")
+	if ("`by'`level'"!="") di as error "(warning: by() and level() are currently incomplete)"
 	if ("`by'"!="") Assert `usecache' + `savecache' == 1 , msg("by() requires savecache or usecache")
 	if ("`level'"!="") Assert `usecache'==1 & "`by'"!="", msg("level() requires by() and usecache")
 	if (`savecache') {

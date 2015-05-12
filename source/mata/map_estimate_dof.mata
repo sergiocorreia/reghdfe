@@ -174,7 +174,7 @@ void map_estimate_dof(`Problem' S, string rowvector adjustments,
 // -------------------------------------------------------------------------------------------------
 
 void function map_ereturn_dof(`Problem' S) {
-	`Integer' h, g
+	`Integer' h, g, i
 
 	st_numscalar("e(N_hdfe)", S.G)
 	st_numscalar("e(N_hdfe_extended)", S.dof_N_hdfe_extended)

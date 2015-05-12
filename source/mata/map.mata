@@ -1,6 +1,7 @@
 // -------------------------------------------------------------------------------------------------
 // Mata Code: Method of Alternating Projections with Acceleration
 // -------------------------------------------------------------------------------------------------
+	// To debug the mata code, uncomment this three lines, and then -do- the file
 	//discard
 	//pr drop _all
 	//clear all
@@ -21,9 +22,6 @@
 	local FunctionPointer pointer(`Group' function) scalar // Used for the Accelerate & Transform fns
 
 // -------------------------------------------------------------------------------------------------
-	// This is not part of the MAP code but for simplicity we'll put it here
-	include fix_psd.mata
-
 	include assert_msg.mata
 	include FixedEffect.mata
 	include MapProblem.mata
@@ -39,4 +37,7 @@
 	include map_solve_transformations.mata
 	include map_estimate_dof.mata
 	include map_connected_groups.mata
+
+	// This is not part of the MAP code but for simplicity we'll put it here
+	include fix_psd.mata
 // -------------------------------------------------------------------------------------------------

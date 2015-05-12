@@ -102,7 +102,7 @@ if (`timeit') Tic, n(55)
 	if ("`stages'"!="none") {
 		Debug, level(1) msg(_n " {title:Stages to run}: " as result "`stages'" _n)
 		* Need to backup some locals
-		local backuplist groupvar fast will_save_fe depvar indepvars endogvars instruments original_depvar tss
+		local backuplist residuals groupvar fast will_save_fe depvar indepvars endogvars instruments original_depvar tss
 		foreach loc of local backuplist {
 			local backup_`loc' ``loc''
 		}
@@ -151,6 +151,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 			local endogvars
 			local instruments
 			local groupvar
+			local residuals
 		}
 	}
 
@@ -187,11 +188,26 @@ foreach lhs_endogvar of local lhs_endogvars {
 	`wrapper', `opt_list'
 	if (`timeit') Toc, n(66) msg(regression)
 
-* SAVE FE
+* COMPUTE AND STORE RESIDS (based on SaveFE.ado)
+	local drop_resid_vector
+	if ("`residuals'"!="") {
+		local drop_resid_vector drop_resid_vector(0)
+		local subpredict = e(predict)
+		local score = cond("`model'"=="ols", "score", "resid")
+		if e(df_m)>0 {
+			`subpredict' double `residuals', `score' // equation: y = xb + d + e, we recovered "e"
+		}
+		else {
+			gen double `residuals' = `depvar'
+		}
+		mata: store_resid(HDFE_S, "`residuals'")
+	}
+
+* SAVE FE - This loads back the untransformed dataset!
 	if (`will_save_fe') {
 		if (`timeit') Tic, n(68)
 		local subpredict = e(predict) // used to recover the FEs
-		SaveFE, model(`model') depvar(`depvar') untransformed(`untransformed') weightexp(`weightexp') subpredict(`subpredict')
+		SaveFE, model(`model') depvar(`depvar') untransformed(`untransformed') weightexp(`weightexp') subpredict(`subpredict') `drop_resid_vector'
 		if (`timeit') Toc, n(68) msg(save fes in mata)
 	}
 
@@ -215,6 +231,9 @@ foreach lhs_endogvar of local lhs_endogvars {
 		// TODO: Format alphas
 		if (`timeit') Toc, n(70) msg(restore)
 	}
+
+* SAVE RESIDS (after restore)
+	if ("`residuals'"!="") mata: resid2dta(HDFE_S, 1, 1)
 
 * (optional) Save mobility groups
 	if ("`groupvar'"!="") mata: groupvar2dta(HDFE_S)

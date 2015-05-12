@@ -1,4 +1,4 @@
-*! hdfe 3.0.2 11may2015
+*! reghdfe 3.0.3 12may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -6,6 +6,7 @@
 // -------------------------------------------------------------------------------------------------
 // Mata Code: Method of Alternating Projections with Acceleration
 // -------------------------------------------------------------------------------------------------
+	// To debug the mata code, uncomment this three lines, and then -do- the file
 	//discard
 	//pr drop _all
 	//clear all
@@ -26,32 +27,10 @@
 	local FunctionPointer pointer(`Group' function) scalar // Used for the Accelerate & Transform fns
 
 // -------------------------------------------------------------------------------------------------
-	// This is not part of the MAP code but for simplicity we'll put it here
 	
 mata:
 mata set matastrict on
-
-// -------------------------------------------------------------------------------------------------
-// Fix nonpositive VCV; called from Wrapper_mwc.ado 
-// -------------------------------------------------------------------------------------------------
-void function fix_psd(string scalar Vname) {
-	real matrix V, U, lambda
-
-	V = st_matrix(Vname)
-	if (!issymmetric(V)) exit(error(505))
-	symeigensystem(V, U=., lambda=.)
-	st_local("eigenfix", "0")
-	if (min(lambda)<0) {
-		lambda = lambda :* (lambda :>= 0)
-		// V = U * diag(lambda) * U'
-		V = quadcross(U', lambda, U')
-		st_local("eigenfix", "1")
-	}
-	st_replacematrix(Vname, V)
-}
-
-	
-void assert_msg(real scalar t, | string scalar msg)
+	void assert_msg(real scalar t, | string scalar msg)
 	{
 		if (args()<2 | msg=="") msg = "assertion is false"
 	        if (t==0) _error(msg)
@@ -184,10 +163,18 @@ void function store_resid(`Problem' S, `Varname' varname) {
 	assert_msg(rows(S.resid)==S.N, "assertion failed: rows(S.resid)==S.N")
 }
 
-void function resid2dta(`Problem' S) {
-	st_store(., st_addvar("double", S.residname), S.resid)
-	S.resid = J(0,0,.)
-	S.residname = ""
+void function resid2dta(`Problem' S, `Boolean' original_dta, `Boolean' cleanup) {
+	if (original_dta) {
+		st_store(S.uid, st_addvar("double", S.residname), S.resid)
+	}
+	else {
+		st_store(., st_addvar("double", S.residname), S.resid)
+	}
+
+	if (cleanup) {
+		S.resid = J(0,0,.)
+		S.residname = ""
+	}	
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -195,7 +182,6 @@ void function resid2dta(`Problem' S) {
 void function groupvar2dta(`Problem' S) {
 	if (S.groupvar!="") {
 		if (S.verbose>2) printf("{txt}    - Saving identifier for the first mobility group: {res}%s\n", S.groupvar)
-		// WRONG: NEED TO INDEX BY UID
 		st_store(S.uid, st_addvar(S.grouptype, S.groupvar), S.groupseries)
 
 		S.groupseries = J(0,0,0)
@@ -1626,7 +1612,7 @@ void map_estimate_dof(`Problem' S, string rowvector adjustments,
 // -------------------------------------------------------------------------------------------------
 
 void function map_ereturn_dof(`Problem' S) {
-	`Integer' h, g
+	`Integer' h, g, i
 
 	st_numscalar("e(N_hdfe)", S.G)
 	st_numscalar("e(N_hdfe_extended)", S.dof_N_hdfe_extended)
@@ -1773,6 +1759,27 @@ void function map_ereturn_dof(`Problem' S) {
 	return(num_groups)
 }
 
+	// This is not part of the MAP code but for simplicity we'll put it here
+	
+// -------------------------------------------------------------------------------------------------
+// Fix nonpositive VCV; called from Wrapper_mwc.ado 
+// -------------------------------------------------------------------------------------------------
+void function fix_psd(string scalar Vname) {
+	real matrix V, U, lambda
+
+	V = st_matrix(Vname)
+	if (!issymmetric(V)) exit(error(505))
+	symeigensystem(V, U=., lambda=.)
+	st_local("eigenfix", "0")
+	if (min(lambda)<0) {
+		lambda = lambda :* (lambda :>= 0)
+		// V = U * diag(lambda) * U'
+		V = quadcross(U', lambda, U')
+		st_local("eigenfix", "1")
+	}
+	st_replacematrix(Vname, V)
+}
+
 end
 // -------------------------------------------------------------------------------------------------
 
@@ -1916,7 +1923,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.2 11may2015"
+    local version "3.0.3 12may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2038,7 +2045,7 @@ if (`timeit') Tic, n(55)
 	if ("`stages'"!="none") {
 		Debug, level(1) msg(_n " {title:Stages to run}: " as result "`stages'" _n)
 		* Need to backup some locals
-		local backuplist groupvar fast will_save_fe depvar indepvars endogvars instruments original_depvar tss
+		local backuplist residuals groupvar fast will_save_fe depvar indepvars endogvars instruments original_depvar tss
 		foreach loc of local backuplist {
 			local backup_`loc' ``loc''
 		}
@@ -2087,6 +2094,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 			local endogvars
 			local instruments
 			local groupvar
+			local residuals
 		}
 	}
 
@@ -2123,11 +2131,26 @@ foreach lhs_endogvar of local lhs_endogvars {
 	`wrapper', `opt_list'
 	if (`timeit') Toc, n(66) msg(regression)
 
-* SAVE FE
+* COMPUTE AND STORE RESIDS (based on SaveFE.ado)
+	local drop_resid_vector
+	if ("`residuals'"!="") {
+		local drop_resid_vector drop_resid_vector(0)
+		local subpredict = e(predict)
+		local score = cond("`model'"=="ols", "score", "resid")
+		if e(df_m)>0 {
+			`subpredict' double `residuals', `score' // equation: y = xb + d + e, we recovered "e"
+		}
+		else {
+			gen double `residuals' = `depvar'
+		}
+		mata: store_resid(HDFE_S, "`residuals'")
+	}
+
+* SAVE FE - This loads back the untransformed dataset!
 	if (`will_save_fe') {
 		if (`timeit') Tic, n(68)
 		local subpredict = e(predict) // used to recover the FEs
-		SaveFE, model(`model') depvar(`depvar') untransformed(`untransformed') weightexp(`weightexp') subpredict(`subpredict')
+		SaveFE, model(`model') depvar(`depvar') untransformed(`untransformed') weightexp(`weightexp') subpredict(`subpredict') `drop_resid_vector'
 		if (`timeit') Toc, n(68) msg(save fes in mata)
 	}
 
@@ -2151,6 +2174,9 @@ foreach lhs_endogvar of local lhs_endogvars {
 		// TODO: Format alphas
 		if (`timeit') Toc, n(70) msg(restore)
 	}
+
+* SAVE RESIDS (after restore)
+	if ("`residuals'"!="") mata: resid2dta(HDFE_S, 1, 1)
 
 * (optional) Save mobility groups
 	if ("`groupvar'"!="") mata: groupvar2dta(HDFE_S)
@@ -2275,6 +2301,7 @@ program define Parse
 		NESTED /// TODO: Implement
 	/// Miscellanea ///
 		NOTES(string) /// NOTES(key=value ..)
+		RESiduals(name) ///
 		] [*] // For display options ; and SUmmarize(stats)
 
 	local allkeys cmdline if in timeit
@@ -2352,6 +2379,14 @@ else {
 	* Time/panel variables (need to give them to Mata)
 	local panelvar `_dta[_TSpanel]'
 	local timevar `_dta[_TStvar]'
+	if ("`panelvar'"!="") {
+		cap conf var `panelvar'
+		if (c(rc)==111) local panelvar // if the var doesn't exist, set it empty
+	}
+	if ("`timevar'"!="") {
+		cap conf var `timevar'
+		if (c(rc)==111) local timevar // if the var doesn't exist, set it empty
+	}
 
 	* Parse optimization options (pass them to map_init_*)
 	* String options
@@ -2395,6 +2430,12 @@ else {
 	if ("`groupvar'"!="") conf new var `groupvar'
 	local allkeys `allkeys' dofadjustments groupvar
 
+* Parse residuals
+	if ("`residuals'"!="") {
+		conf new var `residuals'
+		local allkeys `allkeys' residuals
+	}
+
 * Parse summarize option: [summarize | summarize( stats... [,QUIetly])]
 	* Note: ParseImplicit deals with "implicit" options and fills their default values
 	local default_stats mean min max
@@ -2404,8 +2445,8 @@ else {
 	local allkeys `allkeys' stats summarize_quietly
 
 * Parse speedups
-	if (`fast' & ("`groupvar'"!="" | `will_save_fe'==1)) {
-		di as error "(warning: option -fast- not allowed when saving FEs or mobility groups; disabled)"
+	if (`fast' & ("`groupvar'"!="" | `will_save_fe'==1 | "`residuals'"!="")) {
+		di as error "(warning: option -fast- disabled; not allowed when saving variables: saving fixed effects, mobility groups, residuals)"
 		local fast 0
 	}
  	if ("`by'"!="") {
@@ -2415,6 +2456,7 @@ else {
 
 * Sanity checks on speedups
 	Assert `usecache' + `savecache' < 2, msg("savecache and usecache are mutually exclusive")
+	if ("`by'`level'"!="") di as error "(warning: by() and level() are currently incomplete)"
 	if ("`by'"!="") Assert `usecache' + `savecache' == 1 , msg("by() requires savecache or usecache")
 	if ("`level'"!="") Assert `usecache'==1 & "`by'"!="", msg("level() requires by() and usecache")
 	if (`savecache') {
@@ -3684,7 +3726,7 @@ assert ("`replace'"!="") + ("`generate'"!="") == 1
 end
 
 program define SaveFE
-	syntax, model(string) depvar(string) untransformed(string) subpredict(string) [weightexp(string)]
+	syntax, model(string) depvar(string) untransformed(string) subpredict(string) [weightexp(string)] [drop_resid_vector(integer 1)]
 
 	Debug, level(2) msg("(calculating fixed effects)")
 	tempvar resid
@@ -3701,7 +3743,7 @@ program define SaveFE
 	Debug, level(3) msg(" - reloading untransformed dataset")
 	qui use "`untransformed'", clear
 	erase "`untransformed'"
-	mata: resid2dta(HDFE_S)
+	mata: resid2dta(HDFE_S, 0, `drop_resid_vector')
 
 	Debug, level(3) msg(" - predicting resid+d+cons (equation: y=xb+d+cons+resid)")
 	tempvar resid_d
