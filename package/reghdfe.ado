@@ -1,4 +1,4 @@
-*! reghdfe 3.0.3 12may2015
+*! reghdfe 3.0.5 12may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1923,7 +1923,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.3 12may2015"
+    local version "3.0.5 12may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2295,6 +2295,7 @@ program define Parse
 	/// Multiple regressions in one go ///
 		STAGEs(string) ///
 		SAVEcache ///
+		KEEPvars(varlist) ///
 		USEcache ///
 		BY(varname numeric) /// Requires savecache or usecache
 		LEVEL(string) /// level of by (should be an integer actually), requires usecache
@@ -2452,7 +2453,8 @@ else {
  	if ("`by'"!="") {
 		unab by : `by', max(1)
 	}
-	local allkeys `allkeys' fast savecache usecache by level
+	if ("`keepvars'"!="" & !`savecache') di as error "(warning: keepvars() has no effect without savecache)"
+	local allkeys `allkeys' fast savecache keepvars usecache by level
 
 * Sanity checks on speedups
 	Assert `usecache' + `savecache' < 2, msg("savecache and usecache are mutually exclusive")
@@ -2891,7 +2893,7 @@ end
 program define Compact, sclass
 syntax, basevars(string) verbose(integer) [depvar(string) indepvars(string) endogvars(string) instruments(string)] ///
 	[uid(string) timevar(string) panelvar(string) weightvar(string) absorb_keepvars(string) clustervars(string)] ///
-	[if(string) in(string) vceextra(string)] [savecache(integer 0)]
+	[if(string) in(string) vceextra(string)] [savecache(integer 0) more_keepvars(varlist)]
 
 * Drop unused variables
 	local exp "= `weightvar'"
@@ -2899,7 +2901,7 @@ syntax, basevars(string) verbose(integer) [depvar(string) indepvars(string) endo
 	local cluster_keepvars `clustervars'
 	local cluster_keepvars : subinstr local cluster_keepvars "#" " ", all
 	local cluster_keepvars : subinstr local cluster_keepvars "i." "", all
-	keep `uid' `touse' `basevars' `timevar' `panelvar' `weightvar' `absorb_keepvars' `cluster_keepvars'
+	keep `uid' `touse' `basevars' `timevar' `panelvar' `weightvar' `absorb_keepvars' `cluster_keepvars' `more_keepvars'
 
 * Expand factor and time-series variables
 	local expandedvars
@@ -2932,7 +2934,7 @@ syntax, basevars(string) verbose(integer) [depvar(string) indepvars(string) endo
 
 * Drop unused basevars and tsset vars (usually no longer needed)
 	if ("`vceextra'"!="") local tsvars `panelvar' `timevar' // We need to keep them only with autoco-robust VCE
-	keep `uid' `touse' `expandedvars' `weightvar' `absorb_keepvars' `cluster_keepvars' `tsvars' `cachevars'
+	keep `uid' `touse' `expandedvars' `weightvar' `absorb_keepvars' `cluster_keepvars' `tsvars' `cachevars' `more_keepvars'
 
 * Drop excluded observations and observations with missing values
 	markout `touse' `expandedvars' `weightvar' `absorb_keepvars' `cluster_keepvars'
@@ -4317,11 +4319,13 @@ program define InnerSaveCache, eclass
 	* The cache option of ExpandFactorVariables (called from Compact.ado)
 
 * COMPACT - Expand time and factor variables, and drop unused variables and obs.
-	Compact, basevars(`basevars') depvar(`depvar' `indepvars') uid(`uid') timevar(`timevar') panelvar(`panelvar') weightvar(`weightvar') absorb_keepvars(`absorb_keepvars') clustervars(`clustervars') if(`if') in(`in') verbose(`verbose') vceextra(`vceextra') savecache(1)
+	Compact, basevars(`basevars') depvar(`depvar' `indepvars') uid(`uid') timevar(`timevar') panelvar(`panelvar') weightvar(`weightvar') ///
+		absorb_keepvars(`absorb_keepvars') clustervars(`clustervars') ///
+		if(`if') in(`in') verbose(`verbose') vceextra(`vceextra') savecache(1) more_keepvars(`keepvars')
 	// Injects locals: depvar indepvars endogvars instruments expandedvars cachevars
 
 * PRECOMPUTE MATA OBJECTS (means, counts, etc.)
-	mata: map_init_keepvars(HDFE_S, "`expandedvars' `uid' `cachevars' `by'") 	// Non-essential vars will be deleted (e.g. interactions of a clustervar)
+	mata: map_init_keepvars(HDFE_S, "`expandedvars' `uid' `cachevars' `by' `keepvars'") 	// Non-essential vars will be deleted (e.g. interactions of a clustervar)
 	mata: map_precompute(HDFE_S)
 	global updated_clustervars = "`r(updated_clustervars)'"
 	

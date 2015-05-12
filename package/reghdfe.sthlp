@@ -76,6 +76,7 @@ options are {opt ivreg2} (default; needs installing) and {opt ivregress}{p_end}
 {syntab:Speedup Tricks {help reghdfe##opt_speedup:[+]}}
 {synopt :{opt fast}}will not create {it:e(sample)}; disabled when saving fixed effects or mobility groups{p_end}
 {synopt :{opt save:cache}}compute within transformation but do not regress the variables; useful when comparing alternative specifications (combine it with preserve/restore){p_end}
+{synopt :{opth keep:vars(varlist)}}additional variables that will be kept in the demeaned dataset{p_end}
 {synopt :{opt use:cache}}required with data previously transformed by {opt save:cache}{p_end}
 {p2coldent:X {opt by(groupvar)}}similar to {opt save:cache} but will run the transformations independently for each level/category of {it:varname}. Stores the levels in {it:e(levels)}{p_end}
 {p2coldent:X {opt l:evel(value)}}equivalent to regressing "{cmd:if} {it:groupvar}{cmd:==}{it:level}" but faster; needs to be run after {opt by(groupvar)}{p_end}
