@@ -18,11 +18,13 @@ program define InnerSaveCache, eclass
 	* The cache option of ExpandFactorVariables (called from Compact.ado)
 
 * COMPACT - Expand time and factor variables, and drop unused variables and obs.
-	Compact, basevars(`basevars') depvar(`depvar' `indepvars') uid(`uid') timevar(`timevar') panelvar(`panelvar') weightvar(`weightvar') absorb_keepvars(`absorb_keepvars') clustervars(`clustervars') if(`if') in(`in') verbose(`verbose') vceextra(`vceextra') savecache(1)
+	Compact, basevars(`basevars') depvar(`depvar' `indepvars') uid(`uid') timevar(`timevar') panelvar(`panelvar') weightvar(`weightvar') ///
+		absorb_keepvars(`absorb_keepvars') clustervars(`clustervars') ///
+		if(`if') in(`in') verbose(`verbose') vceextra(`vceextra') savecache(1) more_keepvars(`keepvars')
 	// Injects locals: depvar indepvars endogvars instruments expandedvars cachevars
 
 * PRECOMPUTE MATA OBJECTS (means, counts, etc.)
-	mata: map_init_keepvars(HDFE_S, "`expandedvars' `uid' `cachevars' `by'") 	// Non-essential vars will be deleted (e.g. interactions of a clustervar)
+	mata: map_init_keepvars(HDFE_S, "`expandedvars' `uid' `cachevars' `by' `keepvars'") 	// Non-essential vars will be deleted (e.g. interactions of a clustervar)
 	mata: map_precompute(HDFE_S)
 	global updated_clustervars = "`r(updated_clustervars)'"
 	

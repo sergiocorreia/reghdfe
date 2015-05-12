@@ -40,6 +40,7 @@ program define Parse
 	/// Multiple regressions in one go ///
 		STAGEs(string) ///
 		SAVEcache ///
+		KEEPvars(varlist) ///
 		USEcache ///
 		BY(varname numeric) /// Requires savecache or usecache
 		LEVEL(string) /// level of by (should be an integer actually), requires usecache
@@ -197,7 +198,8 @@ else {
  	if ("`by'"!="") {
 		unab by : `by', max(1)
 	}
-	local allkeys `allkeys' fast savecache usecache by level
+	if ("`keepvars'"!="" & !`savecache') di as error "(warning: keepvars() has no effect without savecache)"
+	local allkeys `allkeys' fast savecache keepvars usecache by level
 
 * Sanity checks on speedups
 	Assert `usecache' + `savecache' < 2, msg("savecache and usecache are mutually exclusive")

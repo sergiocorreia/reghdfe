@@ -2,7 +2,7 @@ capture program drop Compact
 program define Compact, sclass
 syntax, basevars(string) verbose(integer) [depvar(string) indepvars(string) endogvars(string) instruments(string)] ///
 	[uid(string) timevar(string) panelvar(string) weightvar(string) absorb_keepvars(string) clustervars(string)] ///
-	[if(string) in(string) vceextra(string)] [savecache(integer 0)]
+	[if(string) in(string) vceextra(string)] [savecache(integer 0) more_keepvars(varlist)]
 
 * Drop unused variables
 	local exp "= `weightvar'"
@@ -10,7 +10,7 @@ syntax, basevars(string) verbose(integer) [depvar(string) indepvars(string) endo
 	local cluster_keepvars `clustervars'
 	local cluster_keepvars : subinstr local cluster_keepvars "#" " ", all
 	local cluster_keepvars : subinstr local cluster_keepvars "i." "", all
-	keep `uid' `touse' `basevars' `timevar' `panelvar' `weightvar' `absorb_keepvars' `cluster_keepvars'
+	keep `uid' `touse' `basevars' `timevar' `panelvar' `weightvar' `absorb_keepvars' `cluster_keepvars' `more_keepvars'
 
 * Expand factor and time-series variables
 	local expandedvars
@@ -43,7 +43,7 @@ syntax, basevars(string) verbose(integer) [depvar(string) indepvars(string) endo
 
 * Drop unused basevars and tsset vars (usually no longer needed)
 	if ("`vceextra'"!="") local tsvars `panelvar' `timevar' // We need to keep them only with autoco-robust VCE
-	keep `uid' `touse' `expandedvars' `weightvar' `absorb_keepvars' `cluster_keepvars' `tsvars' `cachevars'
+	keep `uid' `touse' `expandedvars' `weightvar' `absorb_keepvars' `cluster_keepvars' `tsvars' `cachevars' `more_keepvars'
 
 * Drop excluded observations and observations with missing values
 	markout `touse' `expandedvars' `weightvar' `absorb_keepvars' `cluster_keepvars'
