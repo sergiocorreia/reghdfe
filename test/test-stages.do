@@ -87,7 +87,7 @@ cscript "reghdfe with iv-stages" adofile reghdfe
 	storedresults save b_first1 e()
 
 	* 2. Run reghdfe
-	reghdfe `lhs' `rhs' (`endogvar'=`iv'), absorb(`absvars') stages(ols first acid reduced) vce(cluster `clustervar') // will be saved as reghdfe_`stage'
+	reghdfe `lhs' `rhs' (`endogvar'=`iv'), absorb(`absvars') stages(ols first acid reduced) vce(cluster `clustervar')  keepsingletons // will be saved as reghdfe_`stage'
 	estimates store reghdfe_iv
 
 	* Compare

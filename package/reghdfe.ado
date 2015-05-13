@@ -1,4 +1,4 @@
-*! reghdfe 3.0.6 13may2015
+*! reghdfe 3.0.7 13may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1923,7 +1923,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.6 13may2015"
+    local version "3.0.7 13may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -4517,7 +4517,6 @@ foreach lhs_endogvar of local lhs_endogvars {
 	FixVarnames `backup_colnames'
 	local newnames "`r(newnames)'"
 	matrix colnames `b' = `newnames'
-	ereturn repost b=`b', rename
 	ereturn local depvar = "`original_depvar'" // Run after SaveFE
 
 * POST ERETURN - Add e(...) (besides e(sample) and those added by the wrappers)	
@@ -4526,7 +4525,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 	foreach opt of local opts {
 		local opt_list `opt_list' `opt'(``opt'')
 	}
-	Post, `opt_list'
+	Post, `opt_list' coefnames(`b')
 
 * REPLAY - Show the regression table	
 	if ("`stage'"!="none") Debug, level(0) msg(_n "{title:Stage: `stage'}" _n)
