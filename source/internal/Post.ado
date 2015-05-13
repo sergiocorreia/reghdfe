@@ -1,12 +1,17 @@
 capture program drop Post
 program define Post, eclass
-	syntax, model(string) stage(string) stages(string) subcmd(string) cmdline(string) vceoption(string) original_absvars(string) extended_absvars(string) vcetype(string) vcesuite(string) tss(string) num_clusters(string) ///
+	syntax, coefnames(string) ///
+		model(string) stage(string) stages(string) subcmd(string) cmdline(string) vceoption(string) original_absvars(string) extended_absvars(string) vcetype(string) vcesuite(string) tss(string) num_clusters(string) ///
 		[dofadjustments(string) clustervars(string) timevar(string) r2c(string) equation_d(string) subpredict(string) savefirst(string) diopts(string) weightvar(string) gmm2s(string) cue(string) dkraay(string) liml(string) by(string) level(string)]
 
 	if (`c(version)'>=12) local hidden hidden // ereturn hidden requires v12+
-	
+
 	Assert e(tss)<., msg("within tss is missing")
 	Assert `tss'<., msg("overall tss is missing")
+
+	* Why is this here and not right after FixVarnames?
+	* Because of some Stata black magic, if I repost *before* the restore this will not work
+	ereturn repost b=`coefnames', rename
 
 	if ("`weightvar'"!="") {
 		qui su `weightvar', mean

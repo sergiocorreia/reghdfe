@@ -219,7 +219,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 	FixVarnames `backup_colnames'
 	local newnames "`r(newnames)'"
 	matrix colnames `b' = `newnames'
-	ereturn repost b=`b', rename
+	// ereturn repost b=`b', rename // I cannot run repost before preserve. Why? Who knows... (running it in Post.ado)
 	ereturn local depvar = "`original_depvar'" // Run after SaveFE
 
 * (optional) Restore
@@ -264,7 +264,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 		local opt_list `opt_list' `opt'(``opt'')
 	}
 	if (`timeit') Tic, n(78)
-	Post, `opt_list'
+	Post, `opt_list' coefnames(`b')
 	if (`timeit') Toc, n(78) msg(post)
 
 * REPLAY - Show the regression table	

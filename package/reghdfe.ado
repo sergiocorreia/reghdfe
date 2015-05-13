@@ -1,4 +1,4 @@
-*! reghdfe 3.0.5 12may2015
+*! reghdfe 3.0.6 13may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1923,7 +1923,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.5 12may2015"
+    local version "3.0.6 13may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2162,7 +2162,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 	FixVarnames `backup_colnames'
 	local newnames "`r(newnames)'"
 	matrix colnames `b' = `newnames'
-	ereturn repost b=`b', rename
+	// ereturn repost b=`b', rename // I cannot run repost before preserve. Why? Who knows... (running it in Post.ado)
 	ereturn local depvar = "`original_depvar'" // Run after SaveFE
 
 * (optional) Restore
@@ -2207,7 +2207,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 		local opt_list `opt_list' `opt'(``opt'')
 	}
 	if (`timeit') Tic, n(78)
-	Post, `opt_list'
+	Post, `opt_list' coefnames(`b')
 	if (`timeit') Toc, n(78) msg(post)
 
 * REPLAY - Show the regression table	
@@ -3771,13 +3771,18 @@ program define SaveFE
 end
 
 program define Post, eclass
-	syntax, model(string) stage(string) stages(string) subcmd(string) cmdline(string) vceoption(string) original_absvars(string) extended_absvars(string) vcetype(string) vcesuite(string) tss(string) num_clusters(string) ///
+	syntax, coefnames(string) ///
+		model(string) stage(string) stages(string) subcmd(string) cmdline(string) vceoption(string) original_absvars(string) extended_absvars(string) vcetype(string) vcesuite(string) tss(string) num_clusters(string) ///
 		[dofadjustments(string) clustervars(string) timevar(string) r2c(string) equation_d(string) subpredict(string) savefirst(string) diopts(string) weightvar(string) gmm2s(string) cue(string) dkraay(string) liml(string) by(string) level(string)]
 
 	if (`c(version)'>=12) local hidden hidden // ereturn hidden requires v12+
-	
+
 	Assert e(tss)<., msg("within tss is missing")
 	Assert `tss'<., msg("overall tss is missing")
+
+	* Why is this here and not right after FixVarnames?
+	* Because of some Stata black magic, if I repost *before* the restore this will not work
+	ereturn repost b=`coefnames', rename
 
 	if ("`weightvar'"!="") {
 		qui su `weightvar', mean
