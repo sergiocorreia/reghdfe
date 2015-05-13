@@ -1,4 +1,4 @@
-*! reghdfe 3.0.10 13may2015
+*! reghdfe 3.0.11 13may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1814,10 +1814,10 @@ program define reghdfe
 * Intercept cleanup of cache (must be before replay)
 	cap syntax, CLEANupcache
 	if !c(rc) {
-		mata: mata drop HDFE_S // overwrites c(rc)
-		mata: mata drop varlist_cache
-		mata: mata drop tss_cache
-		global updated_clustervars
+		cap mata: mata drop HDFE_S // overwrites c(rc)
+		cap mata: mata drop varlist_cache
+		cap mata: mata drop tss_cache
+		cap global updated_clustervars
 		cap matrix drop reghdfe_statsmatrix
 		exit
 	}
@@ -1853,6 +1853,8 @@ program define reghdfe
 	}
 
 * Finally, call Inner
+	local is_cache : char _dta[reghdfe_cache]
+	Assert ("`is_cache'"!="1"), msg("reghdfe error: data transformed with -savecache- requires option -usecache-")
 	cap noi Inner `0'
 	if (c(rc)) {
 		local rc = c(rc)
@@ -1923,7 +1925,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.10 13may2015"
+    local version "3.0.11 13may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
