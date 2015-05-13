@@ -156,12 +156,23 @@ else {
 
 * Parse VCE options
 	mata: st_local("hascomma", strofreal(strpos("`vce'", ","))) // is there a commma already in `vce'?
-	if (!`hascomma') local vce `vce' ,
-	ParseVCE `vce' weighttype(`weighttype')
 	local keys vceoption vcetype vcesuite vceextra num_clusters clustervars bw kernel dkraay kiefer twicerobust
-	foreach key of local keys {
-		local `key' "`s(`key')'"
+	if (!`usecache') {
+		local vcetmp `vce'
+		if (!`hascomma') local vcetmp `vce' ,
+		ParseVCE `vcetmp' weighttype(`weighttype')
+		foreach key of local keys {
+			local `key' "`s(`key')'"
+		}
 	}
+	else {
+		local cache_vce : char _dta[vce]
+		assert_msg "`cache_vce'"=="`vce'", msg("vce() must be the same in savecache and usecache (because of the cluster variables)")
+		foreach key of local keys {
+			local `key' : char _dta[`key']
+		}
+	}
+
 	local allkeys `allkeys' `keys'
 	
 	* Update Mata
@@ -210,11 +221,10 @@ else {
 		* Savecache "requires" a previous preserve, so we can directly modify the dataset
 		Assert "`endogvars'`instruments'"=="", msg("savecache option requires a normal varlist, not an iv varlist")
 		char _dta[reghdfe_cache] 1
-		char _dta[absorb] `absorb'
-		char _dta[N_hdfe] `N_hdfe'
-		char _dta[original_absvars] `original_absvars'
-		char _dta[extended_absvars] `extended_absvars'
-		char _dta[by] `by'
+		local chars absorb N_hdfe original_absvars extended_absvars by vce vceoption vcetype vcesuite vceextra num_clusters clustervars bw kernel dkraay kiefer twicerobust
+		foreach char of local  chars {
+			char _dta[`char'] ``char''	
+		}
 	}
 	else if (`usecache') {
 		local is_cache : char _dta[reghdfe_cache]
