@@ -1,7 +1,7 @@
 cap pr drop Wrapper_ivregress
 program define Wrapper_ivregress, eclass
 	syntax , depvar(varname) endogvars(varlist) instruments(varlist) ///
-		[indepvars(varlist) avgevars(varlist)] ///
+		[indepvars(varlist)] ///
 		vceoption(string asis) ///
 		KK(integer) ///
 		[weightexp(string)] ///
@@ -10,7 +10,7 @@ program define Wrapper_ivregress, eclass
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
-	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars' (`endogvars'=`instruments')" )) )
+	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' (`endogvars'=`instruments')" )) )
 	if (`c(version)'>=12) local hidden hidden
 
 	local opt_estimator = cond("`estimator'"=="gmm2s", "gmm", "`estimator'")
@@ -45,7 +45,7 @@ program define Wrapper_ivregress, eclass
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'
-	qui test `indepvars' `avgevars' `endogvars' // Wald test
+	qui test `indepvars' `endogvars' // Wald test
 	ereturn scalar F = r(F)
 
 	

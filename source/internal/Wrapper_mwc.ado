@@ -1,14 +1,14 @@
 capture program drop Wrapper_mwc
 program define Wrapper_mwc, eclass
 * This will compute an ols regression with 2+ clusters
-syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
+syntax , depvar(varname) [indepvars(varlist)] ///
 	vceoption(string asis) ///
 	kk(integer) ///
 	[weightexp(string)] ///
 	[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
-	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars'" )) ) // Just for esthetic purposes
+	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars'" )) ) // Just for aesthetic purposes
 	if (`c(version)'>=12) local hidden hidden
 
 * Parse contents of VCE()
@@ -19,7 +19,7 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 	local clustervars `clustervars' // Trim
 
 * Obtain e(b), e(df_m), and resids
-	local subcmd regress `depvar' `indepvars' `avgevars' `weightexp', noconstant
+	local subcmd regress `depvar' `indepvars' `weightexp', noconstant
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	qui `subcmd'
 
@@ -42,7 +42,7 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 
 	* Compute the bread of the sandwich D := inv(X'X/N)
 	tempname XX invSxx
-	qui mat accum `XX' = `indepvars' `avgevars' `weightexp', noconstant
+	qui mat accum `XX' = `indepvars' `weightexp', noconstant
 	mat `invSxx' = syminv(`XX') // This line is different from <Wrapper_avar>
 
 	* Resids
@@ -136,7 +136,8 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 
 * Compute model F-test
 	if (`K'>0) {
-		qui test `indepvars' `avge' // Wald test
+		RemoveOmitted
+		qui test `r(indepvars)' // Wald test
 		if (r(drop)==1) Debug, level(0) msg("Warning: Some variables were dropped by the F test due to collinearity (or insufficient number of clusters).")
 		ereturn scalar F = r(F)
 		ereturn scalar df_m = r(df)

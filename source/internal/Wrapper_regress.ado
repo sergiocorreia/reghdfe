@@ -1,13 +1,13 @@
 cap pr drop Wrapper_regress
 program define Wrapper_regress, eclass
-	syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
+	syntax , depvar(varname) [indepvars(varlist)] ///
 		vceoption(string asis)  ///
 		kk(integer) ///
 		[weightexp(string)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 	
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
-	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars'" )) ) // Just for aesthetic purposes
+	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars'" )) ) // Just for aesthetic purposes
 	if (`c(version)'>=12) local hidden hidden
 
 * Convert -vceoption- to what -regress- expects
@@ -23,7 +23,7 @@ program define Wrapper_regress, eclass
 * Obtain K so we can obtain DoF = N - K - kk
 * This is already done by regress EXCEPT when clustering
 * (but we still need the unclustered version for r2_a, etc.)
-	_rmcoll `indepvars' `avgevars' `weightexp', forcedrop
+	_rmcoll `indepvars' `weightexp', forcedrop
 	local varlist = r(varlist)
 	if ("`varlist'"==".") local varlist
 	local K : list sizeof varlist
@@ -89,7 +89,9 @@ program define Wrapper_regress, eclass
 
 * Compute model F-test
 	if (`K'>0) {
-		qui test `indepvars' `avgevars' // Wald test
+		RemoveOmitted
+		qui test `r(indepvars)' // Wald test
+		if (r(drop)==1) Debug, level(0) msg("{error}Warning: Some variables were dropped by the F test due to collinearity (or insufficient number of clusters).")
 		ereturn scalar F = r(F)
 		ereturn scalar df_m = r(df)
 		ereturn scalar rank = r(df) // Not adding constant anymore

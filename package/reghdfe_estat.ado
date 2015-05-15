@@ -1,8 +1,7 @@
-*! reghdfe 3.0.11 13may2015
+*! reghdfe 3.0.12 15may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 *! version 1.1.0 10jul2014
-* TODO: Not tested for -avge- variables!
 program reghdfe_estat, rclass
 	if (c(version)<12) di as error "(warning: -reghdfe- has only been throughly tested with Stata 12 and above)"
 	version `=cond(c(version)<14, c(version), 13)'

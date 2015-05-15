@@ -1,7 +1,7 @@
 cap pr drop Wrapper_ivreg2
 program define Wrapper_ivreg2, eclass
 	syntax , depvar(varname) endogvars(varlist) instruments(varlist) ///
-		[indepvars(varlist) avgevars(varlist)] ///
+		[indepvars(varlist)] ///
 		vceoption(string asis) ///
 		KK(integer) ///
 		[SHOWRAW(integer 0)] first(integer) [weightexp(string)] ///
@@ -28,7 +28,7 @@ program define Wrapper_ivreg2, eclass
 	if ("`kernel'"!="") local vceoption `vceoption' kernel(`kernel')
 	if ("`kiefer'"!="") local vceoption `vceoption' kiefer
 	
-	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars' (`endogvars'=`instruments')" )) )
+	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' (`endogvars'=`instruments')" )) )
 	
 	if (`first') {
 		local firstoption "first savefirst"

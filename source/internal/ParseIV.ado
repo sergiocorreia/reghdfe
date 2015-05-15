@@ -96,7 +96,7 @@ program define ParseIV, sclass
 
 * Extract format of depvar so we can format FEs like this
 	fvrevar `depvar', list
-	local fe_format : format `r(varlist)' // The format of the FEs and AvgEs that will be saved
+	local fe_format : format `r(varlist)' // The format of the FEs that will be saved
 
 * Variables shouldn't be repeated
 * This is not perfect (e.g. doesn't deal with "x1-x10") but still helpful

@@ -527,24 +527,6 @@ The user should be very careful not to change the dataset between calls, as the 
 {phang2}{cmd:. reghdfe price weight length  if foreign==0, a(turn rep)}{p_end}
 {phang2}{cmd:. reghdfe price weight length  if foreign==1, a(turn rep)}{p_end}
 
-{marker opt_avge}{...}
-{dlgtab:"Average Effects" (AvgE)}
-
-{phang}
-{opt avge(avgevars)}
-will attempt to control for categorical variables using the so-called AvgE correction
-
-{pmore}
-The advantage of this approach, vis-a-vis using {it:absorb()} is its speed and higher reported degrees-of-freedom. It's disadvantage lies in it being inconsistent, as reported by Gormley & Matsa (2013).
-
-{pmore}
-{it:avgevar}
-has the same syntax as {it:absvars}, except that continuous interactions ({cmd:c.}) are not allowed
-
-{phang}
-{opt excludeself}
-excludes observation at hand when calculating the group average
-
 {marker opt_optimization}{...}
 {dlgtab:Optimization}
 
@@ -793,7 +775,6 @@ on the other hand, there may be alternatives:
 {p2col 5 24 28 2: Scalars}{p_end}
 {synopt:{cmd:e(N)}}number of observations{p_end}
 {synopt:{cmd:e(N_hdfe)}}number of absorbed fixed-effects{p_end}
-{synopt:{cmd:e(N_avge)}}number of average effects{p_end}
 {synopt:{cmd:e(tss)}}total sum of squares{p_end}
 {synopt:{cmd:e(df_m)}}model degrees of freedom{p_end}
 {synopt:{cmd:e(rss)}}residual sum of squares{p_end}
@@ -828,7 +809,6 @@ on the other hand, there may be alternatives:
 {synopt:{cmd:e(indepvars)}}names of independent variables{p_end}
 {synopt:{cmd:e(endogvars)}}names of endogenous right-hand-side variables{p_end}
 {synopt:{cmd:e(instruments)}}names of excluded instruments{p_end}
-{synopt:{cmd:e(avgevars)}}name of the variables "controled" with the AvgE correction{p_end}
 {synopt:{cmd:e(absvars)}}name of the absorbed variables or interactions{p_end}
 {synopt:{cmd:e(title)}}title in estimation output{p_end}
 {synopt:{cmd:e(clustvar)}}name of cluster variable{p_end}

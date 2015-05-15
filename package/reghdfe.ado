@@ -1,4 +1,4 @@
-*! reghdfe 3.0.11 13may2015
+*! reghdfe 3.0.12 15may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1925,7 +1925,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.11 13may2015"
+    local version "3.0.12 15may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2638,7 +2638,7 @@ program define ParseIV, sclass
 
 * Extract format of depvar so we can format FEs like this
 	fvrevar `depvar', list
-	local fe_format : format `r(varlist)' // The format of the FEs and AvgEs that will be saved
+	local fe_format : format `r(varlist)' // The format of the FEs that will be saved
 
 * Variables shouldn't be repeated
 * This is not perfect (e.g. doesn't deal with "x1-x10") but still helpful
@@ -3075,15 +3075,32 @@ syntax, depvar(string) stages(string) model(string) expandedvars(string) vcetype
 	}
 end
 
+	
+* Remove omitted variables from a beta matrix, and return remaining indepvars
+
+program define RemoveOmitted, rclass
+	tempname b
+	matrix `b' = e(b)
+	local names : colnames `b'
+	foreach name of local names {
+		_ms_parse_parts `name'
+		assert inlist(r(omit),0,1)
+		if !r(omit) {
+			local indepvars `indepvars' `name'
+		}
+	}
+	return local indepvars `indepvars'
+end
+
 program define Wrapper_regress, eclass
-	syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
+	syntax , depvar(varname) [indepvars(varlist)] ///
 		vceoption(string asis)  ///
 		kk(integer) ///
 		[weightexp(string)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 	
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
-	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars'" )) ) // Just for aesthetic purposes
+	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars'" )) ) // Just for aesthetic purposes
 	if (`c(version)'>=12) local hidden hidden
 
 * Convert -vceoption- to what -regress- expects
@@ -3099,7 +3116,7 @@ program define Wrapper_regress, eclass
 * Obtain K so we can obtain DoF = N - K - kk
 * This is already done by regress EXCEPT when clustering
 * (but we still need the unclustered version for r2_a, etc.)
-	_rmcoll `indepvars' `avgevars' `weightexp', forcedrop
+	_rmcoll `indepvars' `weightexp', forcedrop
 	local varlist = r(varlist)
 	if ("`varlist'"==".") local varlist
 	local K : list sizeof varlist
@@ -3165,7 +3182,9 @@ program define Wrapper_regress, eclass
 
 * Compute model F-test
 	if (`K'>0) {
-		qui test `indepvars' `avgevars' // Wald test
+		RemoveOmitted
+		qui test `r(indepvars)' // Wald test
+		if (r(drop)==1) Debug, level(0) msg("{error}Warning: Some variables were dropped by the F test due to collinearity (or insufficient number of clusters).")
 		ereturn scalar F = r(F)
 		ereturn scalar df_m = r(df)
 		ereturn scalar rank = r(df) // Not adding constant anymore
@@ -3179,14 +3198,14 @@ program define Wrapper_regress, eclass
 end
 
 program define Wrapper_avar, eclass
-	syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
+	syntax , depvar(varname) [indepvars(varlist)] ///
 		vceoption(string asis) ///
 		kk(integer) ///
 		[weightexp(string)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
-	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars'" )) ) // Just for aesthetic purposes
+	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars'" )) ) // Just for aesthetic purposes
 	if (`c(version)'>=12) local hidden hidden
 
 	local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)
@@ -3209,7 +3228,7 @@ program define Wrapper_avar, eclass
 *	ii) DoF lost due to included indepvars
 *	iii) resids
 * Note: It would be shorter to use -mse1- (b/c then invSxx==e(V)*e(N)) but then I don't know e(df_r)
-	local subcmd regress `depvar' `indepvars' `avgevars' `weightexp', noconstant
+	local subcmd regress `depvar' `indepvars' `weightexp', noconstant
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	qui `subcmd'
 	qui cou if !e(sample)
@@ -3234,7 +3253,7 @@ program define Wrapper_avar, eclass
 
 	* Compute the bread of the sandwich inv(X'X/N)
 	tempname XX invSxx
-	qui mat accum `XX' = `indepvars' `avgevars' `tmpweightexp', noconstant
+	qui mat accum `XX' = `indepvars' `tmpweightexp', noconstant
 	* WHY DO I NEED TO REPLACE PWEIGHT WITH AWEIGHT HERE?!?
 	
 	* (Is this precise enough? i.e. using -matrix- commands instead of mata?)
@@ -3248,7 +3267,7 @@ program define Wrapper_avar, eclass
 	local df_r = max( `WrongDoF' - `kk' , 0 )
 
 * Use -avar- to get meat of sandwich
-	local subcmd avar `resid' (`indepvars' `avgevars') `weightexp', `vceoption' noconstant // dofminus(0)
+	local subcmd avar `resid' (`indepvars') `weightexp', `vceoption' noconstant // dofminus(0)
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	cap `subcmd'
 	local rc = _rc
@@ -3308,7 +3327,8 @@ program define Wrapper_avar, eclass
 
 * Compute model F-test
 	if (`K'>0) {
-		qui test `indepvars' `avge' // Wald test
+		RemoveOmitted
+		qui test `r(indepvars)' // Wald test
 		if (r(drop)==1) Debug, level(0) msg("Warning: Some variables were dropped by the F test due to collinearity (or insufficient number of clusters).")
 		ereturn scalar F = r(F)
 		ereturn scalar df_m = r(df)
@@ -3324,14 +3344,14 @@ end
 
 program define Wrapper_mwc, eclass
 * This will compute an ols regression with 2+ clusters
-syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
+syntax , depvar(varname) [indepvars(varlist)] ///
 	vceoption(string asis) ///
 	kk(integer) ///
 	[weightexp(string)] ///
 	[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
-	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars'" )) ) // Just for esthetic purposes
+	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars'" )) ) // Just for aesthetic purposes
 	if (`c(version)'>=12) local hidden hidden
 
 * Parse contents of VCE()
@@ -3342,7 +3362,7 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 	local clustervars `clustervars' // Trim
 
 * Obtain e(b), e(df_m), and resids
-	local subcmd regress `depvar' `indepvars' `avgevars' `weightexp', noconstant
+	local subcmd regress `depvar' `indepvars' `weightexp', noconstant
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	qui `subcmd'
 
@@ -3365,7 +3385,7 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 
 	* Compute the bread of the sandwich D := inv(X'X/N)
 	tempname XX invSxx
-	qui mat accum `XX' = `indepvars' `avgevars' `weightexp', noconstant
+	qui mat accum `XX' = `indepvars' `weightexp', noconstant
 	mat `invSxx' = syminv(`XX') // This line is different from <Wrapper_avar>
 
 	* Resids
@@ -3459,7 +3479,8 @@ syntax , depvar(varname) [indepvars(varlist) avgevars(varlist)] ///
 
 * Compute model F-test
 	if (`K'>0) {
-		qui test `indepvars' `avge' // Wald test
+		RemoveOmitted
+		qui test `r(indepvars)' // Wald test
 		if (r(drop)==1) Debug, level(0) msg("Warning: Some variables were dropped by the F test due to collinearity (or insufficient number of clusters).")
 		ereturn scalar F = r(F)
 		ereturn scalar df_m = r(df)
@@ -3476,7 +3497,7 @@ end
 
 program define Wrapper_ivreg2, eclass
 	syntax , depvar(varname) endogvars(varlist) instruments(varlist) ///
-		[indepvars(varlist) avgevars(varlist)] ///
+		[indepvars(varlist)] ///
 		vceoption(string asis) ///
 		KK(integer) ///
 		[SHOWRAW(integer 0)] first(integer) [weightexp(string)] ///
@@ -3503,7 +3524,7 @@ program define Wrapper_ivreg2, eclass
 	if ("`kernel'"!="") local vceoption `vceoption' kernel(`kernel')
 	if ("`kiefer'"!="") local vceoption `vceoption' kiefer
 	
-	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars' (`endogvars'=`instruments')" )) )
+	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' (`endogvars'=`instruments')" )) )
 	
 	if (`first') {
 		local firstoption "first savefirst"
@@ -3573,7 +3594,7 @@ end
 
 program define Wrapper_ivregress, eclass
 	syntax , depvar(varname) endogvars(varlist) instruments(varlist) ///
-		[indepvars(varlist) avgevars(varlist)] ///
+		[indepvars(varlist)] ///
 		vceoption(string asis) ///
 		KK(integer) ///
 		[weightexp(string)] ///
@@ -3582,7 +3603,7 @@ program define Wrapper_ivregress, eclass
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
-	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' `avgevars' (`endogvars'=`instruments')" )) )
+	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' (`endogvars'=`instruments')" )) )
 	if (`c(version)'>=12) local hidden hidden
 
 	local opt_estimator = cond("`estimator'"=="gmm2s", "gmm", "`estimator'")
@@ -3617,7 +3638,7 @@ program define Wrapper_ivregress, eclass
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
 	`noise' `subcmd'
-	qui test `indepvars' `avgevars' `endogvars' // Wald test
+	qui test `indepvars' `endogvars' // Wald test
 	ereturn scalar F = r(F)
 
 	
