@@ -62,7 +62,7 @@ mata set matastrict on
 		beta = safe_divide( ssr , ssr_old) // Fletcher-Reeves formula, but it shouldn't matter in our problem
 		u = r + beta :* u
 		// Convergence if sum(recent_ssr) > tol^2 * improvement_potential
-		if ( check_convergence(S, iter, sum(recent_ssr), improvement_potential, "hestenes") ) break
+		if ( check_convergence(S, iter, colsum(recent_ssr), improvement_potential, "hestenes") ) break
 	}
 	return(y)
 }
