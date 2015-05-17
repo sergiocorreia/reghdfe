@@ -86,7 +86,7 @@ at each stage (only with ols and unadjusted standard errors){p_end}
 {syntab:Degrees-of-Freedom Adjustments {help reghdfe##opt_dof:[+]}}
 {synopt :{opt dof:adjustments(list)}}allows selecting the desired adjustments for degrees of freedom;
 rarely used{p_end}
-{synopt: {opth group(newvar)}}unique identifier for the first mobility group{p_end}
+{synopt: {opth groupvar(newvar)}}unique identifier for the first mobility group{p_end}
 
 {syntab:Reporting {help reghdfe##opt_reporting:[+]}}
 {synopt :{opt version:}}reports the version number and date of reghdfe, and saves it in e(version). standalone option{p_end}

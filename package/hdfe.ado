@@ -1,4 +1,4 @@
-*! reghdfe 3.0.13 16may2015
+*! reghdfe 3.0.14 17may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -623,7 +623,6 @@ void map_precompute_part1(`Problem' S, transmorphic counter) {
 	}
 
 	printf("{txt}(dropped %f singleton observations)\n", initial_N-st_nobs())
-
 }
 
 // -------------------------------------------------------------

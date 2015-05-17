@@ -95,7 +95,6 @@ void map_precompute_part1(`Problem' S, transmorphic counter) {
 	}
 
 	printf("{txt}(dropped %f singleton observations)\n", initial_N-st_nobs())
-
 }
 
 // -------------------------------------------------------------
