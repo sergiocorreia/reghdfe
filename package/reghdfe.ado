@@ -1,4 +1,4 @@
-*! reghdfe 3.0.15 17may2015
+*! reghdfe 3.0.16 17may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1231,7 +1231,7 @@ void function map_solve(`Problem' S, `Varlist' vars,
 		beta = safe_divide( ssr , ssr_old) // Fletcher-Reeves formula, but it shouldn't matter in our problem
 		u = r + beta :* u
 		// Convergence if sum(recent_ssr) > tol^2 * improvement_potential
-		if ( check_convergence(S, iter, sum(recent_ssr), improvement_potential, "hestenes") ) break
+		if ( check_convergence(S, iter, colsum(recent_ssr), improvement_potential, "hestenes") ) break
 	}
 	return(y)
 }
@@ -1935,7 +1935,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.15 17may2015"
+    local version "3.0.16 17may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"

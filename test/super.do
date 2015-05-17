@@ -27,6 +27,7 @@
 	run test-cluster
 	run test-ivreg2
 
+	run test-zero
 
 	run test-avar
 
