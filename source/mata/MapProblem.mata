@@ -51,6 +51,8 @@ struct MapProblem {
 	`Series'		uid
 	`Series'		resid
 	`Varname'		residname
+	`Integer'		num_iters_last_run
+	`Integer'		num_iters_max
 
 	// Temporary storage for DoFs
 	`Integer'		dof_M

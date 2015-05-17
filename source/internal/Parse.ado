@@ -189,6 +189,8 @@ else {
 
 * Parse residuals
 	if ("`residuals'"!="") {
+		Assert !`will_save_fe', msg("option residuals() is mutually exclusive with saving fixed effects")
+		Assert !`savecache', msg("option residuals() is mutually exclusive with -savecache-")
 		conf new var `residuals'
 		local allkeys `allkeys' residuals
 	}

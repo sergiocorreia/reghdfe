@@ -1,4 +1,4 @@
-*! reghdfe 3.0.12 15may2015
+*! reghdfe 3.0.13 16may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -120,6 +120,8 @@ struct MapProblem {
 	`Series'		uid
 	`Series'		resid
 	`Varname'		residname
+	`Integer'		num_iters_last_run
+	`Integer'		num_iters_max
 
 	// Temporary storage for DoFs
 	`Integer'		dof_M
@@ -249,7 +251,7 @@ void function alphas2dta(`Problem' S) {
 	S.verbose = 0
 	S.transform = "symmetric_kaczmarz" // cimmino ?
 	S.acceleration = "conjugate_gradient"
-	S.tolerance = 1e-7
+	S.tolerance = 1e-8 // Previously, it was 1e-7
 	S.maxiterations = 1e4
 	S.accel_start = 6
 	S.groupsize = 10
@@ -620,7 +622,7 @@ void map_precompute_part1(`Problem' S, transmorphic counter) {
 		g++
 	}
 
-	printf("{txt}(%f singleton observations dropped)\n", initial_N-st_nobs())
+	printf("{txt}(dropped %f singleton observations)\n", initial_N-st_nobs())
 
 }
 
@@ -1117,16 +1119,23 @@ void function map_solve(`Problem' S, `Varlist' vars,
 	// Call acceleration routine
 	if (save_fe) {
 		y = accelerate_sd(S, y, &transform_kaczmarz()) // Only these were modified to save FEs
+		S.num_iters_max = S.num_iters_last_run
 	}
 	else if (S.groupsize>=cols(y)) {
 		y = (*accelerate)(S, y, transform)
+		S.num_iters_max = S.num_iters_last_run
 	}
 	else {
+		S.num_iters_last_run = 0
 		for (i=1;i<=cols(y);i=i+S.groupsize) {
 			offset = min((i + S.groupsize - 1, cols(y)))
 			y[., i..offset] = (*accelerate)(S, y[., i..offset], transform)
+			if (S.num_iters_last_run>S.num_iters_max) S.num_iters_max = S.num_iters_last_run
 		}
 	}
+
+	// this is max(iter)0 for all vars
+	if (S.verbose==0) printf("{txt}(converged in %g iterations)\n", S.num_iters_last_run)
 
 	// Partial-out variables
 	if (Q_partial>0) {
@@ -1339,8 +1348,9 @@ void function map_solve(`Problem' S, `Varlist' vars,
 	is_last_iter = iter==S.maxiterations
 	
 	if (done) {
-		if (S.verbose>1) printf("\n{txt} - Converged in %g iterations (last error =%3.1e)\n", iter, update_error)
+		S.num_iters_last_run = iter
 		if (S.verbose==1) printf("{txt} converged in %g iterations last error =%3.1e)\n", iter, update_error)
+		if (S.verbose>1) printf("\n{txt} - Converged in %g iterations (last error =%3.1e)\n", iter, update_error)
 	}
 	else if (is_last_iter) {
 		printf("\n{err}convergence not achieved in %g iterations (last error=%e); try increasing maxiter() or decreasing tol().\n", S.maxiterations, update_error)

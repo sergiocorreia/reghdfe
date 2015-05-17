@@ -86,7 +86,7 @@ at each stage (only with ols and unadjusted standard errors){p_end}
 {syntab:Degrees-of-Freedom Adjustments {help reghdfe##opt_dof:[+]}}
 {synopt :{opt dof:adjustments(list)}}allows selecting the desired adjustments for degrees of freedom;
 rarely used{p_end}
-{synopt: {opth group(newvarname)}}unique identifier for the first mobility group{p_end}
+{synopt: {opth group(newvar)}}unique identifier for the first mobility group{p_end}
 
 {syntab:Reporting {help reghdfe##opt_reporting:[+]}}
 {synopt :{opt version:}}reports the version number and date of reghdfe, and saves it in e(version). standalone option{p_end}
@@ -436,7 +436,7 @@ Additional methods, such as {opt bootstrap} are also possible but not yet implem
 Some preliminary simulations done by the author showed a very poor convergence of this method.
 
 {phang}
-{opth group(newvarname)} name of the new variable that will contain the first mobility group.
+{opth group(newvar)} name of the new variable that will contain the first mobility group.
 Requires {opt pair:wise}, {opt first:pair}, or the default {opt all}.
 
 {marker opt_speedup}{...}
@@ -856,13 +856,13 @@ To see your current version and installed dependencies, type {cmd:reghdfe, versi
 
 {pstd}
 This package wouldn't have existed without the invaluable feedback and contributions of Paulo Guimaraes
-and Amine Quazad. I am also indebted to the guidance of Mark Schaffer, Kit Baum, and Nikolas Mittag;
+and Amine Ouazad. I am also indebted to the guidance of Mark Schaffer, Kit Baum, and Nikolas Mittag;
 and to the great bug-spotting abilities of many users.{p_end}
 
 {pstd}In addition, {it:reghdfe} is build upon important contributions from the Stata community:{p_end}
 
 {phang}{browse "https://ideas.repec.org/c/boc/bocode/s457101.html":reg2hdfe}, from Paulo Guimaraes,
-and {browse "https://ideas.repec.org/c/boc/bocode/s456942.html":a2reg} from Amine Quazad,
+and {browse "https://ideas.repec.org/c/boc/bocode/s456942.html":a2reg} from Amine Ouazad,
  were the inspiration and building blocks on which reghdfe was built.{p_end}
  
 {phang}{browse "http://www.repec.org/bocode/i/ivreg2.html":ivreg2}, by Christopher F Baum, Mark E Schaffer and Steven Stillman, is the package used by default for instrumental-variable regression.{p_end}

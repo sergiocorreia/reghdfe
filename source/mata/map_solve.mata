@@ -97,16 +97,23 @@ void function map_solve(`Problem' S, `Varlist' vars,
 	// Call acceleration routine
 	if (save_fe) {
 		y = accelerate_sd(S, y, &transform_kaczmarz()) // Only these were modified to save FEs
+		S.num_iters_max = S.num_iters_last_run
 	}
 	else if (S.groupsize>=cols(y)) {
 		y = (*accelerate)(S, y, transform)
+		S.num_iters_max = S.num_iters_last_run
 	}
 	else {
+		S.num_iters_last_run = 0
 		for (i=1;i<=cols(y);i=i+S.groupsize) {
 			offset = min((i + S.groupsize - 1, cols(y)))
 			y[., i..offset] = (*accelerate)(S, y[., i..offset], transform)
+			if (S.num_iters_last_run>S.num_iters_max) S.num_iters_max = S.num_iters_last_run
 		}
 	}
+
+	// this is max(iter)0 for all vars
+	if (S.verbose==0) printf("{txt}(converged in %g iterations)\n", S.num_iters_last_run)
 
 	// Partial-out variables
 	if (Q_partial>0) {

@@ -19,7 +19,7 @@ mata set matastrict on
 	S.verbose = 0
 	S.transform = "symmetric_kaczmarz" // cimmino ?
 	S.acceleration = "conjugate_gradient"
-	S.tolerance = 1e-7
+	S.tolerance = 1e-8 // Previously, it was 1e-7
 	S.maxiterations = 1e4
 	S.accel_start = 6
 	S.groupsize = 10
