@@ -122,7 +122,6 @@ foreach lhs_endogvar of local lhs_endogvars {
 	if ("`subcmd'"=="regress" & "`vcesuite'"=="avar") local wrapper "Wrapper_avar"
 	if ("`subcmd'"=="regress" & "`vcesuite'"=="mwc") local wrapper "Wrapper_mwc"
 	if (!inlist("`stage'","none", "iv")) local wrapper "Wrapper_avar" // Compatible with ivreg2
-	Debug, level(3) msg(_n "call to wrapper:" _n as result "`wrapper', `options'")
 	local opt_list
 	local opts /// cond // BUGUBG: Add by() (cond) options
 		depvar indepvars endogvars instruments ///
@@ -132,6 +131,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 	foreach opt of local opts {
 		local opt_list `opt_list' `opt'(``opt'')
 	}
+	Debug, level(3) msg(_n "call to wrapper:" _n as result "`wrapper', `opt_list'")
 	`wrapper', `opt_list'
 
 * COMPUTE AND STORE RESIDS (based on SaveFE.ado)

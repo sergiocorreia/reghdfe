@@ -1,4 +1,4 @@
-*! reghdfe 3.0.14 17may2015
+*! reghdfe 3.0.15 17may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1128,6 +1128,7 @@ void function map_solve(`Problem' S, `Varlist' vars,
 		S.num_iters_last_run = 0
 		for (i=1;i<=cols(y);i=i+S.groupsize) {
 			offset = min((i + S.groupsize - 1, cols(y)))
+			if (S.verbose>1) printf("{txt} - Variables: {res}" + invtokens(vars[i..offset])+"{txt}\n")
 			y[., i..offset] = (*accelerate)(S, y[., i..offset], transform)
 			if (S.num_iters_last_run>S.num_iters_max) S.num_iters_max = S.num_iters_last_run
 		}

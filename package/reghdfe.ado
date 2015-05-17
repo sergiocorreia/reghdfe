@@ -1,4 +1,4 @@
-*! reghdfe 3.0.14 17may2015
+*! reghdfe 3.0.15 17may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1128,6 +1128,7 @@ void function map_solve(`Problem' S, `Varlist' vars,
 		S.num_iters_last_run = 0
 		for (i=1;i<=cols(y);i=i+S.groupsize) {
 			offset = min((i + S.groupsize - 1, cols(y)))
+			if (S.verbose>1) printf("{txt} - Variables: {res}" + invtokens(vars[i..offset])+"{txt}\n")
 			y[., i..offset] = (*accelerate)(S, y[., i..offset], transform)
 			if (S.num_iters_last_run>S.num_iters_max) S.num_iters_max = S.num_iters_last_run
 		}
@@ -1934,7 +1935,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.14 17may2015"
+    local version "3.0.15 17may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2128,7 +2129,6 @@ foreach lhs_endogvar of local lhs_endogvars {
 	if ("`subcmd'"=="regress" & "`vcesuite'"=="avar") local wrapper "Wrapper_avar"
 	if ("`subcmd'"=="regress" & "`vcesuite'"=="mwc") local wrapper "Wrapper_mwc"
 	if (!inlist("`stage'","none", "iv")) local wrapper "Wrapper_avar" // Compatible with ivreg2
-	Debug, level(3) msg(_n "call to wrapper:" _n as result "`wrapper', `options'")
 	local opt_list
 	local opts ///
 		depvar indepvars endogvars instruments ///
@@ -2138,6 +2138,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 	foreach opt of local opts {
 		local opt_list `opt_list' `opt'(``opt'')
 	}
+	Debug, level(3) msg(_n "call to wrapper:" _n as result "`wrapper', `opt_list'")
 	if (`timeit') Tic, n(66)
 	`wrapper', `opt_list'
 	if (`timeit') Toc, n(66) msg(regression)
@@ -4542,7 +4543,6 @@ foreach lhs_endogvar of local lhs_endogvars {
 	if ("`subcmd'"=="regress" & "`vcesuite'"=="avar") local wrapper "Wrapper_avar"
 	if ("`subcmd'"=="regress" & "`vcesuite'"=="mwc") local wrapper "Wrapper_mwc"
 	if (!inlist("`stage'","none", "iv")) local wrapper "Wrapper_avar" // Compatible with ivreg2
-	Debug, level(3) msg(_n "call to wrapper:" _n as result "`wrapper', `options'")
 	local opt_list
 	local opts /// cond // BUGUBG: Add by() (cond) options
 		depvar indepvars endogvars instruments ///
@@ -4552,6 +4552,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 	foreach opt of local opts {
 		local opt_list `opt_list' `opt'(``opt'')
 	}
+	Debug, level(3) msg(_n "call to wrapper:" _n as result "`wrapper', `opt_list'")
 	`wrapper', `opt_list'
 
 * COMPUTE AND STORE RESIDS (based on SaveFE.ado)
