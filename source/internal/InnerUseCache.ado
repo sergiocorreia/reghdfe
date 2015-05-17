@@ -8,6 +8,8 @@ program define InnerUseCache, eclass
 	Parse `0'
 	assert `usecache'
 
+	local original_depvar "`depvar'"
+
 * Match "L.price" --> __L__price
 * Expand factor and time-series variables
 * (based on part of Compact.ado)

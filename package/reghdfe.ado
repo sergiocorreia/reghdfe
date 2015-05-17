@@ -1,4 +1,4 @@
-*! reghdfe 3.0.16 17may2015
+*! reghdfe 3.0.17 17may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1935,7 +1935,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.16 17may2015"
+    local version "3.0.17 17may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -4428,6 +4428,8 @@ program define InnerUseCache, eclass
 * PARSE - inject opts with c_local, create Mata structure HDFE_S (use verbose>2 for details)
 	Parse `0'
 	assert `usecache'
+
+	local original_depvar "`depvar'"
 
 * Match "L.price" --> __L__price
 * Expand factor and time-series variables
