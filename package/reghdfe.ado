@@ -1,4 +1,4 @@
-*! reghdfe 3.0.17 17may2015
+*! reghdfe 3.0.18 18may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1117,11 +1117,11 @@ void function map_solve(`Problem' S, `Varlist' vars,
 
 	// Call acceleration routine
 	if (save_fe) {
-		y = accelerate_sd(S, y, &transform_kaczmarz()) // Only these were modified to save FEs
+		y = accelerate_sd(S, y, &transform_kaczmarz()) :* stdevs // Only these were modified to save FEs
 		S.num_iters_max = S.num_iters_last_run
 	}
 	else if (S.groupsize>=cols(y)) {
-		y = (*accelerate)(S, y, transform)
+		y = (*accelerate)(S, y, transform) :* stdevs
 		S.num_iters_max = S.num_iters_last_run
 	}
 	else {
@@ -1129,7 +1129,7 @@ void function map_solve(`Problem' S, `Varlist' vars,
 		for (i=1;i<=cols(y);i=i+S.groupsize) {
 			offset = min((i + S.groupsize - 1, cols(y)))
 			if (S.verbose>1) printf("{txt} - Variables: {res}" + invtokens(vars[i..offset])+"{txt}\n")
-			y[., i..offset] = (*accelerate)(S, y[., i..offset], transform)
+			y[., i..offset] = (*accelerate)(S, y[., i..offset], transform) :* stdevs[i..offset]
 			if (S.num_iters_last_run>S.num_iters_max) S.num_iters_max = S.num_iters_last_run
 		}
 	}
@@ -1138,18 +1138,28 @@ void function map_solve(`Problem' S, `Varlist' vars,
 	if (S.verbose==0) printf("{txt}(converged in %g iterations)\n", S.num_iters_last_run)
 
 	// Partial-out variables
-	if (Q_partial>0) {
-		if (S.verbose>1) printf("{txt} - Partialling out variables\n")
-		assert(cols(y)==Q+Q_partial)
-		y = y[., 1..Q] - y[., (Q+1)..cols(y)] * qrsolve(y[., (Q+1)..cols(y)] , y[., 1..Q])
-		stdevs =  stdevs[1..Q]
-	}
+	assert(Q_partial==0) // DISABLED FOR NOW DUE TO MEMORY ISSUES
+	// if (Q_partial>0) {
+	// 	if (S.verbose>1) printf("{txt} - Partialling out variables\n")
+	// 	assert(cols(y)==Q+Q_partial)
+	// 	y = y[., 1..Q] - y[., (Q+1)..cols(y)] * qrsolve(y[., (Q+1)..cols(y)] , y[., 1..Q])
+	// 	stdevs =  stdevs[1..Q]
+	// }
 
+	// Store variables in dataset; do it by blocks to avoid 2x memory consumption
 	if (S.verbose>1) printf("{txt} - Saving transformed variables\n")
-	
-	// BUGBUG: This will use 2x memory for a while; partition the copy+drop based on S.groupsize?
-	st_store(., st_addvar("double", newvars), y :* stdevs)
-	y = J(0,0,.) // clear space
+	i = 1
+	while (cols(y)>0) {
+		if (S.groupsize>=cols(y)) {
+			st_store(., st_addvar("double", newvars[i..length(newvars)]), y)
+			y = J(0,0,.) // clear space
+		}
+		else {
+			st_store(., st_addvar("double", newvars[i..(i+S.groupsize-1)]), y[., 1..(S.groupsize)])
+			y = y[., (S.groupsize+1)..cols(y)] // clear space
+		}
+		i = i + S.groupsize
+	}
 
 	for (i=1;i<=Q;i++) {
 		st_global(sprintf("%s[name]", newvars[i]), chars[i])
@@ -1935,7 +1945,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.17 17may2015"
+    local version "3.0.18 18may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
