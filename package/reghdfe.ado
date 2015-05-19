@@ -1,4 +1,4 @@
-*! reghdfe 3.0.22 19may2015
+*! reghdfe 3.0.23 19may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1230,7 +1230,7 @@ void function map_solve(`Problem' S, `Varlist' vars,
 
 	Q = cols(y)
 	
-	d = 1 // BUGBUG Set it to 2/3 // Number of recent SSR values to use for convergence criteria (lower=faster & riskier)
+	d = 2 // BUGBUG Set it to 2/3 // Number of recent SSR values to use for convergence criteria (lower=faster & riskier)
 	// A discussion on the stopping criteria used is described in
 	// http://scicomp.stackexchange.com/questions/582/stopping-criteria-for-iterative-linear-solvers-applied-to-nearly-singular-system/585#585
 
@@ -1957,7 +1957,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.22 19may2015"
+    local version "3.0.23 19may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
