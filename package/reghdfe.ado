@@ -1,4 +1,4 @@
-*! reghdfe 3.0.24 19may2015
+*! reghdfe 3.0.25 19may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1386,7 +1386,7 @@ void function map_solve(`Problem' S, `Varlist' vars,
 		if ( (S.verbose>=2 & S.verbose<=3 & mod(iter,100)==0) | (S.verbose==1 & mod(iter,1000)==0) ) printf("{txt}%9.1f\n", update_error/S.tolerance)
 
 		if (S.verbose==4 & method!="hestenes") printf("{txt} iter={res}%4.0f{txt}\tupdate_error={res}%-9.6e\n", iter, update_error)
-		if (S.verbose==4 & method=="hestenes") printf("{txt} iter={res}%4.0f{txt}\tupdate_error={res}%-9.6e  {txt}ssr={res}%g\n", iter, update_error, y_new)
+		if (S.verbose==4 & method=="hestenes") printf("{txt} iter={res}%4.0f{txt}\tupdate_error={res}%-9.6e  {txt}norm(ssr)={res}%g\n", iter, update_error, norm(y_new))
 		
 		if (S.verbose==5) {
 			printf("\n{txt} iter={res}%4.0f{txt}\tupdate_error={res}%-9.6e{txt}\tmethod={res}%s\n", iter, update_error, method)
@@ -1563,6 +1563,15 @@ void map_estimate_dof(`Problem' S, string rowvector adjustments,
 	}
 
 	// (Intercept-only) Excluding those already solved, the first absvar is exact, and the second can be with pairwise/firstpairs
+
+	// Note: I dont't include the FEs that are clusters or are nested within cluster when computing redundant coefs
+	// On principle, that would be nice to have. EG: reghdfe .... abs(zipcode state##c.time) vce(zipcode)
+	// I know state is collinear with zipcode so I would also want to consider state to be redundant
+
+	// However, the number of states should be much smaller than the number of zipcodes, which in turn is smaller
+	// Than the number of observations; so I don't worry much about that case (also, there may be possible 
+	// complications with that)
+
 	i = 0
 	h = 1
 	prev_g = J(S.G, 1, 0)
@@ -1957,7 +1966,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.24 19may2015"
+    local version "3.0.25 19may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
