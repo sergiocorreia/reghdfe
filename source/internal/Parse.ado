@@ -62,6 +62,21 @@ program define Parse
 		Assert "`is_cache'"!="1", msg("reghdfe error: data transformed with -savecache- requires -usecache-")
 	}
 
+* Sanity checks on usecache
+* (this was at the end, but if there was no prev savecache, HDFE_S didn't exist and those lines were never reached)
+	if (`usecache') {
+		local is_cache : char _dta[reghdfe_cache]
+		local by_cache : char _dta[by]
+		local cache_obs : char _dta[cache_obs]
+		local cache_absorb : char _dta[absorb]
+		if ("`by'"!="") Assert "`level'"!="", msg("a previous -savecache by()- requires -usecache by() level()-")
+		Assert "`by'"=="`by_cache'", msg("by() needs to be the same as in savecache")
+		Assert "`is_cache'"=="1" , msg("usecache requires a previous savecache operation")
+		Assert `cache_obs'==`c(N)', msg("dataset cannot change after savecache")
+		Assert "`cache_absorb'"=="`absorb'", msg("cache dataset has different absorb()")
+		Assert "`if'`in'"=="", msg("cannot use if/in with usecache; data has already been transformed")
+	}
+
 * Parse varlist: depvar indepvars (endogvars = iv_vars)
 	ParseIV `0', estimator(`estimator') ivsuite(`ivsuite') `savefirst' `first' `showraw' `vceunadjusted' `small'
 	local keys subcmd model ivsuite estimator depvar indepvars endogvars instruments fe_format ///
@@ -142,6 +157,9 @@ else {
 	}
 	local allkeys `allkeys' `optlist'
 
+	* This allows changing the groupvar name with -usecache-
+	if ("`groupvar'"!="") mata: map_init_groupvar(HDFE_S, "`groupvar'")
+
 	* Numeric options
 	local keepsingletons = ("`keepsingletons'"!="")
 	local optlist groupsize verbose tolerance maxiterations keepsingletons timeit
@@ -214,33 +232,6 @@ else {
 	if ("`keepvars'"!="" & !`savecache') di as error "(warning: keepvars() has no effect without savecache)"
 	local allkeys `allkeys' fast savecache keepvars usecache by level
 
-* Sanity checks on speedups
-	Assert `usecache' + `savecache' < 2, msg("savecache and usecache are mutually exclusive")
-	if ("`by'`level'"!="") di as error "(warning: by() and level() are currently incomplete)"
-	if ("`by'"!="") Assert `usecache' + `savecache' == 1 , msg("by() requires savecache or usecache")
-	if ("`level'"!="") Assert `usecache'==1 & "`by'"!="", msg("level() requires by() and usecache")
-	if (`savecache') {
-		* Savecache "requires" a previous preserve, so we can directly modify the dataset
-		Assert "`endogvars'`instruments'"=="", msg("savecache option requires a normal varlist, not an iv varlist")
-		char _dta[reghdfe_cache] 1
-		local chars absorb N_hdfe original_absvars extended_absvars by vce vceoption vcetype vcesuite vceextra num_clusters clustervars bw kernel dkraay kiefer twicerobust
-		foreach char of local  chars {
-			char _dta[`char'] ``char''	
-		}
-	}
-	else if (`usecache') {
-		local is_cache : char _dta[reghdfe_cache]
-		local by_cache : char _dta[by]
-		local cache_obs : char _dta[cache_obs]
-		local cache_absorb : char _dta[absorb]
-		if ("`by'"!="") Assert "`level'"!="", msg("a previous -savecache by()- requires -usecache by() level()-")
-		Assert "`by'"=="`by_cache'", msg("by() needs to be the same as in savecache")
-		Assert "`is_cache'"=="1" , msg("usecache requires a previous savecache operation")
-		Assert `cache_obs'==`c(N)', msg("dataset cannot change after savecache")
-		Assert "`cache_absorb'"=="`absorb'", msg("cache dataset has different absorb()")
-		Assert "`if'`in'"=="", msg("cannot use if/in with usecache; data has already been transformed")
-	}
-
 * Nested
 	local nested = cond("`nested'"!="", 1, 0) // 1=Yes
 	if (`nested' & !("`model'"=="ols" & "`vcetype'"=="unadjusted") ) {
@@ -265,6 +256,22 @@ else {
 		local stages none // So we can loop over stages
 	}
 	local allkeys `allkeys' stages
+
+* Sanity checks on speedups
+* With -savecache-, this adds chars (modifies the dta!) so put it close to the end
+	Assert `usecache' + `savecache' < 2, msg("savecache and usecache are mutually exclusive")
+	if ("`by'`level'"!="") di as error "(warning: by() and level() are currently incomplete)"
+	if ("`by'"!="") Assert `usecache' + `savecache' == 1 , msg("by() requires savecache or usecache")
+	if ("`level'"!="") Assert `usecache'==1 & "`by'"!="", msg("level() requires by() and usecache")
+	if (`savecache') {
+		* Savecache "requires" a previous preserve, so we can directly modify the dataset
+		Assert "`endogvars'`instruments'"=="", msg("savecache option requires a normal varlist, not an iv varlist")
+		char _dta[reghdfe_cache] 1
+		local chars absorb N_hdfe original_absvars extended_absvars by vce vceoption vcetype vcesuite vceextra num_clusters clustervars bw kernel dkraay kiefer twicerobust
+		foreach char of local  chars {
+			char _dta[`char'] ``char''	
+		}
+	}
 
 * Parse Coef Table Options (do this last!)
 	_get_diopts diopts options, `options' // store in `diopts', and the rest back to `options'

@@ -1,4 +1,4 @@
-*! reghdfe 3.0.20 19may2015
+*! reghdfe 3.0.21 19may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -181,12 +181,20 @@ void function resid2dta(`Problem' S, `Boolean' original_dta, `Boolean' cleanup) 
 
 // -------------------------------------------------------------------------------------------------
 
-void function groupvar2dta(`Problem' S) {
+void function groupvar2dta(`Problem' S, | `Boolean' original_dta) {
+	if (args()<2) original_dta = 1
+	
 	if (S.groupvar!="") {
 		if (S.verbose>2) printf("{txt}    - Saving identifier for the first mobility group: {res}%s\n", S.groupvar)
-		st_store(S.uid, st_addvar(S.grouptype, S.groupvar), S.groupseries)
+		
+		if (original_dta) {
+			st_store(S.uid, st_addvar(S.grouptype, S.groupvar), S.groupseries)
+			S.groupseries = J(0,0,0)
+		}
+		else {
+			st_store(., st_addvar(S.grouptype, S.groupvar), S.groupseries)
+		}
 
-		S.groupseries = J(0,0,0)
 		st_varlabel(S.groupvar, S.grouplabel)
 	}
 	else {
@@ -400,6 +408,10 @@ void function map_init_panelvar(`Problem' S, `Varname' panelvar) {
 
 void function map_init_timevar(`Problem' S, `Varname' timevar) {
 	S.timevar = timevar
+}
+
+void function map_init_groupvar(`Problem' S, `Varname' groupvar) {
+	S.groupvar = groupvar
 }
 
 void function map_init_acceleration(`Problem' S, `String' acceleration) {
@@ -1772,7 +1784,7 @@ void function map_ereturn_dof(`Problem' S) {
 	
 	// (optional) save group variable
 	// Don't save until back in the main dataset!
-	S.groupvar = groupvar
+	// S.groupvar = groupvar // already saved in map_init_groupvar
 	S.grouptype = num_groups<=100 ? "byte" : (num_groups<=32740? "int" : "long")
 	S.grouplabel = sprintf("Mobility Group: %s <--> %s", invtokens(S.fes[g1].ivars,"#") , invtokens(S.fes[g2].ivars,"#"))
 	S.groupseries = group
@@ -1945,7 +1957,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.20 19may2015"
+    local version "3.0.21 19may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2052,6 +2064,18 @@ if (`timeit') Tic, n(55)
 		if (`timeit') Toc, n(57) msg(stats matrix)
 	}
 
+* COMPUTE DOF
+	if (`timeit') Tic, n(62)
+	mata: map_estimate_dof(HDFE_S, "`dofadjustments'", "`groupvar'") // requires the IDs
+	if (`timeit') Toc, n(62) msg(estimate dof)
+	assert e(df_a)<. // estimate_dof() only sets e(df_a); map_ereturn_dof() is for setting everything aferwards
+	local kk = e(df_a) // we need this for the regression step
+	
+* DROP FE IDs - Except if they are also a clustervar or we are saving their respecting alphas
+	if (`timeit') Tic, n(64)
+	mata: drop_ids(HDFE_S)
+	if (`timeit') Toc, n(64) msg(drop ids)
+
 * MAP_SOLVE() - WITHIN TRANFORMATION (note: overwrites variables)
 	if (`timeit') Tic, n(60)
 	qui ds `expandedvars'
@@ -2063,7 +2087,7 @@ if (`timeit') Tic, n(55)
 * STAGES SETUP - Deal with different stages
 	assert "`stages'"!=""
 	if ("`stages'"!="none") {
-		Debug, level(1) msg(_n " {title:Stages to run}: " as result "`stages'" _n)
+		Debug, level(1) msg(_n "{title:Stages to run}: " as result "`stages'")
 		* Need to backup some locals
 		local backuplist residuals groupvar fast will_save_fe depvar indepvars endogvars instruments original_depvar tss
 		foreach loc of local backuplist {
@@ -2117,18 +2141,6 @@ foreach lhs_endogvar of local lhs_endogvars {
 			local residuals
 		}
 	}
-
-* COMPUTE DOF
-* NOTE: could move this to before backup untransformed variables for the stages=none case!!!
-	if (`timeit') Tic, n(62)
-	mata: map_estimate_dof(HDFE_S, "`dofadjustments'", "`groupvar'") // requires the IDs
-	if (`timeit') Toc, n(62) msg(estimate dof)
-	assert e(df_a)<. // estimate_dof() only sets e(df_a); ereturn_dof() is for setting everything aferwards
-	local kk = e(df_a) // we need this for the regression step
-* DROP FE IDs - Except if they are also a clustervar or we are saving their respecting alphas
-	if (`timeit') Tic, n(64)
-	mata: drop_ids(HDFE_S)
-	if (`timeit') Toc, n(64) msg(drop ids)
 
 * REGRESS - Call appropiate wrapper (regress, avar, mwc for ols; ivreg2, ivregress for iv)
 	ereturn clear
@@ -2337,6 +2349,21 @@ program define Parse
 		Assert "`is_cache'"!="1", msg("reghdfe error: data transformed with -savecache- requires -usecache-")
 	}
 
+* Sanity checks on usecache
+* (this was at the end, but if there was no prev savecache, HDFE_S didn't exist and those lines were never reached)
+	if (`usecache') {
+		local is_cache : char _dta[reghdfe_cache]
+		local by_cache : char _dta[by]
+		local cache_obs : char _dta[cache_obs]
+		local cache_absorb : char _dta[absorb]
+		if ("`by'"!="") Assert "`level'"!="", msg("a previous -savecache by()- requires -usecache by() level()-")
+		Assert "`by'"=="`by_cache'", msg("by() needs to be the same as in savecache")
+		Assert "`is_cache'"=="1" , msg("usecache requires a previous savecache operation")
+		Assert `cache_obs'==`c(N)', msg("dataset cannot change after savecache")
+		Assert "`cache_absorb'"=="`absorb'", msg("cache dataset has different absorb()")
+		Assert "`if'`in'"=="", msg("cannot use if/in with usecache; data has already been transformed")
+	}
+
 * Parse varlist: depvar indepvars (endogvars = iv_vars)
 	ParseIV `0', estimator(`estimator') ivsuite(`ivsuite') `savefirst' `first' `showraw' `vceunadjusted' `small'
 	local keys subcmd model ivsuite estimator depvar indepvars endogvars instruments fe_format ///
@@ -2417,6 +2444,9 @@ else {
 	}
 	local allkeys `allkeys' `optlist'
 
+	* This allows changing the groupvar name with -usecache-
+	if ("`groupvar'"!="") mata: map_init_groupvar(HDFE_S, "`groupvar'")
+
 	* Numeric options
 	local keepsingletons = ("`keepsingletons'"!="")
 	local optlist groupsize verbose tolerance maxiterations keepsingletons timeit
@@ -2489,33 +2519,6 @@ else {
 	if ("`keepvars'"!="" & !`savecache') di as error "(warning: keepvars() has no effect without savecache)"
 	local allkeys `allkeys' fast savecache keepvars usecache by level
 
-* Sanity checks on speedups
-	Assert `usecache' + `savecache' < 2, msg("savecache and usecache are mutually exclusive")
-	if ("`by'`level'"!="") di as error "(warning: by() and level() are currently incomplete)"
-	if ("`by'"!="") Assert `usecache' + `savecache' == 1 , msg("by() requires savecache or usecache")
-	if ("`level'"!="") Assert `usecache'==1 & "`by'"!="", msg("level() requires by() and usecache")
-	if (`savecache') {
-		* Savecache "requires" a previous preserve, so we can directly modify the dataset
-		Assert "`endogvars'`instruments'"=="", msg("savecache option requires a normal varlist, not an iv varlist")
-		char _dta[reghdfe_cache] 1
-		local chars absorb N_hdfe original_absvars extended_absvars by vce vceoption vcetype vcesuite vceextra num_clusters clustervars bw kernel dkraay kiefer twicerobust
-		foreach char of local  chars {
-			char _dta[`char'] ``char''	
-		}
-	}
-	else if (`usecache') {
-		local is_cache : char _dta[reghdfe_cache]
-		local by_cache : char _dta[by]
-		local cache_obs : char _dta[cache_obs]
-		local cache_absorb : char _dta[absorb]
-		if ("`by'"!="") Assert "`level'"!="", msg("a previous -savecache by()- requires -usecache by() level()-")
-		Assert "`by'"=="`by_cache'", msg("by() needs to be the same as in savecache")
-		Assert "`is_cache'"=="1" , msg("usecache requires a previous savecache operation")
-		Assert `cache_obs'==`c(N)', msg("dataset cannot change after savecache")
-		Assert "`cache_absorb'"=="`absorb'", msg("cache dataset has different absorb()")
-		Assert "`if'`in'"=="", msg("cannot use if/in with usecache; data has already been transformed")
-	}
-
 * Nested
 	local nested = cond("`nested'"!="", 1, 0) // 1=Yes
 	if (`nested' & !("`model'"=="ols" & "`vcetype'"=="unadjusted") ) {
@@ -2540,6 +2543,22 @@ else {
 		local stages none // So we can loop over stages
 	}
 	local allkeys `allkeys' stages
+
+* Sanity checks on speedups
+* With -savecache-, this adds chars (modifies the dta!) so put it close to the end
+	Assert `usecache' + `savecache' < 2, msg("savecache and usecache are mutually exclusive")
+	if ("`by'`level'"!="") di as error "(warning: by() and level() are currently incomplete)"
+	if ("`by'"!="") Assert `usecache' + `savecache' == 1 , msg("by() requires savecache or usecache")
+	if ("`level'"!="") Assert `usecache'==1 & "`by'"!="", msg("level() requires by() and usecache")
+	if (`savecache') {
+		* Savecache "requires" a previous preserve, so we can directly modify the dataset
+		Assert "`endogvars'`instruments'"=="", msg("savecache option requires a normal varlist, not an iv varlist")
+		char _dta[reghdfe_cache] 1
+		local chars absorb N_hdfe original_absvars extended_absvars by vce vceoption vcetype vcesuite vceextra num_clusters clustervars bw kernel dkraay kiefer twicerobust
+		foreach char of local  chars {
+			char _dta[`char'] ``char''	
+		}
+	}
 
 * Parse Coef Table Options (do this last!)
 	_get_diopts diopts options, `options' // store in `diopts', and the rest back to `options'
@@ -4455,6 +4474,13 @@ program define InnerSaveCache, eclass
 		Stats `expandedvars', weightexp(`weightexp') stats(`stats') statsmatrix(reghdfe_statsmatrix)
 	}
 
+* COMPUTE DOF
+	if (`timeit') Tic, n(62)
+	mata: map_estimate_dof(HDFE_S, "`dofadjustments'", "`groupvar'") // requires the IDs
+	if (`timeit') Toc, n(62) msg(estimate dof)
+	assert e(df_a)<. // estimate_dof() only sets e(df_a); map_ereturn_dof() is for setting everything aferwards
+	local kk = e(df_a) // we need this for the regression step
+
 * MAP_SOLVE() - WITHIN TRANFORMATION (note: overwrites variables)
 	qui ds `expandedvars'
 	local NUM_VARS : word count `r(varlist)'
@@ -4523,7 +4549,7 @@ program define InnerUseCache, eclass
 * STAGES SETUP - Deal with different stages
 	assert "`stages'"!=""
 	if ("`stages'"!="none") {
-		Debug, level(1) msg(_n " {title:Stages to run}: " as result "`stages'" _n)
+		Debug, level(1) msg(_n "{title:Stages to run}: " as result "`stages'")
 		* Need to backup some locals
 		local backuplist residuals groupvar fast will_save_fe depvar indepvars endogvars instruments original_depvar tss
 		foreach loc of local backuplist {
@@ -4578,10 +4604,9 @@ foreach lhs_endogvar of local lhs_endogvars {
 		}
 	}
 
-* COMPUTE DOF
-* NOTE: could move this to before backup untransformed variables for the stages=none case!!!
-	mata: map_estimate_dof(HDFE_S, "`dofadjustments'", "`groupvar'", "`cond'") // requires the IDs
-	assert e(df_a)<. // estimate_dof() only sets e(df_a); ereturn_dof() is for setting everything aferwards
+ * COMPUTE DOF - Already precomputed in InnerSaveCache.ado
+	mata: map_ereturn_dof(HDFE_S) // this gives us e(df_a)==`kk', which we need
+	assert e(df_a)<.
 	local kk = e(df_a) // we need this for the regression step
 
 * REGRESS - Call appropiate wrapper (regress, avar, mwc for ols; ivreg2, ivregress for iv)
@@ -4617,6 +4642,9 @@ foreach lhs_endogvar of local lhs_endogvars {
 		}
 		// No need to store in Mata
 	}
+
+* (optional) Save mobility groups (note: group vector will stay on HDFE_S)
+	if ("`groupvar'"!="") mata: groupvar2dta(HDFE_S, 0)
 
 * FIX VARNAMES - Replace tempnames in the coefs table (run AFTER regress and BEFORE restore)
 	* (e.g. __00001 -> L.somevar)

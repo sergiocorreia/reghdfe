@@ -56,7 +56,7 @@ program define InnerUseCache, eclass
 * STAGES SETUP - Deal with different stages
 	assert "`stages'"!=""
 	if ("`stages'"!="none") {
-		Debug, level(1) msg(_n " {title:Stages to run}: " as result "`stages'" _n)
+		Debug, level(1) msg(_n "{title:Stages to run}: " as result "`stages'")
 		* Need to backup some locals
 		local backuplist residuals groupvar fast will_save_fe depvar indepvars endogvars instruments original_depvar tss
 		foreach loc of local backuplist {
@@ -111,10 +111,9 @@ foreach lhs_endogvar of local lhs_endogvars {
 		}
 	}
 
-* COMPUTE DOF
-* NOTE: could move this to before backup untransformed variables for the stages=none case!!!
-	mata: map_estimate_dof(HDFE_S, "`dofadjustments'", "`groupvar'", "`cond'") // requires the IDs
-	assert e(df_a)<. // estimate_dof() only sets e(df_a); ereturn_dof() is for setting everything aferwards
+ * COMPUTE DOF - Already precomputed in InnerSaveCache.ado
+	mata: map_ereturn_dof(HDFE_S) // this gives us e(df_a)==`kk', which we need
+	assert e(df_a)<.
 	local kk = e(df_a) // we need this for the regression step
 
 * REGRESS - Call appropiate wrapper (regress, avar, mwc for ols; ivreg2, ivregress for iv)
@@ -150,6 +149,9 @@ foreach lhs_endogvar of local lhs_endogvars {
 		}
 		// No need to store in Mata
 	}
+
+* (optional) Save mobility groups (note: group vector will stay on HDFE_S)
+	if ("`groupvar'"!="") mata: groupvar2dta(HDFE_S, 0)
 
 * FIX VARNAMES - Replace tempnames in the coefs table (run AFTER regress and BEFORE restore)
 	* (e.g. __00001 -> L.somevar)

@@ -38,7 +38,7 @@ mata set matastrict on
 	
 	// (optional) save group variable
 	// Don't save until back in the main dataset!
-	S.groupvar = groupvar
+	// S.groupvar = groupvar // already saved in map_init_groupvar
 	S.grouptype = num_groups<=100 ? "byte" : (num_groups<=32740? "int" : "long")
 	S.grouplabel = sprintf("Mobility Group: %s <--> %s", invtokens(S.fes[g1].ivars,"#") , invtokens(S.fes[g2].ivars,"#"))
 	S.groupseries = group

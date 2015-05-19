@@ -56,6 +56,13 @@ program define InnerSaveCache, eclass
 		Stats `expandedvars', weightexp(`weightexp') stats(`stats') statsmatrix(reghdfe_statsmatrix)
 	}
 
+* COMPUTE DOF
+	if (`timeit') Tic, n(62)
+	mata: map_estimate_dof(HDFE_S, "`dofadjustments'", "`groupvar'") // requires the IDs
+	if (`timeit') Toc, n(62) msg(estimate dof)
+	assert e(df_a)<. // estimate_dof() only sets e(df_a); map_ereturn_dof() is for setting everything aferwards
+	local kk = e(df_a) // we need this for the regression step
+
 * MAP_SOLVE() - WITHIN TRANFORMATION (note: overwrites variables)
 	qui ds `expandedvars'
 	local NUM_VARS : word count `r(varlist)'

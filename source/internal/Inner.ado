@@ -87,6 +87,18 @@ if (`timeit') Tic, n(55)
 		if (`timeit') Toc, n(57) msg(stats matrix)
 	}
 
+* COMPUTE DOF
+	if (`timeit') Tic, n(62)
+	mata: map_estimate_dof(HDFE_S, "`dofadjustments'", "`groupvar'") // requires the IDs
+	if (`timeit') Toc, n(62) msg(estimate dof)
+	assert e(df_a)<. // estimate_dof() only sets e(df_a); map_ereturn_dof() is for setting everything aferwards
+	local kk = e(df_a) // we need this for the regression step
+	
+* DROP FE IDs - Except if they are also a clustervar or we are saving their respecting alphas
+	if (`timeit') Tic, n(64)
+	mata: drop_ids(HDFE_S)
+	if (`timeit') Toc, n(64) msg(drop ids)
+
 * MAP_SOLVE() - WITHIN TRANFORMATION (note: overwrites variables)
 	if (`timeit') Tic, n(60)
 	qui ds `expandedvars'
@@ -98,7 +110,7 @@ if (`timeit') Tic, n(55)
 * STAGES SETUP - Deal with different stages
 	assert "`stages'"!=""
 	if ("`stages'"!="none") {
-		Debug, level(1) msg(_n " {title:Stages to run}: " as result "`stages'" _n)
+		Debug, level(1) msg(_n "{title:Stages to run}: " as result "`stages'")
 		* Need to backup some locals
 		local backuplist residuals groupvar fast will_save_fe depvar indepvars endogvars instruments original_depvar tss
 		foreach loc of local backuplist {
@@ -152,18 +164,6 @@ foreach lhs_endogvar of local lhs_endogvars {
 			local residuals
 		}
 	}
-
-* COMPUTE DOF
-* NOTE: could move this to before backup untransformed variables for the stages=none case!!!
-	if (`timeit') Tic, n(62)
-	mata: map_estimate_dof(HDFE_S, "`dofadjustments'", "`groupvar'") // requires the IDs
-	if (`timeit') Toc, n(62) msg(estimate dof)
-	assert e(df_a)<. // estimate_dof() only sets e(df_a); ereturn_dof() is for setting everything aferwards
-	local kk = e(df_a) // we need this for the regression step
-* DROP FE IDs - Except if they are also a clustervar or we are saving their respecting alphas
-	if (`timeit') Tic, n(64)
-	mata: drop_ids(HDFE_S)
-	if (`timeit') Toc, n(64) msg(drop ids)
 
 * REGRESS - Call appropiate wrapper (regress, avar, mwc for ols; ivreg2, ivregress for iv)
 	ereturn clear

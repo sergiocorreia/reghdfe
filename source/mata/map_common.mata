@@ -48,12 +48,20 @@ void function resid2dta(`Problem' S, `Boolean' original_dta, `Boolean' cleanup) 
 
 // -------------------------------------------------------------------------------------------------
 
-void function groupvar2dta(`Problem' S) {
+void function groupvar2dta(`Problem' S, | `Boolean' original_dta) {
+	if (args()<2) original_dta = 1
+	
 	if (S.groupvar!="") {
 		if (S.verbose>2) printf("{txt}    - Saving identifier for the first mobility group: {res}%s\n", S.groupvar)
-		st_store(S.uid, st_addvar(S.grouptype, S.groupvar), S.groupseries)
+		
+		if (original_dta) {
+			st_store(S.uid, st_addvar(S.grouptype, S.groupvar), S.groupseries)
+			S.groupseries = J(0,0,0)
+		}
+		else {
+			st_store(., st_addvar(S.grouptype, S.groupvar), S.groupseries)
+		}
 
-		S.groupseries = J(0,0,0)
 		st_varlabel(S.groupvar, S.grouplabel)
 	}
 	else {

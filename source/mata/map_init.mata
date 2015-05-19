@@ -170,6 +170,10 @@ void function map_init_timevar(`Problem' S, `Varname' timevar) {
 	S.timevar = timevar
 }
 
+void function map_init_groupvar(`Problem' S, `Varname' groupvar) {
+	S.groupvar = groupvar
+}
+
 void function map_init_acceleration(`Problem' S, `String' acceleration) {
 	acceleration = strlower(acceleration)
 	// Convert abbreviations

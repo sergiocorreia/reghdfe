@@ -1,4 +1,4 @@
-*! reghdfe 3.0.20 19may2015
+*! reghdfe 3.0.21 19may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -183,12 +183,20 @@ void function resid2dta(`Problem' S, `Boolean' original_dta, `Boolean' cleanup) 
 
 // -------------------------------------------------------------------------------------------------
 
-void function groupvar2dta(`Problem' S) {
+void function groupvar2dta(`Problem' S, | `Boolean' original_dta) {
+	if (args()<2) original_dta = 1
+	
 	if (S.groupvar!="") {
 		if (S.verbose>2) printf("{txt}    - Saving identifier for the first mobility group: {res}%s\n", S.groupvar)
-		st_store(S.uid, st_addvar(S.grouptype, S.groupvar), S.groupseries)
+		
+		if (original_dta) {
+			st_store(S.uid, st_addvar(S.grouptype, S.groupvar), S.groupseries)
+			S.groupseries = J(0,0,0)
+		}
+		else {
+			st_store(., st_addvar(S.grouptype, S.groupvar), S.groupseries)
+		}
 
-		S.groupseries = J(0,0,0)
 		st_varlabel(S.groupvar, S.grouplabel)
 	}
 	else {
@@ -402,6 +410,10 @@ void function map_init_panelvar(`Problem' S, `Varname' panelvar) {
 
 void function map_init_timevar(`Problem' S, `Varname' timevar) {
 	S.timevar = timevar
+}
+
+void function map_init_groupvar(`Problem' S, `Varname' groupvar) {
+	S.groupvar = groupvar
 }
 
 void function map_init_acceleration(`Problem' S, `String' acceleration) {
@@ -1774,7 +1786,7 @@ void function map_ereturn_dof(`Problem' S) {
 	
 	// (optional) save group variable
 	// Don't save until back in the main dataset!
-	S.groupvar = groupvar
+	// S.groupvar = groupvar // already saved in map_init_groupvar
 	S.grouptype = num_groups<=100 ? "byte" : (num_groups<=32740? "int" : "long")
 	S.grouplabel = sprintf("Mobility Group: %s <--> %s", invtokens(S.fes[g1].ivars,"#") , invtokens(S.fes[g2].ivars,"#"))
 	S.groupseries = group
