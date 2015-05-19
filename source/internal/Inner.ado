@@ -82,10 +82,8 @@ if (`timeit') Tic, n(55)
 * COMPUTE e(stats) - Summary statistics for the all the regression variables
 	if ("`stats'"!="") {
 		if (`timeit') Tic, n(57)
-		local tabstat_weight : subinstr local weightexp "[pweight" "[aweight"
-		qui tabstat `expandedvars' `tabstat_weight' , stat(`stats') col(stat) save
 		tempname statsmatrix
-		matrix `statsmatrix' = r(StatTotal)
+		Stats `expandedvars', weightexp(`weightexp') stats(`stats') statsmatrix(`statsmatrix')
 		if (`timeit') Toc, n(57) msg(stats matrix)
 	}
 

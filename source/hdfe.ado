@@ -1,4 +1,6 @@
 
+<<NOTE: I should just set hdfe.ado as a wrapper for reghdfe, savecache>>
+
 // Mata code is first, then main hdfe.ado, then auxiliary .ado files
 clear mata
 include "mata/map.mata"

@@ -192,8 +192,11 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * ATTACH - Add e(stats) and e(notes)
 	if ("`by'"=="") {
-		cap conf matrix reghdfe_statsmatrix
-		if (!c(rc)) local statsmatrix reghdfe_statsmatrix
+		if ("`stats'"!="") {
+			tempname statsmatrix
+			Stats `expandedvars', weightexp(`weightexp') stats(`stats') statsmatrix(`statsmatrix') usecache
+			// stats() will be ignored
+		}
 		Attach, notes(`notes') statsmatrix(`statsmatrix') summarize_quietly(`summarize_quietly') // Attach only once, not per stage
 	}
 end

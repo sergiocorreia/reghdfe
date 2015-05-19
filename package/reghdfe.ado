@@ -1,4 +1,4 @@
-*! reghdfe 3.0.19 18may2015
+*! reghdfe 3.0.20 19may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1945,7 +1945,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.19 18may2015"
+    local version "3.0.20 19may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2047,10 +2047,8 @@ if (`timeit') Tic, n(55)
 * COMPUTE e(stats) - Summary statistics for the all the regression variables
 	if ("`stats'"!="") {
 		if (`timeit') Tic, n(57)
-		local tabstat_weight : subinstr local weightexp "[pweight" "[aweight"
-		qui tabstat `expandedvars' `tabstat_weight' , stat(`stats') col(stat) save
 		tempname statsmatrix
-		matrix `statsmatrix' = r(StatTotal)
+		Stats `expandedvars', weightexp(`weightexp') stats(`stats') statsmatrix(`statsmatrix')
 		if (`timeit') Toc, n(57) msg(stats matrix)
 	}
 
@@ -3098,6 +3096,46 @@ syntax, depvar(string) stages(string) model(string) expandedvars(string) vcetype
 end
 
 	
+// -----------------------------------------------------------------------------
+// Matrix of summary statistics
+// -----------------------------------------------------------------------------
+
+program define Stats
+	syntax varlist(numeric), [weightexp(string)] stats(string) statsmatrix(string) [USEcache]
+
+	if ("`usecache'"=="") {
+		local tabstat_weight : subinstr local weightexp "[pweight" "[aweight"
+		qui tabstat `varlist' `tabstat_weight' , stat(`stats') col(stat) save
+		matrix `statsmatrix' = r(StatTotal)
+
+		* Fix names (__L__.price -> L.price)
+		local colnames : colnames `statsmatrix'
+		FixVarnames `colnames'
+		local colnames "`r(newnames)'"
+		matrix colnames `statsmatrix' = `colnames'
+	}
+	else {
+		cap conf matrix reghdfe_statsmatrix
+		
+		* Fix names
+		FixVarnames `varlist'
+		local sample_names "`r(newnames)'"
+
+		* Trim matrix
+		local all_names : colnames reghdfe_statsmatrix
+		foreach name of local all_names {
+			local is_match : list name in sample_names
+			local eq = cond(`is_match', "yes", "no")
+			local coleq `"`coleq' "`eq'""'
+		}
+		matrix coleq reghdfe_statsmatrix = `coleq'
+		matrix `statsmatrix' = reghdfe_statsmatrix[1..., "yes:"]
+		matrix coleq reghdfe_statsmatrix = ""
+		matrix coleq `statsmatrix' = ""
+	}
+end
+
+	
 * Remove omitted variables from a beta matrix, and return remaining indepvars
 
 program define RemoveOmitted, rclass
@@ -4071,7 +4109,7 @@ program define Attach, eclass
 
 		ereturn matrix summarize = `statsmatrix', copy // If we move instead of copy, stages() will fail
 		if (!`summarize_quietly' & "`statsmatrix'"!="") {
-			di as text _n "{sf:Regression Summary Statistics}" _c
+			di as text _n "{sf:Regression Summary Statistics:}" _c
 			matlist e(summarize)', border(top bottom) twidth(18) rowtitle(Variable)
 		}
 	}
@@ -4414,9 +4452,7 @@ program define InnerSaveCache, eclass
 
 * COMPUTE e(stats) - Summary statistics for the all the regression variables
 	if ("`stats'"!="" & "`by'"=="") {
-		local tabstat_weight : subinstr local weightexp "[pweight" "[aweight"
-		qui tabstat `expandedvars' `tabstat_weight' , stat(`stats') col(stat) save
-		matrix reghdfe_statsmatrix = r(StatTotal)
+		Stats `expandedvars', weightexp(`weightexp') stats(`stats') statsmatrix(reghdfe_statsmatrix)
 	}
 
 * MAP_SOLVE() - WITHIN TRANFORMATION (note: overwrites variables)
@@ -4623,8 +4659,11 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * ATTACH - Add e(stats) and e(notes)
 	if ("`by'"=="") {
-		cap conf matrix reghdfe_statsmatrix
-		if (!c(rc)) local statsmatrix reghdfe_statsmatrix
+		if ("`stats'"!="") {
+			tempname statsmatrix
+			Stats `expandedvars', weightexp(`weightexp') stats(`stats') statsmatrix(`statsmatrix') usecache
+			// stats() will be ignored
+		}
 		Attach, notes(`notes') statsmatrix(`statsmatrix') summarize_quietly(`summarize_quietly') // Attach only once, not per stage
 	}
 end

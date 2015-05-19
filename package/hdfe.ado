@@ -1,6 +1,8 @@
-*! reghdfe 3.0.19 18may2015
+*! reghdfe 3.0.20 19may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
+
+<<NOTE: I should just set hdfe.ado as a wrapper for reghdfe, savecache>>
 
 // Mata code is first, then main hdfe.ado, then auxiliary .ado files
 // -------------------------------------------------------------------------------------------------

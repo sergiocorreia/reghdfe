@@ -53,9 +53,7 @@ program define InnerSaveCache, eclass
 
 * COMPUTE e(stats) - Summary statistics for the all the regression variables
 	if ("`stats'"!="" & "`by'"=="") {
-		local tabstat_weight : subinstr local weightexp "[pweight" "[aweight"
-		qui tabstat `expandedvars' `tabstat_weight' , stat(`stats') col(stat) save
-		matrix reghdfe_statsmatrix = r(StatTotal)
+		Stats `expandedvars', weightexp(`weightexp') stats(`stats') statsmatrix(reghdfe_statsmatrix)
 	}
 
 * MAP_SOLVE() - WITHIN TRANFORMATION (note: overwrites variables)

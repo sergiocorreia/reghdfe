@@ -10,7 +10,7 @@ program define Attach, eclass
 
 		ereturn matrix summarize = `statsmatrix', copy // If we move instead of copy, stages() will fail
 		if (!`summarize_quietly' & "`statsmatrix'"!="") {
-			di as text _n "{sf:Regression Summary Statistics}" _c
+			di as text _n "{sf:Regression Summary Statistics:}" _c
 			matlist e(summarize)', border(top bottom) twidth(18) rowtitle(Variable)
 		}
 	}
