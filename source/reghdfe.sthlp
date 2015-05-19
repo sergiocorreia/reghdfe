@@ -78,6 +78,8 @@ options are {opt ivreg2} (default; needs installing) and {opt ivregress}{p_end}
 {synopt :{opt save:cache}}compute within transformation but do not regress the variables; useful when comparing alternative specifications (combine it with preserve/restore){p_end}
 {synopt :{opth keep:vars(varlist)}}additional variables that will be kept in the demeaned dataset{p_end}
 {synopt :{opt use:cache}}required with data previously transformed by {opt save:cache} (limitation: if you use clusters, you need to set the same vce(cluster ...) in both savecache and usecache){p_end}
+{synopt :{opt clean:upcache}}clean up Mata objects after running all the required {it:usecache} regressions
+(usually accompanied by a {it:restore}){p_end}
 {p2coldent:X {opt by(groupvar)}}similar to {opt save:cache} but will run the transformations independently for each level/category of {it:varname}. Stores the levels in {it:e(levels)}{p_end}
 {p2coldent:X {opt l:evel(value)}}equivalent to regressing "{cmd:if} {it:groupvar}{cmd:==}{it:level}" but faster; needs to be run after {opt by(groupvar)}{p_end}
 {p2coldent:X {opt nested}}add each {it:absvar} recursively, reporting the R2 and associated F-test
