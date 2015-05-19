@@ -93,6 +93,15 @@ void map_estimate_dof(`Problem' S, string rowvector adjustments,
 	}
 
 	// (Intercept-only) Excluding those already solved, the first absvar is exact, and the second can be with pairwise/firstpairs
+
+	// Note: I dont't include the FEs that are clusters or are nested within cluster when computing redundant coefs
+	// On principle, that would be nice to have. EG: reghdfe .... abs(zipcode state##c.time) vce(zipcode)
+	// I know state is collinear with zipcode so I would also want to consider state to be redundant
+
+	// However, the number of states should be much smaller than the number of zipcodes, which in turn is smaller
+	// Than the number of observations; so I don't worry much about that case (also, there may be possible 
+	// complications with that)
+
 	i = 0
 	h = 1
 	prev_g = J(S.G, 1, 0)
