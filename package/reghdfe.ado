@@ -1,4 +1,4 @@
-*! reghdfe 3.0.25 19may2015
+*! reghdfe 3.0.27 19may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -382,7 +382,9 @@ void function map_init_transform(`Problem' S, `String' transform) {
 	if (strpos("cimmino", transform)==1) transform = "cimmino"
 	if (strpos("kaczmarz", transform)==1) transform = "kaczmarz"
 	if (strpos("symmetric_kaczmarz", transform)==1) transform = "symmetric_kaczmarz"
-	assert_msg(anyof(("cimmino","kaczmarz","symmetric_kaczmarz"),transform), "invalid transform")
+	if (strpos("rand_kaczmarz", transform)==1) transform = "random_kaczmarz" // experimental
+	if (strpos("random_kaczmarz", transform)==1) transform = "random_kaczmarz" // experimental
+	assert_msg(anyof(("cimmino","kaczmarz","symmetric_kaczmarz", "random_kaczmarz"),transform), "invalid transform")
 	S.transform = transform
 }
 
@@ -420,8 +422,9 @@ void function map_init_acceleration(`Problem' S, `String' acceleration) {
 	if (strpos("conjugate_gradient", acceleration)==1 | acceleration=="cg") acceleration = "conjugate_gradient"
 	if (strpos("steepest_descent", acceleration)==1 | acceleration=="sd") acceleration = "steepest_descent"
 	if (strpos("aitken", acceleration)==1) acceleration = "aitken"
+	if (strpos("hybrid", acceleration)==1) acceleration = "hybrid" // experimental
 	if (acceleration=="no" | acceleration=="none" | acceleration=="off") acceleration = "none"
-	assert_msg(anyof(("conjugate_gradient","steepest_descent", "aitken", "none"),acceleration), "invalid acceleration")
+	assert_msg(anyof(("conjugate_gradient","steepest_descent", "aitken", "none", "hybrid"),acceleration), "invalid acceleration")
 	S.acceleration = acceleration
 }
 
@@ -1120,12 +1123,14 @@ void function map_solve(`Problem' S, `Varlist' vars,
 	if (S.transform=="cimmino") transform = &transform_cimmino()
 	if (S.transform=="kaczmarz") transform = &transform_kaczmarz()
 	if (S.transform=="symmetric_kaczmarz") transform = &transform_sym_kaczmarz()
+	if (S.transform=="random_kaczmarz") transform = &transform_rand_kaczmarz()
 
 	// Pointer to acceleration routine
 	if (S.acceleration=="none") accelerate = &accelerate_none()
 	if (S.acceleration=="conjugate_gradient") accelerate = &accelerate_cg()
 	if (S.acceleration=="steepest_descent") accelerate = &accelerate_sd()
 	if (S.acceleration=="aitken") accelerate = &accelerate_aitken()
+	if (S.acceleration=="hybrid") accelerate = &accelerate_hybrid()
 
 	// Call acceleration routine
 	if (save_fe) {
@@ -1206,6 +1211,24 @@ void function map_solve(`Problem' S, `Varlist' vars,
 		y = resid
 	}
 	return(resid)
+}
+// -------------------------------------------------------------------------------------------------
+
+// Start w/out acceleration, then switch to CG
+`Group' function accelerate_hybrid(`Problem' S, `Group' y, `FunctionPointer' T) {
+	`Integer' iter, accel_start
+	`Group' resid
+	pragma unset resid
+
+	accel_start = 3
+
+	for (iter=1; iter<=accel_start; iter++) {
+		(*T)(S, y, resid) // Faster version of "resid = S.T(y)"
+		if (check_convergence(S, iter, resid, y)) break
+		y = resid
+	}
+
+	return(accelerate_cg(S, y, T))
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -1437,7 +1460,7 @@ void function transform_kaczmarz(`Problem' S, `Group' y, `Group' ans,| `Boolean'
 }
 
 // -------------------------------------------------------------------------------------------------
-// This seems slower than plain kaczmarz; not used currently
+// This seems slower than kaczmarz (sym kaczmarz!); not used currently
 void function transform_rand_kaczmarz(`Problem' S, `Group' y, `Group' ans,| `Boolean' get_proj) {
 	`Integer' 	g, G
 	G = S.G
@@ -1447,6 +1470,9 @@ void function transform_rand_kaczmarz(`Problem' S, `Group' y, `Group' ans,| `Boo
 
 	ans = y - map_projection(S, rand[1], y)
 	for (g=2; g<=G; g++) {
+		ans = ans - map_projection(S, rand[g], ans)
+	}
+	for (g=G-1; g>=1; g--) {
 		ans = ans - map_projection(S, rand[g], ans)
 	}
 	if (get_proj) ans = y - ans
@@ -1966,7 +1992,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.25 19may2015"
+    local version "3.0.27 19may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"

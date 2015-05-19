@@ -16,6 +16,24 @@ mata set matastrict on
 	}
 	return(resid)
 }
+// -------------------------------------------------------------------------------------------------
+
+// Start w/out acceleration, then switch to CG
+`Group' function accelerate_hybrid(`Problem' S, `Group' y, `FunctionPointer' T) {
+	`Integer' iter, accel_start
+	`Group' resid
+	pragma unset resid
+
+	accel_start = 3
+
+	for (iter=1; iter<=accel_start; iter++) {
+		(*T)(S, y, resid) // Faster version of "resid = S.T(y)"
+		if (check_convergence(S, iter, resid, y)) break
+		y = resid
+	}
+
+	return(accelerate_cg(S, y, T))
+}
 
 // -------------------------------------------------------------------------------------------------
 // Memory cost is approx = 4*size(y) (actually 3 since y is already there)

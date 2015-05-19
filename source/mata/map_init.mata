@@ -142,7 +142,9 @@ void function map_init_transform(`Problem' S, `String' transform) {
 	if (strpos("cimmino", transform)==1) transform = "cimmino"
 	if (strpos("kaczmarz", transform)==1) transform = "kaczmarz"
 	if (strpos("symmetric_kaczmarz", transform)==1) transform = "symmetric_kaczmarz"
-	assert_msg(anyof(("cimmino","kaczmarz","symmetric_kaczmarz"),transform), "invalid transform")
+	if (strpos("rand_kaczmarz", transform)==1) transform = "random_kaczmarz" // experimental
+	if (strpos("random_kaczmarz", transform)==1) transform = "random_kaczmarz" // experimental
+	assert_msg(anyof(("cimmino","kaczmarz","symmetric_kaczmarz", "random_kaczmarz"),transform), "invalid transform")
 	S.transform = transform
 }
 
@@ -180,8 +182,9 @@ void function map_init_acceleration(`Problem' S, `String' acceleration) {
 	if (strpos("conjugate_gradient", acceleration)==1 | acceleration=="cg") acceleration = "conjugate_gradient"
 	if (strpos("steepest_descent", acceleration)==1 | acceleration=="sd") acceleration = "steepest_descent"
 	if (strpos("aitken", acceleration)==1) acceleration = "aitken"
+	if (strpos("hybrid", acceleration)==1) acceleration = "hybrid" // experimental
 	if (acceleration=="no" | acceleration=="none" | acceleration=="off") acceleration = "none"
-	assert_msg(anyof(("conjugate_gradient","steepest_descent", "aitken", "none"),acceleration), "invalid acceleration")
+	assert_msg(anyof(("conjugate_gradient","steepest_descent", "aitken", "none", "hybrid"),acceleration), "invalid acceleration")
 	S.acceleration = acceleration
 }
 

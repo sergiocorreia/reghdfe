@@ -31,7 +31,7 @@ void function transform_kaczmarz(`Problem' S, `Group' y, `Group' ans,| `Boolean'
 }
 
 // -------------------------------------------------------------------------------------------------
-// This seems slower than plain kaczmarz; not used currently
+// This seems slower than kaczmarz (sym kaczmarz!); not used currently
 void function transform_rand_kaczmarz(`Problem' S, `Group' y, `Group' ans,| `Boolean' get_proj) {
 	`Integer' 	g, G
 	G = S.G
@@ -41,6 +41,9 @@ void function transform_rand_kaczmarz(`Problem' S, `Group' y, `Group' ans,| `Boo
 
 	ans = y - map_projection(S, rand[1], y)
 	for (g=2; g<=G; g++) {
+		ans = ans - map_projection(S, rand[g], ans)
+	}
+	for (g=G-1; g>=1; g--) {
 		ans = ans - map_projection(S, rand[g], ans)
 	}
 	if (get_proj) ans = y - ans

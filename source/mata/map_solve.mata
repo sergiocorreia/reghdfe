@@ -87,12 +87,14 @@ void function map_solve(`Problem' S, `Varlist' vars,
 	if (S.transform=="cimmino") transform = &transform_cimmino()
 	if (S.transform=="kaczmarz") transform = &transform_kaczmarz()
 	if (S.transform=="symmetric_kaczmarz") transform = &transform_sym_kaczmarz()
+	if (S.transform=="random_kaczmarz") transform = &transform_rand_kaczmarz()
 
 	// Pointer to acceleration routine
 	if (S.acceleration=="none") accelerate = &accelerate_none()
 	if (S.acceleration=="conjugate_gradient") accelerate = &accelerate_cg()
 	if (S.acceleration=="steepest_descent") accelerate = &accelerate_sd()
 	if (S.acceleration=="aitken") accelerate = &accelerate_aitken()
+	if (S.acceleration=="hybrid") accelerate = &accelerate_hybrid()
 
 	// Call acceleration routine
 	if (save_fe) {
