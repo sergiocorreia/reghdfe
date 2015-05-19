@@ -126,6 +126,11 @@ rarely used{p_end}
 {p 4 6 2}Please be aware that in most cases these estimates are neither consistent nor econometrically identified.{p_end}
 {p 4 6 2}Using categorical interactions (e.g. {it:x}{cmd:#}{it:z}) is faster than running {it:egen group(...)} beforehand.{p_end}
 {p 4 6 2}Singleton obs. are dropped iteratively until no more singletons are found (see ancilliary article for details).{p_end}
+{p 4 6 2}Slope-only absvars ("state#c.time") have poor numerical stability and slow convergence.
+If you need those, either i) increase tolerance or
+ii) use slope-and-intercept absvars ("state##c.time"), even if the intercept is redundant.
+For instance if absvar is "i.zipcode i.state##c.time" then i.state is redundant given i.zipcode, but
+convergence will still be {it:much} faster.{p_end}
 
 {bf:---> NOTE: below this line, the help file has not been updated for version 3 <---}
 
