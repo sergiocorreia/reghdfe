@@ -1,4 +1,4 @@
-*! reghdfe 3.0.29 20may2015
+*! reghdfe 3.0.30 20may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1992,7 +1992,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.29 20may2015"
+    local version "3.0.30 20may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2169,7 +2169,6 @@ foreach lhs_endogvar of local lhs_endogvars {
 		if ("`stage'"!="iv") {
 			local fast 1
 			local will_save_fe 0
-			local vcesuite avar
 			local endogvars
 			local instruments
 			local groupvar
@@ -2183,11 +2182,14 @@ foreach lhs_endogvar of local lhs_endogvars {
 	local wrapper "Wrapper_`subcmd'" // regress ivreg2 ivregress
 	if ("`subcmd'"=="regress" & "`vcesuite'"=="avar") local wrapper "Wrapper_avar"
 	if ("`subcmd'"=="regress" & "`vcesuite'"=="mwc") local wrapper "Wrapper_mwc"
-	if (!inlist("`stage'","none", "iv")) local wrapper "Wrapper_avar" // Compatible with ivreg2
+	if (!inlist("`stage'","none", "iv")) {
+		if ("`vcesuite'"=="default") local wrapper Wrapper_regress
+		if ("`vcesuite'"!="default") local wrapper Wrapper_`vcesuite'
+	}
 	local opt_list
 	local opts ///
 		depvar indepvars endogvars instruments ///
-		vceoption vcetype vcesuite ///
+		vceoption vcetype ///
 		kk suboptions showraw vceunadjusted first weightexp ///
 		estimator twicerobust // Whether to run or not two-step gmm
 	foreach opt of local opts {
@@ -2494,13 +2496,30 @@ else {
 	mata: verbose2local(HDFE_S, "verbose")
 	local allkeys `allkeys' verbose
 
-* Parse VCE options
+* Stages (before vce)
+	assert "`model'"!="" // just to be sure this goes after `model' is set
+	if ("`stages'"=="all") local stages iv ols first acid reduced
+	local iv_stage iv
+	local stages : list stages - iv_stage
+	local valid_stages ols first acid reduced
+	local wrong_stages : list stages - valid_stages
+	Assert "`wrong_stages'"=="", msg("Error, invalid stages(): `wrong_stages'")
+	if ("`stages'"!="") {
+		Assert "`model'"=="iv", msg("Error, stages() only valid with an IV regression")
+		local stages `stages' `iv_stage' // Put -iv- *last* (so it does the -restore-; note that we don't need it first to trim MVs b/c that's done earlier)
+	}
+	else {
+		local stages none // So we can loop over stages
+	}
+	local allkeys `allkeys' stages
+
+* Parse VCE options (after stages)
 	mata: st_local("hascomma", strofreal(strpos("`vce'", ","))) // is there a commma already in `vce'?
 	local keys vceoption vcetype vcesuite vceextra num_clusters clustervars bw kernel dkraay kiefer twicerobust
 	if (!`usecache') {
 		local vcetmp `vce'
 		if (!`hascomma') local vcetmp `vce' ,
-		ParseVCE `vcetmp' weighttype(`weighttype')
+		ParseVCE `vcetmp' weighttype(`weighttype') stages(`stages') ivsuite(`ivsuite') model(`model')
 		foreach key of local keys {
 			local `key' "`s(`key')'"
 		}
@@ -2561,23 +2580,6 @@ else {
 		Debug, level(0) msg("(option nested ignored, only works with OLS and conventional/unadjusted VCE)") color("error")
 	}
 	local allkeys `allkeys' nested
-
-* Stages
-	assert "`model'"!="" // just to be sure this goes after `model' is set
-	if ("`stages'"=="all") local stages iv ols first acid reduced
-	local iv_stage iv
-	local stages : list stages - iv_stage
-	local valid_stages ols first acid reduced
-	local wrong_stages : list stages - valid_stages
-	Assert "`wrong_stages'"=="", msg("Error, invalid stages(): `wrong_stages'")
-	if ("`stages'"!="") {
-		Assert "`model'"=="iv", msg("Error, stages() only valid with an IV regression")
-		local stages `stages' `iv_stage' // Put -iv- *last* (so it does the -restore-; note that we don't need it first to trim MVs b/c that's done earlier)
-	}
-	else {
-		local stages none // So we can loop over stages
-	}
-	local allkeys `allkeys' stages
 
 * Sanity checks on speedups
 * With -savecache-, this adds chars (modifies the dta!) so put it close to the end
@@ -2757,7 +2759,10 @@ program define ParseVCE, sclass
 	syntax 	[anything(id="VCE type")] , ///
 			[bw(integer 1) KERnel(string) dkraay(integer 1) kiefer] ///
 			[suite(string) TWICErobust] ///
-			[weighttype(string)]
+			[weighttype(string)] ///
+			stages(string) ///
+			model(string) ///
+			[ivsuite(string)]
 
 	if ("`anything'"=="") local anything unadjusted
 	Assert `bw'>0, msg("VCE bandwidth must be a positive integer")
@@ -2805,8 +2810,9 @@ program define ParseVCE, sclass
 		Assert !_rc , msg("error: -tuples- not installed, please run {stata ssc install tuples} to estimate multi-way clusters.")
 	}
 	
-	if ("`vcesuite'"=="avar" | "`stages'"!="none") {
-		cap findfile avar.ado // We use -avar- as default with stages (on the non-iv stages)
+	* DISABLED FOR SPEED: //  | "`stages'"!="none" // We use -avar- as default with stages (on the non-iv stages)
+	if ("`vcesuite'"=="avar") { 
+		cap findfile avar.ado
 		Assert !_rc , msg("error: -avar- not installed, please run {stata ssc install avar} or change the option -vcesuite-")
 	}
 
@@ -4645,7 +4651,6 @@ foreach lhs_endogvar of local lhs_endogvars {
 		if ("`stage'"!="iv") {
 			local fast 1
 			local will_save_fe 0
-			local vcesuite avar
 			local endogvars
 			local instruments
 			local groupvar
@@ -4659,11 +4664,14 @@ foreach lhs_endogvar of local lhs_endogvars {
 	local wrapper "Wrapper_`subcmd'" // regress ivreg2 ivregress
 	if ("`subcmd'"=="regress" & "`vcesuite'"=="avar") local wrapper "Wrapper_avar"
 	if ("`subcmd'"=="regress" & "`vcesuite'"=="mwc") local wrapper "Wrapper_mwc"
-	if (!inlist("`stage'","none", "iv")) local wrapper "Wrapper_avar" // Compatible with ivreg2
+	if (!inlist("`stage'","none", "iv")) {
+		if ("`vcesuite'"=="default") local wrapper Wrapper_regress
+		if ("`vcesuite'"!="default") local wrapper Wrapper_`vcesuite'
+	}
 	local opt_list
 	local opts /// cond // BUGUBG: Add by() (cond) options
 		depvar indepvars endogvars instruments ///
-		vceoption vcetype vcesuite ///
+		vceoption vcetype ///
 		kk suboptions showraw vceunadjusted first weightexp ///
 		estimator twicerobust // Whether to run or not two-step gmm
 	foreach opt of local opts {

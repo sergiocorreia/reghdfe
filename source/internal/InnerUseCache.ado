@@ -115,7 +115,6 @@ foreach lhs_endogvar of local lhs_endogvars {
 		if ("`stage'"!="iv") {
 			local fast 1
 			local will_save_fe 0
-			local vcesuite avar
 			local endogvars
 			local instruments
 			local groupvar
@@ -129,11 +128,14 @@ foreach lhs_endogvar of local lhs_endogvars {
 	local wrapper "Wrapper_`subcmd'" // regress ivreg2 ivregress
 	if ("`subcmd'"=="regress" & "`vcesuite'"=="avar") local wrapper "Wrapper_avar"
 	if ("`subcmd'"=="regress" & "`vcesuite'"=="mwc") local wrapper "Wrapper_mwc"
-	if (!inlist("`stage'","none", "iv")) local wrapper "Wrapper_avar" // Compatible with ivreg2
+	if (!inlist("`stage'","none", "iv")) {
+		if ("`vcesuite'"=="default") local wrapper Wrapper_regress
+		if ("`vcesuite'"!="default") local wrapper Wrapper_`vcesuite'
+	}
 	local opt_list
 	local opts /// cond // BUGUBG: Add by() (cond) options
 		depvar indepvars endogvars instruments ///
-		vceoption vcetype vcesuite ///
+		vceoption vcetype ///
 		kk suboptions showraw vceunadjusted first weightexp ///
 		estimator twicerobust // Whether to run or not two-step gmm
 	foreach opt of local opts {

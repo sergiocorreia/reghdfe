@@ -172,13 +172,30 @@ else {
 	mata: verbose2local(HDFE_S, "verbose")
 	local allkeys `allkeys' verbose
 
-* Parse VCE options
+* Stages (before vce)
+	assert "`model'"!="" // just to be sure this goes after `model' is set
+	if ("`stages'"=="all") local stages iv ols first acid reduced
+	local iv_stage iv
+	local stages : list stages - iv_stage
+	local valid_stages ols first acid reduced
+	local wrong_stages : list stages - valid_stages
+	Assert "`wrong_stages'"=="", msg("Error, invalid stages(): `wrong_stages'")
+	if ("`stages'"!="") {
+		Assert "`model'"=="iv", msg("Error, stages() only valid with an IV regression")
+		local stages `stages' `iv_stage' // Put -iv- *last* (so it does the -restore-; note that we don't need it first to trim MVs b/c that's done earlier)
+	}
+	else {
+		local stages none // So we can loop over stages
+	}
+	local allkeys `allkeys' stages
+
+* Parse VCE options (after stages)
 	mata: st_local("hascomma", strofreal(strpos("`vce'", ","))) // is there a commma already in `vce'?
 	local keys vceoption vcetype vcesuite vceextra num_clusters clustervars bw kernel dkraay kiefer twicerobust
 	if (!`usecache') {
 		local vcetmp `vce'
 		if (!`hascomma') local vcetmp `vce' ,
-		ParseVCE `vcetmp' weighttype(`weighttype')
+		ParseVCE `vcetmp' weighttype(`weighttype') stages(`stages') ivsuite(`ivsuite') model(`model')
 		foreach key of local keys {
 			local `key' "`s(`key')'"
 		}
@@ -239,23 +256,6 @@ else {
 		Debug, level(0) msg("(option nested ignored, only works with OLS and conventional/unadjusted VCE)") color("error")
 	}
 	local allkeys `allkeys' nested
-
-* Stages
-	assert "`model'"!="" // just to be sure this goes after `model' is set
-	if ("`stages'"=="all") local stages iv ols first acid reduced
-	local iv_stage iv
-	local stages : list stages - iv_stage
-	local valid_stages ols first acid reduced
-	local wrong_stages : list stages - valid_stages
-	Assert "`wrong_stages'"=="", msg("Error, invalid stages(): `wrong_stages'")
-	if ("`stages'"!="") {
-		Assert "`model'"=="iv", msg("Error, stages() only valid with an IV regression")
-		local stages `stages' `iv_stage' // Put -iv- *last* (so it does the -restore-; note that we don't need it first to trim MVs b/c that's done earlier)
-	}
-	else {
-		local stages none // So we can loop over stages
-	}
-	local allkeys `allkeys' stages
 
 * Sanity checks on speedups
 * With -savecache-, this adds chars (modifies the dta!) so put it close to the end

@@ -7,7 +7,10 @@ program define ParseVCE, sclass
 	syntax 	[anything(id="VCE type")] , ///
 			[bw(integer 1) KERnel(string) dkraay(integer 1) kiefer] ///
 			[suite(string) TWICErobust] ///
-			[weighttype(string)]
+			[weighttype(string)] ///
+			stages(string) ///
+			model(string) ///
+			[ivsuite(string)]
 
 	if ("`anything'"=="") local anything unadjusted
 	Assert `bw'>0, msg("VCE bandwidth must be a positive integer")
@@ -55,8 +58,9 @@ program define ParseVCE, sclass
 		Assert !_rc , msg("error: -tuples- not installed, please run {stata ssc install tuples} to estimate multi-way clusters.")
 	}
 	
-	if ("`vcesuite'"=="avar" | "`stages'"!="none") {
-		cap findfile avar.ado // We use -avar- as default with stages (on the non-iv stages)
+	* DISABLED FOR SPEED: //  | "`stages'"!="none" // We use -avar- as default with stages (on the non-iv stages)
+	if ("`vcesuite'"=="avar") { 
+		cap findfile avar.ado
 		Assert !_rc , msg("error: -avar- not installed, please run {stata ssc install avar} or change the option -vcesuite-")
 	}
 
