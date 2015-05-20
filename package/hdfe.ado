@@ -1,4 +1,4 @@
-*! reghdfe 3.0.28 19may2015
+*! reghdfe 3.0.29 20may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 

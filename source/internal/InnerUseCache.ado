@@ -7,12 +7,14 @@ program define InnerUseCache, eclass
 * PARSE - inject opts with c_local, create Mata structure HDFE_S (use verbose>2 for details)
 	Parse `0'
 	assert `usecache'
+	if (`timeit') Tic, n(50)
 
 	local original_depvar "`depvar'"
 
 * Match "L.price" --> __L__price
 * Expand factor and time-series variables
 * (based on part of Compact.ado)
+	if (`timeit') Tic, n(52)
 	local expandedvars
 	local sets depvar indepvars endogvars instruments // depvar MUST be first
 	Debug, level(4) newline
@@ -29,6 +31,7 @@ program define InnerUseCache, eclass
 		}
 		local expandedvars `expandedvars' ``set''
 	}
+	if (`timeit') Toc, n(52) msg(fix names)
 
 * Replace vceoption with the correct cluster names (e.g. if it's a FE or a new variable)
 	if (`num_clusters'>0) {
@@ -44,6 +47,7 @@ program define InnerUseCache, eclass
 	}
 
 * PREPARE - Compute untransformed tss, R2 of eqn w/out FEs
+	if (`timeit') Tic, n(54)
 	if ("`by'"=="") {
 		mata: st_local("tss", strofreal(asarray(tss_cache, "`depvar'")))
 		Assert `tss'<., msg("tss of depvar `depvar' not found in cache")
@@ -52,6 +56,14 @@ program define InnerUseCache, eclass
 		}
 		local r2c = . // BUGBUG!!!
 	}
+	if (`timeit') Toc, n(54) msg(use cached tss)
+
+ * COMPUTE DOF - Already precomputed in InnerSaveCache.ado
+	if (`timeit') Tic, n(62)
+	mata: map_ereturn_dof(HDFE_S) // this gives us e(df_a)==`kk', which we need
+	assert e(df_a)<.
+	local kk = e(df_a) // we need this for the regression step
+	if (`timeit') Toc, n(62) msg(load dof estimates)
 
 * STAGES SETUP - Deal with different stages
 	assert "`stages'"!=""
@@ -111,11 +123,6 @@ foreach lhs_endogvar of local lhs_endogvars {
 		}
 	}
 
- * COMPUTE DOF - Already precomputed in InnerSaveCache.ado
-	mata: map_ereturn_dof(HDFE_S) // this gives us e(df_a)==`kk', which we need
-	assert e(df_a)<.
-	local kk = e(df_a) // we need this for the regression step
-
 * REGRESS - Call appropiate wrapper (regress, avar, mwc for ols; ivreg2, ivregress for iv)
 	ereturn clear
 	if ("`stage'"=="none") Debug, level(2) msg("(running regresion: `model'.`ivsuite')")
@@ -133,7 +140,9 @@ foreach lhs_endogvar of local lhs_endogvars {
 		local opt_list `opt_list' `opt'(``opt'')
 	}
 	Debug, level(3) msg(_n "call to wrapper:" _n as result "`wrapper', `opt_list'")
+	if (`timeit') Tic, n(66)
 	`wrapper', `opt_list'
+	if (`timeit') Toc, n(66) msg(regression)
 
 * COMPUTE AND STORE RESIDS (based on SaveFE.ado)
 	local drop_resid_vector
@@ -155,6 +164,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * FIX VARNAMES - Replace tempnames in the coefs table (run AFTER regress and BEFORE restore)
 	* (e.g. __00001 -> L.somevar)
+	if (`timeit') Tic, n(68)
 	tempname b
 	matrix `b' = e(b)
 	local backup_colnames : colnames `b'
@@ -162,6 +172,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 	local newnames "`r(newnames)'"
 	matrix colnames `b' = `newnames'
 	ereturn local depvar = "`original_depvar'" // Run after SaveFE
+	if (`timeit') Toc, n(68) msg(fix varnames)
 
 * POST ERETURN - Add e(...) (besides e(sample) and those added by the wrappers)	
 	local opt_list
@@ -169,7 +180,9 @@ foreach lhs_endogvar of local lhs_endogvars {
 	foreach opt of local opts {
 		local opt_list `opt_list' `opt'(``opt'')
 	}
+	if (`timeit') Tic, n(69)
 	Post, `opt_list' coefnames(`b')
+	if (`timeit') Toc, n(69) msg(Post)
 
 * REPLAY - Show the regression table	
 	if ("`stage'"!="none") Debug, level(0) msg(_n "{title:Stage: `stage'}" _n)
@@ -177,6 +190,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 	Replay
 
 * STAGES - END
+	if (`timeit') Tic, n(70)
 	if (!inlist("`stage'","none", "iv")) {
 		local estimate_name reghdfe_`stage'`i_endogvar'
 		local stored_estimates `stored_estimates' `estimate_name'
@@ -189,16 +203,24 @@ foreach lhs_endogvar of local lhs_endogvars {
 		assert "`stored_estimates'"!=""
 		ereturn `hidden' local stored_estimates = "`stored_estimates'"
 	}
+	if (`timeit') Toc, n(70) msg(store estimates if needed)
+
 } // lhs_endogvar
 } // stage
 
 * ATTACH - Add e(stats) and e(notes)
 	if ("`by'"=="") {
 		if ("`stats'"!="") {
+			if (`timeit') Tic, n(71)
 			tempname statsmatrix
 			Stats `expandedvars', weightexp(`weightexp') stats(`stats') statsmatrix(`statsmatrix') usecache
 			// stats() will be ignored
+			if (`timeit') Tic, n(71) msg(Stats.ado)
 		}
+		if (`timeit') Tic, n(72)
 		Attach, notes(`notes') statsmatrix(`statsmatrix') summarize_quietly(`summarize_quietly') // Attach only once, not per stage
+		if (`timeit') Toc, n(72) msg(Attach.ado)
 	}
+
+	if (`timeit') Toc, n(50) msg([TOTAL])
 end
