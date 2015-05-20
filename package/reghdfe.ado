@@ -1,4 +1,4 @@
-*! reghdfe 3.0.27 19may2015
+*! reghdfe 3.0.28 19may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1992,7 +1992,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.27 19may2015"
+    local version "3.0.28 19may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -3177,15 +3177,17 @@ program define Stats
 
 		* Trim matrix
 		local all_names : colnames reghdfe_statsmatrix
+		local first 1 // 1 if `statsmatrix' is still empty
 		foreach name of local all_names {
 			local is_match : list name in sample_names
-			local eq = cond(`is_match', "yes", "no")
-			local coleq `"`coleq' "`eq'""'
+			if (`is_match' & `first') {
+				local first 0
+				matrix `statsmatrix' = reghdfe_statsmatrix[1..., "`name'"]
+			}
+			else if (`is_match') {
+				matrix `statsmatrix' = `statsmatrix' , reghdfe_statsmatrix[1..., "`name'"]	
+			}
 		}
-		matrix coleq reghdfe_statsmatrix = `coleq'
-		matrix `statsmatrix' = reghdfe_statsmatrix[1..., "yes:"]
-		matrix coleq reghdfe_statsmatrix = ""
-		matrix coleq `statsmatrix' = ""
 	}
 end
 
