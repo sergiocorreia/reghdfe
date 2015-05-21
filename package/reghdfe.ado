@@ -1,4 +1,4 @@
-*! reghdfe 3.0.30 20may2015
+*! reghdfe 3.0.31 21may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1992,7 +1992,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.30 20may2015"
+    local version "3.0.31 21may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2271,7 +2271,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * POST ERETURN - Add e(...) (besides e(sample) and those added by the wrappers)	
 	local opt_list
-	local opts dofadjustments subpredict model stage stages subcmd cmdline vceoption equation_d original_absvars extended_absvars vcetype vcesuite tss r2c savefirst diopts weightvar gmm2s cue liml dkraay by level num_clusters clustervars timevar
+	local opts dofadjustments subpredict model stage stages subcmd cmdline vceoption equation_d original_absvars extended_absvars vcetype vcesuite tss r2c savefirst diopts weightvar gmm2s cue liml dkraay by level num_clusters clustervars timevar backup_original_depvar indepvars endogvars instruments
 	foreach opt of local opts {
 		local opt_list `opt_list' `opt'(``opt'')
 	}
@@ -3928,7 +3928,8 @@ end
 program define Post, eclass
 	syntax, coefnames(string) ///
 		model(string) stage(string) stages(string) subcmd(string) cmdline(string) vceoption(string) original_absvars(string) extended_absvars(string) vcetype(string) vcesuite(string) tss(string) num_clusters(string) ///
-		[dofadjustments(string) clustervars(string) timevar(string) r2c(string) equation_d(string) subpredict(string) savefirst(string) diopts(string) weightvar(string) gmm2s(string) cue(string) dkraay(string) liml(string) by(string) level(string)]
+		[dofadjustments(string) clustervars(string) timevar(string) r2c(string) equation_d(string) subpredict(string) savefirst(string) diopts(string) weightvar(string) gmm2s(string) cue(string) dkraay(string) liml(string) by(string) level(string)] ///
+		[backup_original_depvar(string) indepvars(string) endogvars(string) instruments(string)]
 
 	if (`c(version)'>=12) local hidden hidden // ereturn hidden requires v12+
 
@@ -4714,7 +4715,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * POST ERETURN - Add e(...) (besides e(sample) and those added by the wrappers)	
 	local opt_list
-	local opts dofadjustments subpredict model stage stages subcmd cmdline vceoption equation_d original_absvars extended_absvars vcetype vcesuite tss r2c savefirst diopts weightvar gmm2s cue liml dkraay by level num_clusters clustervars timevar
+	local opts dofadjustments subpredict model stage stages subcmd cmdline vceoption equation_d original_absvars extended_absvars vcetype vcesuite tss r2c savefirst diopts weightvar gmm2s cue liml dkraay by level num_clusters clustervars timevar backup_original_depvar indepvars endogvars instruments
 	foreach opt of local opts {
 		local opt_list `opt_list' `opt'(``opt'')
 	}
