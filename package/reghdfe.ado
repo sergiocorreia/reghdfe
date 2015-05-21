@@ -1,4 +1,4 @@
-*! reghdfe 3.0.31 21may2015
+*! reghdfe 3.0.32 21may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1992,7 +1992,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.31 21may2015"
+    local version "3.0.32 21may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2044,7 +2044,9 @@ program define Inner, eclass
 	}
 
 * COMPACT - Expand time and factor variables, and drop unused variables and obs.
-	local original_depvar "`depvar'"
+	foreach cat in depvar indepvars endogvars instruments {
+		local original_`cat' "``cat''"
+	}
 	if (`timeit') Tic, n(53)
 	Compact, basevars(`basevars') depvar(`depvar') indepvars(`indepvars') endogvars(`endogvars') instruments(`instruments') uid(`uid') timevar(`timevar') panelvar(`panelvar') weightvar(`weightvar') absorb_keepvars(`absorb_keepvars') clustervars(`clustervars') if(`if') in(`in') verbose(`verbose') vceextra(`vceextra')
 	// Injects locals: depvar indepvars endogvars instruments expandedvars
@@ -2271,7 +2273,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * POST ERETURN - Add e(...) (besides e(sample) and those added by the wrappers)	
 	local opt_list
-	local opts dofadjustments subpredict model stage stages subcmd cmdline vceoption equation_d original_absvars extended_absvars vcetype vcesuite tss r2c savefirst diopts weightvar gmm2s cue liml dkraay by level num_clusters clustervars timevar backup_original_depvar indepvars endogvars instruments
+	local opts dofadjustments subpredict model stage stages subcmd cmdline vceoption equation_d original_absvars extended_absvars vcetype vcesuite tss r2c savefirst diopts weightvar gmm2s cue liml dkraay by level num_clusters clustervars timevar backup_original_depvar original_indepvars original_endogvars original_instruments
 	foreach opt of local opts {
 		local opt_list `opt_list' `opt'(``opt'')
 	}
@@ -3929,7 +3931,7 @@ program define Post, eclass
 	syntax, coefnames(string) ///
 		model(string) stage(string) stages(string) subcmd(string) cmdline(string) vceoption(string) original_absvars(string) extended_absvars(string) vcetype(string) vcesuite(string) tss(string) num_clusters(string) ///
 		[dofadjustments(string) clustervars(string) timevar(string) r2c(string) equation_d(string) subpredict(string) savefirst(string) diopts(string) weightvar(string) gmm2s(string) cue(string) dkraay(string) liml(string) by(string) level(string)] ///
-		[backup_original_depvar(string) indepvars(string) endogvars(string) instruments(string)]
+		[backup_original_depvar(string) original_indepvars(string) original_endogvars(string) original_instruments(string)]
 
 	if (`c(version)'>=12) local hidden hidden // ereturn hidden requires v12+
 
@@ -4007,9 +4009,8 @@ program define Post, eclass
 
 * VARLISTS
 	* Besides each cmd's naming style (e.g. exogr, exexog, etc.) keep one common one
-	foreach cat in depvar indepvars endogvars instruments {
-		local vars ``cat''
-		if ("`vars'"=="") continue
+	foreach cat in indepvars endogvars instruments {
+		if ("`original_`cat''"=="") continue
 		ereturn local `cat' "`original_`cat''"
 	}
 
@@ -4546,7 +4547,9 @@ program define InnerUseCache, eclass
 	assert `usecache'
 	if (`timeit') Tic, n(50)
 
-	local original_depvar "`depvar'"
+	foreach cat in depvar indepvars endogvars instruments {
+		local original_`cat' "``cat''"
+	}
 
 * Match "L.price" --> __L__price
 * Expand factor and time-series variables
@@ -4715,7 +4718,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * POST ERETURN - Add e(...) (besides e(sample) and those added by the wrappers)	
 	local opt_list
-	local opts dofadjustments subpredict model stage stages subcmd cmdline vceoption equation_d original_absvars extended_absvars vcetype vcesuite tss r2c savefirst diopts weightvar gmm2s cue liml dkraay by level num_clusters clustervars timevar backup_original_depvar indepvars endogvars instruments
+	local opts dofadjustments subpredict model stage stages subcmd cmdline vceoption equation_d original_absvars extended_absvars vcetype vcesuite tss r2c savefirst diopts weightvar gmm2s cue liml dkraay by level num_clusters clustervars timevar backup_original_depvar original_indepvars original_endogvars original_instruments
 	foreach opt of local opts {
 		local opt_list `opt_list' `opt'(``opt'')
 	}

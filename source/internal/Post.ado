@@ -3,7 +3,7 @@ program define Post, eclass
 	syntax, coefnames(string) ///
 		model(string) stage(string) stages(string) subcmd(string) cmdline(string) vceoption(string) original_absvars(string) extended_absvars(string) vcetype(string) vcesuite(string) tss(string) num_clusters(string) ///
 		[dofadjustments(string) clustervars(string) timevar(string) r2c(string) equation_d(string) subpredict(string) savefirst(string) diopts(string) weightvar(string) gmm2s(string) cue(string) dkraay(string) liml(string) by(string) level(string)] ///
-		[backup_original_depvar(string) indepvars(string) endogvars(string) instruments(string)]
+		[backup_original_depvar(string) original_indepvars(string) original_endogvars(string) original_instruments(string)]
 
 	if (`c(version)'>=12) local hidden hidden // ereturn hidden requires v12+
 
@@ -81,9 +81,8 @@ program define Post, eclass
 
 * VARLISTS
 	* Besides each cmd's naming style (e.g. exogr, exexog, etc.) keep one common one
-	foreach cat in depvar indepvars endogvars instruments {
-		local vars ``cat''
-		if ("`vars'"=="") continue
+	foreach cat in indepvars endogvars instruments {
+		if ("`original_`cat''"=="") continue
 		ereturn local `cat' "`original_`cat''"
 	}
 

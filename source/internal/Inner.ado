@@ -32,7 +32,9 @@ program define Inner, eclass
 	}
 
 * COMPACT - Expand time and factor variables, and drop unused variables and obs.
-	local original_depvar "`depvar'"
+	foreach cat in depvar indepvars endogvars instruments {
+		local original_`cat' "``cat''"
+	}
 	if (`timeit') Tic, n(53)
 	Compact, basevars(`basevars') depvar(`depvar') indepvars(`indepvars') endogvars(`endogvars') instruments(`instruments') uid(`uid') timevar(`timevar') panelvar(`panelvar') weightvar(`weightvar') absorb_keepvars(`absorb_keepvars') clustervars(`clustervars') if(`if') in(`in') verbose(`verbose') vceextra(`vceextra')
 	// Injects locals: depvar indepvars endogvars instruments expandedvars
@@ -259,7 +261,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * POST ERETURN - Add e(...) (besides e(sample) and those added by the wrappers)	
 	local opt_list
-	local opts dofadjustments subpredict model stage stages subcmd cmdline vceoption equation_d original_absvars extended_absvars vcetype vcesuite tss r2c savefirst diopts weightvar gmm2s cue liml dkraay by level num_clusters clustervars timevar backup_original_depvar indepvars endogvars instruments
+	local opts dofadjustments subpredict model stage stages subcmd cmdline vceoption equation_d original_absvars extended_absvars vcetype vcesuite tss r2c savefirst diopts weightvar gmm2s cue liml dkraay by level num_clusters clustervars timevar backup_original_depvar original_indepvars original_endogvars original_instruments
 	foreach opt of local opts {
 		local opt_list `opt_list' `opt'(``opt'')
 	}
