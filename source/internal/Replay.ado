@@ -25,14 +25,14 @@ cap pr drop Replay
 		* Backup before showing both first and second stage
 		tempname hold
 		
-		if ("`e(ivreg2_firsteqs)'"!="") {
+		if ("`e(firsteqs)'"!="") {
 			estimates store `hold'
 
 			local i 0
-			foreach fs_eqn in `e(ivreg2_firsteqs)' {
+			foreach fs_eqn in `e(firsteqs)' {
 				local instrument  : word `++i' of `e(instd)'
 				di as input _n "{title:First stage for `instrument'}"
-				estimates replay `fs_eqn' , nohead `diopts'
+				cap noi estimates replay `fs_eqn' , nohead `diopts'
 				if (!`savefirst') estimates drop `fs_eqn'
 			}
 

@@ -1,4 +1,4 @@
-*! reghdfe 3.0.32 21may2015
+*! reghdfe 3.0.33 23may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1992,7 +1992,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.32 21may2015"
+    local version "3.0.33 23may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -3681,8 +3681,6 @@ program define Wrapper_ivreg2, eclass
 
 	if (`first') {
 		ereturn `hidden' local first_prefix = "_ivreg2_"
-		ereturn `hidden' local ivreg2_firsteqs = e(firsteqs)
-		ereturn local firsteqs
 	}
 
 	foreach cat in exexog insts instd exexog1 instd1 collin {
@@ -3691,10 +3689,10 @@ program define Wrapper_ivreg2, eclass
 	}
 
 	if (`first') {
-		local ivreg2_firsteqs "`e(ivreg2_firsteqs)'"
+		local firsteqs "`e(firsteqs)'"
 		tempname hold
 		estimates store `hold' , nocopy
-		foreach fs_eqn in `ivreg2_firsteqs' {
+		foreach fs_eqn in `firsteqs' {
 			qui estimates restore `fs_eqn'
 			FixVarnames `e(depvar)'
 			ereturn local depvar = r(newnames)
@@ -4221,14 +4219,14 @@ end
 		* Backup before showing both first and second stage
 		tempname hold
 		
-		if ("`e(ivreg2_firsteqs)'"!="") {
+		if ("`e(firsteqs)'"!="") {
 			estimates store `hold'
 
 			local i 0
-			foreach fs_eqn in `e(ivreg2_firsteqs)' {
+			foreach fs_eqn in `e(firsteqs)' {
 				local instrument  : word `++i' of `e(instd)'
 				di as input _n "{title:First stage for `instrument'}"
-				estimates replay `fs_eqn' , nohead `diopts'
+				cap noi estimates replay `fs_eqn' , nohead `diopts'
 				if (!`savefirst') estimates drop `fs_eqn'
 			}
 

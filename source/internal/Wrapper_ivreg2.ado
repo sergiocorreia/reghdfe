@@ -61,8 +61,6 @@ program define Wrapper_ivreg2, eclass
 
 	if (`first') {
 		ereturn `hidden' local first_prefix = "_ivreg2_"
-		ereturn `hidden' local ivreg2_firsteqs = e(firsteqs)
-		ereturn local firsteqs
 	}
 
 	foreach cat in exexog insts instd exexog1 instd1 collin {
@@ -71,10 +69,10 @@ program define Wrapper_ivreg2, eclass
 	}
 
 	if (`first') {
-		local ivreg2_firsteqs "`e(ivreg2_firsteqs)'"
+		local firsteqs "`e(firsteqs)'"
 		tempname hold
 		estimates store `hold' , nocopy
-		foreach fs_eqn in `ivreg2_firsteqs' {
+		foreach fs_eqn in `firsteqs' {
 			qui estimates restore `fs_eqn'
 			FixVarnames `e(depvar)'
 			ereturn local depvar = r(newnames)
