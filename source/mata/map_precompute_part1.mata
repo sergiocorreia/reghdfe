@@ -34,7 +34,7 @@ void map_precompute_part1(`Problem' S, transmorphic counter) {
 				}
 			}
 		}
-		if (i<=G) S.fes[g].is_sortedby = already_sorted(idvarnames)
+		if (i<=G) S.fes[g].is_sortedby = already_sorted(S, idvarnames)
 		sortedby = S.fes[g].is_sortedby
 		if (i<=G & !sortedby) {
 			if (S.timeit) timer_on(31)
@@ -100,10 +100,8 @@ void map_precompute_part1(`Problem' S, transmorphic counter) {
 // -------------------------------------------------------------
 // ALREADY_SORTED:
 // -------------------------------------------------------------
-`Integer' already_sorted(string vector vars) {
-	`Varlist' sortedby
-	sortedby = tokens(st_macroexpand("`" + ": sortedby" + "'"))
-	return(length(vars) > length(sortedby) ? 0 : vars==sortedby[1..length(vars)])
+`Integer' already_sorted(`Problem' S, string vector vars) {
+	return(length(vars) > length(S.sortedby) ? 0 : vars==S.sortedby[1..length(vars)])
 }
 
 // -------------------------------------------------------------

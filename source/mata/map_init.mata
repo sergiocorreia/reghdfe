@@ -35,6 +35,8 @@ mata set matastrict on
 	S.N = .
 
 	S.groupvar = "" // Initialize as empty
+	S.sortedby = "" // Initialize as empty (prevents bugs if we change the dataset before map_precompute)
+
 
 	S.keepsingletons = 0
 	S.G = G = st_numscalar("r(G)")

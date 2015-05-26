@@ -26,6 +26,7 @@ struct MapProblem {
 	`Boolean'		vce_is_hac
 
 	`Boolean'		timeit
+	`Varlist'		sortedby		// Variables on which the dataset is sorted (if anything)
 	
 	// Optimization parameters	
 	`Integer'		groupsize 		// Group variables when demeaning (more is faster but uses more memory)

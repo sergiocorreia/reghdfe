@@ -56,7 +56,7 @@ void map_precompute_part3(`Problem' S, transmorphic counter) {
 		id = st_data(., cl_ivars)
 
 		// Construct and save cluster ID
-		sortedby = already_sorted(cl_ivars)
+		sortedby = already_sorted(S, cl_ivars)
 		p = order( id , 1..length(cl_ivars) )
 		if (!sortedby) {
 			_collate(id, p) // sort id by p // 12% of function time

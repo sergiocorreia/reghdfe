@@ -41,6 +41,9 @@ void function map_precompute(`Problem' S) {
 		if (S.verbose>3) printf("{txt}    - key=%s {col 30}count=%f\n", keepvars[i], asarray(counter,keepvars[i]))
 	}
 
+	// 0. Store sort order (used in steps 1 and 3)
+	S.sortedby = tokens(st_macroexpand("`" + ": sortedby" + "'"))
+
 	// 1. Store permutation vectors and their invorder, generate ID variables, drop singletons
 	if (S.verbose>0) printf("{txt}{bf: 1. Storing permutation vectors, generating ids, dropping singletons}\n")
 	if (S.timeit) timer_on(21)
