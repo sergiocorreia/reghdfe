@@ -41,23 +41,14 @@ program define InnerUseCache, eclass
 		local vceoption : subinstr local vceoption "<CLUSTERVARS>" "$updated_clustervars"
 	}
 
-* LEVEL check
-	if ("`by'"!="") {
-		cap cou if `by'==`level'
-		Assert r(N)>0 , msg("reghdfe by() error: there are no cases where `by'==`level'")
-		local cond if `by'==`level'
-	}
-
 * PREPARE - Compute untransformed tss, R2 of eqn w/out FEs
 	if (`timeit') Tic, n(54)
-	if ("`by'"=="") {
-		mata: st_local("tss", strofreal(asarray(tss_cache, "`depvar'")))
-		Assert `tss'<., msg("tss of depvar `depvar' not found in cache")
-		foreach var of local endogvars {
-			mata: st_local("tss_`var'", strofreal(asarray(tss_cache, "`var'")))
-		}
-		local r2c = . // BUGBUG!!!
+	mata: st_local("tss", strofreal(asarray(tss_cache, "`depvar'")))
+	Assert `tss'<., msg("tss of depvar `depvar' not found in cache")
+	foreach var of local endogvars {
+		mata: st_local("tss_`var'", strofreal(asarray(tss_cache, "`var'")))
 	}
+	local r2c = . // BUGBUG!!!
 	if (`timeit') Toc, n(54) msg(use cached tss)
 
  * COMPUTE DOF - Already precomputed in InnerSaveCache.ado
@@ -213,18 +204,16 @@ foreach lhs_endogvar of local lhs_endogvars {
 } // stage
 
 * ATTACH - Add e(stats) and e(notes)
-	if ("`by'"=="") {
-		if ("`stats'"!="") {
-			if (`timeit') Tic, n(71)
-			tempname statsmatrix
-			Stats `expandedvars', weightexp(`weightexp') stats(`stats') statsmatrix(`statsmatrix') usecache
-			// stats() will be ignored
-			if (`timeit') Tic, n(71) msg(Stats.ado)
-		}
-		if (`timeit') Tic, n(72)
-		Attach, notes(`notes') statsmatrix(`statsmatrix') summarize_quietly(`summarize_quietly') // Attach only once, not per stage
-		if (`timeit') Toc, n(72) msg(Attach.ado)
+	if ("`stats'"!="") {
+		if (`timeit') Tic, n(71)
+		tempname statsmatrix
+		Stats `expandedvars', weightexp(`weightexp') stats(`stats') statsmatrix(`statsmatrix') usecache
+		// stats() will be ignored
+		if (`timeit') Tic, n(71) msg(Stats.ado)
 	}
+	if (`timeit') Tic, n(72)
+	Attach, notes(`notes') statsmatrix(`statsmatrix') summarize_quietly(`summarize_quietly') // Attach only once, not per stage
+	if (`timeit') Toc, n(72) msg(Attach.ado)
 
 	if (`timeit') Toc, n(50) msg([TOTAL])
 end

@@ -24,35 +24,24 @@ program define InnerSaveCache, eclass
 	// Injects locals: depvar indepvars endogvars instruments expandedvars cachevars
 
 * PRECOMPUTE MATA OBJECTS (means, counts, etc.)
-	mata: map_init_keepvars(HDFE_S, "`expandedvars' `uid' `cachevars' `by' `keepvars'") 	// Non-essential vars will be deleted (e.g. interactions of a clustervar)
+	mata: map_init_keepvars(HDFE_S, "`expandedvars' `uid' `cachevars' `keepvars'") 	// Non-essential vars will be deleted (e.g. interactions of a clustervar)
 	mata: map_precompute(HDFE_S)
 	global updated_clustervars = "`r(updated_clustervars)'"
 	
-* STORE BY LEVELS
-	if ("`by'"!="") {
-		qui levelsof `by'
-		ereturn local levels `r(levels)'
-	}
-
 * PREPARE - Compute untransformed tss *OF ALL THE VARIABLES*
 	mata: tss_cache = asarray_create()
 	mata: asarray_notfound(tss_cache, .)
 	local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)
-	if ("`by'"=="") {
-		foreach var of local expandedvars {
-			qui su `var' `tmpweightexp' // BUGBUG: Is this correct?!
-			local tss = r(Var)*(r(N)-1)
-			mata: asarray(tss_cache, "`var'", `tss')
-		}		
-	}
-	else {
-		// ...
+	foreach var of local expandedvars {
+		qui su `var' `tmpweightexp' // BUGBUG: Is this correct?!
+		local tss = r(Var)*(r(N)-1)
+		mata: asarray(tss_cache, "`var'", `tss')
 	}
 	*NOTE: r2c is too slow and thus won't be saved
 	*ALTERNATIVE: Allow a varlist of the form (depvars) (indepvars) and only compute for those
 
 * COMPUTE e(stats) - Summary statistics for the all the regression variables
-	if ("`stats'"!="" & "`by'"=="") {
+	if ("`stats'"!="") {
 		Stats `expandedvars', weightexp(`weightexp') stats(`stats') statsmatrix(reghdfe_statsmatrix)
 	}
 

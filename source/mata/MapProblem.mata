@@ -25,7 +25,6 @@ struct MapProblem {
 	`Varname'		timevar
 	`Boolean'		vce_is_hac
 
-	`Varname' 		by 				// In case we are using reghdfe .. by()
 	`Boolean'		timeit
 	
 	// Optimization parameters	

@@ -59,7 +59,7 @@
 
 	* TODO NOW:
 	run test-stages
-	run test-over
+	
 	* TODO LATER:
 	// run test-hdfe // just tests that the syntax works, not for correctness
 

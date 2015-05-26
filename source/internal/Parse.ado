@@ -42,8 +42,6 @@ program define Parse
 		SAVEcache ///
 		KEEPvars(varlist) ///
 		USEcache ///
-		BY(varname numeric) /// Requires savecache or usecache
-		LEVEL(string) /// level of by (should be an integer actually), requires usecache
 		NESTED /// TODO: Implement
 	/// Miscellanea ///
 		NOTES(string) /// NOTES(key=value ..)
@@ -66,11 +64,8 @@ program define Parse
 * (this was at the end, but if there was no prev savecache, HDFE_S didn't exist and those lines were never reached)
 	if (`usecache') {
 		local is_cache : char _dta[reghdfe_cache]
-		local by_cache : char _dta[by]
 		local cache_obs : char _dta[cache_obs]
 		local cache_absorb : char _dta[absorb]
-		if ("`by'"!="") Assert "`level'"!="", msg("a previous -savecache by()- requires -usecache by() level()-")
-		Assert "`by'"=="`by_cache'", msg("by() needs to be the same as in savecache")
 		Assert "`is_cache'"=="1" , msg("usecache requires a previous savecache operation")
 		Assert `cache_obs'==`c(N)', msg("dataset cannot change after savecache")
 		Assert "`cache_absorb'"=="`absorb'", msg("cache dataset has different absorb()")
@@ -111,15 +106,11 @@ program define Parse
 
 * Parse Absvars and optimization options
 if (!`usecache') {
-	if ("`by'"!="") {
-		mata: st_local("has_comma", strofreal(strpos("`absorb'", ",")>0) )
-		local bycomma = cond(`has_comma', "by(`by')", ", by(`by')")
-	}
-	ParseAbsvars `absorb' `bycomma' // Stores results in r()
+	ParseAbsvars `absorb' // Stores results in r()
 		local absorb_keepvars `r(all_ivars)' `r(all_cvars)'
 		local N_hdfe `r(G)'
 
-	mata: HDFE_S = map_init("`by'") // Reads results from r()
+	mata: HDFE_S = map_init() // Reads results from r()
 		local will_save_fe = `r(will_save_fe)' // Returned from map_init()
 		local original_absvars = "`r(original_absvars)'"
 		local extended_absvars = "`r(extended_absvars)'"
@@ -243,11 +234,8 @@ else {
 		di as error "(warning: option -fast- disabled; not allowed when saving variables: saving fixed effects, mobility groups, residuals)"
 		local fast 0
 	}
- 	if ("`by'"!="") {
-		unab by : `by', max(1)
-	}
 	if ("`keepvars'"!="" & !`savecache') di as error "(warning: keepvars() has no effect without savecache)"
-	local allkeys `allkeys' fast savecache keepvars usecache by level
+	local allkeys `allkeys' fast savecache keepvars usecache level
 
 * Nested
 	local nested = cond("`nested'"!="", 1, 0) // 1=Yes
@@ -260,14 +248,11 @@ else {
 * Sanity checks on speedups
 * With -savecache-, this adds chars (modifies the dta!) so put it close to the end
 	Assert `usecache' + `savecache' < 2, msg("savecache and usecache are mutually exclusive")
-	if ("`by'`level'"!="") di as error "(warning: by() and level() are currently incomplete)"
-	if ("`by'"!="") Assert `usecache' + `savecache' == 1 , msg("by() requires savecache or usecache")
-	if ("`level'"!="") Assert `usecache'==1 & "`by'"!="", msg("level() requires by() and usecache")
 	if (`savecache') {
 		* Savecache "requires" a previous preserve, so we can directly modify the dataset
 		Assert "`endogvars'`instruments'"=="", msg("savecache option requires a normal varlist, not an iv varlist")
 		char _dta[reghdfe_cache] 1
-		local chars absorb N_hdfe original_absvars extended_absvars by vce vceoption vcetype vcesuite vceextra num_clusters clustervars bw kernel dkraay kiefer twicerobust
+		local chars absorb N_hdfe original_absvars extended_absvars vce vceoption vcetype vcesuite vceextra num_clusters clustervars bw kernel dkraay kiefer twicerobust
 		foreach char of local  chars {
 			char _dta[`char'] ``char''	
 		}

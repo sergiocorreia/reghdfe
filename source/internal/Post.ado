@@ -67,18 +67,6 @@ program define Post, eclass
 * STAGE
 	if ("`stage'"!="none") ereturn local iv_depvar = "`backup_original_depvar'"
 
-* BY
-	if ("`by'"!="") {
-		ereturn local by = "`by'"
-		if ("`by_value'"!="") ereturn local by_value = "`by_value'"
-		if ("`by_label'"!="") ereturn local by_label = "`by_label'"
-		local fixed_absvars = e(absvars)
-		local fixed_absvars : subinstr local fixed_absvars "i.`by'#" "", all
-		local fixed_absvars : subinstr local fixed_absvars "i.`by'" "", all
-		local fixed_absvars `fixed_absvars' // Trim
-		ereturn local absvars = "`fixed_absvars'"
-	}
-
 * VARLISTS
 	* Besides each cmd's naming style (e.g. exogr, exexog, etc.) keep one common one
 	foreach cat in indepvars endogvars instruments {

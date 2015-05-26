@@ -2,7 +2,7 @@ mata:
 mata set matastrict on
 
 //  Parse absvars and initialize the almost empty MapProblem struct
-`Problem' function map_init(|`Varname' byvar)
+`Problem' function map_init()
 {
 	`Integer'		g, G, num_slopes, has_intercept, i, H, j
 	`Problem' 		S
@@ -13,8 +13,6 @@ mata set matastrict on
 	`Boolean'		equation_d_valid
 	pointer(`FE') 	fe
 
-	if (args()<1) byvar = ""
-
 	S.weightvar = S.weighttype = S.weights = ""
 	S.verbose = 0
 	S.transform = "symmetric_kaczmarz" // cimmino ?
@@ -23,7 +21,6 @@ mata set matastrict on
 	S.maxiterations = 1e4
 	S.accel_start = 6
 	S.groupsize = 10
-	S.by = byvar // Cannot be changed afterwards
 
 	// If clustering by timevar or panelvar and VCE is HAC, we CANNOT touch the clustervars to create compact ids!
 	S.timevar = ""

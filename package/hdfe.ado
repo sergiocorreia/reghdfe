@@ -1,4 +1,4 @@
-*! reghdfe 3.0.33 23may2015
+*! reghdfe 3.0.34 26may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -96,7 +96,6 @@ struct MapProblem {
 	`Varname'		timevar
 	`Boolean'		vce_is_hac
 
-	`Varname' 		by 				// In case we are using reghdfe .. by()
 	`Boolean'		timeit
 	
 	// Optimization parameters	
@@ -244,7 +243,7 @@ void function alphas2dta(`Problem' S) {
 }
 	
 //  Parse absvars and initialize the almost empty MapProblem struct
-`Problem' function map_init(|`Varname' byvar)
+`Problem' function map_init()
 {
 	`Integer'		g, G, num_slopes, has_intercept, i, H, j
 	`Problem' 		S
@@ -255,8 +254,6 @@ void function alphas2dta(`Problem' S) {
 	`Boolean'		equation_d_valid
 	pointer(`FE') 	fe
 
-	if (args()<1) byvar = ""
-
 	S.weightvar = S.weighttype = S.weights = ""
 	S.verbose = 0
 	S.transform = "symmetric_kaczmarz" // cimmino ?
@@ -265,7 +262,6 @@ void function alphas2dta(`Problem' S) {
 	S.maxiterations = 1e4
 	S.accel_start = 6
 	S.groupsize = 10
-	S.by = byvar // Cannot be changed afterwards
 
 	// If clustering by timevar or panelvar and VCE is HAC, we CANNOT touch the clustervars to create compact ids!
 	S.timevar = ""
