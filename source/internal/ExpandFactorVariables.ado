@@ -23,9 +23,19 @@ syntax varlist(min=1 numeric fv ts) [if] [,setname(string)] [SAVECACHE(integer 0
 		gettoken factorvar varlist : varlist, bind
 		if ("`factorvar'"=="") continue, break
 
-		fvrevar `factorvar' `if' // , stub(__V__) // stub doesn't work in Stata 11.2
+		* Create temporary variables from time and factor expressions
+		* -fvrevar- is slow so only call it if needed
+		mata: st_local("hasdot", strofreal(strpos("`factorvar'", ".")>0))
+		if (`hasdot') {
+			fvrevar `factorvar' `if' // , stub(__V__) // stub doesn't work in Stata 11.2
+			local subvarlist `r(varlist)'
+		}
+		else {
+			local subvarlist `factorvar'
+		}
+
 		local contents
-		foreach var of varlist `r(varlist)' {
+		foreach var of varlist `subvarlist' {
 			LabelRenameVariable `var' // Tempvars not renamed will be dropped automatically
 			if !r(is_dropped) {
 				local contents `contents' `r(varname)'
