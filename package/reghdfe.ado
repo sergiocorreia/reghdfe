@@ -1,4 +1,4 @@
-*! reghdfe 3.0.34 26may2015
+*! reghdfe 3.0.35 26may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1988,7 +1988,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.34 26may2015"
+    local version "3.0.35 26may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -3177,6 +3177,31 @@ program define Stats
 end
 
 	
+* Compute model F-test; called by regress/mwc/avar wrappers
+
+program define JointTest, eclass
+	args K
+	if (`K'>0) {
+		RemoveOmitted
+		qui test `r(indepvars)' // Wald test
+		if (r(drop)==1) {
+			Debug, level(0) msg("Warning: Missing F statistic (dropped variables due to collinearity or too few clusters).")
+			ereturn scalar F = .
+		}
+		else {
+			ereturn scalar F = r(F)
+			if missing(e(F)) di as error "WARNING! Missing FStat"
+		}
+		ereturn scalar df_m = r(df)
+		ereturn scalar rank = r(df) // Not adding constant anymore
+	}
+	else {
+		ereturn scalar F = 0
+		ereturn scalar df_m = 0
+		ereturn scalar rank = 0 // Not adding constant anymore
+	}
+end
+
 * Remove omitted variables from a beta matrix, and return remaining indepvars
 
 program define RemoveOmitted, rclass
@@ -3282,20 +3307,7 @@ program define Wrapper_regress, eclass
 	ereturn `hidden' scalar unclustered_df_r = `CorrectDoF' // Used later in R2 adj
 
 * Compute model F-test
-	if (`K'>0) {
-		RemoveOmitted
-		qui test `r(indepvars)' // Wald test
-		if (r(drop)==1) Debug, level(0) msg("{error}Warning: Some variables were dropped by the F test due to collinearity (or insufficient number of clusters).")
-		ereturn scalar F = r(F)
-		ereturn scalar df_m = r(df)
-		ereturn scalar rank = r(df) // Not adding constant anymore
-		if missing(e(F)) di as error "WARNING! Missing FStat"
-	}
-	else {
-		ereturn scalar F = 0
-		ereturn scalar df_m = 0
-		ereturn scalar rank = 0 // Not adding constant anymore
-	}
+	JointTest `K' // adds e(F), e(df_m), e(rank)
 end
 
 program define Wrapper_avar, eclass
@@ -3427,20 +3439,7 @@ program define Wrapper_avar, eclass
 	if (`dkraay'>1) ereturn scalar dkraay = `dkraay'
 
 * Compute model F-test
-	if (`K'>0) {
-		RemoveOmitted
-		qui test `r(indepvars)' // Wald test
-		if (r(drop)==1) Debug, level(0) msg("Warning: Some variables were dropped by the F test due to collinearity (or insufficient number of clusters).")
-		ereturn scalar F = r(F)
-		ereturn scalar df_m = r(df)
-		ereturn scalar rank = r(df) // Not adding constant anymore
-		if missing(e(F)) di as error "WARNING! Missing FStat"
-	}
-	else {
-		ereturn scalar F = 0
-		ereturn df_m = 0
-		ereturn scalar rank = 0 // Not adding constant anymore
-	}
+	JointTest `K' // adds e(F), e(df_m), e(rank)
 end
 
 program define Wrapper_mwc, eclass
@@ -3579,21 +3578,7 @@ syntax , depvar(varname) [indepvars(varlist)] ///
 	}
 
 * Compute model F-test
-	if (`K'>0) {
-		RemoveOmitted
-		qui test `r(indepvars)' // Wald test
-		if (r(drop)==1) Debug, level(0) msg("Warning: Some variables were dropped by the F test due to collinearity (or insufficient number of clusters).")
-		ereturn scalar F = r(F)
-		ereturn scalar df_m = r(df)
-		ereturn scalar rank = r(df) // Not adding constant anymore
-		if missing(e(F)) di as error "WARNING! Missing FStat"
-	}
-	else {
-		ereturn scalar F = 0
-		ereturn df_m = 0
-		ereturn scalar rank = 0 // Not adding constant anymore
-	}
-
+	JointTest `K' // adds e(F), e(df_m), e(rank)
 end
 
 program define Wrapper_ivreg2, eclass

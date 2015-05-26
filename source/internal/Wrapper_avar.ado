@@ -128,18 +128,5 @@ program define Wrapper_avar, eclass
 	if (`dkraay'>1) ereturn scalar dkraay = `dkraay'
 
 * Compute model F-test
-	if (`K'>0) {
-		RemoveOmitted
-		qui test `r(indepvars)' // Wald test
-		if (r(drop)==1) Debug, level(0) msg("Warning: Some variables were dropped by the F test due to collinearity (or insufficient number of clusters).")
-		ereturn scalar F = r(F)
-		ereturn scalar df_m = r(df)
-		ereturn scalar rank = r(df) // Not adding constant anymore
-		if missing(e(F)) di as error "WARNING! Missing FStat"
-	}
-	else {
-		ereturn scalar F = 0
-		ereturn df_m = 0
-		ereturn scalar rank = 0 // Not adding constant anymore
-	}
+	JointTest `K' // adds e(F), e(df_m), e(rank)
 end
