@@ -1,4 +1,4 @@
-*! reghdfe 3.0.35 26may2015
+*! reghdfe 3.0.36 26may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -95,6 +95,7 @@ struct MapProblem {
 	`Boolean'		vce_is_hac
 
 	`Boolean'		timeit
+	`Varlist'		sortedby		// Variables on which the dataset is sorted (if anything)
 	
 	// Optimization parameters	
 	`Integer'		groupsize 		// Group variables when demeaning (more is faster but uses more memory)
@@ -274,6 +275,8 @@ void function alphas2dta(`Problem' S) {
 	S.N = .
 
 	S.groupvar = "" // Initialize as empty
+	S.sortedby = "" // Initialize as empty (prevents bugs if we change the dataset before map_precompute)
+
 
 	S.keepsingletons = 0
 	S.G = G = st_numscalar("r(G)")
@@ -485,6 +488,9 @@ void function map_precompute(`Problem' S) {
 		if (S.verbose>3) printf("{txt}    - key=%s {col 30}count=%f\n", keepvars[i], asarray(counter,keepvars[i]))
 	}
 
+	// 0. Store sort order (used in steps 1 and 3)
+	S.sortedby = tokens(st_macroexpand("`" + ": sortedby" + "'"))
+
 	// 1. Store permutation vectors and their invorder, generate ID variables, drop singletons
 	if (S.verbose>0) printf("{txt}{bf: 1. Storing permutation vectors, generating ids, dropping singletons}\n")
 	if (S.timeit) timer_on(21)
@@ -573,7 +579,7 @@ void map_precompute_part1(`Problem' S, transmorphic counter) {
 				}
 			}
 		}
-		if (i<=G) S.fes[g].is_sortedby = already_sorted(idvarnames)
+		if (i<=G) S.fes[g].is_sortedby = already_sorted(S, idvarnames)
 		sortedby = S.fes[g].is_sortedby
 		if (i<=G & !sortedby) {
 			if (S.timeit) timer_on(31)
@@ -639,10 +645,8 @@ void map_precompute_part1(`Problem' S, transmorphic counter) {
 // -------------------------------------------------------------
 // ALREADY_SORTED:
 // -------------------------------------------------------------
-`Integer' already_sorted(string vector vars) {
-	`Varlist' sortedby
-	sortedby = tokens(st_macroexpand("`" + ": sortedby" + "'"))
-	return(length(vars) > length(sortedby) ? 0 : vars==sortedby[1..length(vars)])
+`Integer' already_sorted(`Problem' S, string vector vars) {
+	return(length(vars) > length(S.sortedby) ? 0 : vars==S.sortedby[1..length(vars)])
 }
 
 // -------------------------------------------------------------
@@ -883,7 +887,7 @@ void map_precompute_part3(`Problem' S, transmorphic counter) {
 		id = st_data(., cl_ivars)
 
 		// Construct and save cluster ID
-		sortedby = already_sorted(cl_ivars)
+		sortedby = already_sorted(S, cl_ivars)
 		p = order( id , 1..length(cl_ivars) )
 		if (!sortedby) {
 			_collate(id, p) // sort id by p // 12% of function time
@@ -1988,7 +1992,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.35 26may2015"
+    local version "3.0.36 26may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -3046,9 +3050,19 @@ syntax varlist(min=1 numeric fv ts) [if] [,setname(string)] [SAVECACHE(integer 0
 		gettoken factorvar varlist : varlist, bind
 		if ("`factorvar'"=="") continue, break
 
-		fvrevar `factorvar' `if' // , stub(__V__) // stub doesn't work in Stata 11.2
+		* Create temporary variables from time and factor expressions
+		* -fvrevar- is slow so only call it if needed
+		mata: st_local("hasdot", strofreal(strpos("`factorvar'", ".")>0))
+		if (`hasdot') {
+			fvrevar `factorvar' `if' // , stub(__V__) // stub doesn't work in Stata 11.2
+			local subvarlist `r(varlist)'
+		}
+		else {
+			local subvarlist `factorvar'
+		}
+
 		local contents
-		foreach var of varlist `r(varlist)' {
+		foreach var of varlist `subvarlist' {
 			LabelRenameVariable `var' // Tempvars not renamed will be dropped automatically
 			if !r(is_dropped) {
 				local contents `contents' `r(varname)'
