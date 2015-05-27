@@ -1,4 +1,4 @@
-*! reghdfe 3.0.37 26may2015
+*! reghdfe 3.0.38 26may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -718,7 +718,7 @@ void map_precompute_part2(`Problem' S, transmorphic counter) {
 		if (!sortedby) id = id[S.fes[g].p]
 
 		// Store offsets, counts (optionally weighted)
-		S.fes[g].counts = count_by_group(id)
+		S.fes[g].counts = count_by_group(id) // this line accounts for 95% of the runtime of map_precompute_part2()
 		S.fes[g].offsets = runningsum(S.fes[g].counts)
 		if (S.weightvar!="") S.fes[g].counts = count_by_group(id, sortedby? S.w : S.w[S.fes[g].p])
 
@@ -775,15 +775,28 @@ void map_precompute_part2(`Problem' S, transmorphic counter) {
 
 	ans = J(levels, 1, 0)
 	count = 0
-	
+
+	// Avoid conditional op. within loop as it gets *really* slow
 	// <i> indexes observations, <j> indexes groups
-	for (i=j=1; i<=obs; i++) {
-		if (j<id[i]) {
-			ans[j++] = count
-			count = 0
+	if (has_weights) {
+		for (i=j=1; i<=obs; i++) {
+			if (id[i]>j) {
+				ans[j++] = count
+				count = 0
+			}
+			count = count + w[i]
 		}
-		count = count + (has_weights ? w[i] : 1) // optimize?
 	}
+	else {
+		for (i=j=1; i<=obs; i++) {
+			if (id[i]>j) {
+				ans[j++] = count
+				count = 0
+			}
+			++count
+		}
+	}
+
 	ans[j] = count // Last group
 	assert( all(ans) ) // Counts *must* be positive for all levels
 	return(ans)
