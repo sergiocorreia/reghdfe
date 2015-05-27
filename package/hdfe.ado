@@ -1,4 +1,4 @@
-*! reghdfe 3.0.36 26may2015
+*! reghdfe 3.0.37 26may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1134,6 +1134,9 @@ void function map_solve(`Problem' S, `Varlist' vars,
 	if (S.acceleration=="aitken") accelerate = &accelerate_aitken()
 	if (S.acceleration=="hybrid") accelerate = &accelerate_hybrid()
 
+	// Shortcut for trivial case (1 FE)
+	if (S.G==1 & !save_fe) accelerate = &accelerate_none()
+
 	// Call acceleration routine
 	if (save_fe) {
 		y = accelerate_sd(S, y, &transform_kaczmarz()) :* stdevs // Only these were modified to save FEs
@@ -1379,7 +1382,11 @@ void function map_solve(`Problem' S, `Varlist' vars,
 	// max() ensures that the result when bunching vars is at least as good as when not bunching
 	if (args()<5) method = "vectors" 
 
-	if (method=="vectors") {
+	if (S.G==1) {
+		// Shortcut for trivial case (1 FE)
+		update_error = 0
+	}
+	else if (method=="vectors") {
 		update_error = max(mean(reldif(y_new, y_old)))
 	}
 	else if (method=="hestenes") {

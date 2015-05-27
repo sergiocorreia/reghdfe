@@ -96,6 +96,9 @@ void function map_solve(`Problem' S, `Varlist' vars,
 	if (S.acceleration=="aitken") accelerate = &accelerate_aitken()
 	if (S.acceleration=="hybrid") accelerate = &accelerate_hybrid()
 
+	// Shortcut for trivial case (1 FE)
+	if (S.G==1 & !save_fe) accelerate = &accelerate_none()
+
 	// Call acceleration routine
 	if (save_fe) {
 		y = accelerate_sd(S, y, &transform_kaczmarz()) :* stdevs // Only these were modified to save FEs
