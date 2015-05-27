@@ -299,6 +299,44 @@ local inter2_25		1
 local numsl2_25		0
 
 
+local absvar26		FE1 = turn foreign FE3 = trunk
+local G_26			3
+local ivars1_26		turn
+local cvars1_26		
+local inter1_26		1
+local numsl1_26		0
+local target1_26 	FE1
+
+local ivars2_26		foreign
+local cvars2_26		
+local inter2_26		1
+local numsl2_26		0
+
+local ivars3_26		trunk
+local cvars3_26		
+local inter3_26		1
+local numsl3_26		0
+local target3_26 	FE3
+
+local absvar27		"FE1 	=	 turn foreign FE3	=trunk"
+local G_27			3
+local ivars1_27		turn
+local cvars1_27		
+local inter1_27		1
+local numsl1_27		0
+local target1_27 	FE1
+
+local ivars2_27		foreign
+local cvars2_27		
+local inter2_27		1
+local numsl2_27		0
+
+local ivars3_27		trunk
+local cvars3_27		
+local inter3_27		1
+local numsl3_27		0
+local target3_27 	FE3
+
 // -------------------------------------------------------------------------------------------------
 
 set trace off

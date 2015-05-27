@@ -7,6 +7,14 @@ syntax anything(id="absvars" name=absvars equalok everything), [SAVEfe]
 	local all_cvars
 	local all_ivars
 
+	* Convert "target = absvar" into "target=absvar"
+	* Need to deal with "= " " =" "  =   " and similar cases
+	while (regexm("`absvars'", "[ ][ ]+")) {
+		local absvars : subinstr local absvars "  " " ", all
+	}
+	local absvars : subinstr local absvars " =" "=", all
+	local absvars : subinstr local absvars "= " "=", all
+
 	while ("`absvars'"!="") {
 		local ++g
 		gettoken absvar absvars : absvars, bind

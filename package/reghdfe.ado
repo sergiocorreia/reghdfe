@@ -1,4 +1,4 @@
-*! reghdfe 3.0.41 27may2015
+*! reghdfe 3.0.42 27may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -2006,7 +2006,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.41 27may2015"
+    local version "3.0.42 27may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2850,6 +2850,14 @@ syntax anything(id="absvars" name=absvars equalok everything), [SAVEfe]
 	local g 0
 	local all_cvars
 	local all_ivars
+
+	* Convert "target = absvar" into "target=absvar"
+	* Need to deal with "= " " =" "  =   " and similar cases
+	while (regexm("`absvars'", "[ ][ ]+")) {
+		local absvars : subinstr local absvars "  " " ", all
+	}
+	local absvars : subinstr local absvars " =" "=", all
+	local absvars : subinstr local absvars "= " "=", all
 
 	while ("`absvars'"!="") {
 		local ++g
