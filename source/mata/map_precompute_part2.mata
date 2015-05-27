@@ -19,7 +19,7 @@ void map_precompute_part2(`Problem' S, transmorphic counter) {
 		if (!sortedby) id = id[S.fes[g].p]
 
 		// Store offsets, counts (optionally weighted)
-		S.fes[g].counts = count_by_group(id)
+		S.fes[g].counts = count_by_group(id) // this line accounts for 95% of the runtime of map_precompute_part2()
 		S.fes[g].offsets = runningsum(S.fes[g].counts)
 		if (S.weightvar!="") S.fes[g].counts = count_by_group(id, sortedby? S.w : S.w[S.fes[g].p])
 
