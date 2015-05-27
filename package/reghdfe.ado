@@ -1,4 +1,4 @@
-*! reghdfe 3.0.40 27may2015
+*! reghdfe 3.0.41 27may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -2006,7 +2006,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.40 27may2015"
+    local version "3.0.41 27may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2353,7 +2353,7 @@ program define Parse
 	/// Main Options ///
 		Absorb(string) ///
 		[ ///
-		VCE(string) ///
+		VCE(string) CLuster(string) /// Cluster is an undocumented alternative to vce(cluster ...)
 		Verbose(string) ///
 	/// Seldom Used ///
 		DOFadjustments(string) ///
@@ -2521,9 +2521,15 @@ else {
 	local allkeys `allkeys' stages
 
 * Parse VCE options (after stages)
-	mata: st_local("hascomma", strofreal(strpos("`vce'", ","))) // is there a commma already in `vce'?
+	if ("`cluster'"!="") {
+		Assert ("`vce'"==""), msg("cannot specify both cluster() and vce()")
+		local vce cluster `cluster'
+		local cluster // Set it to empty to avoid bugs in subsequent lines
+	}
+
 	local keys vceoption vcetype vcesuite vceextra num_clusters clustervars bw kernel dkraay kiefer twicerobust
 	if (!`usecache') {
+		mata: st_local("hascomma", strofreal(strpos("`vce'", ","))) // is there a commma already in `vce'?
 		local vcetmp `vce'
 		if (!`hascomma') local vcetmp `vce' ,
 		ParseVCE `vcetmp' weighttype(`weighttype') stages(`stages') ivsuite(`ivsuite') model(`model')
