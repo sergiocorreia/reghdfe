@@ -1,4 +1,4 @@
-*! reghdfe 3.0.39 27may2015
+*! reghdfe 3.0.40 27may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1713,16 +1713,10 @@ void function map_ereturn_dof(`Problem' S) {
 			h++
 			st_numscalar( sprintf("e(M%f)",h) , S.doflist_M[h] )
 			st_numscalar( sprintf("e(K%f)",h) , S.fes[g].levels )
-			if (stataversion()>=1200) {
-				st_global( sprintf("e(M%f_exact)",h) , strofreal(S.doflist_M_is_exact[h]) , "hidden" )
-				st_global( sprintf("e(M%f_nested)",h) , strofreal(S.doflist_M_is_nested[h]) , "hidden" )
-				st_global( sprintf("e(G%f)",h) , strofreal(g) , "hidden" ) // unused?
-			}
-			else {
-				st_global( sprintf("e(M%f_exact)",h) , strofreal(S.doflist_M_is_exact[h]) )
-				st_global( sprintf("e(M%f_nested)",h) , strofreal(S.doflist_M_is_nested[h]) )
-				st_global( sprintf("e(G%f)",h) , strofreal(g) ) // unused?
-			}
+
+			st_global( sprintf("e(M%f_exact)",h) , strofreal(S.doflist_M_is_exact[h]) )
+			st_global( sprintf("e(M%f_nested)",h) , strofreal(S.doflist_M_is_nested[h]) )
+			st_global( sprintf("e(G%f)",h) , strofreal(g) ) // unused?
 		}
 	}
 }
@@ -2012,7 +2006,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.39 27may2015"
+    local version "3.0.40 27may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
