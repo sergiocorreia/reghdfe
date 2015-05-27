@@ -1,4 +1,4 @@
-*! reghdfe 3.0.38 26may2015
+*! reghdfe 3.0.39 27may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -2012,7 +2012,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.38 26may2015"
+    local version "3.0.39 27may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -3931,6 +3931,7 @@ program define Post, eclass
 
 	Assert e(tss)<., msg("within tss is missing")
 	Assert `tss'<., msg("overall tss is missing")
+	Assert e(N)<., msg("# obs. missing in e()")
 
 	* Why is this here and not right after FixVarnames?
 	* Because of some Stata black magic, if I repost *before* the restore this will not work
