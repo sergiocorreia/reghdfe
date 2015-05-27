@@ -65,12 +65,12 @@ set trace off
 	reghdfe `lhs' `rhs', absorb(FE=`absvars') vce(, suite(default)) keepsingletons
 	TrimMatrix `K'
 	assert `bench_df_a'==e(df_a)-1
-	storedresults compare bench_e e(), tol(1e-10) include(`included_e') // Note the lowered tol
 	predict double xb_test, xb
 	predict double d_test, d
 	predict double xbd_test, xbd
 	predict double resid_test, resid
-	*su d d_test xb xb_test xbd xbd_test resid resid_test, sep(2)
+	su d d_test xb xb_test xbd xbd_test resid resid_test, sep(2)
+	storedresults compare bench_e e(), tol(1e-10) include(`included_e') // Note the lowered tol
 
 	_vassert xb xb_test, tol(1e-10)
 	_vassert d d_test, tol(1e-10)

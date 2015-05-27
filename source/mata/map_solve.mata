@@ -97,7 +97,7 @@ void function map_solve(`Problem' S, `Varlist' vars,
 	if (S.acceleration=="hybrid") accelerate = &accelerate_hybrid()
 
 	// Shortcut for trivial case (1 FE)
-	if (S.G==1 & !save_fe) accelerate = &accelerate_none()
+	if (S.G==1) accelerate = &accelerate_none()
 
 	// Call acceleration routine
 	if (save_fe) {

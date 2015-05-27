@@ -1,4 +1,4 @@
-*! reghdfe 3.0.42 27may2015
+*! reghdfe 3.0.43 27may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1146,7 +1146,7 @@ void function map_solve(`Problem' S, `Varlist' vars,
 	if (S.acceleration=="hybrid") accelerate = &accelerate_hybrid()
 
 	// Shortcut for trivial case (1 FE)
-	if (S.G==1 & !save_fe) accelerate = &accelerate_none()
+	if (S.G==1) accelerate = &accelerate_none()
 
 	// Call acceleration routine
 	if (save_fe) {
@@ -1393,7 +1393,7 @@ void function map_solve(`Problem' S, `Varlist' vars,
 	// max() ensures that the result when bunching vars is at least as good as when not bunching
 	if (args()<5) method = "vectors" 
 
-	if (S.G==1) {
+	if (S.G==1 & !S.storing_betas) {
 		// Shortcut for trivial case (1 FE)
 		update_error = 0
 	}
@@ -2006,7 +2006,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.42 27may2015"
+    local version "3.0.43 27may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"

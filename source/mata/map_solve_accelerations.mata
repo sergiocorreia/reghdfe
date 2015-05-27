@@ -181,7 +181,7 @@ mata set matastrict on
 	// max() ensures that the result when bunching vars is at least as good as when not bunching
 	if (args()<5) method = "vectors" 
 
-	if (S.G==1) {
+	if (S.G==1 & !S.storing_betas) {
 		// Shortcut for trivial case (1 FE)
 		update_error = 0
 	}
