@@ -1,4 +1,4 @@
-*! reghdfe 3.0.43 27may2015
+*! reghdfe 3.0.44 31may2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -2006,7 +2006,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.43 27may2015"
+    local version "3.0.44 31may2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2349,7 +2349,7 @@ program define Parse
 	mata: st_local("cmdline", stritrim(`"reghdfe `0'"') )
 
 * Parse the broad syntax (also see map_init(), ParseAbsvars.ado, ParseVCE.ado, etc.)
-	syntax anything(id="varlist" name=0 equalok) [if] [in] [fw aw pw/] , ///
+	syntax anything(id="varlist" name=0 equalok) [if] [in] [aw pw fw/] , ///
 	/// Main Options ///
 		Absorb(string) ///
 		[ ///
