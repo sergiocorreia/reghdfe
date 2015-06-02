@@ -1,0 +1,624 @@
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  D:\Github\reghdfe\misc\Benchmarks\res2fe.log
+  log type:  text
+ opened on:   1 Jun 2015, 23:52:14
+
+. 
+. do twowayreg.ado
+
+. capture program drop twowayset
+
+. capture mata mata drop sparse()
+
+. capture mata mata drop proddiag()
+
+. capture mata mata drop diagprod()
+
+. capture mata mata drop diagminus()
+
+. capture mata mata drop projDummies()
+
+. capture mata mata drop saveMat()
+
+. capture mata mata drop readMat()
+
+. //Mata programs:
+. 
+. mata:
+------------------------------------------------- mata (type end to exit) -------------------------------------------------------------------------------------------------------------------
+: real matrix sparse(real matrix x)
+>  {
+>   real matrix y
+>   real scalar k
+>  
+>   y = J(colmax(x[,1]),colmax(x[,2]),0)
+>   for (k=1; k<=rows(x); k++) {
+>     y[x[k,1],x[k,2]] = y[x[k,1],x[k,2]] + x[k,3]
+>   }
+>  
+>   return(y)
+>  }
+
+:  
+:  //sparse matrix function ends
+:  
+:  
+:  // multiplying a diagonal matrix represented by a vector times a matrix.
+:  // Diag*A multiplies each rows.
+:  real matrix diagprod(real colvector x, real matrix A)
+>  {
+>   real matrix y
+>   real scalar k
+>   if(rows(x)<cols(x)) x = x'
+>  
+>   y = J(rows(A),cols(A),0)
+>   for (k=1; k<=rows(x); k++) {
+>     y[k,] = A[k,] * x[k,1]
+>   }
+>  
+>   return(y)
+>  }
+
+:  
+:  real matrix readMat(string s,string n)
+>  {
+> 
+> fh = fopen(s+"_"+n, "r")
+> X = fgetmatrix(fh)
+> fclose(fh)
+> return(X)
+>  }
+
+:  
+:  void saveMat(string s,string n,real matrix X)
+>  {
+> 
+> fh = fopen(s + "_" + n, "rw")
+> fputmatrix(fh, X)
+> fclose(fh)
+>  }
+
+:  
+:   
+:  
+:   real matrix proddiag(real matrix A,real colvector x)
+>  {
+>   real matrix y
+>   real scalar k
+>   if(rows(x)<cols(x)) x = x'
+>  
+>   y = J(rows(A),cols(A),0)
+>   for (k=1; k<=rows(x); k++) {
+>     y[,k] = A[,k] * x[k,1]
+>   }
+>  
+>   return(y)
+>  }
+
+:  
+:    real matrix diagminus(real colvector x,real matrix A)
+>  {
+>   //real matrix y
+>   real scalar k
+>   if(rows(x)<cols(x)) x = x'
+>  
+>   //y = -A
+>   for (k=1; k<=rows(x); k++) {
+>     A[k,k] = A[k,k] - x[k,1]
+>   }
+>  
+>   return(-A)
+>  }
+
+: 
+: void projDummies()
+> {
+> real matrix D, DH1, DH, CinvHHDH, AinvDDDH, A, B, C
+> real colvector DD, HH, invDD, invHH
+> real scalar N, T
+> string scalar id, t, w,sampleVarName
+> D=.
+> //printf("Hola Paulo, todo functiona hasta aqui.")
+> 
+> id = st_local("twoway_id")
+> t = st_local("twoway_t")
+> w = st_local("twoway_w")
+> root =st_local("root")
+> sampleVarName = st_local("twoway_sample")
+> if (w==""){
+> D = st_data(.,(id,t),sampleVarName)
+> D = (D,J(rows(D),1,1))
+> }
+> else {
+> D = st_data(.,(id,t,w),sampleVarName)
+> }
+> //printf(sampleVarName)
+> //printf("Incluso aca\n")
+> //D[1..10,]
+> //printf("y aca")
+> 
+> DH1=sparse(D)
+> //printf("Wohoo")
+> DD=quadrowsum(DH1)
+> HH=quadcolsum(DH1)'
+> HH=HH[1..cols(DH1)-1]
+> 
+> 
+> 
+> DH=DH1[.,1..cols(DH1)-1]
+> 
+>  
+> invDD=DD:^-1 
+> invHH=HH:^-1
+> 
+> N=colmax(D)[.,1]
+> T=colmax(D)[.,2]
+> saveMat(root,"twoWayN1", N)
+> saveMat(root,"twoWayN2", T)
+> saveMat(root,"twoWayinvDD", invDD)
+> saveMat(root,"twoWayinvHH", invHH)
+> //st_matrix("twoWayD", D...)
+>  if (N<T)
+>                 {
+>         
+>         CinvHHDH=diagprod(invHH,DH')
+>                 A=qrinv(diagminus(DD,CinvHHDH'*DH'))
+>                 //st_matrix("CinvHHDH",CinvHHDH)
+>         B=-A*CinvHHDH'
+>                 saveMat(root,"twoWayCinvHHDH", CinvHHDH)
+>                 saveMat(root,"twoWayA", A)
+>                 saveMat(root,"twoWayB", B)
+>                 
+>                 
+>                 }
+>     else
+>         {
+>         AinvDDDH=diagprod(invDD,DH)
+>                 C=qrinv(diagminus(HH,AinvDDDH'*DH))
+>                 //st_matrix("AinvDDDH",AinvDDDH)
+>         B=-AinvDDDH*C
+>                 saveMat(root,"twoWayAinvDDDH", AinvDDDH)
+>                 saveMat(root,"twoWayC", C)
+>                 saveMat(root,"twoWayB", B)
+>                 
+>     }
+>  }
+
+:  
+:  end
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+. 
+. 
+. 
+. program define twowayset, rclass
+  1. version 11
+  2. syntax varlist(min=2 max=3) [if] [in], [Root(name)]
+  3. //summ `varlist'
+. // I need to make it robust to non 1,2,3... ids.
+. gettoken twoway_id aux: varlist
+  4. gettoken twoway_t twoway_w: aux
+  5. if ("`root'" == "") {
+  6.         local root="last"
+  7.         }
+  8. 
+. //di in gr "`twoway_id'"
+. //di in gr "`twoway_t'"
+. 
+. tempvar twoway_sample
+  9. mark `twoway_sample' `if' `in'
+ 10. markout `twoway_sample' `varlist'
+ 11. mata projDummies()
+ 12. //di in gr "Checkpoint 1"
+. //ret li
+. //di in gr "Checkpoint 2"
+. scalar twoWayid="`twoway_id'"
+ 13. scalar twoWayt="`twoway_t'"
+ 14. scalar twoWayw="`twoway_w'"
+ 15. scalar twoWayif="`if'"
+ 16. scalar twoWayin="`in'"
+ 17. //return post r(B), esample(`twoway_sample') 
+. //obs(`nobs') dof(`dof')
+. 
+. end
+
+.  
+. 
+. capture program drop projvar
+
+. capture mata mata drop projVar()
+
+. 
+. mata
+------------------------------------------------- mata (type end to exit) -------------------------------------------------------------------------------------------------------------------
+: void projVar()
+> {
+>         real matrix V, varIn, D,aux,delta,tau,varOut,A,B,CinvHHDH,AinvDDDH,C
+>         real colvector invHH,invDD,Dy,Ty
+>         real scalar N,T
+>         string scalar id, t, currvar,newvar,sampleVarName,w
+>         currvar = st_local("currvar")
+>         newvar = st_local("newvar")
+>         id=st_strscalar("twoWayid")
+>         root =st_local("root")
+>         N=readMat(root,"twoWayN1")
+>         T=readMat(root,"twoWayN2")
+>         //D=readMat(root,"twoWayD")
+>         w=st_strscalar("twoWayw")
+>         t=st_strscalar("twoWayt")
+>         sampleVarName = st_local("twoway_sample")
+>         V = st_data(.,(id,t,currvar),sampleVarName)
+>         varIn=V[.,3]
+>         
+>         if (w==""){
+>         D = st_data(.,(id,t),sampleVarName)
+>         D = (D,J(rows(D),1,1))
+>         }
+>         else {
+>         D = st_data(.,(id,t,w),sampleVarName)
+>         }
+>         
+>         V[.,3]=V[.,3]:*D[.,3]
+>         aux=sparse(V)
+>         //printf("3")
+>         Dy=rowsum(aux)
+>         Dy=Dy
+>         Ty=colsum(aux)
+>         Ty=Ty[1,1..cols(aux)-1]'
+>         B=readMat(root,"twoWayB")
+>         
+>         //rows(Ty)
+>     //cols(Ty)
+>         //rows(Dy)
+>         //cols(Dy)
+>                         
+> 
+>          if (N<T)
+>                         {
+>                         
+>                         A=readMat(root,"twoWayA")
+>                         invHH=readMat(root,"twoWayinvHH")
+>                         CinvHHDH=readMat(root,"twoWayCinvHHDH")
+>                         //printf("b")
+>                         delta=A*Dy+B*Ty
+>                         tau=B'*(Dy-CinvHHDH'*Ty)+(invHH:*Ty) \0
+>                         }
+>                 else
+>                 {
+>                         //printf("1")
+>                         C=readMat(root,"twoWayC")
+>                         invDD=readMat(root,"twoWayinvDD")
+>                         AinvDDDH=readMat(root,"twoWayAinvDDDH")
+>                         delta=(invDD:*Dy)+B*(Ty-AinvDDDH'*Dy)
+>                         tau=B'*Dy+C*Ty \0 
+>                         //printf("c")
+>                 }
+> 
+>         //how to index
+>         //varout=(var-delta(struc.hhid)-tau(struc.tid')).*sqrt(struc.w);
+>         varOut=(varIn-delta[V[.,1]]-tau[V[.,2]]):*sqrt(D[.,3])
+>         //printf("4")
+>         //st_matrix("DD2",B)
+>         st_store(., newvar, varOut)
+>         //printf("5")
+> }
+
+: end
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+. 
+. 
+. program define projvar, nclass
+  1. version 11
+  2. syntax varlist, [Prefix(name)] [Root(name)] [REPLACE]
+  3. tempvar twoway_sample
+  4. loc tif=twoWayif
+  5. loc tin=twoWayin
+  6. mark `twoway_sample' `tif' `tin'
+  7. markout `twoway_sample' `varlist'
+  8. //mata mata describe
+. //summ `varlist'
+. //summ `twoway_sample'
+. // I need to make it robust to non 1,2,3... ids.
+. if ("`prefix'" == "") {
+  9.         local prefix="proj_"
+ 10.         }
+ 11. if ("`root'" == "") {
+ 12.         local root="last"
+ 13.         }
+ 14. 
+. foreach currvar of varlist `varlist' {
+ 15.         local newvar="`prefix'`currvar'"
+ 16.         if ("`replace'" != "") {
+ 17.         local newvar="`currvar'"
+ 18.         }
+ 19.         else {
+ 20.         gen `newvar'=.
+ 21.         }
+ 22.         //di "`currvar'"
+.         //di "`newvar'"
+.         mata projVar()
+ 23.         /*
+>         mata
+>         currvar = st_local("currvar")
+>         newvar = st_local("newvar")
+>         printf(".")
+>         V = st_data(.,(id,t,currvar),sampleVarName)
+>         varIn=V[.,3]
+>         V[.,3]=V[.,3]:*D[.,3]
+>         aux=sparse(V)
+>         printf(".")
+>         Dy=rowsum(aux)
+>         Ty=colsum(aux)
+>         Ty=Ty[1,1..cols(aux)-1]'
+> 
+>          if (N<T)
+>                         {
+>                         delta=A*Dy+B*Ty
+>                         tau=B'*(Dy-CinvHHDH'*Ty)+invHH*Ty \0
+>                         }
+>                 else
+>                 {
+>                         delta=(invDD:*Dy)+B*(Ty-AinvDDDH'*Dy)
+>                         tau=B'*Dy+C*Ty \0 
+>                         
+>                 }
+> 
+>         //how to index
+>         //varout=(var-delta(struc.hhid)-tau(struc.tid')).*sqrt(struc.w);
+>         varOut=(varIn-delta[V[.,1]]-tau[V[.,2]]):*sqrt(D[.,3])
+>         printf(".")
+>         //st_matrix("DD2",B)
+>         st_store(., newvar, varOut)
+>         printf(".")
+>         end
+>         */
+. }
+ 24. 
+. 
+. //gettoken twoway_id aux: varlist
+. //gettoken twoway_t twoway_w: aux
+. 
+. //di in gr "`twoway_id'"
+. //di in gr "`twoway_t'"
+. 
+. //tempvar twoway_sample
+. //mark `twoway_sample' `if' `in'
+. //markout `twoway_sample' `varlist'
+. //mata projDummies()
+. //di in gr "Checkpoint 1"
+. //ret li
+. //di in gr "Checkpoint 2"
+. //return add
+. //return post r(B), esample(`twoway_sample') 
+. //obs(`nobs') dof(`dof')
+. 
+. end
+
+.  
+. 
+end of do-file
+
+. *** 0) Preliminaries
+. 
+. forvalues lo = 3/3 {
+  2. di `lo'
+  3. forvalues wo = 2/2 {
+  4. di `wo'
+  5. foreach vars of numlist 2 10 {
+  6. 
+. di `vars'
+  7. 
+. loc long = 10^`lo'
+  8. loc wide = 10^`wo'
+  9. *loc vars = 2
+. loc lout = 0.1
+ 10. loc reps = 1
+ 11. 
+. loc toto = `long'*`wide'
+ 12. set more off
+ 13. 
+. forvalues rep = 1/`reps' {
+ 14. 
+. 
+. *** 1) Generate Data
+. drop _all
+ 15. set obs `toto'
+ 16. ** Variables
+. forvalues var = 1/`vars' {
+ 17.         gen x`var'= rnormal(0)
+ 18.         }
+ 19. ** Fixed Effects
+. * Indicators
+. gen hhid = floor((_n-1)/`wide')
+ 20. gen ttid = _n-1-hhid*`wide'
+ 21. ** Drop a fraction of observations;
+. gen out= uniform()
+ 22. sort out
+ 23. drop if _n<`lout'*`toto'
+ 24. * Effects
+. gen hhef = rnormal(0)
+ 25. gen ttef = rnormal(0)
+ 26. bysort hhid: replace hhef = hhef[1]
+ 27. gen hid = 1
+ 28. replace hid = hid[_n-1] + 1*(hhid[_n-1]~=hhid[_n]) if _n>1
+ 29. bysort ttid: replace ttef = ttef[1]
+ 30. gen tid = 1
+ 31. replace tid = tid[_n-1] + 1*(ttid[_n-1]~=ttid[_n]) if _n>1
+ 32. 
+. 
+. ** Dependent Variable
+. gen y = hhef + ttef + rnormal(0)
+ 33. forvalues var = 1/`vars' {
+ 34.         qui replace y= y + x`var'
+ 35.         }
+ 36. 
+. *** 2) Run Our procedure
+. tic
+ 37. di "twowayset"
+ 38. twowayset hid tid
+ 39. di "projvar"
+ 40. projvar y x*, p(w_)
+ 41. reg w_y w_x*, noc robust
+ 42. drop w_*
+ 43. toc, report
+ 44. 
+. tic
+ 45. reghdfe y x*, vce(robust) fast absorb(tid hid) dof(none) tol(1e-6) keepsingletons // v(3) timeit 
+ 46. toc, report
+ 47. 
+. }
+ 48. }
+ 49. }
+ 50. }
+3
+2
+2
+obs was 0, now 100000
+(9999 observations deleted)
+(89001 real changes made)
+(89908 real changes made)
+(89901 real changes made)
+(89098 real changes made)
+twowayset
+projvar
+(90001 missing values generated)
+(90001 missing values generated)
+(90001 missing values generated)
+
+Linear regression                                      Number of obs =   90001
+                                                       F(  2, 89999) =90191.07
+                                                       Prob > F      =  0.0000
+                                                       R-squared     =  0.6645
+                                                       Root MSE      =  .99468
+
+------------------------------------------------------------------------------
+             |               Robust
+         w_y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+        w_x1 |   1.002163     .00333   300.95   0.000      .995636     1.00869
+        w_x2 |   .9969315   .0033362   298.82   0.000     .9903925     1.00347
+------------------------------------------------------------------------------
+Done! (23:52:15, 0.7 seconds elapsed)
+
+[WARNING] Singletons are not dropped; statistical significance will be biased
+(dropped 0 singleton observations)
+(converged in 4 iterations)
+
+HDFE Linear regression                            Number of obs   =      90001
+Absorbing 2 HDFE groups                           F(   2,  88900) =   89089.72
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.7994
+                                                  Adj R-squared   =     0.7969
+                                                  Within R-sq.    =     0.6645
+                                                  Root MSE        =     1.0008
+
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+          x1 |   1.002163   .0033506   299.10   0.000     .9955957     1.00873
+          x2 |   .9969315   .0033568   296.99   0.000     .9903522    1.003511
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+---------------------------------------------------------------+
+ Absorbed FE |  Num. Coefs.  =   Categories  -   Redundant     | 
+-------------+-------------------------------------------------|
+         tid |          100             100              0     | 
+         hid |          999            1000              1 ?   | 
+---------------------------------------------------------------+
+? = number of redundant parameters may be higher
+Done! (23:52:16, 0.9 seconds elapsed)
+
+10
+obs was 0, now 100000
+(9999 observations deleted)
+(89001 real changes made)
+(89912 real changes made)
+(89901 real changes made)
+(89101 real changes made)
+twowayset
+projvar
+(90001 missing values generated)
+(90001 missing values generated)
+(90001 missing values generated)
+(90001 missing values generated)
+(90001 missing values generated)
+(90001 missing values generated)
+(90001 missing values generated)
+(90001 missing values generated)
+(90001 missing values generated)
+(90001 missing values generated)
+(90001 missing values generated)
+
+Linear regression                                      Number of obs =   90001
+                                                       F( 10, 89991) =90632.84
+                                                       Prob > F      =  0.0000
+                                                       R-squared     =  0.9094
+                                                       Root MSE      =  .99033
+
+------------------------------------------------------------------------------
+             |               Robust
+         w_y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+        w_x1 |   1.002098   .0033339   300.58   0.000     .9955633    1.008632
+        w_x2 |   1.000412   .0033277   300.63   0.000     .9938897    1.006934
+        w_x3 |   .9999626   .0033313   300.17   0.000     .9934334    1.006492
+        w_x4 |   .9913231   .0033067   299.80   0.000     .9848421    .9978042
+        w_x5 |   1.001775   .0033324   300.62   0.000     .9952436    1.008306
+        w_x6 |   .9985536   .0033306   299.81   0.000     .9920257    1.005082
+        w_x7 |   1.005678   .0033213   302.79   0.000     .9991684    1.012188
+        w_x8 |   1.000467   .0033219   301.18   0.000     .9939563    1.006978
+        w_x9 |   1.001337   .0032968   303.73   0.000     .9948756    1.007799
+       w_x10 |   .9997258   .0033107   301.97   0.000     .9932369    1.006215
+------------------------------------------------------------------------------
+Done! (23:52:18, 1.8 seconds elapsed)
+
+[WARNING] Singletons are not dropped; statistical significance will be biased
+(dropped 0 singleton observations)
+(converged in 4 iterations)
+
+HDFE Linear regression                            Number of obs   =      90001
+Absorbing 2 HDFE groups                           F(  10,  88892) =   89526.00
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.9236
+                                                  Adj R-squared   =     0.9227
+                                                  Within R-sq.    =     0.9094
+                                                  Root MSE        =     0.9964
+
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+          x1 |   1.002098   .0033544   298.74   0.000      .995523    1.008672
+          x2 |   1.000412   .0033482   298.79   0.000     .9938495    1.006974
+          x3 |   .9999626   .0033518   298.34   0.000     .9933931    1.006532
+          x4 |   .9913231    .003327   297.96   0.000     .9848021    .9978441
+          x5 |   1.001775   .0033529   298.78   0.000     .9952034    1.008347
+          x6 |   .9985536   .0033511   297.98   0.000     .9919855    1.005122
+          x7 |   1.005678   .0033418   300.94   0.000     .9991283    1.012228
+          x8 |   1.000467   .0033423   299.33   0.000     .9939162    1.007018
+          x9 |   1.001337   .0033172   301.87   0.000     .9948358    1.007839
+         x10 |   .9997258   .0033311   300.12   0.000      .993197    1.006255
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+---------------------------------------------------------------+
+ Absorbed FE |  Num. Coefs.  =   Categories  -   Redundant     | 
+-------------+-------------------------------------------------|
+         tid |          100             100              0     | 
+         hid |          999            1000              1 ?   | 
+---------------------------------------------------------------+
+? = number of redundant parameters may be higher
+Done! (23:52:20, 1.7 seconds elapsed)
+
+
+. 
+. log close _all
+      name:  <unnamed>
+       log:  D:\Github\reghdfe\misc\Benchmarks\res2fe.log
+  log type:  text
+ closed on:   1 Jun 2015, 23:52:20
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
