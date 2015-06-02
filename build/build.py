@@ -118,7 +118,8 @@ for fn in output_filenames:
         data = data.replace(capdrop, "\n")
 
     # Update version
-    data = header.format(new_version) + data
+    if fn in ("reghdfe.ado", "hdfe.ado"):
+        data = header.format(new_version) + data
     data = data.replace("VERSION_NUMBER", new_version)
 
     # Save
@@ -149,7 +150,7 @@ shutil.copy(os.path.join(source_path, u"reghdfe_old_estat.ado"), os.path.join(se
 shutil.copy(os.path.join(source_path, u"reghdfe_old_footnote.ado"), os.path.join(server_path, u"reghdfe_old_footnote.ado"))
 
 print("Building zip file")
-zipf = zipfile.ZipFile('../misc/reghdfe.zip', 'w')
+zipf = zipfile.ZipFile('../misc/reghdfe.zip', 'w', zipfile.ZIP_DEFLATED)
 zipdir('../package/', zipf)
 zipf.close()
 

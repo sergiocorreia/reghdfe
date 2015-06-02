@@ -1,6 +1,3 @@
-*! version 1.1.0 10jul2014
-* predict after reghdfe
-
 program define reghdfe_p
 	local version `clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
 	qui version `version'

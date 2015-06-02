@@ -130,7 +130,8 @@ foreach lhs_endogvar of local lhs_endogvars {
 		depvar indepvars endogvars instruments ///
 		vceoption vcetype ///
 		kk suboptions showraw vceunadjusted first weightexp ///
-		estimator twicerobust // Whether to run or not two-step gmm
+		estimator twicerobust /// Whether to run or not two-step gmm
+		num_clusters clustervars // Used to fix e() of ivreg2 first stages
 	foreach opt of local opts {
 		local opt_list `opt_list' `opt'(``opt'')
 	}

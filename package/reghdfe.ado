@@ -1,4 +1,4 @@
-*! reghdfe 3.0.44 31may2015
+*! reghdfe 3.0.45 02jun2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -2006,7 +2006,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.44 31may2015"
+    local version "3.0.45 02jun2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2207,7 +2207,8 @@ foreach lhs_endogvar of local lhs_endogvars {
 		depvar indepvars endogvars instruments ///
 		vceoption vcetype ///
 		kk suboptions showraw vceunadjusted first weightexp ///
-		estimator twicerobust // Whether to run or not two-step gmm
+		estimator twicerobust /// Whether to run or not two-step gmm
+		num_clusters clustervars // Used to fix e() of ivreg2 first stages
 	foreach opt of local opts {
 		local opt_list `opt_list' `opt'(``opt'')
 	}
@@ -3630,6 +3631,7 @@ program define Wrapper_ivreg2, eclass
 		KK(integer) ///
 		[SHOWRAW(integer 0)] first(integer) [weightexp(string)] ///
 		[ESTimator(string)] ///
+		[num_clusters(string) clustervars(string)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
 	if (`c(version)'>=12) local hidden hidden
@@ -3642,11 +3644,11 @@ program define Wrapper_ivreg2, eclass
 	* Convert -vceoption- to what -ivreg2- expects
 	local 0 `vceoption'
 	syntax namelist(max=3) , [bw(string) dkraay(string) kernel(string) kiefer]
-	gettoken vcetype clustervars : namelist
-	local clustervars `clustervars' // Trim
+	gettoken vcetype transformed_clustervars : namelist
+	local transformed_clustervars `transformed_clustervars' // Trim
 	Assert inlist("`vcetype'", "unadjusted", "robust", "cluster")
 	local vceoption = cond("`vcetype'"=="unadjusted", "", "`vcetype'")
-	if ("`clustervars'"!="") local vceoption `vceoption'(`clustervars')
+	if ("`transformed_clustervars'"!="") local vceoption `vceoption'(`transformed_clustervars')
 	if ("`bw'"!="") local vceoption `vceoption' bw(`bw')
 	if ("`dkraay'"!="") local vceoption `vceoption' dkraay(`dkraay')
 	if ("`kernel'"!="") local vceoption `vceoption' kernel(`kernel')
@@ -3687,7 +3689,9 @@ program define Wrapper_ivreg2, eclass
 		ereturn `hidden' local first_prefix = "_ivreg2_"
 	}
 
-	foreach cat in exexog insts instd exexog1 instd1 collin {
+	local cats depvar instd insts inexog exexog collin dups ecollin clist redlist ///
+		exexog1 inexog1 instd1 
+	foreach cat in `cats' {
 		FixVarnames `e(`cat')'
 		ereturn local `cat' = "`r(newnames)'"
 	}
@@ -3698,10 +3702,29 @@ program define Wrapper_ivreg2, eclass
 		estimates store `hold' , nocopy
 		foreach fs_eqn in `firsteqs' {
 			qui estimates restore `fs_eqn'
-			FixVarnames `e(depvar)'
-			ereturn local depvar = r(newnames)
-			FixVarnames `e(inexog)'
-			ereturn local inexog = r(newnames)
+
+			foreach cat in `cats' {
+				FixVarnames `e(`cat')'
+				ereturn local `cat' = "`r(newnames)'"
+			}
+
+			* Fix e(clustvar) and e(clustvar#); modiefied from Post.ado
+			if ("`e(clustvar)'"!="") {
+				local hacsubtitleV = "`e(hacsubtitleV)'"
+				ereturn local clustvar `clustervars'
+				ereturn scalar N_clustervars = `num_clusters'
+				if (`num_clusters'>1) {
+					local rest `clustervars'
+					forval i = 1/`num_clusters' {
+						gettoken token rest : rest
+						if (strpos("`e(clustvar`i')'", "__")==1) {
+							local hacsubtitleV = subinstr("`hacsubtitleV'", "`e(clustvar`i')'", "`token'", 1)
+						}
+						ereturn local clustvar`i' `token'
+					}
+				}
+				ereturn local hacsubtitleV = "`hacsubtitleV'"
+			}
 
 			tempname b
 			matrix `b' = e(b)
@@ -3973,19 +3996,41 @@ program define Post, eclass
 	ereturn `hidden' local equation_d = "`equation_d'" // The equation used to construct -d- (used to predict)
 	ereturn local absvars = "`original_absvars'"
 	ereturn `hidden' local extended_absvars = "`extended_absvars'"
-	ereturn local vcesuite = "`vcesuite'"
+	
+
 	ereturn `hidden' local diopts = "`diopts'"
 	ereturn `hidden' local subpredict = "`subpredict'"
 
 * CLUSTER AND VCE
+	
+	ereturn local vcesuite = "`vcesuite'"
+	if ("`e(subcmd)'"=="ivreg2") local vcesuite = "avar" // This is what ivreg2 uses
+	if ("`e(subcmd)'"=="ivregress") local vcesuite = "default"
+
+	* Replace __CL#__ and __ID#__ from cluster subtitles
+	if ("`e(subcmd)'"=="ivreg2") local hacsubtitleV = "`e(hacsubtitleV)'"
+
 	if ("`e(clustvar)'"!="") {
 		ereturn local clustvar `clustervars'
 		ereturn scalar N_clustervars = `num_clusters'
+		if (`num_clusters'>1) {
+			local rest `clustervars'
+			forval i = 1/`num_clusters' {
+				gettoken token rest : rest
+				if ("`e(subcmd)'"=="ivreg2" & strpos("`e(clustvar`i')'", "__")==1) {
+					local hacsubtitleV = subinstr("`hacsubtitleV'", "`e(clustvar`i')'", "`token'", 1)
+				}
+				ereturn local clustvar`i' `token'
+			}
+		}
 	}
 	if (`dkraay'>1) {
 		ereturn local clustvar `timevar'
 		ereturn scalar N_clustervars = 1
 	}
+
+	if ("`e(subcmd)'"=="ivreg2") ereturn local hacsubtitleV = "`hacsubtitleV'"
+	
 	* Stata uses e(vcetype) for the SE column headers
 	* In the default option, leave it empty.
 	* In the cluster and robust options, set it as "Robust"
@@ -4648,7 +4693,8 @@ foreach lhs_endogvar of local lhs_endogvars {
 		depvar indepvars endogvars instruments ///
 		vceoption vcetype ///
 		kk suboptions showraw vceunadjusted first weightexp ///
-		estimator twicerobust // Whether to run or not two-step gmm
+		estimator twicerobust /// Whether to run or not two-step gmm
+		num_clusters clustervars // Used to fix e() of ivreg2 first stages
 	foreach opt of local opts {
 		local opt_list `opt_list' `opt'(``opt'')
 	}

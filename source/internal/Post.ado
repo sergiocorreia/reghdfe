@@ -43,19 +43,41 @@ program define Post, eclass
 	ereturn `hidden' local equation_d = "`equation_d'" // The equation used to construct -d- (used to predict)
 	ereturn local absvars = "`original_absvars'"
 	ereturn `hidden' local extended_absvars = "`extended_absvars'"
-	ereturn local vcesuite = "`vcesuite'"
+	
+
 	ereturn `hidden' local diopts = "`diopts'"
 	ereturn `hidden' local subpredict = "`subpredict'"
 
 * CLUSTER AND VCE
+	
+	ereturn local vcesuite = "`vcesuite'"
+	if ("`e(subcmd)'"=="ivreg2") local vcesuite = "avar" // This is what ivreg2 uses
+	if ("`e(subcmd)'"=="ivregress") local vcesuite = "default"
+
+	* Replace __CL#__ and __ID#__ from cluster subtitles
+	if ("`e(subcmd)'"=="ivreg2") local hacsubtitleV = "`e(hacsubtitleV)'"
+
 	if ("`e(clustvar)'"!="") {
 		ereturn local clustvar `clustervars'
 		ereturn scalar N_clustervars = `num_clusters'
+		if (`num_clusters'>1) {
+			local rest `clustervars'
+			forval i = 1/`num_clusters' {
+				gettoken token rest : rest
+				if ("`e(subcmd)'"=="ivreg2" & strpos("`e(clustvar`i')'", "__")==1) {
+					local hacsubtitleV = subinstr("`hacsubtitleV'", "`e(clustvar`i')'", "`token'", 1)
+				}
+				ereturn local clustvar`i' `token'
+			}
+		}
 	}
 	if (`dkraay'>1) {
 		ereturn local clustvar `timevar'
 		ereturn scalar N_clustervars = 1
 	}
+
+	if ("`e(subcmd)'"=="ivreg2") ereturn local hacsubtitleV = "`hacsubtitleV'"
+	
 	* Stata uses e(vcetype) for the SE column headers
 	* In the default option, leave it empty.
 	* In the cluster and robust options, set it as "Robust"

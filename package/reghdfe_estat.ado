@@ -1,9 +1,4 @@
-*! reghdfe 3.0.44 31may2015
-*! Sergio Correia (sergio.correia@duke.edu)
-
-*! version 1.1.0 10jul2014
 program reghdfe_estat, rclass
-	if (c(version)<12) di as error "(warning: -reghdfe- has only been throughly tested with Stata 12 and above)"
 	version `=cond(c(version)<14, c(version), 13)'
 	if "`e(cmd)'" != "reghdfe" {
 		error 301
