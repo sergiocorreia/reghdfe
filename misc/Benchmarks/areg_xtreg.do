@@ -3,9 +3,9 @@ set more off
 clear all
 *set processors 1
 
-*cap ado uninstall reghdfe
-*net from https://raw.githubusercontent.com/sergiocorreia/reghdfe/updated_mata/package/
-*net install reghdfe
+cap ado uninstall reghdfe
+net from https://raw.githubusercontent.com/sergiocorreia/reghdfe/updated_mata/package/
+net install reghdfe
 
 set obs 100000
 gen y = uniform()
