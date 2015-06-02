@@ -663,7 +663,7 @@ di in yellow "Coefficient for id1 --> "_b[`fe1']
 di in yellow "Coefficient for id2 --> "_b[`fe2']
 end
 
-/* This routine is from Amine Quazad's a2reg program */
+/* This routine is from Amine Ouazad's a2reg program */
 /* It establishes the connected groups in the data */
 
 *Find connected groups for normalization
