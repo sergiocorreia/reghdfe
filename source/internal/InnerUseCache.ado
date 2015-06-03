@@ -158,7 +158,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 * (optional) Save mobility groups (note: group vector will stay on HDFE_S)
 	if ("`groupvar'"!="") mata: groupvar2dta(HDFE_S, 0)
 
-* FIX VARNAMES - Replace tempnames in the coefs table (run AFTER regress and BEFORE restore)
+* FIX VARNAMES - Replace tempnames in the coefs table (run AFTER regress)
 	* (e.g. __00001 -> L.somevar)
 	if (`timeit') Tic, n(68)
 	tempname b

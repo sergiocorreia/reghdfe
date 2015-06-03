@@ -1,4 +1,4 @@
-*! reghdfe 3.0.45 02jun2015
+*! reghdfe 3.0.46 02jun2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -2006,7 +2006,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.45 02jun2015"
+    local version "3.0.46 02jun2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -3673,6 +3673,7 @@ program define Wrapper_ivreg2, eclass
 	local subcmd ivreg2 `vars' `weightexp', `vceoption' `firstoption' small sdofminus(`kk') `nocons' `opt_estimator' `suboptions'
 	Debug, level(3) msg(_n "call to subcommand: " _n as result "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
+	if ("`noise'"=="noi") di as input _n "{title:Raw Results (without fixing tempnames):}"
 	`noise' `subcmd'
 	if ("`noise'"=="noi") di in red "{hline 64}" _n "{hline 64}"
 	ereturn scalar tss = e(mss) + e(rss) // ivreg2 doesn't report e(tss)
@@ -4721,7 +4722,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 * (optional) Save mobility groups (note: group vector will stay on HDFE_S)
 	if ("`groupvar'"!="") mata: groupvar2dta(HDFE_S, 0)
 
-* FIX VARNAMES - Replace tempnames in the coefs table (run AFTER regress and BEFORE restore)
+* FIX VARNAMES - Replace tempnames in the coefs table (run AFTER regress)
 	* (e.g. __00001 -> L.somevar)
 	if (`timeit') Tic, n(68)
 	tempname b

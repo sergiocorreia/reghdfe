@@ -913,7 +913,7 @@ To see your current version and installed dependencies, type {cmd:reghdfe, versi
 
 {pstd}
 This package wouldn't have existed without the invaluable feedback and contributions of Paulo Guimaraes
-and Amine Quazad. I am also indebted to the guidance of Mark Schaffer, Kit Baum, and Nikolas Mittag;
+and Amine Ouazad. I am also indebted to the guidance of Mark Schaffer, Kit Baum, and Nikolas Mittag;
 and to the great bug-spotting abilities of many users.{p_end}
 
 {pstd}In addition, {it:reghdfe} is build upon important contributions from the Stata community:{p_end}

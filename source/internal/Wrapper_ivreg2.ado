@@ -48,6 +48,7 @@ program define Wrapper_ivreg2, eclass
 	local subcmd ivreg2 `vars' `weightexp', `vceoption' `firstoption' small sdofminus(`kk') `nocons' `opt_estimator' `suboptions'
 	Debug, level(3) msg(_n "call to subcommand: " _n as result "`subcmd'")
 	local noise = cond(`showraw', "noi", "qui")
+	if ("`noise'"=="noi") di as input _n "{title:Raw Results (without fixing tempnames):}"
 	`noise' `subcmd'
 	if ("`noise'"=="noi") di in red "{hline 64}" _n "{hline 64}"
 	ereturn scalar tss = e(mss) + e(rss) // ivreg2 doesn't report e(tss)
