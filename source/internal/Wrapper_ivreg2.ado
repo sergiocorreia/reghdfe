@@ -84,22 +84,25 @@ program define Wrapper_ivreg2, eclass
 				ereturn local `cat' = "`r(newnames)'"
 			}
 
-			* Fix e(clustvar) and e(clustvar#); modiefied from Post.ado
+			* Fix e(clustvar) and e(clustvar#); modified from Post.ado
 			if ("`e(clustvar)'"!="") {
-				local hacsubtitleV = "`e(hacsubtitleV)'"
-				ereturn local clustvar `clustervars'
-				ereturn scalar N_clustervars = `num_clusters'
+				local subtitle = "`e(hacsubtitleV)'"
 				if (`num_clusters'>1) {
 					local rest `clustervars'
 					forval i = 1/`num_clusters' {
 						gettoken token rest : rest
 						if (strpos("`e(clustvar`i')'", "__")==1) {
-							local hacsubtitleV = subinstr("`hacsubtitleV'", "`e(clustvar`i')'", "`token'", 1)
+							local subtitle = subinstr("`subtitle'", "`e(clustvar`i')'", "`token'", 1)
 						}
 						ereturn local clustvar`i' `token'
 					}
 				}
-				ereturn local hacsubtitleV = "`hacsubtitleV'"
+				else {
+					local subtitle = subinstr("`subtitle'", "`e(clustvar)'", "`clustervars'", 1)
+				}
+				ereturn scalar N_clustervars = `num_clusters'
+				ereturn local clustvar `clustervars'
+				ereturn local hacsubtitleV = "`subtitle'"
 			}
 
 			tempname b

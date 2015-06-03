@@ -55,28 +55,31 @@ program define Post, eclass
 	if ("`e(subcmd)'"=="ivregress") local vcesuite = "default"
 
 	* Replace __CL#__ and __ID#__ from cluster subtitles
-	if ("`e(subcmd)'"=="ivreg2") local hacsubtitleV = "`e(hacsubtitleV)'"
 
 	if ("`e(clustvar)'"!="") {
-		ereturn local clustvar `clustervars'
-		ereturn scalar N_clustervars = `num_clusters'
+		if ("`e(subcmd)'"=="ivreg2") local subtitle = "`e(hacsubtitleV)'"
 		if (`num_clusters'>1) {
 			local rest `clustervars'
 			forval i = 1/`num_clusters' {
 				gettoken token rest : rest
 				if ("`e(subcmd)'"=="ivreg2" & strpos("`e(clustvar`i')'", "__")==1) {
-					local hacsubtitleV = subinstr("`hacsubtitleV'", "`e(clustvar`i')'", "`token'", 1)
+					local subtitle = subinstr("`subtitle'", "`e(clustvar`i')'", "`token'", 1)
 				}
 				ereturn local clustvar`i' `token'
 			}
 		}
+		else {
+			local subtitle = subinstr("`subtitle'", "`e(clustvar)'", "`clustervars'", 1)
+		}
+		ereturn scalar N_clustervars = `num_clusters'
+		ereturn local clustvar `clustervars'
+		if ("`e(subcmd)'"=="ivreg2") ereturn local hacsubtitleV = "`subtitle'"
 	}
 	if (`dkraay'>1) {
 		ereturn local clustvar `timevar'
 		ereturn scalar N_clustervars = 1
 	}
 
-	if ("`e(subcmd)'"=="ivreg2") ereturn local hacsubtitleV = "`hacsubtitleV'"
 	
 	* Stata uses e(vcetype) for the SE column headers
 	* In the default option, leave it empty.
