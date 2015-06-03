@@ -1,4 +1,4 @@
-*! reghdfe 3.0.48 03jun2015
+*! reghdfe 3.0.49 03jun2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -257,7 +257,7 @@ void function alphas2dta(`Problem' S) {
 	S.verbose = 0
 	S.transform = "symmetric_kaczmarz" // cimmino ?
 	S.acceleration = "conjugate_gradient"
-	S.tolerance = 1e-8 // Previously, it was 1e-7
+	S.tolerance = 1e-8
 	S.maxiterations = 1e4
 	S.accel_start = 6
 	S.groupsize = 10
@@ -2006,7 +2006,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.48 03jun2015"
+    local version "3.0.49 03jun2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"

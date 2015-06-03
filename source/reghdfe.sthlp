@@ -66,8 +66,8 @@ options are {opt ivreg2} (default; needs installing) and {opt ivregress}{p_end}
 {synopt :{opt time:it}}show elapsed times by stage of computation{p_end}
 
 {syntab:Optimization {help reghdfe##opt_optimization:[+]}}
-{p2coldent:+ {opth tol:erance(#)}}criterion for convergence (default=1e-7){p_end}
-{synopt :{opth maxit:erations(#)}}maximum number of iterations (default=10000). if set to 0, it will run for as long as it takes.{p_end}
+{p2coldent:+ {opth tol:erance(#)}}criterion for convergence (default=1e-8){p_end}
+{synopt :{opth maxit:erations(#)}}maximum number of iterations (default=10,000); if set to missing ({cmd:.}) it will run for as long as it takes.{p_end}
 {synopt :{opth group:size(#)}}apply the within algorithm in groups of {it:#} variables (default 10). a large groupsize is usually faster but uses more memory{p_end}
 {synopt :{opt accel:eration(str)}}acceleration method; options are conjugate_gradient (cg), steep_descent (sd), aitken (a), and none (no){p_end}
 {synopt :{opt transf:orm(str)}}transform operation that defines the type of alternating projection; options are Kaczmarz (kac), Cimmino (cim), Symmetric Kaczmarz (sym){p_end}
@@ -520,7 +520,7 @@ At the other end, is not tight enough, the regression may not identify perfectly
 
 {phang}
 {opth maxit:erations(#)}
-specifies the maximum number of iterations; the default is {cmd:maxiterations(10000)}; 0 means run forever until convergence.
+specifies the maximum number of iterations; the default is {cmd:maxiterations(10000)}; set it to missing ({cmd:.}) to run forever until convergence.
 
 {phang}
 {it:Advanced options:}
