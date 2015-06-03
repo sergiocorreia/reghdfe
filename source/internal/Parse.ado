@@ -199,7 +199,7 @@ else {
 	}
 	else {
 		local cache_vce : char _dta[vce]
-		assert_msg "`cache_vce'"=="`vce'", msg("vce() must be the same in savecache and usecache (because of the cluster variables)")
+		Assert "`cache_vce'"=="`vce'", msg("vce() must be the same in savecache and usecache (because of the cluster variables)")
 		foreach key of local keys {
 			local `key' : char _dta[`key']
 		}

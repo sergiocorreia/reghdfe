@@ -1,4 +1,4 @@
-*! reghdfe 3.0.47 03jun2015
+*! reghdfe 3.0.48 03jun2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -2006,7 +2006,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.47 03jun2015"
+    local version "3.0.48 03jun2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2540,7 +2540,7 @@ else {
 	}
 	else {
 		local cache_vce : char _dta[vce]
-		assert_msg "`cache_vce'"=="`vce'", msg("vce() must be the same in savecache and usecache (because of the cluster variables)")
+		Assert "`cache_vce'"=="`vce'", msg("vce() must be the same in savecache and usecache (because of the cluster variables)")
 		foreach key of local keys {
 			local `key' : char _dta[`key']
 		}
