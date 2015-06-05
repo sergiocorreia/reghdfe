@@ -1,4 +1,4 @@
-*! reghdfe 3.0.49 03jun2015
+*! reghdfe 3.0.50 05jun2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -2006,7 +2006,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.49 03jun2015"
+    local version "3.0.50 05jun2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -4354,7 +4354,7 @@ program define Header
 	// Right hand header ************************************************
 
 	*N obs
-	.`right'.Arrpush `C3' "Number of obs" `C4' "= " as res %`c4wfmt'.0f e(N)
+	.`right'.Arrpush `C3' "Number of obs" `C4' "= " as res %`c4wfmt'.0fc e(N)
 
 	* Ftest
 	if `"`e(chi2)'"' != "" | "`e(df_r)'" == "" {
@@ -4416,7 +4416,7 @@ program define Header
 	forval i = 1/`N_clustervars' {
 		gettoken cluster clustvar : clustvar
 		local num = e(N_clust`i')
-		.`left'.Arrpush `C1' "Number of clusters (" as res "`cluster'" as text  ") " `C2' as text "= " as res %`c2wfmt'.0f `num'
+		.`left'.Arrpush `C1' "Number of clusters (" as res "`cluster'" as text  ") " `C2' as text "= " as res %`c2wfmt'.0fc `num'
 	}
 	
 	HeaderDisplay `left' `right' `"`title'"' `"`title2'"' `"`title3'"' `"`title4'"' `"`title5'"'

@@ -5,7 +5,9 @@
 *  - Note: Timers (tic/toc) from https://github.com/sergiocorreia/stata-misc
 
 which tic.ado
+cap log close _all
 log using res2fe.log, replace
+version
 
 do twowayreg.ado
 *** 0) Preliminaries
@@ -72,8 +74,19 @@ reg w_y w_x*, noc robust
 drop w_*
 toc, report
 
+* Old and Slow
 tic
-reghdfe y x*, vce(robust) fast absorb(tid hid) dof(none) tol(1e-6) keepsingletons // v(3) timeit 
+reghdfe y x*, vce(robust) absorb(tid hid) old
+toc, report
+
+* Slow
+tic
+reghdfe y x*, vce(robust) absorb(tid hid)
+toc, report
+
+* Fast
+tic
+reghdfe y x*, vce(robust) absorb(tid hid) fast dof(none) tol(1e-6) keepsingletons group(20) // v(3) timeit 
 toc, report
 
 }
