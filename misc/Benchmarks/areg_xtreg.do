@@ -4,7 +4,7 @@ clear all
 *set processors 1
 
 cap log close _all
-log using res2fe.log, replace
+log using areg_xtreg.log, replace
 version
 
 cap ado uninstall reghdfe
@@ -29,7 +29,8 @@ areg y x* , absorb(id) `vce'
 xtreg y x*, fe `vce'
 reghdfe y x* , absorb(id) `vce' old // v2
 reghdfe y x* , absorb(id) `vce' // v3-slow
-reghdfe y x* , absorb(id) `vce' fast // dof(none) keepsingletons // v3-fast
+reghdfe y x* , absorb(id) `vce' fast // v3-fast
+reghdfe y x* , absorb(id) `vce' fast dof(none) keepsingletons // v3-fastest
 
 log close _all
 
