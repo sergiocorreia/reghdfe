@@ -31,7 +31,7 @@ cap pr drop Replay
 			local i 0
 			foreach fs_eqn in `e(firsteqs)' {
 				local instrument  : word `++i' of `e(instd)'
-				di as input _n "{title:First stage for `instrument'}"
+				di _n "{input}{title:First stage for `instrument'}"
 				cap noi estimates replay `fs_eqn' , nohead `diopts'
 				if (!`savefirst') estimates drop `fs_eqn'
 			}
