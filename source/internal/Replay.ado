@@ -38,7 +38,7 @@ cap pr drop Replay
 
 			ereturn clear
 			qui estimates restore `hold'
-			di as input _n "{title:Second stage}"
+			di _n "{input}{title:Second stage}"
 		}
 
 		// BUGBUG: Update this part
