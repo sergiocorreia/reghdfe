@@ -51,7 +51,6 @@ cap pr drop Replay
 		assert e(cmd)=="reghdfe"
 		estimates drop `hold'
 
-
 		*ereturn local cmd = "reghdfe"
 		*matrix `b' = e(b)
 		*matrix colnames `b' = `backup_colnames'
@@ -67,9 +66,7 @@ cap pr drop Replay
 			exit
 		}
 		
-
-		*_coef_table_header
-		Header
+		Header // _coef_table_header
 
 		di
 		local plus = cond(e(model)=="ols" & inlist("`e(vce)'", "unadjusted", "ols"), "plus", "")

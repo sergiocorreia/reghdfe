@@ -128,7 +128,6 @@ program define Post, eclass
 	local used_df_r = cond(e(unclustered_df_r)<., e(unclustered_df_r), e(df_r)) - e(M_due_to_nested)
 	ereturn scalar r2_a = 1 - (e(rss)/`used_df_r') / ( e(tss) / (e(N)-1) )
 	ereturn scalar rmse = sqrt( e(rss) / `used_df_r' )
-
 	ereturn scalar r2_a_within = 1 - (e(rss)/`used_df_r') / ( e(tss_within) / (`used_df_r'+e(df_m)) )
 
 	if (e(N_clust)<.) Assert e(df_r) == e(N_clust) - 1, msg("Error, `wrapper' should have made sure that N_clust-1==df_r")
@@ -155,9 +154,6 @@ program define Post, eclass
 		//	}   
 		//}
 	}
-
-	// There is a big assumption here, that the number of other parameters does not increase asymptotically
-	// BUGBUG: We could allow the option to indicate what parameters do increase asympt.
 
 	if ("`savefirst'"!="") ereturn `hidden' scalar savefirst = `savefirst'
 
