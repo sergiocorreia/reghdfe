@@ -22,7 +22,7 @@
 {title:Title}
 
 {p2colset 5 18 20 2}{...}
-{p2col :{cmd:reghdfe} {hline 2}}Linear and instrumental-variable/GMM regression absorbing any number of fixed effects{p_end}
+{p2col :{cmd:reghdfe} {hline 2}}Linear and instrumental-variable/GMM regression absorbing multiple levels of fixed effects{p_end}
 {p2colreset}{...}
 
 {marker syntax}{...}
@@ -114,13 +114,13 @@ rarely used{p_end}
 {synoptline}
 {synopt:{cmd:i.}{it:varname}}categorical variable to be absorbed (the {cmd:i.} prefix is tacit){p_end}
 {synopt:{cmd:i.}{it:var1}{cmd:#i.}{it:var2}}absorb the interactions of multiple categorical variables{p_end}
-{synopt:{cmd:i.}{it:var1}{cmd:#}{cmd:c.}{it:var2}}absorb "fixed slopes", where {it:var2} has a different slope coef. depending on the category of {it:var1}{p_end}
+{synopt:{cmd:i.}{it:var1}{cmd:#}{cmd:c.}{it:var2}}absorb heterogeneous slopes, where {it:var2} has a different slope coef. depending on the category of {it:var1}{p_end}
 {synopt:{it:var1}{cmd:##}{cmd:c.}{it:var2}}equivalent to "{cmd:i.}{it:var1} {cmd:i.}{it:var1}{cmd:#}{cmd:c.}{it:var2}", but {it:much} faster{p_end}
-{synopt:{it:var1}{cmd:##c.(}{it:var2 var3}{cmd:)}}multiple fixed slopes are allowed together. Alternative syntax: {it:var1}{cmd:##(c.}{it:var2} {cmd:c.}{it:var3}{cmd:)}{p_end}
+{synopt:{it:var1}{cmd:##c.(}{it:var2 var3}{cmd:)}}multiple heterogeneous slopes are allowed together. Alternative syntax: {it:var1}{cmd:##(c.}{it:var2} {cmd:c.}{it:var3}{cmd:)}{p_end}
 {synopt:{it:v1}{cmd:#}{it:v2}{cmd:#}{it:v3}{cmd:##c.(}{it:v4 v5}{cmd:)}}factor operators can be combined{p_end}
 {synoptline}
 {p2colreset}{...}
-{p 4 6 2}To save the estimates of only some absvars, write {newvar}{inp:={it:absvar}}.{p_end}
+{p 4 6 2}To save the estimates specific absvars, write {newvar}{inp:={it:absvar}}.{p_end}
 {p 4 6 2}Please be aware that in most cases these estimates are neither consistent nor econometrically identified.{p_end}
 {p 4 6 2}Using categorical interactions (e.g. {it:x}{cmd:#}{it:z}) is faster than running {it:egen group(...)} beforehand.{p_end}
 {p 4 6 2}Singleton obs. are dropped iteratively until no more singletons are found (see ancilliary article for details).{p_end}
@@ -130,27 +130,20 @@ ii) use slope-and-intercept absvars ("state##c.time"), even if the intercept is 
 For instance if absvar is "i.zipcode i.state##c.time" then i.state is redundant given i.zipcode, but
 convergence will still be {it:much} faster.{p_end}
 
-{bf:---> NOTE: below this line, the help file has not been updated for version 3 <---}
-
 {marker description}{...}
 {title:Description}
 
 {pstd}
-{cmd:reghdfe} fits a linear regression of {depvar} on {indepvars} while absorbing an arbitrary number of fixed effects indicated by the categories of {help reghdfe##absvar:absvars}. It also supports regressing
- on {it:endogvars}, in which case it uses {it:iv_vars} (along with {it:indepvars} and the fixed effects) as instruments for {it:endogvars} (either with 2SLS or GMM/LIML).{p_end}
- 
-{pstd}No constant is reported as that is absorbed by the fixed effects. However, if you wish to recover it,
-after the regression run {cmd:predict dummies, d} followed by {cmd:su dummies}, {cmd:di r(mean)}.{p_end}
+{cmd:reghdfe} is a generalization of {help areg} (and {help xtreg:xtreg,fe}, {help xtivreg:xtivreg,fe}) for multiple levels of fixed effects
+(including heterogeneous slopes), alternative estimators (2sls, gmm2s, liml), and additional robust standard errors (multi-way clustering, HAC standard errors, etc).{p_end}
 
-{pstd}The estimates for the fixed effects (including those with continous interactions) can be saved, although their standard errors are not recovered. When using multiple highly-dimensional fixed-effects,
-the user should be aware of the identification requirements regarding the fixed effects. For instance, the fixed effects cannot form disjoint graphs or else identification would only be possible
-within each subgraph (see {help reghdfe##references:references}).{p_end}
-
-{pstd}There are several features generalized from either {cmd: areg} or {cmd: xtreg, fe}, such as:{p_end}
-
-{p2col 6 9 9 2: a)}reporting F-tests on the absorbed variables (except with robust and clustered vce){p_end}
-{p2col 6 9 9 2: b)}correlations between the FEs and the other regressors(except with robust and clustered vce){p_end}
-{p2col 6 9 9 2: c)}degrees-of-freedom adjustements with clustered data when one absorbed category is contained within the clusters (as in {cmd: xtreg, fe robust}){p_end}
+{pstd}Additional features include:{p_end}
+{p2col 6 9 9 2: a)} It uses a novel and robust algorithm to efficiently absorb the fixed effects (extending the work of Guimaraes and Portugal, 2010).{p_end}
+{p2col 6 9 9 2: b)} It is coded in Mata, which in most scenarios makes it even faster than {it:areg} and {it:xtreg} for a single fixed effect (see benchmarks on the Github page).{p_end}
+{p2col 6 9 9 2: c)} It can save the point estimates of the fixed effects ({it:caveat emptor}: the fixed effects may not be identified, see the {help reghdfe##references:references}).{p_end}
+{p2col 6 9 9 2: d)} It calculates the degrees-of-freedom lost due to the fixed effects
+(note: beyond two levels of fixed effects, this is still an open problem, but we provide a conservative approximation).{p_end}
+{p2col 6 9 9 2: e)} It will iteratively remove singleton groups by default, to avoid biasing the the standard errors (see ancillary document).{p_end}
 
 {marker options}{...}
 {title:Options}
@@ -244,7 +237,7 @@ are correlated within groups.
 
 {pmore}
 Multi-way-clustering is allowed. Thus, you can indicate as many {it:clustervar}s as desired
-(e.g. allowing for intragroup correlation across individuals, time, country, etc.).
+(e.g. allowing for intragroup correlation across individuals, time, country, etc).
 
 {pmore}
 Each {it:clustervar} permits interactions of the type {it:var1{cmd:#}var2}
@@ -628,7 +621,7 @@ or tests on different groups, you can replicate it manually, as described
 {marker remarks}{...}
 {title:Implementation Details}
 
-{p2col 5 7 7 2: -}This program usually runs at least 10 times faster than related programs ({cmd:areg}, {cmd:xtreg, fe}, {cmd:twfe}, {cmd:a2reg}, {cmd:reg2hdfe}, etc.).{p_end}
+{p2col 5 7 7 2: -}This program usually runs at least 10 times faster than related programs ({cmd:areg}, {cmd:xtreg, fe}, {cmd:twfe}, {cmd:a2reg}, {cmd:reg2hdfe}, etc).{p_end}
 {p2col 5 7 7 2: -}The relative gain increases with the number of observations
  and the number of absorbed fixed effects, so for a small dataset the gain could even 
   be negative due to the initial setup of the program).{p_end}
