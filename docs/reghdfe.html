@@ -11,8 +11,8 @@
 <pre>
 <span class=result><u>Title</u></span>
 <br><br>
-    <span class=result>reghdfe</span> --   Linear and instrumental-variable/GMM regression absorbing any
-                   number of fixed effects
+    <span class=result>reghdfe</span> --   Linear and instrumental-variable/GMM regression absorbing
+                   multiple levels of fixed effects
 <br><br>
 <a name="syntax"></a><span class=result><u>Syntax</u></span>
 <br><br>
@@ -22,46 +22,42 @@
 <a name="opt_summary"></a>    <i>options</i>                 Description
     --------------------------------------------------------------------------
     Model [+]
-    * <span class=result><u>a</u></span><span class=result>bsorb(</span>absvar [...]<span class=result>)</span>  identifiers of the fixed effects that will be
-                              absorbed
+    * <span class=result><u>a</u></span><span class=result>bsorb(</span><i>absvars</i><span class=result>)</span>       identifiers of the absorbed fixed effects; each
+                              absvar represents one set of fixed effects
       <span class=result><u>a</u></span><span class=result>bsorb(</span><i>...</i><span class=result>,</span> <span class=result><u>save</u></span><span class=result>fe)</span>   save all fixed effect estimates (<i>__hdfe*</i> prefix);
                               useful for a subsequent predict.  However, see
                               also the <i>resid</i> option.
-      <span class=result><u>su</u></span><span class=result>mmarize(</span><i>stats</i><span class=result>)</span>      equivalent to estat summarize after the
-                              regression, but more flexible, compatible with
-                              the <span class=result>fast</span> option, and saves the matrix of results
-                              on <i>e(summarize)</i>
-      <span class=result><u>sub</u></span><span class=result>options(</span>...<span class=result>)</span>       additional options that will be passed to the
-                              regression command (either regress, ivreg2, or 
-                              ivregress)
       <span class=result><u>res</u></span><span class=result>iduals(</span><i>newvar</i><span class=result>)</span>     save residuals; more direct and much faster than
                               saving the fixed effects and then running
                               predict
-<br><br>
+      <span class=result><u>su</u></span><span class=result>mmarize(</span><i>stats</i><span class=result>)</span>      equivalent to estat summarize after the
+                              regression, but more flexible, compatible with
+                              the <span class=result>fast</span> option, and saves results on
+                              <i>e(summarize)</i>
+      <span class=result><u>subopt</u></span><span class=result>ions(</span>...<span class=result>)</span>       additional options that will be passed to the
+                              regression command (either regress, ivreg2, or 
+                              ivregress)
+        
     SE/Robust [+]
-    + <span class=result>vce(</span>vcetype[, <i>opt</i>]<span class=result>)</span>   <i>vcetype</i> is <span class=result><u>un</u></span><span class=result>adjusted</span>/<span class=result>ols</span> (default), <span class=result><u>r</u></span><span class=result>obust</span>, or
-                              <span class=result><u>cl</u></span><span class=result>uster</span> <i>clustervars</i>; <i>opt</i> may be <span class=result>bw(</span><i>#</i><span class=result>)</span>,
-                              <span class=result>dkraay(</span><i>#</i><span class=result>)</span>, <span class=result><u>ker</u></span><span class=result>nel(</span><i>str</i><span class=result>)</span>, <span class=result>kiefer</span>
+    + <span class=result>vce(</span>vcetype [<span class=result>,</span><i>opt</i>]<span class=result>)</span>   <i>vcetype</i> may be <span class=result><u>un</u></span><span class=result>adjusted</span> (default), <span class=result><u>r</u></span><span class=result>obust</span> or
+                              <span class=result><u>cl</u></span><span class=result>uster</span> fvvarlist (allowing two- and multi-way
+                              clustering)
+                            suboptions <span class=result>bw(</span><i>#</i><span class=result>)</span>, <span class=result><u>ker</u></span><span class=result>nel(</span><i>str</i><span class=result>)</span>, <span class=result>dkraay(</span><i>#</i><span class=result>)</span> and
+                              <span class=result>kiefer</span> allow for AC/HAC estimates; see the avar
+                              package
 <br><br>
-    IV/2SLS/GMM [+]
-      <span class=result><u>est</u></span><span class=result>imator(</span><i>str</i><span class=result>)</span>        estimator used in the instrumental-variable
-                              regression.  The default is <span class=result>2sls</span>, valid options
-                              are <span class=result><u>gmm</u></span><span class=result>2s</span> (two-stage GMM estimator), <span class=result>liml</span> and
-                              <span class=result>cue</span> (which gives approximate results, as
-                              discussed in detail below)
-      <span class=result><u>stage</u></span><span class=result>s(</span><i>stage_list</i><span class=result>)</span>    runs and saves additional or alternative
-                              regression stages. Possible stages are: <i>ols</i>
-                              <i>first acid reduced</i> (and <i>all</i>).
+    Instrumental-Variable/2SLS/GMM [+]
+      <span class=result><u>est</u></span><span class=result>imator(</span><i>str</i><span class=result>)</span>        either <span class=result>2sls</span> (default), <span class=result><u>gmm</u></span><span class=result>2s</span> (two-stage GMM), <span class=result>liml</span>
+                              (limited-information maximum likelihood) or <span class=result>cue</span>
+                              (which gives approximate results, see discussion
+                              below)
+      <span class=result><u>stage</u></span><span class=result>s(</span><i>list</i><span class=result>)</span>          estimate additional regressions; choose any of
+                              <span class=result>first</span> <span class=result>ols</span> <span class=result>reduced</span> <span class=result>acid</span> (or <span class=result>all</span>)
+      <span class=result><u>ff</u></span><span class=result>irst</span>                compute first-stage diagnostic and identification
+                              statistics
       <span class=result><u>iv</u></span><span class=result>suite(</span><i>subcmd</i><span class=result>)</span>       package used in the IV/GMM regressions; options
                               are <span class=result>ivreg2</span> (default; needs installing) and
                               <span class=result>ivregress</span>
-      <span class=result>first</span>                 report first stage regression (but sadly not
-                              first-stage summary results)
-      <span class=result>savefirst</span>             saves the first-stage regressions results;
-                              requires <span class=result>first</span>
-      <span class=result>showraw</span>               show the raw output of ivreg2 (if that's the
-                              ivsuite used); useful to see first-stage summary
-                              results
 <br><br>
     Diagnostic [+]
       <span class=result><u>v</u></span><span class=result>erbose(</span><i>#</i><span class=result>)</span>            amount of debugging information to show (0=None,
@@ -70,11 +66,12 @@
       <span class=result><u>time</u></span><span class=result>it</span>                show elapsed times by stage of computation
 <br><br>
     Optimization [+]
-    + <span class=result><u>tol</u></span><span class=result>erance(</span><i>#</i><span class=result>)</span>          criterion for convergence (default=1e-7)
-      <span class=result><u>maxit</u></span><span class=result>erations(</span><i>#</i><span class=result>)</span>      maximum number of iterations (default=10000). if
-                              set to 0, it will run for as long as it takes.
-      <span class=result><u>group</u></span><span class=result>size(</span><i>#</i><span class=result>)</span>          apply the within algorithm in groups of <i>#</i>
-                              variables (default 10). a large groupsize is
+    + <span class=result><u>tol</u></span><span class=result>erance(</span><i>#</i><span class=result>)</span>          criterion for convergence (default=1e-8)
+      <span class=result><u>maxit</u></span><span class=result>erations(</span><i>#</i><span class=result>)</span>      maximum number of iterations (default=10,000); if
+                              set to missing (<span class=result>.</span>) it will run for as long as it
+                              takes.
+      <span class=result><u>pool</u></span><span class=result>size(</span><i>#</i><span class=result>)</span>           apply the within algorithm in groups of <i>#</i>
+                              variables (default 10). a large poolsize is
                               usually faster but uses more memory
       <span class=result><u>accel</u></span><span class=result>eration(</span><i>str</i><span class=result>)</span>     acceleration method; options are
                               conjugate_gradient (cg), steep_descent (sd),
@@ -82,33 +79,23 @@
       <span class=result><u>transf</u></span><span class=result>orm(</span><i>str</i><span class=result>)</span>        transform operation that defines the type of
                               alternating projection; options are Kaczmarz
                               (kac), Cimmino (cim), Symmetric Kaczmarz (sym)
-      <span class=result>check</span>                 if convergence was achieved, the fixed effects
-                              should have a 1.0 coeficient in each step
 <br><br>
     Speedup Tricks [+]
+      <span class=result>cache(save</span> [,opt]<span class=result>)</span>    absorb all variables without regressing
+                              (destructive; combine it with preserve/restore)
+                            suboption <span class=result>keep(</span><i>varlist</i><span class=result>)</span> adds additional
+                              untransformed variables to the resulting dataset
+      <span class=result>cache(use)</span>            run regressions on cached data; <i>vce()</i> must be the
+                              same as with<span class=result> cache(save)</span>.
+      <span class=result>cache(clear)</span>          delete Mata objects to clear up memory; no more
+                              regressions can be run after this
       <span class=result>fast</span>                  will not create <i>e(sample)</i>; disabled when saving
                               fixed effects or mobility groups
-      <span class=result><u>save</u></span><span class=result>cache</span>             compute within transformation but do not regress
-                              the variables; useful when comparing alternative
-                              specifications (combine it with
-                              preserve/restore)
-      <span class=result><u>keep</u></span><span class=result>vars(</span><i>varlist</i><span class=result>)</span>     additional variables that will be kept in the
-                              demeaned dataset; used with <i>savecache</i>
-      <span class=result><u>use</u></span><span class=result>cache</span>              required with data previously transformed by
-                              <span class=result><u>save</u></span><span class=result>cache</span> (limitation: if you use clusters, you
-                              need to set the same vce(cluster ...) in both
-                              savecache and usecache)
-      <span class=result><u>clean</u></span><span class=result>upcache</span>          clean up Mata objects after running all the
-                              required <i>usecache</i> regressions (usually
-                              accompanied by a <i>restore</i>)
-    X <span class=result>nested</span>                add each <i>absvar</i> recursively, reporting the R2 and
-                              associated F-test at each stage (only with ols
-                              and unadjusted standard errors)
 <br><br>
     Degrees-of-Freedom Adjustments [+]
       <span class=result><u>dof</u></span><span class=result>adjustments(</span><i>list</i><span class=result>)</span>  allows selecting the desired adjustments for
                               degrees of freedom; rarely used
-      <span class=result>groupvar(</span><i>newvar</i><span class=result>)</span>      unique identifier for the first mobility group
+      <span class=result><u>groupv</u></span><span class=result>ar(</span><i>newvar</i><span class=result>)</span>      unique identifier for the first mobility group
 <br><br>
     Reporting [+]
       <span class=result>version</span>               reports the version number and date of reghdfe,
@@ -119,14 +106,12 @@
                               cells, and factor-variable labeling
 <br><br>
     Undocumented
+      <span class=result><u>keepsin</u></span><span class=result>gletons</span>        do not drop singleton groups
       <span class=result>old</span>                   will call the latest 2.x version of reghdfe
-                              instead (see reghdfe_old)
-      <span class=result><u>keepsin</u></span><span class=result>gletons</span>        
+                              instead (see the old help file)
     --------------------------------------------------------------------------
     * <span class=result>absorb(</span><i>absvars</i><span class=result>)</span> is required.
     + indicates a recommended or important option.
-    X indicates option is still incomplete or not fully tested; proceed with
-      care.
     <i>indepvars</i>, <i>endogvars</i> and <i>iv_vars</i> may contain factor variables; see 
       fvvarlist.
     all the regression variables may contain time-series operators; see 
@@ -142,15 +127,17 @@
                               is tacit)
     <span class=result>i.</span><i>var1</i><span class=result>#i.</span><i>var2</i>           absorb the interactions of multiple categorical
                               variables
-    <span class=result>i.</span><i>var1</i><span class=result>#c.</span><i>var2</i>           absorb "fixed slopes", where <i>var2</i> has a different
-                              slope coef. depending on the category of <i>var1</i>
+    <span class=result>i.</span><i>var1</i><span class=result>#c.</span><i>var2</i>           absorb heterogeneous slopes, where <i>var2</i> has a
+                              different slope coef. depending on the category
+                              of <i>var1</i>
     <i>var1</i><span class=result>##c.</span><i>var2</i>            equivalent to "<span class=result>i.</span><i>var1</i> <span class=result>i.</span><i>var1</i><span class=result>#c.</span><i>var2</i>", but <i>much</i>
                               faster
-    <i>var1</i><span class=result>##c.(</span><i>var2 var3</i><span class=result>)</span>     multiple fixed slopes are allowed together.
-                              Alternative syntax: <i>var1</i><span class=result>##(c.</span><i>var2</i> <span class=result>c.</span><i>var3</i><span class=result>)</span>
+    <i>var1</i><span class=result>##c.(</span><i>var2 var3</i><span class=result>)</span>     multiple heterogeneous slopes are allowed
+                              together. Alternative syntax: <i>var1</i><span class=result>##(c.</span><i>var2</i>
+                              <span class=result>c.</span><i>var3</i><span class=result>)</span>
     <i>v1</i><span class=result>#</span><i>v2</i><span class=result>#</span><i>v3</i><span class=result>##c.(</span><i>v4 v5</i><span class=result>)</span>     factor operators can be combined
     --------------------------------------------------------------------------
-    To save the estimates of only some absvars, write <i>newvar</i><span class=result>=</span><i>absvar</i>.
+    To save the estimates specific absvars, write <i>newvar</i><span class=result>=</span><i>absvar</i>.
     Please be aware that in most cases these estimates are neither consistent
       nor econometrically identified.
     Using categorical interactions (e.g. <i>x</i><span class=result>#</span><i>z</i>) is faster than running <i>egen</i>
@@ -164,38 +151,26 @@
       i.state is redundant given i.zipcode, but convergence will still be <i>much</i>
       faster.
 <br><br>
-<span class=result>---&gt; NOTE: below this line, the help file has not been updated for version 3 &lt;--</span>
-<span class=result>&gt; -</span>
-<br><br>
 <a name="description"></a><span class=result><u>Description</u></span>
 <br><br>
-    <span class=result>reghdfe</span> fits a linear regression of <i>depvar</i> on <i>indepvars</i> while absorbing an
-    arbitrary number of fixed effects indicated by the categories of absvars.
-    It also supports regressing on <i>endogvars</i>, in which case it uses <i>iv_vars</i>
-    (along with <i>indepvars</i> and the fixed effects) as instruments for <i>endogvars</i>
-    (either with 2SLS or GMM/LIML).
- 
-    No constant is reported as that is absorbed by the fixed effects. However,
-    if you wish to recover it, after the regression run <span class=result>predict dummies, d</span>
-    followed by <span class=result>su dummies</span>, <span class=result>di r(mean)</span>.
+    <span class=result>reghdfe</span> is a generalization of areg (and xtreg,fe, xtivreg,fe) for
+    multiple levels of fixed effects (including heterogeneous slopes),
+    alternative estimators (2sls, gmm2s, liml), and additional robust standard
+    errors (multi-way clustering, HAC standard errors, etc).
 <br><br>
-    The estimates for the fixed effects (including those with continous
-    interactions) can be saved, although their standard errors are not
-    recovered. When using multiple highly-dimensional fixed-effects, the user
-    should be aware of the identification requirements regarding the fixed
-    effects. For instance, the fixed effects cannot form disjoint graphs or
-    else identification would only be possible within each subgraph (see
-    references).
-<br><br>
-    There are several features generalized from either<span class=result> areg</span> or<span class=result> xtreg, fe</span>, such
-    as:
-<br><br>
-     a) reporting F-tests on the absorbed variables (except with robust and
-        clustered vce)
-     b) correlations between the FEs and the other regressors(except with
-        robust and clustered vce)
-     c) degrees-of-freedom adjustements with clustered data when one absorbed
-        category is contained within the clusters (as in<span class=result> xtreg, fe robust</span>)
+    Additional features include:
+     a) A novel and robust algorithm to efficiently absorb the fixed effects
+        (extending the work of Guimaraes and Portugal, 2010).
+     b) Coded in Mata, which in most scenarios makes it even faster than <i>areg</i>
+        and <i>xtreg</i> for a single fixed effect (see benchmarks on the Github
+        page).
+     c) Can save the point estimates of the fixed effects (<i>caveat emptor</i>: the
+        fixed effects may not be identified, see the references).
+     d) Calculates the degrees-of-freedom lost due to the fixed effects (note:
+        beyond two levels of fixed effects, this is still an open problem, but
+        we provide a conservative approximation).
+     e) Iteratively removes singleton groups by default, to avoid biasing the
+        standard errors (see ancillary document).
 <br><br>
 <a name="options"></a><span class=result><u>Options</u></span>
 <br><br>
@@ -204,8 +179,8 @@
 <br><br>
     <span class=result><u>a</u></span><span class=result>bsorb(</span><i>absvars</i><span class=result>)</span> list of categorical variables (or interactions)
         representing the fixed effects to be absorbed.  this is equivalent to
-        including a dummy variable for each category of each <i>absvar</i>. <span class=result>absorb()</span>
-        is required.
+        including an indicator/dummy variable for each category of each
+        <i>absvar</i>. <span class=result>absorb()</span> is required.
 <br><br>
         To save a fixed effect, prefix the absvar with "<i>newvar</i><span class=result>=</span>".  For
         instance, the option <span class=result>absorb(firm_id worker_id year_coefs=year_id)</span> will
@@ -217,26 +192,10 @@
         delete all variables named <i>__hdfe*__</i> and create new ones as required.
         Example: <i>reghdfe price weight, absorb(turn trunk, savefe)</i>
 <br><br>
-    <span class=result><u>dropsi</u></span><span class=result>ngletons</span> will drop the observations that contain values of the fixed
-        effects repeated only once.  For instance, with individual fixed
-        effects, it will drop individuals that appear only once in the sample.
-        <span class=result>I strongly recommend you to use this option</span>.
+    <span class=result><u>res</u></span><span class=result>iduals(</span><i>newvar</i><span class=result>)</span> will save the regression residuals in a new variable.
 <br><br>
-        Benefits of this option include a faster estimation (due to less
-        observations and fixed effects) and less change of problems when
-        estimating the VCE matrix.
-<br><br>
-        Note that after dropping singletons on the first fixed effect, a value
-        of the second fixed effect that previously appeared in two
-        observations may now appear in only one and thus will be dropped.
-        Also note that only one check will be done for each fixed effect.
-<br><br>
-    <span class=result>nested</span> Add each <i>absvar</i> recursively into the model
-<br><br>
-        This option will reporting the R2 at each stage, and also compute the
-        Fisher test of significance for each set of absorbed variables.
-<br><br>
-        Only available in OLS with <i>vce(unadjusted)</i>.
+        This is a superior alternative than running <span class=result>predict, resid</span> afterwards
+        as it's faster and doesn't require saving the fixed effects.
 <br><br>
     <span class=result><u>su</u></span><span class=result>mmarize(</span><i>stats</i><span class=result>)</span> will report and save a table of summary of statistics of
         the regression variables (including the instruments, if applicable),
@@ -255,11 +214,8 @@
         (<span class=result>summarize(,quietly)</span>) or with custom statistics (<span class=result>summarize(mean,</span>
         <span class=result>quietly)</span>).
 <br><br>
-    <span class=result><u>sub</u></span><span class=result>options(</span>...<span class=result>)</span> options that will be passed directly to the regression
+    <span class=result><u>subopt</u></span><span class=result>ions(</span>...<span class=result>)</span> options that will be passed directly to the regression
         command (either regress, ivreg2, or ivregress)
-<br><br>
-        Some options are not allowed and will be silently ignored (<i>nosmall</i>,
-        <i>hascons</i>, <i>tsscons</i>)
 <br><br>
 <a name="opt_vce"></a>        +-----------+
     ----+ SE/Robust +---------------------------------------------------------
@@ -293,7 +249,7 @@
 <br><br>
         Multi-way-clustering is allowed. Thus, you can indicate as many
         <i>clustervar</i>s as desired (e.g. allowing for intragroup correlation
-        across individuals, time, country, etc.).
+        across individuals, time, country, etc).
 <br><br>
         Each <i>clustervar</i> permits interactions of the type <i>var1</i><i>#</i><i>var2</i> (this is
         faster than using <span class=result>egen group()</span> for a one-off regression).
@@ -305,7 +261,7 @@
         regression table).
 <br><br>
     The following suboptions require either the ivreg2 or the avar package
-    from SSC.  For a careful explanation, see the ivreg help file, from which
+    from SSC.  For a careful explanation, see the ivreg2 help file, from which
     the comments below borrow.
 <br><br>
         <span class=result><u>u</u></span><span class=result>nadjusted, bw(</span><i>#</i><span class=result>)</span> (or just <span class=result>, bw(</span><i>#</i><span class=result>)</span>) estimates
@@ -343,10 +299,11 @@
 <br><br>
         <i>Explanation:</i> When running instrumental-variable regressions with the
         <span class=result>ivregress</span> package, robust standard errors, and a gmm2s estimator,
-        <span class=result>vce(</span><i>robust</i><span class=result>)</span> is translated into <span class=result>wmatrix(</span><i>robust</i><span class=result>)</span> <span class=result>vce(</span><i>unadjusted</i><span class=result>)</span>.  This
-        maintains compatibility with <span class=result>ivreg2</span> and other packages, but may
-        unadvisable as described in ivregress (technical note). Specifying
-        this option will instead use <span class=result>wmatrix(</span><i>robust</i><span class=result>)</span> <span class=result>vce(</span><i>robust</i><span class=result>)</span>.
+        reghdfe will translate <span class=result>vce(</span><i>robust</i><span class=result>)</span> into <span class=result>wmatrix(</span><i>robust</i><span class=result>)</span>
+        <span class=result>vce(</span><i>unadjusted</i><span class=result>)</span>.  This maintains compatibility with <span class=result>ivreg2</span> and other
+        packages, but may unadvisable as described in ivregress (technical
+        note). Specifying this option will instead use <span class=result>wmatrix(</span><i>robust</i><span class=result>)</span>
+        <span class=result>vce(</span><i>robust</i><span class=result>)</span>.
 <br><br>
         However, computing the second-step vce matrix requires computing
         updated estimates (including updated fixed effects).  Since reghdfe
@@ -356,10 +313,6 @@
 <br><br>
         Note: The above comments are also appliable to clustered standard
         error.
-<br><br>
-    Options <span class=result><u>boot</u></span><span class=result>strap</span> and <span class=result><u>jack</u></span><span class=result>knife</span> could be implemented, although their
-    execution would be extremely slow.
-<br><br>
 <br><br>
 <a name="opt_iv"></a>        +-------------+
     ----+ IV/2SLS/GMM +-------------------------------------------------------
@@ -378,38 +331,39 @@
         even if this is not exactly <span class=result>cue</span>, it may still be a desirable/useful
         alternative to standard cue, as explained in the article.
 <br><br>
-    <span class=result><u>stage</u></span><span class=result>s(</span><i>stage_list</i><span class=result>)</span> adds and saves up to four auxiliary regressions useful
-        when running instrumental-variable regressions:
+    <span class=result><u>stage</u></span><span class=result>s(</span><i>list</i><span class=result>)</span> adds and saves up to four auxiliary regressions useful when
+        running instrumental-variable regressions:
 <br><br>
-        <span class=result>ols</span> an equivalent ols regression (as a benchmark/comparison)
-        <span class=result>first</span> all the first stage regressions
-        <span class=result>acid</span> an "acid" regression that includes both the instruments,
-            exogenous regressors (i.e. included instruments), and endogenous
-            regressors, against the dependent variable.  In this setup, the
+        <span class=result>first</span> all first-stage regressions
+        <span class=result>ols</span> ols regression (between dependent variable and endogenous
+            variables; useful as a benchmark)
+        <span class=result>reduced</span> reduced-form regression (ols regression with included and
+            excluded instruments as regressors)
+        <span class=result>acid</span> an "acid" regression that includes both instruments and
+            endogenous variables as regressors; in this setup, excluded
             instruments should not be significant.
-        <span class=result>reduced</span> the reduced-form regression, between the instruments and
-            exogenous regressors, and the dependent variable (excludes the
-            endogenous regressor).
+<br><br>
+        You can pass suboptions not just to the iv command but to all stage
+        regressions with a comma after the list of stages. Example:
+        <i>reghdfe price (weight=length), absorb(turn) subopt(nocollin)</i>
+        <i>stages(first, eform(exp(beta)) )</i>
+<br><br>
+        By default all stages are saved (see estimates dir).  The suboption
+        <span class=result>,nosave</span> will prevent that.  However, future <span class=result>replay</span>s will only replay
+        the iv regression.
+<br><br>
+    <span class=result>ffirst</span> compute and report first stage statistics (details); requires the
+        ivreg2 package.
+<br><br>
+        These statistics will be saved on the <i>e(first)</i> matrix.  If the
+        first-stage estimates are also saved (with the <span class=result>stages()</span> option), the
+        respective statistics will be copied to <span class=result>e(first_*)</span> locals.
 <br><br>
     <span class=result><u>iv</u></span><span class=result>suite(</span><i>subcmd</i><span class=result>)</span> allows the IV/2SLS regression to be run either using
         <span class=result>ivregress</span> or <span class=result>ivreg2</span>.
 <br><br>
         <span class=result>ivreg2</span> is the default, but needs to be installed for that option to
         work.
-<br><br>
-    <span class=result>first</span> will report first stage regression.
-<br><br>
-        Note that first-stage summary results will not be reported due to the
-        way <i>ivreg2</i> is called; to view them see the option <i>showraw</i>
-<br><br>
-    <span class=result>savefirst</span> will save first stage regressions. Requires the option <span class=result>first</span> to
-        work.
-<br><br>
-    <span class=result>showraw</span> shows the entire output of ivreg2 (if that's the ivsuite used);
-        this is used to see the first-stage summary results.
-<br><br>
-        The downside is that it will have temporary names in place of whenever
-        factors variables and time-series operators are used.
 <br><br>
 <a name="opt_diagnostic"></a>        +------------+
     ----+ Diagnostic +--------------------------------------------------------
@@ -423,9 +377,9 @@
         For debugging, the most useful value is 3. For simple status reports,
         set verbose to 1.
 <br><br>
-    <span class=result>check</span> will regress the variable against the calculated fixed effects. If
-        convergence was indeed achieved, the coefficients should be 1.0 in
-        each step (except under perfect collinearity situations.)
+    <span class=result><u>time</u></span><span class=result>it</span> shows the elapsed time at different steps of the estimation. Most
+        time is usually spent on three steps: map_precompute(), map_solve()
+        and the regression step.
 <br><br>
 <a name="opt_dof"></a>        +--------------------------------+
     ----+ Degrees-of-Freedom Adjustments +------------------------------------
@@ -511,79 +465,69 @@
         implemented.  Some preliminary simulations done by the author showed a
         very poor convergence of this method.
 <br><br>
-    <span class=result>group(</span><i>newvar</i><span class=result>)</span> name of the new variable that will contain the first
+    <span class=result><u>groupv</u></span><span class=result>ar(</span><i>newvar</i><span class=result>)</span> name of the new variable that will contain the first
         mobility group.  Requires <span class=result><u>pair</u></span><span class=result>wise</span>, <span class=result><u>first</u></span><span class=result>pair</span>, or the default <span class=result>all</span>.
 <br><br>
 <a name="opt_speedup"></a>        +------------------------+
     ----+ Speeding Up Estimation +--------------------------------------------
 <br><br>
-    <u>Parallel Computing</u>
+    <span class=result>reghdfe</span> <i>varlist</i> [<i>if</i>] [<i>in</i>]<span class=result>,</span> <span class=result><u>a</u></span><span class=result>bsorb(</span><i>absvars</i><span class=result>)</span> <span class=result>save(cache)</span> [<i>options</i>]
 <br><br>
-    <span class=result>fast</span> avoids one <i>save</i>, one <i>use</i>, and one <i>merge</i> operation.  It usually makes
-        the regression 30% faster, but comes at a cost:  you cannot save the
-        FEs with predict, you cannot predict the residuals, e(sample) is not
-        saved, and the correlation between the FEs and xb are not reported.
-        Also, savecache, usecache, nested, check, group options are not
-        compatible with fast.
+        This will transform <i>varlist</i>, absorbing the fixed effects indicated by
+        <i>absvars</i>.  It is useful when running a series of alternative
+        specifications with common variables, as the variables will only be
+        transformed once instead of every time a regression is run.
+<br><br>
+        It replaces the current dataset, so it is a good idea to precede it
+        with a preserve command
+<br><br>
+        To keep additional (untransformed) variables in the new dataset, use
+        the <span class=result>keep(</span><i>varlist</i><span class=result>)</span> suboption.
+<br><br>
+    <span class=result>cache(use)</span> is used when running reghdfe after a <i>save(cache)</i> operation.
+        Both the <i>absorb()</i> and <i>vce()</i> options must be the same as when the cache
+        was created (the latter because the degrees of freedom were computed
+        at that point).
+<br><br>
+    <span class=result>cache(clear)</span> will delete the Mata objects created by <i>reghdfe</i> and kept in
+        memory after the <i>save(cache)</i> operation. These objects may consume a
+        lot of memory, so it is a good idea to clean up the cache.
+        Additionally, if you previously specified <i>preserve</i>, it may be a good
+        time to <i>restore</i>.
+<br><br>
+        Example:
+        <span class=input>. sysuse auto</span>
+        <span class=input>. preserve</span>
+        <span class=result>.</span>
+        <span class=input>. * Save the cache</span>
+        <span class=input>. reghdfe price weight length, a(turn rep) vce(turn) cache(save,</span>
+            <span class=result>keep(foreign))</span>
+        <span class=result>.</span>
+        <span class=input>. * Run regressions</span>
+        <span class=input>. reghdfe price weight, a(turn rep) cache(use)</span>
+        <span class=input>. reghdfe price length, a(turn rep) cache(use)</span>
+        <span class=result>.</span>
+        <span class=input>. * Clean up</span>
+        <span class=input>. reghdfe, cache(clear)</span>
+        <span class=input>. restore</span>
+<br><br>
+    <span class=result>fast</span> avoids saving <i>e(sample)</i> into the regression.  Since saving the
+        variable only involves copying a Mata vector, the speedup is currently
+        quite small.  Future versions of reghdfe may change this as features
+        are added.
+<br><br>
+        Note that <span class=result>fast</span> will be disabled when adding variables to the dataset
+        (i.e. when saving residuals, fixed effects, or mobility groups), and
+        is incompatible with most postestimation commands.
 <br><br>
         If you wish to use <span class=result>fast</span> while reporting <span class=result>estat summarize</span>, see the
         <span class=result>summarize</span> option.
-<br><br>
-    <span class=result>cores(</span><i>#</i><span class=result>)</span> will run the demeaning algorithm in # parallel instances.
-<br><br>
-        currently, cores() only runs on Windows, although the code is already
-        generalized for Linux and OSX. Volunteers for bugfixing or testing are
-        welcome!
-<br><br>
-        Several Stata processes will be created, and the task of demeaning all
-        the required variables will be distributed amongst them.  This option
-        requires the package parallel by George Vega Yon (run <i>ssc install</i>
-        <i>parallel</i> to download it)
-<br><br>
-        Disclaimer: there may still be some rough corners (e.g. sometimes not
-        deleting temporary files)
-<br><br>
-        Example:
-        <span class=input>. sysuse auto</span>
-        <span class=input>. reghdfe price weight length, a(turn rep) cores(2)</span>
-<br><br>
-    <u>Precomputing transformations</u> (useful when testing alternative
-        specifications)
-<br><br>
-    <span class=result>reghdfe</span> <i>varlist</i> [<i>if</i>] [<i>in</i>]<span class=result>,</span> <span class=result><u>a</u></span><span class=result>bsorb(</span><i>absvars</i><span class=result>)</span> <span class=result><u>save</u></span><span class=result>cache(</span><i>filename</i><span class=result>)</span> [<i>options</i>]
-<br><br>
-        This will demean <i>varlist</i> with respect to <i>absvars</i>, and save the
-        transformed variables in <i>filename</i>. Note that if any variable has a
-        missing value, the entire row is dropped.
-<br><br>
-        Options allowed are all optimization options except <i>fast</i>, and all
-        diagnostic options including <i>cores(#)</i>
-<br><br>
-        This will create a variable __uid__ in the master data.
-<br><br>
-    <span class=result><u>use</u></span><span class=result>cache(</span><i>filename</i><span class=result>)</span> can be added to a normal command and will load the
-        transformed variables from <i>filename</i> instead of computing them again.
-<br><br>
-        In order for this to work, i) the filename needs to exist and all the
-        variables need to have been precomputed using that filename, ii) the
-        variable __uid__ must exist, iii) the precomputed transformation must
-        have been made using the same <i>absvars</i> and the same observations (if it
-        was precomputed with more observations, an error will occur; with less
-        observations, that subset of the dataset will be used for the
-        regression).
-<br><br>
-        Example:
-        <span class=input>. sysuse auto</span>
-        <span class=input>. tempfile cache</span>
-        <span class=input>. reghdfe price weight length, a(turn rep) savecache("`cache'")</span>
-        <span class=input>. reghdfe price weight, a(turn rep) usecache("`cache'")</span>
-        <span class=input>. reghdfe price length, a(turn rep) usecache("`cache'")</span>
 <br><br>
 <a name="opt_optimization"></a>        +--------------+
     ----+ Optimization +------------------------------------------------------
 <br><br>
     <span class=result><u>tol</u></span><span class=result>erance(</span><i>#</i><span class=result>)</span> specifies the tolerance criterion for convergence; default is
-        <span class=result>tolerance(1e-7)</span>
+        <span class=result>tolerance(1e-8)</span>
 <br><br>
         Note that for tolerances beyond 1e-14, the limits of the <i>double</i>
         precision are reached and the results will most likely not converge.
@@ -592,43 +536,48 @@
         perfectly collinear regressors. However, those cases can be easily
         spotted due to their extremely high standard errors.
 <br><br>
+        Warning: when absorbing heterogeneous slopes without the accompanying
+        heterogeneous intercepts, convergence is quite poor and a tight
+        tolerance is strongly suggested (i.e. higher than the default). In
+        other words, an absvar of <i>var1##c.var2</i> converges easily, but an absvar
+        of <i>var1#c.var2</i> will converge slowly and may require a tighter
+        tolerance.
+<br><br>
     <span class=result><u>maxit</u></span><span class=result>erations(</span><i>#</i><span class=result>)</span> specifies the maximum number of iterations; the default
-        is <span class=result>maxiterations(10000)</span>; 0 means run forever until convergence.
+        is <span class=result>maxiterations(10000)</span>; set it to missing (<span class=result>.</span>) to run forever until
+        convergence.
+<br><br>
+    <span class=result><u>pool</u></span><span class=result>size(</span><i>#</i><span class=result>)</span> Number of variables that are <i>pooled together</i> into a matrix
+        that will then be transformed.  The default is to pool variables in
+        groups of 5. Larger groups are faster with more than one processor,
+        but may cause out-of-memory errors. In that case, set poolsize to 1.
 <br><br>
     <i>Advanced options:</i>
 <br><br>
-    <span class=result>fast</span> avoids one <i>save</i>, one <i>use</i>, and one <i>merge</i> operation.  Useful if the
-        dataset is very large, but will not save <i>e(sample)</i> or compute
-        correlations between the fixed effects and Xb.
+    <span class=result>acceleration(</span><i>str</i><span class=result>)</span> allows for different acceleration techniques, from the
+        simplest case of no acceleration (<span class=result><u>no</u></span><span class=result>ne</span>), to steep descent
+        (<span class=result><u>st</u></span><span class=result>eep_descent</span> or <span class=result>sd</span>), Aitken (<span class=result><u>a</u></span><span class=result>itken</span>), and finally Conjugate Gradient
+        (<span class=result><u>co</u></span><span class=result>njugate_gradient</span> or <span class=result>cg</span>).
 <br><br>
-        Will not work under <span class=result>check</span>, or if any variable (fixed effect, mobility
-        group) needs to be saved.
+        Note: Each acceleration is just a plug-in Mata function, so a larger
+        number of acceleration techniques are available, albeit undocumented
+        (and slower).
 <br><br>
-    <span class=result><u>noaccel</u></span><span class=result>erate</span> apply fixed point iteration without applying Aitken's
-        acceleration.
+    <span class=result><u>transf</u></span><span class=result>orm(</span><i>str</i><span class=result>)</span> allows for different "alternating projection" transforms.
+        The classical transform is Kaczmarz (<span class=result><u>kac</u></span><span class=result>zmarz</span>), and more stable
+        alternatives are Cimmino (<span class=result><u>cim</u></span><span class=result>mino</span>) and Symmetric Kaczmarz
+        (<span class=result><u>sym</u></span><span class=result>metric_kaczmarz</span>)
 <br><br>
-        This will be much slower but may avoid situations where the
-        acceleration gets stuck.
+        Note: Each transform is just a plug-in Mata function, so a larger
+        number of acceleration techniques are available, albeit undocumented
+        (and slower).
 <br><br>
-    <span class=result>accel_start(</span><i>#</i><span class=result>)</span> indicates how many iterations to wait until the Aitken's
-        acceleration starts. Default is 6.
+        Note: The default acceleration is Conjugate Gradient and the default
+        transform is Symmetric Kaczmarz. Be wary that different accelerations
+        often work better with certain transforms. For instance, do not use
+        conjugate gradient with plain Kaczmarz, as it will not converge.
 <br><br>
-    <span class=result>accel_freq(</span><i>#</i><span class=result>)</span> indicates how often the acceleration occurs. The default is
-        3, meaning that after two steps without acceleration, the third one
-        accelerates. Other common value is 6.
-<br><br>
-    <span class=result>bad_loop_threshold(</span><i>#</i><span class=result>)</span> If the acceleration seems stuck # times in a row,
-        pause it. Default is 1.
-<br><br>
-    <span class=result>stuck_threshold(</span><i>#</i><span class=result>)</span> Defines when is the acceleration stuck (if the relative
-        improvement is less than #). Default is 5e-3
-<br><br>
-    <span class=result>pause_length(</span><i>#</i><span class=result>)</span> indicates how many acceleration steps to pause after the
-        iteration got stuck. Default is 20
-<br><br>
-        Note that this is in terms of acceleration steps, not iterations (so
-        if accel_freq=3 and pause_length=20, 60 iterations will pass until the
-        acceleration resumes)
+    <span class=result>precondition</span> <i>(currently disabled)</i>
 <br><br>
 <a name="opt_reporting"></a>        +-----------+
     ----+ Reporting +---------------------------------------------------------
@@ -639,7 +588,8 @@
         <span class=result><u>allbase</u></span><span class=result>levels</span>, <span class=result>nofvlabel</span>, <span class=result>fvwrap(</span><i>#</i><span class=result>)</span>, <span class=result>fvwrapon(</span><i>style</i><span class=result>)</span>, <span class=result>cformat(</span><i>%fmt</i><span class=result>)</span>,
         <span class=result>pformat(%</span><i>fmt</i><span class=result>)</span>, <span class=result>sformat(%</span><i>fmt</i><span class=result>)</span>, and <span class=result>nolstretch</span>; see <span class=result>[R] estimation</span>
         <span class=result>options</span>.
-    
+<br><br>
+<br><br>
 <a name="postestimation"></a><span class=result><u>Postestimation Syntax</u></span>
 <br><br>
 Only <span class=result>estat summarize</span>, <span class=result>predict</span> and <span class=result>test</span> are currently supported and tested.
@@ -676,28 +626,7 @@ Only <span class=result>estat summarize</span>, <span class=result>predict</span
 <br><br>
     Note: do not use <span class=result>suest</span>. It will run, but the results will be incorrect.
 <br><br>
-<a name="remarks"></a><span class=result><u>Implementation Details</u></span>
-<br><br>
-    - This program usually runs at least 10 times faster than related programs
-      (<span class=result>areg</span>, <span class=result>xtreg, fe</span>, <span class=result>twfe</span>, <span class=result>a2reg</span>, <span class=result>reg2hdfe</span>, etc.).
-    - The relative gain increases with the number of observations and the
-      number of absorbed fixed effects, so for a small dataset the gain could
-      even be negative due to the initial setup of the program).
-  
-    - The reason is that it takes the best of these programs (such as the
-      fixed point iteration from reg2hdfe) while improving on their
-      bottlenecks.
-    - In particular, the biggest gain comes from computing averages by group
-      without sorting the dataset by each group. Since sorting is an o(n log
-      n) operation, and averages by group is o(n), the gains get larger with
-      the dataset size.
-  
-    - It also allows for efficient estimation of interactions between
-      continuous variables and HDFEs
- 
-    - Finally, also allows for running IV/GMM regressions
-    - For more details see the PDF notes.
-<br><br>
+<a name="remarks"></a><br><br>
 <span class=result><u>Possible Pitfalls and Common Mistakes</u></span>
 <br><br>
      1. (note: as of version 2.1, the constant is no longer reported) Ignore
@@ -707,7 +636,8 @@ Only <span class=result>estat summarize</span>, <span class=result>predict</span
         dropped as it never existed on the first place!)
      2. Think twice before saving the fixed effects. They are probably
         inconsistent / not identified and you will likely be using them wrong.
-     3. It's good practice to drop singletons. <span class=result><u>dropsi</u></span><span class=result>ngleton</span> is your friend.
+     3. (note: as of version 3.0 singletons are dropped by default) It's good
+        practice to drop singletons. <span class=result><u>dropsi</u></span><span class=result>ngleton</span> is your friend.
      4. If you use <span class=result>vce(</span><i>robust</i><span class=result>)</span>, be sure that your <i>other</i> dimension is not
         "fixed" but grows with N, or your SEs will be wrong.
      5. If you use <span class=result>vce(</span><i>cluster </i>...<span class=result>)</span>, check that your number of clusters is
@@ -745,15 +675,26 @@ Only <span class=result>estat summarize</span>, <span class=result>predict</span
     (If you are interested in discussing these or others, feel free to contact
         me)
 <br><br>
-    - Add a more thorough discussion on the possible identification issues
-    - Find out a way to use reghdfe iteratively with CUE (right now only
-      OLS/2SLS/2SGMM/LIML give the exact same results)
-    - Implement a -bootstrap- option in DoF estimation
+    Code, medium term:
+<br><br>
+    - Complete GT preconditioning (v4)
+    - Improve algorithm that recovers the fixed effects (v5)
+    - Improve statistics and tests related to the fixed effects (v5)
+    - Implement a -bootstrap- option in DoF estimation (v5)
+<br><br>
+    Code, long term:
+<br><br>
     - The interaction with cont vars (i.a#c.b) may suffer from numerical
       accuracy issues, as we are dividing by a sum of squares
     - Calculate exact DoF adjustment for 3+ HDFEs (note: not a problem with
       cluster VCE when one FE is nested within the cluster)
     - More postestimation commands (lincom? margins?)
+<br><br>
+    Theory:
+<br><br>
+    - Add a more thorough discussion on the possible identification issues
+    - Find out a way to use reghdfe iteratively with CUE (right now only
+      OLS/2SLS/GMM2S/LIML give the exact same results)
     - Not sure if I should add an F-test for the absvars in the vce(robust)
       and vce(cluster) cases.  Discussion on e.g. -areg- (methods and
       formulas) and textbooks suggests not; on the other hand, there may be
@@ -834,13 +775,14 @@ Only <span class=result>estat summarize</span>, <span class=result>predict</span
 <br><br>
     <span class=result>reghdfe</span> stores the following in <span class=result>e()</span>:
 <br><br>
+    <i>Note: it also keeps most e() results placed by the regression subcommands</i>
+    <i>(ivreg2, ivregress)</i>
+<br><br>
     Scalars            
       <span class=result>e(N)</span>                    number of observations
       <span class=result>e(N_hdfe)</span>               number of absorbed fixed-effects
       <span class=result>e(tss)</span>                  total sum of squares
-      <span class=result>e(df_m)</span>                 model degrees of freedom
       <span class=result>e(rss)</span>                  residual sum of squares
-      <span class=result>e(df_r)</span>                 residual degrees of freedom
       <span class=result>e(r2)</span>                   R-squared
       <span class=result>e(r2_a)</span>                 adjusted R-squared
       <span class=result>e(r2_within)</span>            Within R-squared
@@ -849,23 +791,26 @@ Only <span class=result>estat summarize</span>, <span class=result>predict</span
       <span class=result>e(rmse)</span>                 root mean squared error
       <span class=result>e(ll)</span>                   log-likelihood
       <span class=result>e(ll_0)</span>                 log-likelihood of fixed-effect-only regression
-      <span class=result>e(N_clust)</span>              number of clusters
       <span class=result>e(F)</span>                    F statistic
-      <span class=result>e(F_absorb)</span>             F statistic for absorbed effect (when
-                                <span class=result>vce(robust)</span> is not specified)
-        
+      <span class=result>e(F_absorb)</span>             F statistic for absorbed effect <i>note: currently</i>
+                                <i>disabled</i>
       <span class=result>e(rank)</span>                 rank of <span class=result>e(V)</span>
+      <span class=result>e(N_clustervars)</span>        number of cluster variables
         
-      <span class=result>e(K#)</span>                   Number of categories of the #th absorbed FE
-      <span class=result>e(M#)</span>                   Number of redundant categories of the #th
+      <span class=result>e(clust</span>#<span class=result>)</span>               number of clusters for the #th cluster variable
+      <span class=result>e(N_clust)</span>              number of clusters; minimum of <i>e(clust#)</i>
+<br><br>
+      <span class=result>e(K</span>#<span class=result>)</span>                   Number of categories of the #th absorbed FE
+      <span class=result>e(M</span>#<span class=result>)</span>                   Number of redundant categories of the #th
                                 absorbed FE
       <span class=result>e(mobility)</span>             Sum of all <span class=result>e(M#)</span>
-      <span class=result>e(corr#)</span>                Correlation between #th absorbed FE and xb
+      <span class=result>e(df_m)</span>                 model degrees of freedom
+      <span class=result>e(df_r)</span>                 residual degrees of freedom
 <br><br>
     Macros             
       <span class=result>e(cmd)</span>                  <span class=result>reghdfe</span>
       <span class=result>e(subcmd)</span>               either <span class=result>regress</span>, <span class=result>ivreg2</span> or <span class=result>ivregress</span>
-      <span class=result>e(model)</span>                Either ols or iv
+      <span class=result>e(model)</span>                <span class=result>ols</span>, <span class=result>iv</span>, <span class=result>gmm2s</span>, <span class=result>liml</span> or <span class=result>cue</span>
       <span class=result>e(cmdline)</span>              command as typed
       <span class=result>e(dofmethod)</span>            dofmethod employed in the regression
       <span class=result>e(depvar)</span>               name of dependent variable
@@ -875,8 +820,11 @@ Only <span class=result>estat summarize</span>, <span class=result>predict</span
       <span class=result>e(absvars)</span>              name of the absorbed variables or interactions
       <span class=result>e(title)</span>                title in estimation output
       <span class=result>e(clustvar)</span>             name of cluster variable
+      <span class=result>e(clustvar</span>#<span class=result>)</span>            name of the #th cluster variable
       <span class=result>e(vce)</span>                  <i>vcetype</i> specified in <span class=result>vce()</span>
       <span class=result>e(vcetype)</span>              title used to label Std. Err.
+      <span class=result>e(stage)</span>                stage within an IV-regression; only if <i>stages()</i>
+                                was used
       <span class=result>e(properties)</span>           <span class=result>b V</span>
 <br><br>
     Matrices           
@@ -889,16 +837,20 @@ Only <span class=result>estat summarize</span>, <span class=result>predict</span
 <a name="contact"></a><span class=result><u>Author</u></span>
 <br><br>
     Sergio Correia
-<br><br>
     Fuqua School of Business, Duke University
-<br><br>
     Email: sergio.correia@duke.edu
+<br><br>
+<a name="user_guide"></a><span class=result><u>User Guide</u></span>
+<br><br>
+    A copy of this help file, as well as a more in-depth user guide is in
+    development and will be available at http://scorreia.com/reghdfe.
 <br><br>
 <a name="updates"></a><span class=result><u>Latest Updates</u></span>
 <br><br>
     <span class=result>reghdfe</span> is updated frequently, and upgrades or minor bug fixes may not be
     immediately available in SSC.  To check or contribute to the latest
-    version of reghdfe, explore the Github repository.
+    version of reghdfe, explore the Github repository.  Bugs or missing
+    features can be discussed through email or at the Github issue tracker.
 <br><br>
     To see your current version and installed dependencies, type <span class=result>reghdfe,</span>
     <span class=result>version</span>
@@ -906,9 +858,8 @@ Only <span class=result>estat summarize</span>, <span class=result>predict</span
 <a name="acknowledgements"></a><span class=result><u>Acknowledgements</u></span>
 <br><br>
     This package wouldn't have existed without the invaluable feedback and
-    contributions of Paulo Guimaraes and Amine Ouazad. I am also indebted to
-    the guidance of Mark Schaffer, Kit Baum, and Nikolas Mittag; and to the
-    great bug-spotting abilities of many users.
+    contributions of Paulo Guimaraes, Amine Ouazad, Mark Schaffer and Kit
+    Baum. Also invaluable are the great bug-spotting abilities of many users.
 <br><br>
     In addition, <i>reghdfe</i> is build upon important contributions from the Stata
     community:
@@ -926,42 +877,38 @@ Only <span class=result>estat summarize</span>, <span class=result>predict</span
         standard errors with multi-way clustering (two or more clustering
         variables).
 <br><br>
-    parallel by George Vega Yon is used when running reghdfe with multiple
-        processors.
-<br><br>
 <a name="references"></a><span class=result><u>References</u></span>
 <br><br>
-This program implements an extension on the fixed-point iteration proposed by:
+The algorithm underlying reghdfe is a generalization of the works by:
 <br><br>
     Paulo Guimaraes and Pedro Portugal. "A Simple Feasible Alternative
         Procedure to Estimate Models with High-Dimensional Fixed Effects".
         <i>Stata Journal, 10(4), 628-649, 2010.</i>  [link]
 <br><br>
-A technical appendix of the algorithm employed is available in the PDF file belo
-&gt; w:
+    Simen Gaure. "OLS with Multiple High Dimensional Category Dummies".
+        <i>Memorandum 14/2010, Oslo University, Department of Economics, 2010.</i>
+        [link]
 <br><br>
-    Sergio Correia. "Least Squares Iteration with Several High-Dimensional
-        Fixed Effects". <i>Mimeo, 2014</i> [link]
-<br><br>
-Note that the algorithm is not the same as the one used in:
-<br><br>
-    Torres, Sonia &amp; Portugal, Pedro &amp; Addison, John T. &amp; Guimaraes, Paulo,
-        2013.  "The Sources of Wage Variation: A Three-Way High-Dimensional
-        Fixed Effects Regression Model".<i>  IZA Discussion Papers 7276,</i>
-        <i>Institute for the Study of Labor (IZA).</i>
+It addresses many of the limitation of previous works, such as possible lack
+of convergence, arbitrary slow convergence times, and being limited to only
+two or three sets of fixed effects (for the first paper).  The paper
+explaining the specifics of the algorithm is a work-in-progress and available
+upon request.
 <br><br>
 If you use this program in your research, please cite either the REPEC entry or
-the first article on this list.
+the aforementioned papers.
 <br><br>
-For details on the acceleration technique employed, please see "method 3" as des
-&gt; cribed by:
+<span class=result><u>Additional References</u></span>
+<br><br>
+For details on the Aitken acceleration technique employed, please see "method 3"
+as described by:
 <br><br>
     Macleod, Allan J. "Acceleration of vector sequences by multi-dimensional
         Delta-2 methods." <i>Communications in Applied Numerical Methods 2.4</i>
         <i>(1986): 385-392.</i>
 <br><br>
-For the rationale behind interacting fixed effects with continuous variables, se
-&gt; e:
+For the rationale behind interacting fixed effects with continuous variables,
+see:
 <br><br>
     Duflo, Esther. "The medium run effects of educational expansion: Evidence
         from a large school construction program in Indonesia." <i>Journal of</i>

@@ -3,6 +3,8 @@ foreach fn in reghdfe hdfe {
 	copy `fn'.sthlp ../docs/`fn'.smcl, replace
 	* local ufn = upper("`fn'")
 	cd ../docs
+	* Note: log2html kinda sucks and the results are a bit ugly
+	* EG: {hline} is replaced by a bunch of "-" instead of <hr>
 	log2html `fn'.smcl, replace erase ///
 		title("help for `fn'.ado") ///
 		line(80) ///

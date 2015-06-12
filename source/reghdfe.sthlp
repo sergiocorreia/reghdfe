@@ -179,9 +179,6 @@ variables (including the instruments, if applicable), using the same sample as t
 {opt subopt:ions(...)}
 options that will be passed directly to the regression command (either {help regress}, {help ivreg2}, or {help ivregress})
 
-{pmore}
-Some options are not allowed and will be silently ignored ({it:nosmall}, {it:hascons}, {it:tsscons})
-
 {marker opt_vce}{...}
 {dlgtab:SE/Robust}
 
