@@ -44,7 +44,7 @@ mata set matastrict on
 // For discussion on the stopping criteria, see the following presentation:
 // Arioli & Gratton, "Least-squares problems, normal equations, and stopping criteria for the conjugate gradient method". URL: https://www.stfc.ac.uk/SCD/resources/talks/Arioli-NAday2008.pdf
 
-// Basically, we will use the Hestenes and Siefel rule
+// Basically, we will use the Hestenes and Stiefel rule
 
 `Group' function accelerate_cg(`Problem' S, `Group' y, `FunctionPointer' T) {
 	// BUGBUG iterate the first 6? without acceleration??

@@ -64,8 +64,7 @@ program define Parse
 
 * Parse varlist: depvar indepvars (endogvars = iv_vars)
 	ParseIV `0', estimator(`estimator') ivsuite(`ivsuite')
-	local keys subcmd model ivsuite estimator depvar indepvars endogvars instruments fe_format ///
-		twicerobust basevars
+	local keys subcmd model ivsuite estimator depvar indepvars endogvars instruments fe_format basevars
 	foreach key of local keys {
 		local `key' "`s(`key')'"
 	}

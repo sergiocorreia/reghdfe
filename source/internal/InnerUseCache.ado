@@ -43,7 +43,7 @@ program define InnerUseCache, eclass
 
 * PREPARE - Compute untransformed tss, R2 of eqn w/out FEs
 	if (`timeit') Tic, n(54)
-	mata: st_local("tss", strofreal(asarray(tss_cache, "`depvar'")))
+	mata: st_local("tss", asarray(tss_cache, "`depvar'"))
 	Assert `tss'<., msg("tss of depvar `depvar' not found in cache")
 	foreach var of local endogvars {
 		mata: st_local("tss_`var'", strofreal(asarray(tss_cache, "`var'")))
@@ -188,7 +188,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * STAGES - END
 	if (`timeit') Tic, n(70)
-	if (!inlist("`stage'","none", "iv")) {
+	if (!inlist("`stage'","none", "iv") & `savestages') {
 		local estimate_name reghdfe_`stage'`i_endogvar'
 		local stored_estimates `stored_estimates' `estimate_name'
 		local cmd estimates store `estimate_name', nocopy
@@ -197,8 +197,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 	}
 	else if ("`stage'"=="iv") {
 		* On the last stage, save list of all stored estimates
-		assert "`stored_estimates'"!=""
-		ereturn `hidden' local stored_estimates = "`stored_estimates'"
+		if ("`stored_estimates'"!="") ereturn `hidden' local stored_estimates = "`stored_estimates'"
 	}
 	if (`timeit') Toc, n(70) msg(store estimates if needed)
 

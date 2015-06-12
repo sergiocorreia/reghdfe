@@ -309,7 +309,8 @@ However, future {cmd:replay}s will only replay the iv regression.
 compute and report first stage statistics ({help ivreg2##s_relevance:details}); requires the ivreg2 package.
 
 {pmore}
-These statistics will be saved on both the {it:e(first)} matrix and on the individual {it:e()} estimates of each first stage regression.
+These statistics will be saved on the {it:e(first)} matrix. 
+If the first-stage estimates are also saved (with the {cmd:stages()} option), the respective statistics will be copied to {cmd:e(first_*)} locals.
 
 {phang}
 {opth iv:suite(subcmd)}

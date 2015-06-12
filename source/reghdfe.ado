@@ -47,7 +47,8 @@ program define reghdfe
 * Intercept replay
 	if replay() {
 		if (`"`e(cmd)'"'!="reghdfe") error 301
-		Replay `0'
+		if ("`0'"=="") local comma ","
+		Replay `comma' `0' stored // also replays stored regressions (first stages, reduced, etc.)
 		exit
 	}
 

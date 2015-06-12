@@ -1,4 +1,4 @@
-noi cscript "reghdfe with unadjusted/ols VCV" adofile reghdfe
+noi cscript "reghdfe with rhs equal to zero" adofile reghdfe
 
 * Setup
 	discard
@@ -36,7 +36,7 @@ noi cscript "reghdfe with unadjusted/ols VCV" adofile reghdfe
 
 * [TEST]
 	keep price zero turn trunk
-	reghdfe price zero, a(turn trunk) v(5) maxiter(20) group(5)
+	reghdfe price zero, a(turn trunk) v(5) maxiter(20) pool(5)
 
 cd "D:/Github/reghdfe/test"
 exit

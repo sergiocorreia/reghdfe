@@ -1,8 +1,8 @@
 v 3
 
-d reghdfe. Linear and instrumental-variable/GMM regression absorbing any number of fixed effects (REGHDFE)
+d reghdfe. Linear and instrumental-variable/GMM regression absorbing multiple levels of fixed effects (REGHDFE)
 d
-d Author: Sergio Correia, Duke University
+d Author: Sergio Correia. Fuqua School of Business, Duke University
 d Support: sergio.correia@duke.edu
 d
 d reghdfe fits a linear or instrumental-variable/GMM regression absorbing an arbitrary number of categorical factors and factorial interactions
@@ -18,7 +18,7 @@ d KW: GMM
 d
 d Requires: Stata version 11.2
 d
-d Distribution-Date: 20150605
+d Distribution-Date: 20150612
 d
 
 f reghdfe.ado

@@ -1,8 +1,8 @@
-*! reghdfe 3.0.50 05jun2015
+*! reghdfe 3.1.1 12jun2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
-// Mata code is first, then main hdfe.ado, then auxiliary .ado files
+// Mata code is first, then main reghdfe.ado, then auxiliary .ado files
 // -------------------------------------------------------------------------------------------------
 // Mata Code: Method of Alternating Projections with Acceleration
 // -------------------------------------------------------------------------------------------------
@@ -98,7 +98,7 @@ struct MapProblem {
 	`Varlist'		sortedby		// Variables on which the dataset is sorted (if anything)
 	
 	// Optimization parameters	
-	`Integer'		groupsize 		// Group variables when demeaning (more is faster but uses more memory)
+	`Integer'		poolsize 		// Group variables when demeaning (more is faster but uses more memory)
 	`Real'			tolerance
 	`Integer'		maxiterations
 	`String'		transform		// Kaczmarz Cimmino Symmetric_kaczmarz (k c s)
@@ -260,7 +260,7 @@ void function alphas2dta(`Problem' S) {
 	S.tolerance = 1e-8
 	S.maxiterations = 1e4
 	S.accel_start = 6
-	S.groupsize = 10
+	S.poolsize = 10
 
 	// If clustering by timevar or panelvar and VCE is HAC, we CANNOT touch the clustervars to create compact ids!
 	S.timevar = ""
@@ -398,9 +398,9 @@ void function map_init_timeit(`Problem' S, `Integer' timeit) {
 	S.timeit = timeit
 }
 
-void function map_init_groupsize(`Problem' S, `Integer' groupsize) {
-	assert_msg(round(groupsize)==groupsize & groupsize>0, "groupsize must be a positive integer")
-	S.groupsize = groupsize
+void function map_init_poolsize(`Problem' S, `Integer' poolsize) {
+	assert_msg(round(poolsize)==poolsize & poolsize>0, "poolsize must be a positive integer")
+	S.poolsize = poolsize
 }
 
 void function map_init_panelvar(`Problem' S, `Varname' panelvar) {
@@ -1064,7 +1064,7 @@ void function map_solve(`Problem' S, `Varlist' vars,
 	assert_msg(S.N==st_nobs(), "dataset cannot change after map_precompute()")
 
 	// Load data
-	// BUGBUG: This will use 2x memory for a while; partition the copy+drop based on S.groupsize?
+	// BUGBUG: This will use 2x memory for a while; partition the copy+drop based on S.poolsize?
 	if (S.verbose>0) printf("{txt} - Loading variables into Mata\n")
 	vars = tokens(vars)
 	y = st_data(., vars)
@@ -1125,7 +1125,7 @@ void function map_solve(`Problem' S, `Varlist' vars,
 	// Luego bajo y asi que me quedo con y + ..
 	// Contar cuantos vectores creo en los aceleradores y en los proyectores
 
-	if (S.verbose>0) printf("{txt} - Solving problem (acceleration={res}%s{txt}, transform={res}%s{txt} tol={res}%-1.0e{txt} poolsize={res}%f{txt} varsize={res}%f{txt})\n", save_fe ? "steepest_descent" : S.acceleration, save_fe ? "kaczmarz" : S.transform, S.tolerance, S.groupsize, cols(y))
+	if (S.verbose>0) printf("{txt} - Solving problem (acceleration={res}%s{txt}, transform={res}%s{txt} tol={res}%-1.0e{txt} poolsize={res}%f{txt} varsize={res}%f{txt})\n", save_fe ? "steepest_descent" : S.acceleration, save_fe ? "kaczmarz" : S.transform, S.tolerance, S.poolsize, cols(y))
 
 	// Warnings
 	if (S.transform=="kaczmarz" & S.acceleration=="conjugate_gradient") {
@@ -1153,14 +1153,14 @@ void function map_solve(`Problem' S, `Varlist' vars,
 		y = accelerate_sd(S, y, &transform_kaczmarz()) :* stdevs // Only these were modified to save FEs
 		S.num_iters_max = S.num_iters_last_run
 	}
-	else if (S.groupsize>=cols(y)) {
+	else if (S.poolsize>=cols(y)) {
 		y = (*accelerate)(S, y, transform) :* stdevs
 		S.num_iters_max = S.num_iters_last_run
 	}
 	else {
 		S.num_iters_last_run = 0
-		for (i=1;i<=cols(y);i=i+S.groupsize) {
-			offset = min((i + S.groupsize - 1, cols(y)))
+		for (i=1;i<=cols(y);i=i+S.poolsize) {
+			offset = min((i + S.poolsize - 1, cols(y)))
 			if (S.verbose>1) printf("{txt} - Variables: {res}" + invtokens(vars[i..offset])+"{txt}\n")
 			y[., i..offset] = (*accelerate)(S, y[., i..offset], transform) :* stdevs[i..offset]
 			if (S.num_iters_last_run>S.num_iters_max) S.num_iters_max = S.num_iters_last_run
@@ -1183,15 +1183,15 @@ void function map_solve(`Problem' S, `Varlist' vars,
 	if (S.verbose>1) printf("{txt} - Saving transformed variables\n")
 	i = 1
 	while (cols(y)>0) {
-		if (S.groupsize>=cols(y)) {
+		if (S.poolsize>=cols(y)) {
 			st_store(., st_addvar("double", newvars[i..length(newvars)]), y)
 			y = J(0,0,.) // clear space
 		}
 		else {
-			st_store(., st_addvar("double", newvars[i..(i+S.groupsize-1)]), y[., 1..(S.groupsize)])
-			y = y[., (S.groupsize+1)..cols(y)] // clear space
+			st_store(., st_addvar("double", newvars[i..(i+S.poolsize-1)]), y[., 1..(S.poolsize)])
+			y = y[., (S.poolsize+1)..cols(y)] // clear space
 		}
-		i = i + S.groupsize
+		i = i + S.poolsize
 	}
 
 	for (i=1;i<=Q;i++) {
@@ -1256,7 +1256,7 @@ void function map_solve(`Problem' S, `Varlist' vars,
 // For discussion on the stopping criteria, see the following presentation:
 // Arioli & Gratton, "Least-squares problems, normal equations, and stopping criteria for the conjugate gradient method". URL: https://www.stfc.ac.uk/SCD/resources/talks/Arioli-NAday2008.pdf
 
-// Basically, we will use the Hestenes and Siefel rule
+// Basically, we will use the Hestenes and Stiefel rule
 
 `Group' function accelerate_cg(`Problem' S, `Group' y, `FunctionPointer' T) {
 	// BUGBUG iterate the first 6? without acceleration??
@@ -1869,21 +1869,21 @@ program define reghdfe
 * Set Stata version
 	version `=clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
 
-* Intercept old version call
+* Intercept old+version
 	cap syntax, version old
 	if !c(rc) {
 		reghdfe_old, version
 		exit
 	}
 
-* Intercept version calls
+* Intercept version
 	cap syntax, version
 	if !c(rc) {
 		Version
 		exit
 	}
 
-* Intercept call to old version
+* Intercept old
 	cap syntax anything(everything) [fw aw pw/], [*] old
 	if !c(rc) {
 		di as error "(running historical version of reghdfe)"
@@ -1892,9 +1892,10 @@ program define reghdfe
 		exit
 	}
 
-* Intercept cleanup of cache (must be before replay)
-	cap syntax, CLEANupcache
-	if !c(rc) {
+* Intercept cache(clear) (must be before replay)
+	local cache
+	cap syntax, CACHE(string)
+	if ("`cache'"=="clear") {
 		cap mata: mata drop HDFE_S // overwrites c(rc)
 		cap mata: mata drop varlist_cache
 		cap mata: mata drop tss_cache
@@ -1903,16 +1904,18 @@ program define reghdfe
 		exit
 	}
 
-* Intercept replays
+* Intercept replay
 	if replay() {
 		if (`"`e(cmd)'"'!="reghdfe") error 301
-		Replay `0'
+		if ("`0'"=="") local comma ","
+		Replay `comma' `0' stored // also replays stored regressions (first stages, reduced, etc.)
 		exit
 	}
 
-* Intercept savecache
-	cap syntax anything(everything) [fw aw pw/], [*] SAVEcache
-	if !c(rc) {
+* Intercept cache(save)
+	local cache
+	cap syntax anything(everything) [fw aw pw/], [*] CACHE(string)
+	if (strpos("`cache'", "save")==1) {
 		cap noi InnerSaveCache `0'
 		if (c(rc)) {
 			local rc = c(rc)
@@ -1926,14 +1929,15 @@ program define reghdfe
 		exit
 	}
 
-* Intercept usecache
-	cap syntax anything(everything) [fw aw pw/], [*] USEcache
-	if !c(rc) {
+* Intercept cache(use)
+	local cache
+	cap syntax anything(everything) [fw aw pw/], [*] CACHE(string)
+	if ("`cache'"=="use") {
 		InnerUseCache `0'
 		exit
 	}
 
-* Finally, call Inner
+* Finally, call Inner if not intercepted before
 	local is_cache : char _dta[reghdfe_cache]
 	Assert ("`is_cache'"!="1"), msg("reghdfe error: data transformed with -savecache- requires option -usecache-")
 	cap noi Inner `0'
@@ -2006,7 +2010,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.0.50 05jun2015"
+    local version "3.1.1 12jun2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2140,7 +2144,7 @@ if (`timeit') Tic, n(55)
 	if ("`stages'"!="none") {
 		Debug, level(1) msg(_n "{title:Stages to run}: " as result "`stages'")
 		* Need to backup some locals
-		local backuplist residuals groupvar fast will_save_fe depvar indepvars endogvars instruments original_depvar tss
+		local backuplist residuals groupvar fast will_save_fe depvar indepvars endogvars instruments original_depvar tss suboptions
 		foreach loc of local backuplist {
 			local backup_`loc' ``loc''
 		}
@@ -2189,6 +2193,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 			local instruments
 			local groupvar
 			local residuals
+			local suboptions `stage_suboptions'
 		}
 	}
 
@@ -2206,7 +2211,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 	local opts ///
 		depvar indepvars endogvars instruments ///
 		vceoption vcetype ///
-		kk suboptions showraw vceunadjusted first weightexp ///
+		kk suboptions ffirst weightexp ///
 		estimator twicerobust /// Whether to run or not two-step gmm
 		num_clusters clustervars // Used to fix e() of ivreg2 first stages
 	foreach opt of local opts {
@@ -2288,7 +2293,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * POST ERETURN - Add e(...) (besides e(sample) and those added by the wrappers)	
 	local opt_list
-	local opts dofadjustments subpredict model stage stages subcmd cmdline vceoption equation_d original_absvars extended_absvars vcetype vcesuite tss r2c savefirst diopts weightvar gmm2s cue liml dkraay by level num_clusters clustervars timevar backup_original_depvar original_indepvars original_endogvars original_instruments
+	local opts dofadjustments subpredict model stage stages subcmd cmdline vceoption equation_d original_absvars extended_absvars vcetype vcesuite tss r2c savestages diopts weightvar gmm2s cue liml dkraay by level num_clusters clustervars timevar backup_original_depvar original_indepvars original_endogvars original_instruments
 	foreach opt of local opts {
 		local opt_list `opt_list' `opt'(``opt'')
 	}
@@ -2296,13 +2301,11 @@ foreach lhs_endogvar of local lhs_endogvars {
 	Post, `opt_list' coefnames(`b')
 	if (`timeit') Toc, n(78) msg(post)
 
-* REPLAY - Show the regression table	
-	if ("`stage'"!="none") Debug, level(0) msg(_n "{title:Stage: `stage'}" _n)
-	if ("`lhs_endogvar'"!="<none>") Debug, level(0) msg("{title:Endogvar: `original_depvar'}")
+* REPLAY - Show the regression table
 	Replay
 
 * STAGES - END
-	if (!inlist("`stage'","none", "iv")) {
+	if (!inlist("`stage'","none", "iv") & `savestages') {
 		local estimate_name reghdfe_`stage'`i_endogvar'
 		local stored_estimates `stored_estimates' `estimate_name'
 		local cmd estimates store `estimate_name', nocopy
@@ -2311,8 +2314,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 	}
 	else if ("`stage'"=="iv") {
 		* On the last stage, save list of all stored estimates
-		assert "`stored_estimates'"!=""
-		ereturn `hidden' local stored_estimates = "`stored_estimates'"
+		if ("`stored_estimates'"!="") ereturn `hidden' local stored_estimates = "`stored_estimates'"
 	}
 } // lhs_endogvar
 } // stage
@@ -2351,72 +2353,61 @@ program define Parse
 
 * Parse the broad syntax (also see map_init(), ParseAbsvars.ado, ParseVCE.ado, etc.)
 	syntax anything(id="varlist" name=0 equalok) [if] [in] [aw pw fw/] , ///
-	/// Main Options ///
-		Absorb(string) ///
-		[ ///
-		VCE(string) CLuster(string) /// Cluster is an undocumented alternative to vce(cluster ...)
+		/// Model ///
+		Absorb(string) [ ///
+		RESiduals(name) ///
+		SUBOPTions(string) /// Options to be passed to the estimation command (e.g . to regress)
+		/// Standard Errors ///
+		VCE(string) CLuster(string) /// cluster() is an undocumented alternative to vce(cluster ...)
+		/// IV/2SLS/GMM ///
+		ESTimator(string) /// 2SLS GMM2s CUE LIML
+		STAGEs(string) /// besides iv (always on), first reduced ols acid (and all)
+		FFirst /// Save first-stage stats (only with ivreg2)
+		IVsuite(string) /// ivreg2 or ivregress
+		/// Diagnostic ///
 		Verbose(string) ///
-	/// Seldom Used ///
-		DOFadjustments(string) ///
-		GROUPVAR(name) /// Variable that will contain the first connected group between FEs
-	/// Optimization /// Defaults are handled within Mata		
-		FAST /// Fast precludes i) saving FE, ii) running predict, iii) saving groupvar
-		GROUPsize(string) /// Process variables in batches of #
-		TRAnsform(string) ///
-		ACCELeration(string) ///
+		TIMEit ///
+		/// Optimization /// Defaults are handled within Mata		
 		TOLerance(string) ///
 		MAXITerations(string) ///
+		POOLsize(string) /// Process variables in batches of #
+		ACCELeration(string) ///
+		TRAnsform(string) ///
+		/// Speedup Tricks ///
+		CACHE(string) ///
+		FAST ///
+		/// Degrees-of-freedom Adjustments ///
+		DOFadjustments(string) ///
+		GROUPVar(name) /// Variable that will contain the first connected group between FEs
+		/// Undocumented ///
 		KEEPSINgletons /// (UNDOCUMENTED) Will keep singletons
-		CHECK /// TODO: Implement
-		TIMEit ///
-	/// Regression ///
-		ESTimator(string) /// GMM2s CUE LIML
-		IVsuite(string) ///
-		SAVEFIRST ///
-		FIRST ///
-		SHOWRAW ///
-		VCEUNADJUSTED /// (UNDOCUMENTED) Option when running gmm2s with ivregress; will match results of ivreg2
-		SMALL Hascons TSSCONS /// ignored options
-		SUBOPTions(string) /// Options to be passed to the estimation command (e.g . to regress)
-	/// Multiple regressions in one go ///
-		STAGEs(string) ///
-		SAVEcache ///
-		KEEPvars(varlist) ///
-		USEcache ///
-		NESTED /// TODO: Implement
-	/// Miscellanea ///
-		NOTES(string) /// NOTES(key=value ..)
-		RESiduals(name) ///
-		] [*] // For display options ; and SUmmarize(stats)
+		NOTES(string) /// NOTES(key=value ...), will be stored on e()
+		] [*] // Captures i) display options, ii) SUmmarize|SUmmarize(...)
 
 	local allkeys cmdline if in timeit
 
-* Need to do this early
+* Do this early
 	local timeit = "`timeit'"!=""
 	local fast = "`fast'"!=""
-	local savecache = "`savecache'"!=""
-	local usecache = "`usecache'"!=""
-	if (!`usecache') {
-		local is_cache : char _dta[reghdfe_cache]
-		Assert "`is_cache'"!="1", msg("reghdfe error: data transformed with -savecache- requires -usecache-")
+	local ffirst = "`ffirst'"!=""
+	
+	if ("`cluster'"!="") {
+		Assert ("`vce'"==""), msg("cannot specify both cluster() and vce()")
+		local vce cluster `cluster'
+		local cluster // Set it to empty to avoid bugs in subsequent lines
 	}
 
-* Sanity checks on usecache
-* (this was at the end, but if there was no prev savecache, HDFE_S didn't exist and those lines were never reached)
-	if (`usecache') {
-		local is_cache : char _dta[reghdfe_cache]
-		local cache_obs : char _dta[cache_obs]
-		local cache_absorb : char _dta[absorb]
-		Assert "`is_cache'"=="1" , msg("usecache requires a previous savecache operation")
-		Assert `cache_obs'==`c(N)', msg("dataset cannot change after savecache")
-		Assert "`cache_absorb'"=="`absorb'", msg("cache dataset has different absorb()")
-		Assert "`if'`in'"=="", msg("cannot use if/in with usecache; data has already been transformed")
+* Also early
+	ParseCache, cache(`cache') ifin(`if'`in') absorb(`absorb') vce(`vce')
+	local keys savecache keepvars usecache
+	foreach key of local keys {
+		local `key' "`s(`key')'"
 	}
+	local allkeys `allkeys' `keys'
 
 * Parse varlist: depvar indepvars (endogvars = iv_vars)
-	ParseIV `0', estimator(`estimator') ivsuite(`ivsuite') `savefirst' `first' `showraw' `vceunadjusted' `small'
-	local keys subcmd model ivsuite estimator depvar indepvars endogvars instruments fe_format ///
-		savefirst first showraw vceunadjusted basevars
+	ParseIV `0', estimator(`estimator') ivsuite(`ivsuite')
+	local keys subcmd model ivsuite estimator depvar indepvars endogvars instruments fe_format basevars
 	foreach key of local keys {
 		local `key' "`s(`key')'"
 	}
@@ -2494,7 +2485,7 @@ else {
 
 	* Numeric options
 	local keepsingletons = ("`keepsingletons'"!="")
-	local optlist groupsize verbose tolerance maxiterations keepsingletons timeit
+	local optlist poolsize verbose tolerance maxiterations keepsingletons timeit
 	foreach opt of local optlist {
 		if ( "``opt''"!="" & (!`usecache' | "`opt'"=="verbose") ) mata: map_init_`opt'(HDFE_S, ``opt'')
 	}
@@ -2505,50 +2496,37 @@ else {
 	local allkeys `allkeys' verbose
 
 * Stages (before vce)
-	assert "`model'"!="" // just to be sure this goes after `model' is set
-	if ("`stages'"=="all") local stages iv ols first acid reduced
-	local iv_stage iv
-	local stages : list stages - iv_stage
-	local valid_stages ols first acid reduced
-	local wrong_stages : list stages - valid_stages
-	Assert "`wrong_stages'"=="", msg("Error, invalid stages(): `wrong_stages'")
-	if ("`stages'"!="") {
-		Assert "`model'"=="iv", msg("Error, stages() only valid with an IV regression")
-		local stages `stages' `iv_stage' // Put -iv- *last* (so it does the -restore-; note that we don't need it first to trim MVs b/c that's done earlier)
-	}
-	else {
-		local stages none // So we can loop over stages
-	}
-	local allkeys `allkeys' stages
+	ParseStages, stages(`stages') model(`model')
+	local stages "`s(stages)'"
+	local stage_suboptions "`s(stage_suboptions)'"
+	local savestages = `s(savestages)'
+	local allkeys `allkeys' stages stage_suboptions savestages
 
 * Parse VCE options (after stages)
-	if ("`cluster'"!="") {
-		Assert ("`vce'"==""), msg("cannot specify both cluster() and vce()")
-		local vce cluster `cluster'
-		local cluster // Set it to empty to avoid bugs in subsequent lines
-	}
-
 	local keys vceoption vcetype vcesuite vceextra num_clusters clustervars bw kernel dkraay kiefer twicerobust
 	if (!`usecache') {
 		mata: st_local("hascomma", strofreal(strpos("`vce'", ","))) // is there a commma already in `vce'?
 		local vcetmp `vce'
 		if (!`hascomma') local vcetmp `vce' ,
-		ParseVCE `vcetmp' weighttype(`weighttype') stages(`stages') ivsuite(`ivsuite') model(`model')
+		ParseVCE `vcetmp' weighttype(`weighttype') ivsuite(`ivsuite') model(`model')
 		foreach key of local keys {
 			local `key' "`s(`key')'"
 		}
 	}
 	else {
-		local cache_vce : char _dta[vce]
-		Assert "`cache_vce'"=="`vce'", msg("vce() must be the same in savecache and usecache (because of the cluster variables)")
 		foreach key of local keys {
 			local `key' : char _dta[`key']
 		}
 	}
 
 	local allkeys `allkeys' `keys'
+
+* Parse FFIRST (save first stage statistics)
+	local allkeys `allkeys' ffirst
+	if (`ffirst') Assert "`model'"!="ols", msg("ols does not support {cmd}ffirst")
+	if (`ffirst') Assert "`ivsuite'"=="ivreg2", msg("option {cmd}ffirst{err} requires ivreg2")
 	
-	* Update Mata
+* Update Mata
 	if ("`clustervars'"!="" & !`usecache') mata: map_init_clustervars(HDFE_S, "`clustervars'")
 	if ("`vceextra'"!="" & !`usecache') mata: map_init_vce_is_hac(HDFE_S, 1)
 
@@ -2581,8 +2559,7 @@ else {
 		di as error "(warning: option -fast- disabled; not allowed when saving variables: saving fixed effects, mobility groups, residuals)"
 		local fast 0
 	}
-	if ("`keepvars'"!="" & !`savecache') di as error "(warning: keepvars() has no effect without savecache)"
-	local allkeys `allkeys' fast savecache keepvars usecache level
+	local allkeys `allkeys' fast level
 
 * Nested
 	local nested = cond("`nested'"!="", 1, 0) // 1=Yes
@@ -2594,10 +2571,9 @@ else {
 
 * Sanity checks on speedups
 * With -savecache-, this adds chars (modifies the dta!) so put it close to the end
-	Assert `usecache' + `savecache' < 2, msg("savecache and usecache are mutually exclusive")
 	if (`savecache') {
 		* Savecache "requires" a previous preserve, so we can directly modify the dataset
-		Assert "`endogvars'`instruments'"=="", msg("savecache option requires a normal varlist, not an iv varlist")
+		Assert "`endogvars'`instruments'"=="", msg("cache(save) option requires a normal varlist, not an iv varlist")
 		char _dta[reghdfe_cache] 1
 		local chars absorb N_hdfe original_absvars extended_absvars vce vceoption vcetype vcesuite vceextra num_clusters clustervars bw kernel dkraay kiefer twicerobust
 		foreach char of local  chars {
@@ -2625,10 +2601,45 @@ else {
 
 end
 
+program define ParseCache, sclass
+	syntax, [CACHE(string)] [IFIN(string) ABSORB(string) VCE(string)] 
+	if ("`cache'"!="") {
+		local 0 `cache'
+		syntax name(name=opt id="cache option"), [KEEPvars(varlist)]
+		Assert inlist("`opt'", "save", "use"), msg("invalid cache option {cmd`opt'}") // -clear- is also a valid option but intercepted earlier
+	}
+
+	local savecache = ("`opt'"=="save")
+	local usecache = ("`opt'"=="use")
+	local is_cache : char _dta[reghdfe_cache]
+
+	* Sanity checks on usecache
+	if (`usecache') {
+		local cache_obs : char _dta[cache_obs]
+		local cache_absorb : char _dta[absorb]
+		local cache_vce : char _dta[vce]
+
+		Assert "`is_cache'"=="1" , msg("cache(use) requires a previous cache(save) operation")
+		Assert `cache_obs'==`c(N)', msg("dataset cannot change after cache(save)")
+		Assert "`cache_absorb'"=="`absorb'", msg("cached dataset has different absorb()")
+		Assert "`ifin'"=="", msg("cannot use if/in with cache(use); data has already been transformed")
+		Assert "`cache_vce'"=="`vce'", msg("cached dataset has a different vce()")
+	}
+	else {
+		Assert "`is_cache'"!="1", msg("reghdfe error: data transformed with cache(save) requires cache(use)")
+	}
+	
+	if (!`savecache') Assert "`keepvars'"=="", msg("reghdfe error: {cmd:keepvars()} suboption requires {cmd:cache(save)}")
+
+	local keys savecache keepvars usecache
+	foreach key of local keys {
+		sreturn local `key' ``key''
+	}
+end
+
 program define ParseIV, sclass
 	syntax anything(id="varlist" name=0 equalok), [ ///
-		estimator(string) ivsuite(string) ///
-		savefirst first showraw vceunadjusted small]
+		estimator(string) ivsuite(string) ]
 
 	* Parses varlist: depvar indepvars [(endogvars = instruments)]
 		* depvar: dependent variable
@@ -2648,18 +2659,13 @@ program define ParseIV, sclass
 	* IV Suite
 	if ("`model'"=="iv") {
 		if ("`ivsuite'"=="") local ivsuite ivreg2 // Set default
-		Assert inlist("`ivsuite'","ivreg2","ivregress") , msg("error: wrong IV routine (`ivsuite'), valid options are -	ivreg2- and -ivregress-")
+		Assert inlist("`ivsuite'","ivreg2","ivregress") , ///
+			msg("error: wrong IV routine (`ivsuite'), valid options are -ivreg2- and -ivregress-")
 		cap findfile `ivsuite'.ado
 		Assert !_rc , msg("error: -`ivsuite'- not installed, please run {stata ssc install `ivsuite'} or change the option 	-ivsuite-")
-
-		local savefirst = ("`savefirst'"!="")
-		local first = ("`first'"!="")
-		if (`savefirst') Assert `first', msg("Option -savefirst- requires -first-")
 		local subcmd `ivsuite'
 	}
 	else {
-		local savefirst
-		local first
 		local subcmd regress
 	}
 
@@ -2673,6 +2679,7 @@ program define ParseIV, sclass
 			msg("reghdfe error: invalid estimator `estimator'")
 		if ("`estimator'"=="cue") Assert "`ivsuite'"=="ivreg2", ///
 			msg("reghdfe error: estimator `estimator' only available with the ivreg2 command, not ivregress")
+		if ("`estimator'"=="cue") di as text "(warning: -cue- estimator is not exact, see help file)"
 	}
 
 	* For this, _iv_parse would have been useful, but I don't want to do factor expansions when parsing
@@ -2730,20 +2737,6 @@ program define ParseIV, sclass
 	local dupvars : list dups allvars
 	Assert "`dupvars'"=="", msg("error: there are repeated variables: <`dupvars'>")
 
-* More IV options
-	if ("`small'"!="") di in ye "(note: reghdfe will always use the option -small-, no need to specify it)"
-
-* Parse -showraw- : shows raw output of called subcommand (e.g. ivreg2)
-	local showraw = ("`showraw'"!="")
-
-* Parse -unadjusted-
-	* If true, will use wmatrix(...) vce(unadjusted) instead of the default of setting vce contents equal to wmatrix
-	* This basically undoes the extra adjustment that ivregress does, so it's comparable with ivreg2
-	*
-	* Note: Cannot match exactly the -ivregress- results without vceunadjusted (see test-gmm.do)
-	* Thus, I will set this to true ALWAYS
-	local vceunadjusted = 1 // ("`vceunadjusted'"!="")
-
 * Get base variables of time and factor variables (e.g. i.foo L(1/3).bar -> foo bar)
 	foreach vars in depvar indepvars endogvars instruments {
 		if ("``vars''"!="") {
@@ -2753,11 +2746,35 @@ program define ParseIV, sclass
 	}
 
 	local keys subcmd model ivsuite estimator depvar indepvars endogvars instruments fe_format ///
-		savefirst first showraw vceunadjusted basevars
+		basevars
 	foreach key of local keys {
 		sreturn local `key' ``key''
 	}
 end 
+
+program define ParseStages, sclass
+	syntax, model(string) [stages(string)] // model can't be blank at this point!
+	local 0 `stages'
+	syntax [namelist(name=stages)], [noSAVE] [*]
+	
+	if ("`stages'"=="") local stages none
+	if ("`stages'"=="all") local stages iv first ols reduced acid
+
+	if ("`stages'"!="none") {
+		Assert "`model'"!="ols", msg("{cmd:stages(`stages')} not allowed with ols")
+		local special iv none
+		local valid_stages first ols reduced acid
+		local stages : list stages - special
+		local wrong_stages : list stages - valid_stages
+		Assert "`wrong_stages'"=="", msg("Error, invalid stages(): `wrong_stages'")
+		* The "iv" stage will be always on for IV-type regressions
+		local stages `stages' iv // put it last so it does the restore
+	}
+
+	sreturn local stages `stages'
+	sreturn local stage_suboptions `options'
+	sreturn local savestages = ("`save'"!="nosave")
+end
 
 program define ParseVCE, sclass
 	* Note: bw=1 *usually* means just do HC instead of HAC
@@ -2768,7 +2785,6 @@ program define ParseVCE, sclass
 			[bw(integer 1) KERnel(string) dkraay(integer 1) kiefer] ///
 			[suite(string) TWICErobust] ///
 			[weighttype(string)] ///
-			stages(string) ///
 			model(string) ///
 			[ivsuite(string)]
 
@@ -2818,7 +2834,6 @@ program define ParseVCE, sclass
 		Assert !_rc , msg("error: -tuples- not installed, please run {stata ssc install tuples} to estimate multi-way clusters.")
 	}
 	
-	* DISABLED FOR SPEED: //  | "`stages'"!="none" // We use -avar- as default with stages (on the non-iv stages)
 	if ("`vcesuite'"=="avar") { 
 		cap findfile avar.ado
 		Assert !_rc , msg("error: -avar- not installed, please run {stata ssc install avar} or change the option -vcesuite-")
@@ -2837,6 +2852,11 @@ program define ParseVCE, sclass
 	if ("`kernel'"!="") local vceextra `vceextra' kernel(`kernel')
 	if ("`vceextra'"!="") local vceextra , `vceextra'
 	local vceoption "`vcetype'`temp_clustervars'`vceextra'" // this excludes "vce(", only has the contents
+
+* Parse -twicerobust-
+	* If true, will use wmatrix(...) vce(...) instead of wmatrix(...) vce(unadjusted)
+	* The former is closer to -ivregress- but not exact, the later matches -ivreg2-
+	local twicerobust = ("`twicerobust'"!="")
 
 	local keys vceoption vcetype vcesuite vceextra num_clusters clustervars bw kernel dkraay twicerobust kiefer
 	foreach key of local keys {
@@ -3629,7 +3649,8 @@ program define Wrapper_ivreg2, eclass
 		[indepvars(varlist)] ///
 		vceoption(string asis) ///
 		KK(integer) ///
-		[SHOWRAW(integer 0)] first(integer) [weightexp(string)] ///
+		ffirst(integer) ///
+		[weightexp(string)] ///
 		[ESTimator(string)] ///
 		[num_clusters(string) clustervars(string)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
@@ -3655,27 +3676,14 @@ program define Wrapper_ivreg2, eclass
 	if ("`kiefer'"!="") local vceoption `vceoption' kiefer
 	
 	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' (`endogvars'=`instruments')" )) )
-	
-	if (`first') {
-		local firstoption "first savefirst"
-	}
 
-	if ("`estimator'"!="2sls") local opt_estimator `estimator'
+	local opt small nocons sdofminus(`kk') `vceoption'  `suboptions'
+	if (`ffirst') local opt `opt' ffirst
+	if ("`estimator'"!="2sls") local opt `opt' `estimator'
 	
-	* Variables have already been demeaned, so we need to add -nocons- or the matrix of orthog conditions will be singular
-	if ("`cue'"=="") {
-		local nocons nocons // Exception to get the same results as ivreg2, partial
-	}
-	else {
-		local nocons nocons // partial(cons)
-	}
-
-	local subcmd ivreg2 `vars' `weightexp', `vceoption' `firstoption' small sdofminus(`kk') `nocons' `opt_estimator' `suboptions'
+	local subcmd ivreg2 `vars' `weightexp', `opt'
 	Debug, level(3) msg(_n "call to subcommand: " _n as result "`subcmd'")
-	local noise = cond(`showraw', "noi", "qui")
-	if ("`noise'"=="noi") di as input _n "{title:Raw Results (without fixing tempnames):}"
-	`noise' `subcmd'
-	if ("`noise'"=="noi") di in red "{hline 64}" _n "{hline 64}"
+	qui `subcmd'
 	ereturn scalar tss = e(mss) + e(rss) // ivreg2 doesn't report e(tss)
 	ereturn scalar unclustered_df_r = e(N) - e(df_m)
 
@@ -3686,62 +3694,11 @@ program define Wrapper_ivreg2, eclass
 		error 2000
 	}
 
-	if (`first') {
-		ereturn `hidden' local first_prefix = "_ivreg2_"
-	}
-
 	local cats depvar instd insts inexog exexog collin dups ecollin clist redlist ///
 		exexog1 inexog1 instd1 
 	foreach cat in `cats' {
 		FixVarnames `e(`cat')'
 		ereturn local `cat' = "`r(newnames)'"
-	}
-
-	if (`first') {
-		local firsteqs "`e(firsteqs)'"
-		tempname hold
-		estimates store `hold' , nocopy
-		foreach fs_eqn in `firsteqs' {
-			qui estimates restore `fs_eqn'
-
-			foreach cat in `cats' {
-				FixVarnames `e(`cat')'
-				ereturn local `cat' = "`r(newnames)'"
-			}
-
-			* Fix e(clustvar) and e(clustvar#); modified from Post.ado
-			if ("`e(clustvar)'"!="") {
-				local subtitle = "`e(hacsubtitleV)'"
-				if (`num_clusters'>1) {
-					local rest `clustervars'
-					forval i = 1/`num_clusters' {
-						gettoken token rest : rest
-						if (strpos("`e(clustvar`i')'", "__")==1) {
-							local subtitle = subinstr("`subtitle'", "`e(clustvar`i')'", "`token'", 1)
-						}
-						ereturn local clustvar`i' `token'
-					}
-				}
-				else {
-					local subtitle = subinstr("`subtitle'", "`e(clustvar)'", "`clustervars'", 1)
-				}
-				ereturn scalar N_clustervars = `num_clusters'
-				ereturn local clustvar `clustervars'
-				ereturn local hacsubtitleV = "`subtitle'"
-			}
-
-			tempname b
-			matrix `b' = e(b)
-			local backup_colnames : colnames `b'
-			FixVarnames `backup_colnames'
-			matrix colnames `b' = `r(newnames)'
-			ereturn repost b=`b', rename
-
-			estimates store `fs_eqn', nocopy
-		}
-		qui estimates restore `hold'
-		estimates drop `hold'
-
 	}
 end
 
@@ -3751,8 +3708,7 @@ program define Wrapper_ivregress, eclass
 		vceoption(string asis) ///
 		KK(integer) ///
 		[weightexp(string)] ///
-		SHOWRAW(integer) first(integer) vceunadjusted(integer) ///
-		[ESTimator(string) TWICErobust(string)] ///
+		[ESTimator(string) TWICErobust(integer 0)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
@@ -3772,25 +3728,17 @@ program define Wrapper_ivregress, eclass
 
 	if ("`estimator'"=="gmm2s") {
 		local wmatrix : subinstr local vceoption "vce(" "wmatrix("
-		if ("`twicerobust'"=="") {
-			local vceoption = cond(`vceunadjusted', "vce(unadjusted)", "")			
-		}
+		local vceoption = cond(`twicerobust', "", "vce(unadjusted)")
 	}
 	
 	* Note: the call to -ivregress- could be optimized.
 	* EG: -ivregress- calls ereturn post .. ESAMPLE(..) but we overwrite the esample and its SLOW
 	* But it's a 1700 line program so let's not worry about it
 
-* Show first stage
-	if (`first') {
-		local firstoption "first"
-	}
-
 * Subcmd
-	local subcmd ivregress `opt_estimator' `vars' `weightexp', `wmatrix' `vceoption' small noconstant `firstoption' `suboptions'
+	local subcmd ivregress `opt_estimator' `vars' `weightexp', `wmatrix' `vceoption' small noconstant `suboptions'
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
-	local noise = cond(`showraw', "noi", "qui")
-	`noise' `subcmd'
+	qui `subcmd'
 	qui test `indepvars' `endogvars' // Wald test
 	ereturn scalar F = r(F)
 
@@ -3959,7 +3907,7 @@ end
 program define Post, eclass
 	syntax, coefnames(string) ///
 		model(string) stage(string) stages(string) subcmd(string) cmdline(string) vceoption(string) original_absvars(string) extended_absvars(string) vcetype(string) vcesuite(string) tss(string) num_clusters(string) ///
-		[dofadjustments(string) clustervars(string) timevar(string) r2c(string) equation_d(string) subpredict(string) savefirst(string) diopts(string) weightvar(string) gmm2s(string) cue(string) dkraay(string) liml(string) by(string) level(string)] ///
+		[dofadjustments(string) clustervars(string) timevar(string) r2c(string) equation_d(string) subpredict(string) savestages(string) diopts(string) weightvar(string) gmm2s(string) cue(string) dkraay(string) liml(string) by(string) level(string)] ///
 		[backup_original_depvar(string) original_indepvars(string) original_endogvars(string) original_instruments(string)]
 
 	if (`c(version)'>=12) local hidden hidden // ereturn hidden requires v12+
@@ -4085,7 +4033,6 @@ program define Post, eclass
 	local used_df_r = cond(e(unclustered_df_r)<., e(unclustered_df_r), e(df_r)) - e(M_due_to_nested)
 	ereturn scalar r2_a = 1 - (e(rss)/`used_df_r') / ( e(tss) / (e(N)-1) )
 	ereturn scalar rmse = sqrt( e(rss) / `used_df_r' )
-
 	ereturn scalar r2_a_within = 1 - (e(rss)/`used_df_r') / ( e(tss_within) / (`used_df_r'+e(df_m)) )
 
 	if (e(N_clust)<.) Assert e(df_r) == e(N_clust) - 1, msg("Error, `wrapper' should have made sure that N_clust-1==df_r")
@@ -4113,10 +4060,7 @@ program define Post, eclass
 		//}
 	}
 
-	// There is a big assumption here, that the number of other parameters does not increase asymptotically
-	// BUGBUG: We could allow the option to indicate what parameters do increase asympt.
-
-	if ("`savefirst'"!="") ereturn `hidden' scalar savefirst = `savefirst'
+	if ("`savestages'"!="") ereturn `hidden' scalar savestages = `savestages'
 
 	* We have to replace -unadjusted- or else subsequent calls to -suest- will fail
 	Subtitle `vceoption' // will set title2, etc. Run after e(bw) and all the others are set!
@@ -4125,6 +4069,68 @@ program define Post, eclass
 	if ("`stages'"!="none") {
 		ereturn local stage = "`stage'"
 		ereturn `hidden' local stages = "`stages'"
+	}
+
+	* List of stored estimates
+	if ("`e(savestages)'"=="1" & "`e(model)'"=="iv") {
+		local stages = e(stages)
+		local endogvars = e(endogvars)
+		foreach stage of local stages {
+			if ("`stage'"=="first") {
+				local i 0
+				foreach endogvar of local endogvars {
+					local stored_estimates `stored_estimates' reghdfe_`stage'`++i'
+				}
+			}
+			else {
+				local stored_estimates `stored_estimates' reghdfe_`stage'
+			}
+		}
+
+	}
+
+	* Add e(first) (first stage STATISTICS, from ffirst option) to each first stage
+	* For that we require 3 things: ffirst, that we save stages, and that first is in the stage list
+	cap conf matrix e(first)
+	if (c(rc)==0 & "`e(savestages)'"=="1" & strpos("`e(stages)'", "first")) {
+		tempname firststats hold
+		matrix `firststats' = e(first)
+		local rownames : rownames `firststats'
+		local colnames : colnames `firststats'
+		local endogvars "`e(endogvars)'"
+
+		estimates store `hold'
+		local i 0
+		ereturn clear
+		foreach endogvar of local endogvars {
+			local est reghdfe_first`++i'
+			qui estimates restore `est'
+			gettoken colname colnames : colnames
+			Assert "`endogvar'"=="`colname'", msg("expected `endogvar'==`colname' from e(first)")
+			Assert "`endogvar'"=="`e(depvar)'", msg("expected `endogvar'==`e(depvar)' from e(depvar)")
+
+			local j 0
+			foreach stat of local rownames {
+				Assert "`e(first_`stat')'"=="", msg("expected e(first_`stat') to be empty")
+				ereturn scalar first_`stat' = `firststats'[`++j', `i']
+			}
+			estimates store `est', nocopy
+		}
+		ereturn clear // Need this because -estimates restore- behaves oddly
+		qui estimates restore `hold'
+		assert e(cmd)=="reghdfe"
+		estimates drop `hold'
+	}
+
+
+		ereturn local stored_estimates "`stored_estimates'"
+
+
+	if ("`e(model)'"=="iv") {
+		if ("`e(stage)'"=="first") estimates title: First-stage regression: `e(depvar)'
+		if ("`e(stage)'"=="ols") estimates title: OLS regression
+		if ("`e(stage)'"=="reduced") estimates title: Reduced-form regression
+		if ("`e(stage)'"=="acid") estimates title: Acid regression
 	}
 end
 
@@ -4242,13 +4248,28 @@ end
 // -------------------------------------------------------------
 
  program define Replay, eclass
-	syntax , [*]
+	syntax , [stored] [*]
 	Assert e(cmd)=="reghdfe"
 	local subcmd = e(subcmd)
 	Assert "`subcmd'"!="" , msg("e(subcmd) is empty")
 	if (`c(version)'>=12) local hidden hidden
 
-	local savefirst = e(savefirst)
+	if ("`stored'"!="" & "`e(stored_estimates)'"!="" & "`e(stage)'"=="iv") {
+		local est_list = e(stored_estimates)
+		tempname hold
+		estimates store `hold'
+		foreach est of local est_list {
+			cap estimates restore `est'
+			if (!c(rc)) Replay
+		}
+		ereturn clear // Need this because -estimates restore- behaves oddly
+		qui estimates restore `hold'
+		assert e(cmd)=="reghdfe"
+		estimates drop `hold'
+	}
+
+	if ("`e(stage)'"=="first") local first_depvar " - `e(depvar)'"
+	if ("`e(stage)'"!="") di as text _n "{inp}{title:Stage: `e(stage)'`first_depvar'}"
 
 	local diopts = "`e(diopts)'"
 	if ("`options'"!="") { // Override
@@ -4258,43 +4279,14 @@ end
 	if ("`subcmd'"=="ivregress") {
 		* Don't want to display anova table or footnote
 		_coef_table_header
-		_coef_table, `diopts' bmatrix(`b') vmatrix(e(V)) // plus 
+		_coef_table, `diopts'
 	}
 	else if ("`subcmd'"=="ivreg2") {
-		* Backup before showing both first and second stage
-		tempname hold
-		
-		if ("`e(firsteqs)'"!="") {
-			estimates store `hold'
-
-			local i 0
-			foreach fs_eqn in `e(firsteqs)' {
-				local instrument  : word `++i' of `e(instd)'
-				di as input _n "{title:First stage for `instrument'}"
-				cap noi estimates replay `fs_eqn' , nohead `diopts'
-				if (!`savefirst') estimates drop `fs_eqn'
-			}
-
-			ereturn clear
-			qui estimates restore `hold'
-			di as input _n "{title:Second stage}"
-		}
-
-		// BUGBUG: Update this part
-		estimates store `hold'
-		// ereturn repost b=`b', rename
+		cap conf matrix e(first)
+		if (c(rc)==0) local ffirst ffirst
 		ereturn local cmd = "`subcmd'"
-		`subcmd' , `diopts'
-		ereturn clear // Need this because -estimates restore- behaves oddly
-		qui estimates restore `hold'
-		assert e(cmd)=="reghdfe"
-		estimates drop `hold'
-
-
-		*ereturn local cmd = "reghdfe"
-		*matrix `b' = e(b)
-		*matrix colnames `b' = `backup_colnames'
-		*ereturn repost b=`b', rename
+		`subcmd' , `diopts' `ffirst'
+		ereturn local cmd = "reghdfe"
 	}
 	else {
 
@@ -4306,13 +4298,11 @@ end
 			exit
 		}
 		
-
-		*_coef_table_header
-		Header
+		Header // _coef_table_header
 
 		di
 		local plus = cond(e(model)=="ols" & inlist("`e(vce)'", "unadjusted", "ols"), "plus", "")
-		_coef_table, `plus' `diopts' bmatrix(`b') vmatrix(e(V))
+		_coef_table, `plus' `diopts'
 	}
 	mata: reghdfe_width = max(strlen(st_matrixcolstripe_split("r(table)", 32, 0)))
 	mata: st_local("width" , strofreal(reghdfe_width))
@@ -4541,7 +4531,7 @@ program define InnerSaveCache, eclass
 	foreach var of local expandedvars {
 		qui su `var' `tmpweightexp' // BUGBUG: Is this correct?!
 		local tss = r(Var)*(r(N)-1)
-		mata: asarray(tss_cache, "`var'", `tss')
+		mata: asarray(tss_cache, "`var'", "`tss'")
 	}
 	*NOTE: r2c is too slow and thus won't be saved
 	*ALTERNATIVE: Allow a varlist of the form (depvars) (indepvars) and only compute for those
@@ -4613,7 +4603,7 @@ program define InnerUseCache, eclass
 
 * PREPARE - Compute untransformed tss, R2 of eqn w/out FEs
 	if (`timeit') Tic, n(54)
-	mata: st_local("tss", strofreal(asarray(tss_cache, "`depvar'")))
+	mata: st_local("tss", asarray(tss_cache, "`depvar'"))
 	Assert `tss'<., msg("tss of depvar `depvar' not found in cache")
 	foreach var of local endogvars {
 		mata: st_local("tss_`var'", strofreal(asarray(tss_cache, "`var'")))
@@ -4633,7 +4623,7 @@ program define InnerUseCache, eclass
 	if ("`stages'"!="none") {
 		Debug, level(1) msg(_n "{title:Stages to run}: " as result "`stages'")
 		* Need to backup some locals
-		local backuplist residuals groupvar fast will_save_fe depvar indepvars endogvars instruments original_depvar tss
+		local backuplist residuals groupvar fast will_save_fe depvar indepvars endogvars instruments original_depvar tss suboptions
 		foreach loc of local backuplist {
 			local backup_`loc' ``loc''
 		}
@@ -4682,6 +4672,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 			local instruments
 			local groupvar
 			local residuals
+			local suboptions `stage_suboptions'
 		}
 	}
 
@@ -4699,7 +4690,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 	local opts /// cond // BUGUBG: Add by() (cond) options
 		depvar indepvars endogvars instruments ///
 		vceoption vcetype ///
-		kk suboptions showraw vceunadjusted first weightexp ///
+		kk suboptions ffirst weightexp ///
 		estimator twicerobust /// Whether to run or not two-step gmm
 		num_clusters clustervars // Used to fix e() of ivreg2 first stages
 	foreach opt of local opts {
@@ -4742,7 +4733,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * POST ERETURN - Add e(...) (besides e(sample) and those added by the wrappers)	
 	local opt_list
-	local opts dofadjustments subpredict model stage stages subcmd cmdline vceoption equation_d original_absvars extended_absvars vcetype vcesuite tss r2c savefirst diopts weightvar gmm2s cue liml dkraay by level num_clusters clustervars timevar backup_original_depvar original_indepvars original_endogvars original_instruments
+	local opts dofadjustments subpredict model stage stages subcmd cmdline vceoption equation_d original_absvars extended_absvars vcetype vcesuite tss r2c savestages diopts weightvar gmm2s cue liml dkraay by level num_clusters clustervars timevar backup_original_depvar original_indepvars original_endogvars original_instruments
 	foreach opt of local opts {
 		local opt_list `opt_list' `opt'(``opt'')
 	}
@@ -4757,7 +4748,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * STAGES - END
 	if (`timeit') Tic, n(70)
-	if (!inlist("`stage'","none", "iv")) {
+	if (!inlist("`stage'","none", "iv") & `savestages') {
 		local estimate_name reghdfe_`stage'`i_endogvar'
 		local stored_estimates `stored_estimates' `estimate_name'
 		local cmd estimates store `estimate_name', nocopy
@@ -4766,8 +4757,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 	}
 	else if ("`stage'"=="iv") {
 		* On the last stage, save list of all stored estimates
-		assert "`stored_estimates'"!=""
-		ereturn `hidden' local stored_estimates = "`stored_estimates'"
+		if ("`stored_estimates'"!="") ereturn `hidden' local stored_estimates = "`stored_estimates'"
 	}
 	if (`timeit') Toc, n(70) msg(store estimates if needed)
 

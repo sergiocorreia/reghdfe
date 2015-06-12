@@ -1,8 +1,7 @@
 capture program drop ParseIV
 program define ParseIV, sclass
 	syntax anything(id="varlist" name=0 equalok), [ ///
-		estimator(string) ivsuite(string) ///
-		twicerobust small]
+		estimator(string) ivsuite(string) ]
 
 	* Parses varlist: depvar indepvars [(endogvars = instruments)]
 		* depvar: dependent variable
@@ -100,14 +99,6 @@ program define ParseIV, sclass
 	local dupvars : list dups allvars
 	Assert "`dupvars'"=="", msg("error: there are repeated variables: <`dupvars'>")
 
-* More IV options
-	if ("`small'"!="") di in ye "(note: reghdfe will always use the option -small-, no need to specify it)"
-
-* Parse -twicerobust-
-	* If true, will use wmatrix(...) vce(...) instead of wmatrix(...) vce(unadjusted)
-	* The former is closer to -ivregress- but not exact, the later matches -ivreg2-
-	local twicerobust = ("`twicerobust'"!="")
-
 * Get base variables of time and factor variables (e.g. i.foo L(1/3).bar -> foo bar)
 	foreach vars in depvar indepvars endogvars instruments {
 		if ("``vars''"!="") {
@@ -117,7 +108,7 @@ program define ParseIV, sclass
 	}
 
 	local keys subcmd model ivsuite estimator depvar indepvars endogvars instruments fe_format ///
-		twicerobust basevars
+		basevars
 	foreach key of local keys {
 		sreturn local `key' ``key''
 	}

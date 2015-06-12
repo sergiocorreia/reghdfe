@@ -76,6 +76,11 @@ program define ParseVCE, sclass
 	if ("`vceextra'"!="") local vceextra , `vceextra'
 	local vceoption "`vcetype'`temp_clustervars'`vceextra'" // this excludes "vce(", only has the contents
 
+* Parse -twicerobust-
+	* If true, will use wmatrix(...) vce(...) instead of wmatrix(...) vce(unadjusted)
+	* The former is closer to -ivregress- but not exact, the later matches -ivreg2-
+	local twicerobust = ("`twicerobust'"!="")
+
 	local keys vceoption vcetype vcesuite vceextra num_clusters clustervars bw kernel dkraay twicerobust kiefer
 	foreach key of local keys {
 		sreturn local `key' ``key''

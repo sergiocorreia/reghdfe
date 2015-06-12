@@ -35,7 +35,7 @@ program define InnerSaveCache, eclass
 	foreach var of local expandedvars {
 		qui su `var' `tmpweightexp' // BUGBUG: Is this correct?!
 		local tss = r(Var)*(r(N)-1)
-		mata: asarray(tss_cache, "`var'", `tss')
+		mata: asarray(tss_cache, "`var'", "`tss'")
 	}
 	*NOTE: r2c is too slow and thus won't be saved
 	*ALTERNATIVE: Allow a varlist of the form (depvars) (indepvars) and only compute for those

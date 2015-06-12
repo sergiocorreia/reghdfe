@@ -5,12 +5,12 @@ program define ParseStages, sclass
 	syntax [namelist(name=stages)], [noSAVE] [*]
 	
 	if ("`stages'"=="") local stages none
-	if ("`stages'"=="all") local stages iv ols first acid reduced
+	if ("`stages'"=="all") local stages iv first ols reduced acid
 
 	if ("`stages'"!="none") {
 		Assert "`model'"!="ols", msg("{cmd:stages(`stages')} not allowed with ols")
 		local special iv none
-		local valid_stages ols first acid reduced
+		local valid_stages first ols reduced acid
 		local stages : list stages - special
 		local wrong_stages : list stages - valid_stages
 		Assert "`wrong_stages'"=="", msg("Error, invalid stages(): `wrong_stages'")

@@ -74,7 +74,7 @@ cscript "reghdfe with ivreg2/ivregress and two-step gmm" adofile reghdfe
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-9) include(`include')
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust) ivsuite(ivregress) tol(1e-12) est(gmm2s)  vceunadjusted keepsingletons
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust) ivsuite(ivregress) tol(1e-12) est(gmm2s)  keepsingletons
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-9) include(`include')
 
@@ -101,7 +101,6 @@ cscript "reghdfe with ivreg2/ivregress and two-step gmm" adofile reghdfe
 	*storedresults compare benchmark e(), tol(1e-2) include(matrix: trim_V) // BUGBUG!!!!!!!!!!!!!!!!!!!!!!!!!
 
 	storedresults drop benchmark
-	
 	* BUGBUG: I expected this to work but fails; so I'm setting vceunadjusted to TRUE always
 	**ivregress gmm `depvar' `indepvars' ABS_* foreign (`endogvars' = `instruments') , small wmatrix(robust) vce(robust) hascons // This one is different b/c it uses vce same as wmatrix!
 	**TrimMatrix `K'
@@ -131,7 +130,7 @@ cscript "reghdfe with ivreg2/ivregress and two-step gmm" adofile reghdfe
 	*TrimMatrix `K'
 	*storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(cluster `cluster') ivsuite(ivregress) tol(1e-12) est(gmm2s) vceunadjusted
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(cluster `cluster') ivsuite(ivregress) tol(1e-12) est(gmm2s)
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-6) include(`include')
 

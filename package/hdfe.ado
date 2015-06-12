@@ -1,4 +1,4 @@
-*! reghdfe 3.0.50 05jun2015
+*! reghdfe 3.1.1 12jun2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -100,7 +100,7 @@ struct MapProblem {
 	`Varlist'		sortedby		// Variables on which the dataset is sorted (if anything)
 	
 	// Optimization parameters	
-	`Integer'		groupsize 		// Group variables when demeaning (more is faster but uses more memory)
+	`Integer'		poolsize 		// Group variables when demeaning (more is faster but uses more memory)
 	`Real'			tolerance
 	`Integer'		maxiterations
 	`String'		transform		// Kaczmarz Cimmino Symmetric_kaczmarz (k c s)
@@ -262,7 +262,7 @@ void function alphas2dta(`Problem' S) {
 	S.tolerance = 1e-8
 	S.maxiterations = 1e4
 	S.accel_start = 6
-	S.groupsize = 10
+	S.poolsize = 10
 
 	// If clustering by timevar or panelvar and VCE is HAC, we CANNOT touch the clustervars to create compact ids!
 	S.timevar = ""
@@ -400,9 +400,9 @@ void function map_init_timeit(`Problem' S, `Integer' timeit) {
 	S.timeit = timeit
 }
 
-void function map_init_groupsize(`Problem' S, `Integer' groupsize) {
-	assert_msg(round(groupsize)==groupsize & groupsize>0, "groupsize must be a positive integer")
-	S.groupsize = groupsize
+void function map_init_poolsize(`Problem' S, `Integer' poolsize) {
+	assert_msg(round(poolsize)==poolsize & poolsize>0, "poolsize must be a positive integer")
+	S.poolsize = poolsize
 }
 
 void function map_init_panelvar(`Problem' S, `Varname' panelvar) {
@@ -1066,7 +1066,7 @@ void function map_solve(`Problem' S, `Varlist' vars,
 	assert_msg(S.N==st_nobs(), "dataset cannot change after map_precompute()")
 
 	// Load data
-	// BUGBUG: This will use 2x memory for a while; partition the copy+drop based on S.groupsize?
+	// BUGBUG: This will use 2x memory for a while; partition the copy+drop based on S.poolsize?
 	if (S.verbose>0) printf("{txt} - Loading variables into Mata\n")
 	vars = tokens(vars)
 	y = st_data(., vars)
@@ -1127,7 +1127,7 @@ void function map_solve(`Problem' S, `Varlist' vars,
 	// Luego bajo y asi que me quedo con y + ..
 	// Contar cuantos vectores creo en los aceleradores y en los proyectores
 
-	if (S.verbose>0) printf("{txt} - Solving problem (acceleration={res}%s{txt}, transform={res}%s{txt} tol={res}%-1.0e{txt} poolsize={res}%f{txt} varsize={res}%f{txt})\n", save_fe ? "steepest_descent" : S.acceleration, save_fe ? "kaczmarz" : S.transform, S.tolerance, S.groupsize, cols(y))
+	if (S.verbose>0) printf("{txt} - Solving problem (acceleration={res}%s{txt}, transform={res}%s{txt} tol={res}%-1.0e{txt} poolsize={res}%f{txt} varsize={res}%f{txt})\n", save_fe ? "steepest_descent" : S.acceleration, save_fe ? "kaczmarz" : S.transform, S.tolerance, S.poolsize, cols(y))
 
 	// Warnings
 	if (S.transform=="kaczmarz" & S.acceleration=="conjugate_gradient") {
@@ -1155,14 +1155,14 @@ void function map_solve(`Problem' S, `Varlist' vars,
 		y = accelerate_sd(S, y, &transform_kaczmarz()) :* stdevs // Only these were modified to save FEs
 		S.num_iters_max = S.num_iters_last_run
 	}
-	else if (S.groupsize>=cols(y)) {
+	else if (S.poolsize>=cols(y)) {
 		y = (*accelerate)(S, y, transform) :* stdevs
 		S.num_iters_max = S.num_iters_last_run
 	}
 	else {
 		S.num_iters_last_run = 0
-		for (i=1;i<=cols(y);i=i+S.groupsize) {
-			offset = min((i + S.groupsize - 1, cols(y)))
+		for (i=1;i<=cols(y);i=i+S.poolsize) {
+			offset = min((i + S.poolsize - 1, cols(y)))
 			if (S.verbose>1) printf("{txt} - Variables: {res}" + invtokens(vars[i..offset])+"{txt}\n")
 			y[., i..offset] = (*accelerate)(S, y[., i..offset], transform) :* stdevs[i..offset]
 			if (S.num_iters_last_run>S.num_iters_max) S.num_iters_max = S.num_iters_last_run
@@ -1185,15 +1185,15 @@ void function map_solve(`Problem' S, `Varlist' vars,
 	if (S.verbose>1) printf("{txt} - Saving transformed variables\n")
 	i = 1
 	while (cols(y)>0) {
-		if (S.groupsize>=cols(y)) {
+		if (S.poolsize>=cols(y)) {
 			st_store(., st_addvar("double", newvars[i..length(newvars)]), y)
 			y = J(0,0,.) // clear space
 		}
 		else {
-			st_store(., st_addvar("double", newvars[i..(i+S.groupsize-1)]), y[., 1..(S.groupsize)])
-			y = y[., (S.groupsize+1)..cols(y)] // clear space
+			st_store(., st_addvar("double", newvars[i..(i+S.poolsize-1)]), y[., 1..(S.poolsize)])
+			y = y[., (S.poolsize+1)..cols(y)] // clear space
 		}
-		i = i + S.groupsize
+		i = i + S.poolsize
 	}
 
 	for (i=1;i<=Q;i++) {
@@ -1258,7 +1258,7 @@ void function map_solve(`Problem' S, `Varlist' vars,
 // For discussion on the stopping criteria, see the following presentation:
 // Arioli & Gratton, "Least-squares problems, normal equations, and stopping criteria for the conjugate gradient method". URL: https://www.stfc.ac.uk/SCD/resources/talks/Arioli-NAday2008.pdf
 
-// Basically, we will use the Hestenes and Siefel rule
+// Basically, we will use the Hestenes and Stiefel rule
 
 `Group' function accelerate_cg(`Problem' S, `Group' y, `FunctionPointer' T) {
 	// BUGBUG iterate the first 6? without acceleration??
@@ -1886,10 +1886,10 @@ program define hdfe, rclass
 		PARTIAL(varlist numeric) /// Additional regressors besides those in absorb()
 		SAMPLE(name) ///
 		Generate(name) CLEAR /// Replace dataset, or just add new variables
-		GROUPVAR(name) /// Variable that will contain the first connected group between FEs
+		GROUPVar(name) /// Variable that will contain the first connected group between FEs
 		CLUSTERVARs(varlist numeric fv max=10) /// Used to estimate the DoF
 	/// Optimization /// Defaults are handled within Mata
-		GROUPsize(string) /// Process variables in groups of #
+		POOLsize(string) /// Process variables in groups of #
 		TRANSFORM(string) ///
 		ACCELeration(string) ///
 		Verbose(string) ///

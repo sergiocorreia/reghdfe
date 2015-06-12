@@ -108,5 +108,9 @@ cscript "reghdfe with iv-stages" adofile reghdfe
 	storedresults drop b_iv b_ols b_acid b_reduced b_first1
 	estimates drop reghdfe_* // accepts wildchars? or just -estimates clear-?
 
+	* Extra
+	reghdfe `lhs' `rhs' (`endogvar'=`iv'), absorb(`absvars') stages(ols first acid reduced) ffirst
+	reghdfe `lhs' `rhs' (`endogvar'=`iv'), absorb(`absvars') stages(ols first acid reduced, nosave)
+
 cd "D:/Github/reghdfe/test"
 exit

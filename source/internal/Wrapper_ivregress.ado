@@ -5,7 +5,7 @@ program define Wrapper_ivregress, eclass
 		vceoption(string asis) ///
 		KK(integer) ///
 		[weightexp(string)] ///
-		[ESTimator(string) TWICErobust(string)] ///
+		[ESTimator(string) TWICErobust(integer 0)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
@@ -25,23 +25,17 @@ program define Wrapper_ivregress, eclass
 
 	if ("`estimator'"=="gmm2s") {
 		local wmatrix : subinstr local vceoption "vce(" "wmatrix("
-		if (!`twicerobust') local vceoption "vce(unadjusted)"
+		local vceoption = cond(`twicerobust', "", "vce(unadjusted)")
 	}
 	
 	* Note: the call to -ivregress- could be optimized.
 	* EG: -ivregress- calls ereturn post .. ESAMPLE(..) but we overwrite the esample and its SLOW
 	* But it's a 1700 line program so let's not worry about it
 
-* Show first stage
-	if (`first') {
-		local firstoption "first"
-	}
-
 * Subcmd
-	local subcmd ivregress `opt_estimator' `vars' `weightexp', `wmatrix' `vceoption' small noconstant `firstoption' `suboptions'
+	local subcmd ivregress `opt_estimator' `vars' `weightexp', `wmatrix' `vceoption' small noconstant `suboptions'
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
-	local noise = cond(`showraw', "noi", "qui")
-	`noise' `subcmd'
+	qui `subcmd'
 	qui test `indepvars' `endogvars' // Wald test
 	ereturn scalar F = r(F)
 

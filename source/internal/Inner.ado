@@ -271,13 +271,11 @@ foreach lhs_endogvar of local lhs_endogvars {
 	Post, `opt_list' coefnames(`b')
 	if (`timeit') Toc, n(78) msg(post)
 
-* REPLAY - Show the regression table	
-	if ("`stage'"!="none") Debug, level(0) msg(_n "{title:Stage: `stage'}" _n)
-	if ("`lhs_endogvar'"!="<none>") Debug, level(0) msg("{title:Endogvar: `original_depvar'}")
+* REPLAY - Show the regression table
 	Replay
 
 * STAGES - END
-	if (!inlist("`stage'","none", "iv")) {
+	if (!inlist("`stage'","none", "iv") & `savestages') {
 		local estimate_name reghdfe_`stage'`i_endogvar'
 		local stored_estimates `stored_estimates' `estimate_name'
 		local cmd estimates store `estimate_name', nocopy
@@ -286,8 +284,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 	}
 	else if ("`stage'"=="iv") {
 		* On the last stage, save list of all stored estimates
-		assert "`stored_estimates'"!=""
-		ereturn `hidden' local stored_estimates = "`stored_estimates'"
+		if ("`stored_estimates'"!="") ereturn `hidden' local stored_estimates = "`stored_estimates'"
 	}
 } // lhs_endogvar
 } // stage

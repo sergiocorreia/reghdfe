@@ -26,10 +26,10 @@ program define hdfe, rclass
 		PARTIAL(varlist numeric) /// Additional regressors besides those in absorb()
 		SAMPLE(name) ///
 		Generate(name) CLEAR /// Replace dataset, or just add new variables
-		GROUPVAR(name) /// Variable that will contain the first connected group between FEs
+		GROUPVar(name) /// Variable that will contain the first connected group between FEs
 		CLUSTERVARs(varlist numeric fv max=10) /// Used to estimate the DoF
 	/// Optimization /// Defaults are handled within Mata
-		GROUPsize(string) /// Process variables in groups of #
+		POOLsize(string) /// Process variables in groups of #
 		TRANSFORM(string) ///
 		ACCELeration(string) ///
 		Verbose(string) ///

@@ -181,6 +181,50 @@ program define Post, eclass
 				local stored_estimates `stored_estimates' reghdfe_`stage'
 			}
 		}
+
+	}
+
+	* Add e(first) (first stage STATISTICS, from ffirst option) to each first stage
+	* For that we require 3 things: ffirst, that we save stages, and that first is in the stage list
+	cap conf matrix e(first)
+	if (c(rc)==0 & "`e(savestages)'"=="1" & strpos("`e(stages)'", "first")) {
+		tempname firststats hold
+		matrix `firststats' = e(first)
+		local rownames : rownames `firststats'
+		local colnames : colnames `firststats'
+		local endogvars "`e(endogvars)'"
+
+		estimates store `hold'
+		local i 0
+		ereturn clear
+		foreach endogvar of local endogvars {
+			local est reghdfe_first`++i'
+			qui estimates restore `est'
+			gettoken colname colnames : colnames
+			Assert "`endogvar'"=="`colname'", msg("expected `endogvar'==`colname' from e(first)")
+			Assert "`endogvar'"=="`e(depvar)'", msg("expected `endogvar'==`e(depvar)' from e(depvar)")
+
+			local j 0
+			foreach stat of local rownames {
+				Assert "`e(first_`stat')'"=="", msg("expected e(first_`stat') to be empty")
+				ereturn scalar first_`stat' = `firststats'[`++j', `i']
+			}
+			estimates store `est', nocopy
+		}
+		ereturn clear // Need this because -estimates restore- behaves oddly
+		qui estimates restore `hold'
+		assert e(cmd)=="reghdfe"
+		estimates drop `hold'
+	}
+
+
 		ereturn local stored_estimates "`stored_estimates'"
-	} 
+
+
+	if ("`e(model)'"=="iv") {
+		if ("`e(stage)'"=="first") estimates title: First-stage regression: `e(depvar)'
+		if ("`e(stage)'"=="ols") estimates title: OLS regression
+		if ("`e(stage)'"=="reduced") estimates title: Reduced-form regression
+		if ("`e(stage)'"=="acid") estimates title: Acid regression
+	}
 end
