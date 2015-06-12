@@ -20,7 +20,7 @@ mata set matastrict on
 	S.tolerance = 1e-8
 	S.maxiterations = 1e4
 	S.accel_start = 6
-	S.groupsize = 10
+	S.poolsize = 10
 
 	// If clustering by timevar or panelvar and VCE is HAC, we CANNOT touch the clustervars to create compact ids!
 	S.timevar = ""
@@ -158,9 +158,9 @@ void function map_init_timeit(`Problem' S, `Integer' timeit) {
 	S.timeit = timeit
 }
 
-void function map_init_groupsize(`Problem' S, `Integer' groupsize) {
-	assert_msg(round(groupsize)==groupsize & groupsize>0, "groupsize must be a positive integer")
-	S.groupsize = groupsize
+void function map_init_poolsize(`Problem' S, `Integer' poolsize) {
+	assert_msg(round(poolsize)==poolsize & poolsize>0, "poolsize must be a positive integer")
+	S.poolsize = poolsize
 }
 
 void function map_init_panelvar(`Problem' S, `Varname' panelvar) {

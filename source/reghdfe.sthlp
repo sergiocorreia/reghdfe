@@ -54,9 +54,9 @@ may be {opt un:adjusted} (default), {opt r:obust} or {opt cl:uster} {help fvvarl
 {synopt :{opt est:imator(str)}}either {opt 2sls} (default), {opt gmm:2s} (two-stage GMM),
 {opt liml:} (limited-information maximum likelihood) or {opt cue:} (which gives approximate results, see discussion below){p_end}
 {synopt :{opt stage:s(list)}}estimate additional regressions; choose any of {opt first} {opt ols} {opt reduced} {opt acid} (or {opt all}){p_end}
+{synopt :{opt ff:irst}}compute first-stage diagnostic and identification statistics{p_end}
 {synopt :{opth iv:suite(subcmd)}}package used in the IV/GMM regressions;
 options are {opt ivreg2} (default; needs installing) and {opt ivregress}{p_end}
-{synopt :{opt ff:irst}}compute first-stage diagnostic and identification statistics{p_end}
 
 {syntab:Diagnostic {help reghdfe##opt_diagnostic:[+]}}
 {synopt :{opt v:erbose(#)}}amount of debugging information to show (0=None, 1=Some, 2=More, 3=Parsing/convergence details, 4=Every iteration){p_end}
@@ -65,7 +65,7 @@ options are {opt ivreg2} (default; needs installing) and {opt ivregress}{p_end}
 {syntab:Optimization {help reghdfe##opt_optimization:[+]}}
 {p2coldent:+ {opth tol:erance(#)}}criterion for convergence (default=1e-8){p_end}
 {synopt :{opth maxit:erations(#)}}maximum number of iterations (default=10,000); if set to missing ({cmd:.}) it will run for as long as it takes.{p_end}
-{synopt :{opth pool:size(#)}}apply the within algorithm in groups of {it:#} variables (default 10). a large groupsize is usually faster but uses more memory{p_end}
+{synopt :{opth pool:size(#)}}apply the within algorithm in groups of {it:#} variables (default 10). a large poolsize is usually faster but uses more memory{p_end}
 {synopt :{opt accel:eration(str)}}acceleration method; options are conjugate_gradient (cg), steep_descent (sd), aitken (a), and none (no){p_end}
 {synopt :{opt transf:orm(str)}}transform operation that defines the type of alternating projection; options are Kaczmarz (kac), Cimmino (cim), Symmetric Kaczmarz (sym){p_end}
 
@@ -79,7 +79,7 @@ options are {opt ivreg2} (default; needs installing) and {opt ivregress}{p_end}
 {syntab:Degrees-of-Freedom Adjustments {help reghdfe##opt_dof:[+]}}
 {synopt :{opt dof:adjustments(list)}}allows selecting the desired adjustments for degrees of freedom;
 rarely used{p_end}
-{synopt: {opth groupvar(newvar)}}unique identifier for the first mobility group{p_end}
+{synopt: {opth groupv:ar(newvar)}}unique identifier for the first mobility group{p_end}
 
 {syntab:Reporting {help reghdfe##opt_reporting:[+]}}
 {synopt :{opt version:}}reports the version number and date of reghdfe, and saves it in e(version). standalone option{p_end}
@@ -88,7 +88,7 @@ rarely used{p_end}
 
 {syntab:Undocumented}
 {synopt :{opt keepsin:gletons}}do not drop singleton groups{p_end}
-{synopt :{opt old}}will call the latest 2.x version of reghdfe instead (see {help reghdfe_old}){p_end}
+{synopt :{opt old}}will call the latest 2.x version of reghdfe instead (see the {help reghdfe_old:old help file}){p_end}
 {synoptline}
 {p2colreset}{...}
 {p 4 6 2}* {opt absorb(absvars)} is required.{p_end}
@@ -295,6 +295,15 @@ adds and saves up to four auxiliary regressions useful when running instrumental
 {phang2}{cmd:reduced} reduced-form regression (ols regression with included and excluded instruments as regressors){p_end}
 {phang2}{cmd:acid} an "acid" regression that includes both instruments and endogenous variables as regressors; in this setup, excluded instruments should not be significant.{p_end}
 
+{pmore}
+You can pass suboptions not just to the iv command but to all stage regressions with a comma after the list of stages. Example:{break}
+{it:reghdfe price (weight=length), absorb(turn) subopt(nocollin) stages(first, eform(exp(beta)) )}
+
+{pmore}
+By default all stages are saved (see {help estimates dir}).
+The suboption {cmd:,nosave} will prevent that.
+However, future {cmd:replay}s will only replay the iv regression.
+
 {phang}
 {opt ffirst}
 compute and report first stage statistics ({help ivreg2##s_relevance:details}); requires the ivreg2 package.
@@ -394,7 +403,7 @@ Additional methods, such as {opt bootstrap} are also possible but not yet implem
 Some preliminary simulations done by the author showed a very poor convergence of this method.
 
 {phang}
-{opth group(newvar)} name of the new variable that will contain the first mobility group.
+{opth groupv:ar(newvar)} name of the new variable that will contain the first mobility group.
 Requires {opt pair:wise}, {opt first:pair}, or the default {opt all}.
 
 {marker opt_speedup}{...}
@@ -777,7 +786,7 @@ To see your current version and installed dependencies, type {cmd:reghdfe, versi
 {title:Acknowledgements}
 
 {pstd}
-This package wouldn't have existed without the invaluable feedback and contributions of Paulo Guimaraes,  Amine Ouazad, Mark Schaffer and Kit Baum. Also invaluable are the great bug-spotting abilities of many users .{p_end}
+This package wouldn't have existed without the invaluable feedback and contributions of Paulo Guimaraes,  Amine Ouazad, Mark Schaffer and Kit Baum. Also invaluable are the great bug-spotting abilities of many users.{p_end}
 
 {pstd}In addition, {it:reghdfe} is build upon important contributions from the Stata community:{p_end}
 
@@ -811,7 +820,9 @@ Simen Gaure. "OLS with Multiple High Dimensional Category Dummies".
 {p_end}
 
 {p 0 0 2}
-It addresses many of the limitation of previous works, such as possible lack of convergence, arbitrary slow convergence times, and being limited to only two or three sets of fixed effects (for the first paper). The paper explaining the specifics of the algorithm is a work-in-progress and available upon request.
+It addresses many of the limitation of previous works, such as possible lack of convergence, arbitrary slow convergence times,
+and being limited to only two or three sets of fixed effects (for the first paper).
+The paper explaining the specifics of the algorithm is a work-in-progress and available upon request.
 
 {p 0 0 0}
 If you use this program in your research, please cite either

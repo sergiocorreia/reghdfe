@@ -8,7 +8,6 @@ program define ParseVCE, sclass
 			[bw(integer 1) KERnel(string) dkraay(integer 1) kiefer] ///
 			[suite(string) TWICErobust] ///
 			[weighttype(string)] ///
-			stages(string) ///
 			model(string) ///
 			[ivsuite(string)]
 
@@ -58,7 +57,6 @@ program define ParseVCE, sclass
 		Assert !_rc , msg("error: -tuples- not installed, please run {stata ssc install tuples} to estimate multi-way clusters.")
 	}
 	
-	* DISABLED FOR SPEED: //  | "`stages'"!="none" // We use -avar- as default with stages (on the non-iv stages)
 	if ("`vcesuite'"=="avar") { 
 		cap findfile avar.ado
 		Assert !_rc , msg("error: -avar- not installed, please run {stata ssc install avar} or change the option -vcesuite-")

@@ -5,7 +5,6 @@ program define Wrapper_ivregress, eclass
 		vceoption(string asis) ///
 		KK(integer) ///
 		[weightexp(string)] ///
-		SHOWRAW(integer) first(integer) vceunadjusted(integer) ///
 		[ESTimator(string) TWICErobust(string)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
@@ -26,9 +25,7 @@ program define Wrapper_ivregress, eclass
 
 	if ("`estimator'"=="gmm2s") {
 		local wmatrix : subinstr local vceoption "vce(" "wmatrix("
-		if ("`twicerobust'"=="") {
-			local vceoption = cond(`vceunadjusted', "vce(unadjusted)", "")			
-		}
+		if (!`twicerobust') local vceoption "vce(unadjusted)"
 	}
 	
 	* Note: the call to -ivregress- could be optimized.

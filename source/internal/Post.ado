@@ -2,7 +2,7 @@ capture program drop Post
 program define Post, eclass
 	syntax, coefnames(string) ///
 		model(string) stage(string) stages(string) subcmd(string) cmdline(string) vceoption(string) original_absvars(string) extended_absvars(string) vcetype(string) vcesuite(string) tss(string) num_clusters(string) ///
-		[dofadjustments(string) clustervars(string) timevar(string) r2c(string) equation_d(string) subpredict(string) savefirst(string) diopts(string) weightvar(string) gmm2s(string) cue(string) dkraay(string) liml(string) by(string) level(string)] ///
+		[dofadjustments(string) clustervars(string) timevar(string) r2c(string) equation_d(string) subpredict(string) savestages(string) diopts(string) weightvar(string) gmm2s(string) cue(string) dkraay(string) liml(string) by(string) level(string)] ///
 		[backup_original_depvar(string) original_indepvars(string) original_endogvars(string) original_instruments(string)]
 
 	if (`c(version)'>=12) local hidden hidden // ereturn hidden requires v12+
@@ -155,7 +155,7 @@ program define Post, eclass
 		//}
 	}
 
-	if ("`savefirst'"!="") ereturn `hidden' scalar savefirst = `savefirst'
+	if ("`savestages'"!="") ereturn `hidden' scalar savestages = `savestages'
 
 	* We have to replace -unadjusted- or else subsequent calls to -suest- will fail
 	Subtitle `vceoption' // will set title2, etc. Run after e(bw) and all the others are set!
@@ -165,4 +165,22 @@ program define Post, eclass
 		ereturn local stage = "`stage'"
 		ereturn `hidden' local stages = "`stages'"
 	}
+
+	* List of stored estimates
+	if ("`e(savestages)'"=="1" & "`e(model)'"=="iv") {
+		local stages = e(stages)
+		local endogvars = e(endogvars)
+		foreach stage of local stages {
+			if ("`stage'"=="first") {
+				local i 0
+				foreach endogvar of local endogvars {
+					local stored_estimates `stored_estimates' reghdfe_`stage'`++i'
+				}
+			}
+			else {
+				local stored_estimates `stored_estimates' reghdfe_`stage'
+			}
+		}
+		ereturn local stored_estimates "`stored_estimates'"
+	} 
 end

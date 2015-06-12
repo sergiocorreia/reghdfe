@@ -29,7 +29,7 @@ struct MapProblem {
 	`Varlist'		sortedby		// Variables on which the dataset is sorted (if anything)
 	
 	// Optimization parameters	
-	`Integer'		groupsize 		// Group variables when demeaning (more is faster but uses more memory)
+	`Integer'		poolsize 		// Group variables when demeaning (more is faster but uses more memory)
 	`Real'			tolerance
 	`Integer'		maxiterations
 	`String'		transform		// Kaczmarz Cimmino Symmetric_kaczmarz (k c s)

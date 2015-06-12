@@ -114,7 +114,7 @@ if (`timeit') Tic, n(55)
 	if ("`stages'"!="none") {
 		Debug, level(1) msg(_n "{title:Stages to run}: " as result "`stages'")
 		* Need to backup some locals
-		local backuplist residuals groupvar fast will_save_fe depvar indepvars endogvars instruments original_depvar tss
+		local backuplist residuals groupvar fast will_save_fe depvar indepvars endogvars instruments original_depvar tss suboptions
 		foreach loc of local backuplist {
 			local backup_`loc' ``loc''
 		}
@@ -163,6 +163,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 			local instruments
 			local groupvar
 			local residuals
+			local suboptions `stage_suboptions'
 		}
 	}
 
@@ -180,7 +181,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 	local opts ///
 		depvar indepvars endogvars instruments ///
 		vceoption vcetype ///
-		kk suboptions showraw vceunadjusted first weightexp ///
+		kk suboptions ffirst weightexp ///
 		estimator twicerobust /// Whether to run or not two-step gmm
 		num_clusters clustervars // Used to fix e() of ivreg2 first stages
 	foreach opt of local opts {
@@ -262,7 +263,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * POST ERETURN - Add e(...) (besides e(sample) and those added by the wrappers)	
 	local opt_list
-	local opts dofadjustments subpredict model stage stages subcmd cmdline vceoption equation_d original_absvars extended_absvars vcetype vcesuite tss r2c savefirst diopts weightvar gmm2s cue liml dkraay by level num_clusters clustervars timevar backup_original_depvar original_indepvars original_endogvars original_instruments
+	local opts dofadjustments subpredict model stage stages subcmd cmdline vceoption equation_d original_absvars extended_absvars vcetype vcesuite tss r2c savestages diopts weightvar gmm2s cue liml dkraay by level num_clusters clustervars timevar backup_original_depvar original_indepvars original_endogvars original_instruments
 	foreach opt of local opts {
 		local opt_list `opt_list' `opt'(``opt'')
 	}

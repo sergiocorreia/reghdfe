@@ -2,7 +2,7 @@ capture program drop ParseIV
 program define ParseIV, sclass
 	syntax anything(id="varlist" name=0 equalok), [ ///
 		estimator(string) ivsuite(string) ///
-		savefirst first showraw vceunadjusted small]
+		twicerobust small]
 
 	* Parses varlist: depvar indepvars [(endogvars = instruments)]
 		* depvar: dependent variable
@@ -22,18 +22,13 @@ program define ParseIV, sclass
 	* IV Suite
 	if ("`model'"=="iv") {
 		if ("`ivsuite'"=="") local ivsuite ivreg2 // Set default
-		Assert inlist("`ivsuite'","ivreg2","ivregress") , msg("error: wrong IV routine (`ivsuite'), valid options are -	ivreg2- and -ivregress-")
+		Assert inlist("`ivsuite'","ivreg2","ivregress") , ///
+			msg("error: wrong IV routine (`ivsuite'), valid options are -ivreg2- and -ivregress-")
 		cap findfile `ivsuite'.ado
 		Assert !_rc , msg("error: -`ivsuite'- not installed, please run {stata ssc install `ivsuite'} or change the option 	-ivsuite-")
-
-		local savefirst = ("`savefirst'"!="")
-		local first = ("`first'"!="")
-		if (`savefirst') Assert `first', msg("Option -savefirst- requires -first-")
 		local subcmd `ivsuite'
 	}
 	else {
-		local savefirst
-		local first
 		local subcmd regress
 	}
 
@@ -47,6 +42,7 @@ program define ParseIV, sclass
 			msg("reghdfe error: invalid estimator `estimator'")
 		if ("`estimator'"=="cue") Assert "`ivsuite'"=="ivreg2", ///
 			msg("reghdfe error: estimator `estimator' only available with the ivreg2 command, not ivregress")
+		if ("`estimator'"=="cue") di as text "(warning: -cue- estimator is not exact, see help file)"
 	}
 
 	* For this, _iv_parse would have been useful, but I don't want to do factor expansions when parsing
@@ -107,16 +103,10 @@ program define ParseIV, sclass
 * More IV options
 	if ("`small'"!="") di in ye "(note: reghdfe will always use the option -small-, no need to specify it)"
 
-* Parse -showraw- : shows raw output of called subcommand (e.g. ivreg2)
-	local showraw = ("`showraw'"!="")
-
-* Parse -unadjusted-
-	* If true, will use wmatrix(...) vce(unadjusted) instead of the default of setting vce contents equal to wmatrix
-	* This basically undoes the extra adjustment that ivregress does, so it's comparable with ivreg2
-	*
-	* Note: Cannot match exactly the -ivregress- results without vceunadjusted (see test-gmm.do)
-	* Thus, I will set this to true ALWAYS
-	local vceunadjusted = 1 // ("`vceunadjusted'"!="")
+* Parse -twicerobust-
+	* If true, will use wmatrix(...) vce(...) instead of wmatrix(...) vce(unadjusted)
+	* The former is closer to -ivregress- but not exact, the later matches -ivreg2-
+	local twicerobust = ("`twicerobust'"!="")
 
 * Get base variables of time and factor variables (e.g. i.foo L(1/3).bar -> foo bar)
 	foreach vars in depvar indepvars endogvars instruments {
@@ -127,7 +117,7 @@ program define ParseIV, sclass
 	}
 
 	local keys subcmd model ivsuite estimator depvar indepvars endogvars instruments fe_format ///
-		savefirst first showraw vceunadjusted basevars
+		twicerobust basevars
 	foreach key of local keys {
 		sreturn local `key' ``key''
 	}

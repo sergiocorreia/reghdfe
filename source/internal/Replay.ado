@@ -9,7 +9,23 @@ cap pr drop Replay
 	Assert "`subcmd'"!="" , msg("e(subcmd) is empty")
 	if (`c(version)'>=12) local hidden hidden
 
-	local savefirst = e(savefirst)
+	if ("`e(stored_estimates)'"!="" & "`stage'"=="iv") {
+		local est_list = e(stored_estimates)
+		tempname hold
+		estimates store `hold'
+		foreach est of local est_list {
+			qui estimates restore `est'
+			Replay			
+		}
+		ereturn clear // Need this because -estimates restore- behaves oddly
+		qui estimates restore `hold'
+		assert e(cmd)=="reghdfe"
+		estimates drop `hold'
+	}
+
+
+	* conf matrix e(first)
+
 
 	local diopts = "`e(diopts)'"
 	if ("`options'"!="") { // Override
@@ -24,22 +40,7 @@ cap pr drop Replay
 	else if ("`subcmd'"=="ivreg2") {
 		* Backup before showing both first and second stage
 		tempname hold
-		
-		if ("`e(firsteqs)'"!="") {
-			estimates store `hold'
 
-			local i 0
-			foreach fs_eqn in `e(firsteqs)' {
-				local instrument  : word `++i' of `e(instd)'
-				di _n "{input}{title:First stage for `instrument'}"
-				cap noi estimates replay `fs_eqn' , nohead `diopts'
-				if (!`savefirst') estimates drop `fs_eqn'
-			}
-
-			ereturn clear
-			qui estimates restore `hold'
-			di _n "{input}{title:Second stage}"
-		}
 
 		// BUGBUG: Update this part
 		estimates store `hold'

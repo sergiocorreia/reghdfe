@@ -1,5 +1,5 @@
 
-// Mata code is first, then main hdfe.ado, then auxiliary .ado files
+// Mata code is first, then main reghdfe.ado, then auxiliary .ado files
 clear mata
 include "mata/map.mata"
 
@@ -9,21 +9,21 @@ program define reghdfe
 * Set Stata version
 	version `=clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
 
-* Intercept old version call
+* Intercept old+version
 	cap syntax, version old
 	if !c(rc) {
 		reghdfe_old, version
 		exit
 	}
 
-* Intercept version calls
+* Intercept version
 	cap syntax, version
 	if !c(rc) {
 		Version
 		exit
 	}
 
-* Intercept call to old version
+* Intercept old
 	cap syntax anything(everything) [fw aw pw/], [*] old
 	if !c(rc) {
 		di as error "(running historical version of reghdfe)"
@@ -32,9 +32,10 @@ program define reghdfe
 		exit
 	}
 
-* Intercept cleanup of cache (must be before replay)
-	cap syntax, CLEANupcache
-	if !c(rc) {
+* Intercept cache(clear) (must be before replay)
+	local cache
+	cap syntax, CACHE(string)
+	if ("`cache'"=="clear") {
 		cap mata: mata drop HDFE_S // overwrites c(rc)
 		cap mata: mata drop varlist_cache
 		cap mata: mata drop tss_cache
@@ -43,16 +44,17 @@ program define reghdfe
 		exit
 	}
 
-* Intercept replays
+* Intercept replay
 	if replay() {
 		if (`"`e(cmd)'"'!="reghdfe") error 301
 		Replay `0'
 		exit
 	}
 
-* Intercept savecache
-	cap syntax anything(everything) [fw aw pw/], [*] SAVEcache
-	if !c(rc) {
+* Intercept cache(save)
+	local cache
+	cap syntax anything(everything) [fw aw pw/], [*] CACHE(string)
+	if (strpos("`cache'", "save")==1) {
 		cap noi InnerSaveCache `0'
 		if (c(rc)) {
 			local rc = c(rc)
@@ -66,14 +68,15 @@ program define reghdfe
 		exit
 	}
 
-* Intercept usecache
-	cap syntax anything(everything) [fw aw pw/], [*] USEcache
-	if !c(rc) {
+* Intercept cache(use)
+	local cache
+	cap syntax anything(everything) [fw aw pw/], [*] CACHE(string)
+	if ("`cache'"=="use") {
 		InnerUseCache `0'
 		exit
 	}
 
-* Finally, call Inner
+* Finally, call Inner if not intercepted before
 	local is_cache : char _dta[reghdfe_cache]
 	Assert ("`is_cache'"!="1"), msg("reghdfe error: data transformed with -savecache- requires option -usecache-")
 	cap noi Inner `0'
@@ -90,7 +93,9 @@ include "common/Debug.ado"
 include "common/Version.ado"
 include "internal/Inner.ado"
 	include "internal/Parse.ado"
+		include "internal/ParseCache.ado"
 		include "internal/ParseIV.ado"
+		include "internal/ParseStages.ado"
 		include "internal/ParseVCE.ado"
 		include "internal/ParseAbsvars.ado"
 		include "internal/ParseDOF.ado"
