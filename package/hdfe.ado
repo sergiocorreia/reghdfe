@@ -1,4 +1,4 @@
-*! reghdfe 3.1.1 12jun2015
+*! reghdfe 3.1.2 12jun2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -561,7 +561,7 @@ void map_precompute_part1(`Problem' S, transmorphic counter) {
 	i = i_last_singleton = g = 1
 
 	// Give huge warning if keeping singletons
-	if (S.keepsingletons) printf("{err}[WARNING] Singletons are not dropped; statistical significance will be biased\n")
+	if (S.keepsingletons) printf(`"{txt}(warning: singletons are not dropped; statistical significance might be biased {browse "http://scorreia.com/reghdfe/nested_within_cluster.pdf":[link]})\n"')
 
 	initial_N = st_nobs()
 
