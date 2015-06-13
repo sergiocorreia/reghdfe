@@ -1,4 +1,4 @@
-*! reghdfe 3.1.6 13jun2015
+*! reghdfe 3.1.7 13jun2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -2010,7 +2010,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.1.6 13jun2015"
+    local version "3.1.7 13jun2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -4743,8 +4743,6 @@ foreach lhs_endogvar of local lhs_endogvars {
 	if (`timeit') Toc, n(69) msg(Post)
 
 * REPLAY - Show the regression table	
-	if ("`stage'"!="none") Debug, level(0) msg(_n "{title:Stage: `stage'}" _n)
-	if ("`lhs_endogvar'"!="<none>") Debug, level(0) msg("{title:Endogvar: `original_depvar'}")
 	Replay
 
 * STAGES - END
