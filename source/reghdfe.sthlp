@@ -74,7 +74,7 @@ options are {opt ivreg2} (default; needs installing) and {opt ivregress}{p_end}
 {synopt :}suboption {opth keep(varlist)} adds additional untransformed variables to the resulting dataset{p_end}
 {synopt :{cmd: cache(use)}}run regressions on cached data; {it:vce()} must be the same as with {cmd: cache(save)}.{p_end}
 {synopt :{cmd: cache(clear)}}delete Mata objects to clear up memory; no more regressions can be run after this{p_end}
-{synopt :{opt fast}}will not create {it:e(sample)}; disabled when saving fixed effects or mobility groups{p_end}
+{synopt :{opt fast}}will not create {it:e(sample)}; disabled when saving fixed effects, residuals or mobility groups{p_end}
 
 {syntab:Degrees-of-Freedom Adjustments {help reghdfe##opt_dof:[+]}}
 {synopt :{opt dof:adjustments(list)}}allows selecting the desired adjustments for degrees of freedom;
@@ -294,7 +294,7 @@ adds and saves up to four auxiliary regressions useful when running instrumental
 
 {pmore}
 You can pass suboptions not just to the iv command but to all stage regressions with a comma after the list of stages. Example:{break}
-{it:reghdfe price (weight=length), absorb(turn) subopt(nocollin) stages(first, eform(exp(beta)) )}
+{cmd:reghdfe price (weight=length), absorb(turn) subopt(nocollin) stages(first, eform(exp(beta)) )}
 
 {pmore}
 By default all stages are saved (see {help estimates dir}).
@@ -307,7 +307,7 @@ compute and report first stage statistics ({help ivreg2##s_relevance:details}); 
 
 {pmore}
 These statistics will be saved on the {it:e(first)} matrix. 
-If the first-stage estimates are also saved (with the {cmd:stages()} option), the respective statistics will be copied to {cmd:e(first_*)} locals.
+If the first-stage estimates are also saved (with the {cmd:stages()} option), the respective statistics will be copied to {cmd:e(first_*)}.
 
 {phang}
 {opth iv:suite(subcmd)}

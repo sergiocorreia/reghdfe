@@ -2,7 +2,7 @@ capture program drop Post
 program define Post, eclass
 	syntax, coefnames(string) ///
 		model(string) stage(string) stages(string) subcmd(string) cmdline(string) vceoption(string) original_absvars(string) extended_absvars(string) vcetype(string) vcesuite(string) tss(string) num_clusters(string) ///
-		[dofadjustments(string) clustervars(string) timevar(string) r2c(string) equation_d(string) subpredict(string) savestages(string) diopts(string) weightvar(string) gmm2s(string) cue(string) dkraay(string) liml(string) by(string) level(string)] ///
+		[dofadjustments(string) clustervars(string) timevar(string) r2c(string) equation_d(string) subpredict(string) savestages(string) diopts(string) weightvar(string) dkraay(string) estimator(string) by(string) level(string)] ///
 		[backup_original_depvar(string) original_indepvars(string) original_endogvars(string) original_instruments(string)]
 
 	if (`c(version)'>=12) local hidden hidden // ereturn hidden requires v12+
@@ -31,9 +31,10 @@ program define Post, eclass
 	ereturn local cmd = "reghdfe"
 	ereturn local cmdline `"`cmdline'"'
 	ereturn local subcmd = cond(inlist("`stage'", "none", "iv"), "`subcmd'", "regress")
-	ereturn local model = cond("`gmm2s'"=="", "`model'", "gmm2s")
-	ereturn local model = cond("`cue'"=="", "`model'", "cue")
-	ereturn local model = cond("`liml'"=="", "`model'", "liml")
+	
+	ereturn local model = cond("`model'"=="iv" & "`estimator'"!="2sls", "`estimator'", "`model'")
+	Assert inlist("`e(model)'", "ols", "iv", "gmm2s", "cue", "liml"), msg("tried to save invalid model: `e(model)'")
+
 	ereturn local dofadjustments = "`dofadjustments'"
 	ereturn local title = "HDFE " + e(title)
 	ereturn local title2 =  "Absorbing `N_hdfe' HDFE " + plural(`N_hdfe', "group")
