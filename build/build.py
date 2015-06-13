@@ -138,7 +138,7 @@ print("Copying misc files...")
 shutil.copy(os.path.join(source_path, "reghdfe.sthlp"), os.path.join(server_path, "reghdfe.sthlp"))
 shutil.copy(os.path.join(source_path, "hdfe.sthlp"), os.path.join(server_path, "hdfe.sthlp"))
 shutil.copy(os.path.join(source_path, "stata.toc"), os.path.join(server_path, "stata.toc"))
-shutil.copy(os.path.join(source_path, "estfe.ado"), os.path.join(server_path, "estfe.sthlp"))
+shutil.copy(os.path.join(source_path, "estfe.ado"), os.path.join(server_path, "estfe.ado"))
 
 shutil.copy(os.path.join(source_path, "reghdfe_old.sthlp"), os.path.join(server_path, "reghdfe_old.sthlp"))
 shutil.copy(os.path.join(source_path, "reghdfe_old.ado"), os.path.join(server_path, "reghdfe_old.ado"))
