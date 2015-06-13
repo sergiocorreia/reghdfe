@@ -1,4 +1,4 @@
-*! reghdfe 3.1.5 13jun2015
+*! reghdfe 3.1.6 13jun2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -2010,7 +2010,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.1.5 13jun2015"
+    local version "3.1.6 13jun2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -4734,7 +4734,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * POST ERETURN - Add e(...) (besides e(sample) and those added by the wrappers)	
 	local opt_list
-	local opts dofadjustments subpredict model stage stages subcmd cmdline vceoption equation_d original_absvars extended_absvars vcetype vcesuite tss r2c savestages diopts weightvar gmm2s cue liml dkraay by level num_clusters clustervars timevar backup_original_depvar original_indepvars original_endogvars original_instruments
+	local opts dofadjustments subpredict model stage stages subcmd cmdline vceoption equation_d original_absvars extended_absvars vcetype vcesuite tss r2c savestages diopts weightvar estimator dkraay by level num_clusters clustervars timevar backup_original_depvar original_indepvars original_endogvars original_instruments
 	foreach opt of local opts {
 		local opt_list `opt_list' `opt'(``opt'')
 	}
