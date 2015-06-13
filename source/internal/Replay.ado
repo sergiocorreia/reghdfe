@@ -56,7 +56,7 @@ cap pr drop Replay
 		Header // _coef_table_header
 
 		di
-		local plus = cond(e(model)=="ols" & inlist("`e(vce)'", "unadjusted", "ols"), "plus", "")
+		local plus = cond("`e(model)'"=="ols" & inlist("`e(vce)'", "unadjusted", "ols"), "plus", "")
 		_coef_table, `plus' `diopts'
 	}
 	mata: reghdfe_width = max(strlen(st_matrixcolstripe_split("r(table)", 32, 0)))

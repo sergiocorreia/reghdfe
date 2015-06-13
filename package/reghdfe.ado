@@ -1,4 +1,4 @@
-*! reghdfe 3.1.2 12jun2015
+*! reghdfe 3.1.3 12jun2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -2010,7 +2010,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.1.2 12jun2015"
+    local version "3.1.3 12jun2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -4301,7 +4301,7 @@ end
 		Header // _coef_table_header
 
 		di
-		local plus = cond(e(model)=="ols" & inlist("`e(vce)'", "unadjusted", "ols"), "plus", "")
+		local plus = cond("`e(model)'"=="ols" & inlist("`e(vce)'", "unadjusted", "ols"), "plus", "")
 		_coef_table, `plus' `diopts'
 	}
 	mata: reghdfe_width = max(strlen(st_matrixcolstripe_split("r(table)", 32, 0)))
