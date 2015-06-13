@@ -1,4 +1,4 @@
-*! reghdfe 3.1.4 13jun2015
+*! reghdfe 3.1.5 13jun2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -2010,7 +2010,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.1.4 13jun2015"
+    local version "3.1.5 13jun2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -4607,7 +4607,7 @@ program define InnerUseCache, eclass
 	mata: st_local("tss", asarray(tss_cache, "`depvar'"))
 	Assert `tss'<., msg("tss of depvar `depvar' not found in cache")
 	foreach var of local endogvars {
-		mata: st_local("tss_`var'", strofreal(asarray(tss_cache, "`var'")))
+		mata: st_local("tss_`var'", asarray(tss_cache, "`var'"))
 	}
 	local r2c = . // BUGBUG!!!
 	if (`timeit') Toc, n(54) msg(use cached tss)

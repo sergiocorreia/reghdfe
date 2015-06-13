@@ -46,7 +46,7 @@ program define InnerUseCache, eclass
 	mata: st_local("tss", asarray(tss_cache, "`depvar'"))
 	Assert `tss'<., msg("tss of depvar `depvar' not found in cache")
 	foreach var of local endogvars {
-		mata: st_local("tss_`var'", strofreal(asarray(tss_cache, "`var'")))
+		mata: st_local("tss_`var'", asarray(tss_cache, "`var'"))
 	}
 	local r2c = . // BUGBUG!!!
 	if (`timeit') Toc, n(54) msg(use cached tss)
