@@ -1,4 +1,4 @@
-*! reghdfe 3.1.8 14jun2015
+*! reghdfe 3.1.9 15jun2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -184,7 +184,9 @@ void function resid2dta(`Problem' S, `Boolean' original_dta, `Boolean' cleanup) 
 void function groupvar2dta(`Problem' S, | `Boolean' original_dta) {
 	if (args()<2) original_dta = 1
 	
-	if (S.groupvar!="") {
+	// If grouptype has not been set, that's because there was no need to
+	// EG: Only one FE, or two FEs but one is the clustervar
+	if (S.grouptype!="") {
 		if (S.verbose>2) printf("{txt}    - Saving identifier for the first mobility group: {res}%s\n", S.groupvar)
 		
 		if (original_dta) {
@@ -275,6 +277,7 @@ void function alphas2dta(`Problem' S) {
 	S.N = .
 
 	S.groupvar = "" // Initialize as empty
+	S.grouptype = "" // Initialize as empty
 	S.sortedby = "" // Initialize as empty (prevents bugs if we change the dataset before map_precompute)
 
 
@@ -371,7 +374,7 @@ void function map_init_weights(`Problem' S, `Varname' weightvar, `String' weight
 }
 
 void function map_init_keepvars(`Problem' S, `Varname' keepvars) {
-	if (keepvars!="") stata(sprintf("confirm numeric variable %s, exact", keepvars))
+	//if (keepvars!="") stata(sprintf("confirm numeric variable %s, exact", keepvars))
 	S.keepvars = tokens(keepvars)
 }
 
@@ -639,7 +642,7 @@ void map_precompute_part1(`Problem' S, transmorphic counter) {
 		g++
 	}
 
-	printf("{txt}(dropped %f singleton observations)\n", initial_N-st_nobs())
+	if (initial_N>st_nobs()) printf("{txt}(dropped %f singleton observations)\n", initial_N-st_nobs())
 }
 
 // -------------------------------------------------------------
@@ -1050,8 +1053,9 @@ void map_precompute_part3(`Problem' S, transmorphic counter) {
 	return(sortedby ? ans : ans[S.fes[g].inv_p, .])
 }
 	
+// (Note: This function is doing too many things at once; need to refactor it)
 void function map_solve(`Problem' S, `Varlist' vars,
-		| `Varlist' newvars, `Varlist' partial, `Boolean' save_fe) {
+		| `Varlist' newvars, `Varlist' partial, `Boolean' save_fe, `Boolean' original_dta) {
 	`Integer' i, Q, Q_partial, offset, g
 	`Group' y
 	`FunctionPointer' transform, accelerate
@@ -1078,17 +1082,25 @@ void function map_solve(`Problem' S, `Varlist' vars,
 
 	st_dropvar(vars) // We need the new ones on double precision
 
-	if (args()<3 | newvars=="") newvars = vars
+	if (args()<3 | newvars=="") {
+		newvars = vars
+	}
+	else {
+		newvars = tokens(newvars)
+	}
 	assert_msg(length(vars)==length(newvars), "map_solve error: newvars must have the same size as vars")
 
 	// Load additional partialled-out regressors
 	Q_partial = 0
-	if (args()==4 & partial!="") {
+	if (args()>=4 & partial!="") {
 		vars = tokens(partial)
 		Q_partial = cols(vars)
 		y = y , st_data(., vars)
 		st_dropvar(vars) // We need the new ones on double precision		
 	}
+
+	// Saving in reduced or original dataset? (only for hdfe.ado)
+	if (args()<6) original_dta = 0
 
 	// Storing FEs and returning them requires 6 changes
 	// 1) Extend the S and FE structures (add S.storing_betas, FE.alphas FE.tmp_alphas)
@@ -1179,16 +1191,29 @@ void function map_solve(`Problem' S, `Varlist' vars,
 	// 	stdevs =  stdevs[1..Q]
 	// }
 
+	// Restore for hdfe.ado if original_dta==1 (i.e. with generate() instead of clear)
+	if (original_dta==1) stata("restore")
+
 	// Store variables in dataset; do it by blocks to avoid 2x memory consumption
 	if (S.verbose>1) printf("{txt} - Saving transformed variables\n")
 	i = 1
 	while (cols(y)>0) {
 		if (S.poolsize>=cols(y)) {
-			st_store(., st_addvar("double", newvars[i..length(newvars)]), y)
+			if (original_dta) {
+				st_store(S.uid, st_addvar("double", newvars[i..length(newvars)]), y)
+			}
+			else {
+				st_store(., st_addvar("double", newvars[i..length(newvars)]), y)
+			}
 			y = J(0,0,.) // clear space
 		}
 		else {
-			st_store(., st_addvar("double", newvars[i..(i+S.poolsize-1)]), y[., 1..(S.poolsize)])
+			if (original_dta) {
+				st_store(S.uid, st_addvar("double", newvars[i..(i+S.poolsize-1)]), y[., 1..(S.poolsize)])
+			}
+			else {
+				st_store(., st_addvar("double", newvars[i..(i+S.poolsize-1)]), y[., 1..(S.poolsize)])
+			}
 			y = y[., (S.poolsize+1)..cols(y)] // clear space
 		}
 		i = i + S.poolsize
@@ -1714,9 +1739,9 @@ void function map_ereturn_dof(`Problem' S) {
 			st_numscalar( sprintf("e(M%f)",h) , S.doflist_M[h] )
 			st_numscalar( sprintf("e(K%f)",h) , S.fes[g].levels )
 
-			st_global( sprintf("e(M%f_exact)",h) , strofreal(S.doflist_M_is_exact[h]) )
-			st_global( sprintf("e(M%f_nested)",h) , strofreal(S.doflist_M_is_nested[h]) )
-			st_global( sprintf("e(G%f)",h) , strofreal(g) ) // unused?
+			st_numscalar( sprintf("e(M%f_exact)",h) , S.doflist_M_is_exact[h])
+			st_numscalar( sprintf("e(M%f_nested)",h) , S.doflist_M_is_nested[h])
+			st_numscalar( sprintf("e(G%f)",h) , g) // unused?
 		}
 	}
 }
@@ -2010,7 +2035,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.1.8 14jun2015"
+    local version "3.1.9 15jun2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -3049,7 +3074,6 @@ syntax, basevars(string) verbose(integer) [depvar(string) indepvars(string) endo
 			local in_expanded : list basevar in expandedvars
 			if (!`in_expanded') {
 				local cachevars `cachevars' `basevar'
-				char `basevar'[forbidden] 1
 			}
 		}
 		c_local cachevars `cachevars'
@@ -3116,7 +3140,7 @@ syntax varlist(min=1 numeric fv ts) [if] [,setname(string)] [SAVECACHE(integer 0
 			if !r(is_dropped) {
 				local contents `contents' `r(varname)'
 				// if (`savecache') di as error `"<mata: asarray(varlist_cache, "`factorvar'", "`r(varname)'")>"'
-				if (`savecache') mata: asarray(varlist_cache, "`factorvar'", "`r(varname)'")
+				if (`savecache') mata: asarray(varlist_cache, "`factorvar'", asarray(varlist_cache, "`factorvar'") + " " + "`r(varname)'")
 			}
 			* Yellow=Already existed, White=Created, Red=NotCreated (omitted or base)
 			local color = cond(r(is_dropped), "error", cond(r(is_newvar), "input", "result"))
