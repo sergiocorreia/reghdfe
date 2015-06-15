@@ -34,7 +34,6 @@ syntax, basevars(string) verbose(integer) [depvar(string) indepvars(string) endo
 			local in_expanded : list basevar in expandedvars
 			if (!`in_expanded') {
 				local cachevars `cachevars' `basevar'
-				char `basevar'[forbidden] 1
 			}
 		}
 		c_local cachevars `cachevars'

@@ -1,169 +1,173 @@
 
-<<NOTE: I should just set hdfe.ado as a wrapper for reghdfe, savecache>>
-
-// Mata code is first, then main hdfe.ado, then auxiliary .ado files
+// Mata code is first, then main reghdfe.ado, then auxiliary .ado files
 clear mata
 include "mata/map.mata"
 
 capture program drop hdfe
-program define hdfe, rclass
+program define hdfe, eclass
+* Note: based on 
 
 * Set Stata version
 	version `=clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
 
-* Intercept version calls
+* Intercept version
 	cap syntax, version
 	if !c(rc) {
 		Version
 		exit
 	}
 
-* Parse
-	syntax varlist(numeric) [if] [in] [fw aw pw/] , ///
-	/// Main Options ///
-		Absorb(string) ///
-		[ ///
-		PARTIAL(varlist numeric) /// Additional regressors besides those in absorb()
-		SAMPLE(name) ///
-		Generate(name) CLEAR /// Replace dataset, or just add new variables
-		GROUPVar(name) /// Variable that will contain the first connected group between FEs
-		CLUSTERVARs(varlist numeric fv max=10) /// Used to estimate the DoF
-	/// Optimization /// Defaults are handled within Mata
-		POOLsize(string) /// Process variables in groups of #
-		TRANSFORM(string) ///
-		ACCELeration(string) ///
-		Verbose(string) ///
-		TOLerance(string) ///
-		MAXITerations(string) ///
-		KEEPSINGLETONS(string) /// Only use this option for debugging
-		SUBCMD(string) /// Regression package
-		] [*] // Remaining options 
+* Parse options specific to hdfe.ado: partial sample generate clear clustervars
+	syntax anything(everything) [fw aw pw/], [*] ///
+		[CACHE(string) VCE(string) CLUSTER(string) FAST] /// Disabled options
+		Absorb(string) [ ///
+		/// PARTIAL(varlist numeric) /// Additional regressors besides those in absorb()
+		CLUSTERVars(string) /// Used to estimate the DoF
+		Generate(name) SAMPLE(name) ///
+		CLEAR KEEPIDs KEEPVars(varlist) ///
+		 ///
+		]
 
-* Time/panel variables
-	local timevar `_dta[_TStvar]'
-	local panelvar `_dta[_TSpanel]'
-
-* Validation
-	local clustervars : subinstr local clustervars "i." "", all // Remove i. prefixes
-	if ("`options'"!="") di as error "unused options: `options'"
-	if ("`sample'"!="") confirm new variable `sample'
+	Assert "`cache'"=="", msg("invalid option {cmd:cache()}")
+	Assert "`vce'"=="", msg("invalid option {cmd:vce()}")
+	Assert "`fast'"=="", msg("invalid option {cmd:fast()}")
+	Assert "`cluster'"=="", msg("invalid option {cmd:cluster()}, perhaps you meant {opt clusterv:ars()}?")
 	Assert ("`generate'"!="") + ("`clear'"!="") == 1 , ///
 		msg("hdfe error: you need to specify one and only one of the following options: clear generate(...)")
-	Assert "`: list varlist & partial'"=="", ///
-		msg("variables in varlist cannot appear in partial()")
-	if ("`weight'"!="") {
-		local weightvar `exp'
-		local weighttype `weight'
-		confirm var `weightvar', exact // just allow simple weights
+
+	if ("`clear'"!="") Assert "`sample'"=="", msg("option {cmd:sample()} not compatible with {cmd:clear}")
+	if ("`generate'"!="") Assert "`keepids'"=="", msg("option {cmd:keepids} not compatible with {cmd:generate()}")
+	if ("`generate'"!="") Assert "`keepvars'"=="", msg("option {cmd:keepvars()} not compatible with {cmd:generate()}")
+
+	cap drop __ID*__
+	cap drop __CL*__
+	
+	if ("`keepvars'"!="") {
+		qui ds `keepvars'
+		local keepvars `r(varlist)'
 	}
-	if ("`group'"!="") confirm new var `group'
+
+	local 0 `partial' `anything' [`weight'`exp'] , absorb(`absorb') `options' ///
+		cluster(`clustervars') cache(save, keepvars(`keepvars'))
+
+* INITIAL CLEANUP
+	ereturn clear // Clear previous results and drops e(sample)
 
 * From now on, we will pollute the Mata workspace, so wrap this in case of error
 	cap noi {
 
-* Create Mata structure
-	ParseAbsvars `absorb' // Stores results in r()
-	// return list
-	mata: HDFE_S = map_init() // Reads results from r()
-	// return list
-	local save_fe = r(save_fe)
+* PARSE - inject opts with c_local, create Mata structure HDFE_S (use verbose>2 for details)
+	Parse `0'
+	assert `savecache'
+	Assert !`will_save_fe', msg("savecache disallows saving FEs")
 
-	if ("`weightvar'"!="") mata: map_init_weights(HDFE_S, "`weightvar'", "`weighttype'")
-	* String options
-	local optlist transform acceleration clustervars panelvar timevar
-	foreach opt of local optlist {
-		if ("``opt''"!="") mata: map_init_`opt'(HDFE_S, "``opt''")
-	}
-	* Numeric option
-s	local optlist groupsize verbose tolerance maxiterations keepsingletons
-	foreach opt of local optlist {
-		if ("``opt''"!="") mata: map_init_`opt'(HDFE_S, ``opt'')
-	}
-
-* (Optional) Preserve
-	if ("`generate'"!="" | `save_fe') {
-		tempvar uid
-		local uid_type = cond(c(N)>c(maxlong), "double", "long")
-		gen `uid_type' `uid' = _n // Useful for later merges
-		la var `uid' "[UID]"
+	if ("`clear'"=="") {
 		preserve
+		tempvar uid
+		GenUID `uid'
 	}
 
-	if ("`generate'"!="") {
-		foreach var of varlist `varlist' {
-			confirm new var `generate'`var'
-			local newvars `newvars' `generate'`var'
-		}
-	}
+* PROBLEM:z
+	* I can translate L(1/2).x into __L__x __L2__x
+	* But how can I translate i.x if I don't have the original anymore?
 
-* Precompute Mata objects
-	mata: map_init_keepvars(HDFE_S, "`varlist' `partial' `uid'") // Non-essential vars will be deleted
+* SOLUTION
+	* The cache option of ExpandFactorVariables (called from Compact.ado)
+
+* COMPACT - Expand time and factor variables, and drop unused variables and obs.
+	Compact, basevars(`basevars') depvar(`depvar' `indepvars') uid(`uid') timevar(`timevar') panelvar(`panelvar') weightvar(`weightvar') ///
+		absorb_keepvars(`absorb_keepvars') clustervars(`clustervars') ///
+		if(`if') in(`in') verbose(`verbose') vceextra(`vceextra') savecache(1) more_keepvars(`keepvars')
+	// Injects locals: depvar indepvars endogvars instruments expandedvars cachevars
+
+* PRECOMPUTE MATA OBJECTS (means, counts, etc.)
+	mata: map_init_keepvars(HDFE_S, "`expandedvars' `uid' `cachevars' `keepvars'") 	// Non-essential vars will be deleted (e.g. interactions of a clustervar)
 	mata: map_precompute(HDFE_S)
+	global updated_clustervars = "`r(updated_clustervars)'"
 
-* Compute e(df_a)
-	mata: map_estimate_dof(HDFE_S, "pairwise clusters continuous", "`group'")
-	//return list
+* Store UID in Mata so we can then attach the variables without an expensive merge
+	if ("`clear'"=="") mata: store_uid(HDFE_S, "`uid'")
+	
+* COMPUTE DOF
+	if (`timeit') Tic, n(62)
+	mata: map_estimate_dof(HDFE_S, "`dofadjustments'", "`groupvar'") // requires the IDs
+	if (`timeit') Toc, n(62) msg(estimate dof)
+	assert e(df_a)<. // estimate_dof() only sets e(df_a); map_ereturn_dof() is for setting everything aferwards
+	local kk = e(df_a) // we need this for the regression step
 
-* (Optional) Drop IDs, unless i) they are also clusters or ii) we want to save fe
-	// TODO
-
-* (Optional) Need to backup dataset if we want to save FEs
-	if (`save_fe') {
-		tempfile untransformed
-		qui save "`untransformed'"
+* MAP_SOLVE() - WITHIN TRANFORMATION (note: overwrites variables)
+	qui ds `expandedvars'
+	local NUM_VARS : word count `r(varlist)'
+	Debug, msg("(computing residuals for `NUM_VARS' variables)")
+	
+* Build newvar string (trick: if generate is empty, then newvars==expandedvars)
+	foreach var of local expandedvars {
+		local newvars `newvars' `generate'`var'
 	}
 
-* Within Transformation
-	mata: map_solve(HDFE_S, "`varlist'", "`newvars'", "`partial'")
+	local restore_original = ("`clear'"=="")
+	mata: map_solve(HDFE_S, "`expandedvars'", "`newvars'", "", 0, `restore_original')
 
-* Run regression
-	if ("`subcmd'"!="") {
-		// TODO
-		// `subcmd' ..  `varlist' `options' ...
-	}
-	else if (`save_fe') { // Need to regress before predicting
-		regress `varlist', noheader notable // qui  // BUGBUG: _regress?
+	foreach var of local expandedvars {
+		local label : char `generate'`var'[name]
+		if ("`label'"=="") local label `var'
+		la var `generate'`var' "Residuals: `label'"
 	}
 
-* (Optional) Save FEs
-	if (`save_fe') {
-		tempvar resid
-		predict double `resid', resid
-		keep `uid' `resid'
-		tempfile transformed
-		qui save "`transformed'"
+	if ("`groupvar'"!="") mata: groupvar2dta(HDFE_S, `restore_original')
 
-		qui use "`untransformed'"
-		erase "`untransformed'"
-
-		merge 1:1 `uid' using "`transformed'", assert(match) nolabel nonotes noreport nogen
-		erase "`transformed'"
-		tempvar resid_d
-		predict double `resid_d', resid
-		if ("`weightvar'"!="") local tmp_weight "[fw=`weightvar']" // summarize doesn't work with pweight
-		su `resid_d' `tmp_weight', mean
-		qui replace `resid_d' = `resid_d' - r(mean)
-		tempvar d
-		gen double `d' = `resid_d' - `resid'
-		//clonevar dd = `d'
-		mata: map_solve(HDFE_S, "`d'", "", "`partial'", 1) // Save FE (should fail if partial is set)
-		//regress dd __hdfe*, nocons
+	if ("`sample'"!="") {
+		mata: esample2dta(HDFE_S, "`sample'")
+		qui replace `sample' = 0 if `sample'==.
+		la var `sample' "[HDFE Sample]"
+		mata: drop_uid(HDFE_S)
 	}
 
-* (Optional) Tempsave, restore and merge with
-	//if ("`esample'"!="" | `save_fe' | "`generate'"!="")
-	//maso menos xq las variables transformadas ya las chanque (estaban en transformed!)
-	//esta parte es medio rara
-	// ...
-	// need to add vars if i) i want e(sample), ii) i want to merge the FEs, iii) i want to merge
+* Absorbed-specific returns
+	* e(N_hdfe) e(N_hdfe_extended) e(mobility)==M e(df_a)==K-M
+	* e(M#) e(K#) e(M#_exact) e(M#_nested) -> for #=1/e(N_hdfe_extended)
+	mata: map_ereturn_dof(HDFE_S)
+	local N_hdfe = e(N_hdfe)
+	ereturn local cmd = "hdfe"
+	ereturn local extended_absvars = "`extended_absvars'"
+	ereturn local absvars = "`original_absvars'"
 
-	if ("`generate'"!="" | `save_fe') restore
-
-* Cleanup after an error
+* Cleanup
 	} // cap noi
-	if c(rc) {
-		local rc = c(rc)
-		cap mata: mata drop HDFE_S // overwrites c(rc)
-		exit `rc'
+	local rc = c(rc)
+	cap mata: mata drop HDFE_S // overwrites c(rc)
+	*cap mata: mata drop varlist_cache
+	cap global updated_clustervars
+
+	local keys absorb N_hdfe original_absvars extended_absvars vce vceoption vcetype ///
+		vcesuite vceextra num_clusters clustervars bw kernel dkraay kiefer twicerobust ///
+		reghdfe_cache // cache_obs
+	foreach key of local keys {
+		char _dta[`key']
 	}
+
+	if ("`keepids'"=="" | `rc') cap drop __ID*__
+	if ("`keepids'"=="" | `rc') cap drop __CL*__
+
+	if (`rc') exit `rc'
 end
+
+// -------------------------------------------------------------------------------------------------
+include "common/Assert.ado"
+include "common/Debug.ado"
+include "common/Version.ado"
+include "common/Tic.ado"
+include "common/Toc.ado"
+	include "internal/Parse.ado"
+		include "internal/ParseCache.ado"
+		include "internal/ParseIV.ado"
+		include "internal/ParseStages.ado"
+		include "internal/ParseVCE.ado"
+		include "internal/ParseAbsvars.ado"
+		include "internal/ParseDOF.ado"
+		include "internal/ParseImplicit.ado"
+	include "internal/GenUID.ado"
+	include "internal/Compact.ado"
+		include "internal/ExpandFactorVariables.ado"
+		include "internal/GenerateID.ado"
+// -------------------------------------------------------------------------------------------------

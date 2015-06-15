@@ -58,11 +58,9 @@
 
 	run test-cache
 
-	* TODO NOW:
 	run test-stages
 	
-	* TODO LATER:
-	// run test-hdfe // just tests that the syntax works, not for correctness
+	run test-hdfe // just tests that the syntax works, not for correctness
 
 	* Don't run by default this as it's mostly a test about quipu.ado and not reghdfe.ado
 	*run test-quipu

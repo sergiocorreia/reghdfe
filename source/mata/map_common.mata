@@ -51,7 +51,9 @@ void function resid2dta(`Problem' S, `Boolean' original_dta, `Boolean' cleanup) 
 void function groupvar2dta(`Problem' S, | `Boolean' original_dta) {
 	if (args()<2) original_dta = 1
 	
-	if (S.groupvar!="") {
+	// If grouptype has not been set, that's because there was no need to
+	// EG: Only one FE, or two FEs but one is the clustervar
+	if (S.grouptype!="") {
 		if (S.verbose>2) printf("{txt}    - Saving identifier for the first mobility group: {res}%s\n", S.groupvar)
 		
 		if (original_dta) {

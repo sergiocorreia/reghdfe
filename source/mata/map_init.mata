@@ -35,6 +35,7 @@ mata set matastrict on
 	S.N = .
 
 	S.groupvar = "" // Initialize as empty
+	S.grouptype = "" // Initialize as empty
 	S.sortedby = "" // Initialize as empty (prevents bugs if we change the dataset before map_precompute)
 
 
@@ -131,7 +132,7 @@ void function map_init_weights(`Problem' S, `Varname' weightvar, `String' weight
 }
 
 void function map_init_keepvars(`Problem' S, `Varname' keepvars) {
-	if (keepvars!="") stata(sprintf("confirm numeric variable %s, exact", keepvars))
+	//if (keepvars!="") stata(sprintf("confirm numeric variable %s, exact", keepvars))
 	S.keepvars = tokens(keepvars)
 }
 

@@ -94,7 +94,7 @@ void map_precompute_part1(`Problem' S, transmorphic counter) {
 		g++
 	}
 
-	printf("{txt}(dropped %f singleton observations)\n", initial_N-st_nobs())
+	if (initial_N>st_nobs()) printf("{txt}(dropped %f singleton observations)\n", initial_N-st_nobs())
 }
 
 // -------------------------------------------------------------

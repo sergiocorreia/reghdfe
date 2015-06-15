@@ -198,9 +198,9 @@ void function map_ereturn_dof(`Problem' S) {
 			st_numscalar( sprintf("e(M%f)",h) , S.doflist_M[h] )
 			st_numscalar( sprintf("e(K%f)",h) , S.fes[g].levels )
 
-			st_global( sprintf("e(M%f_exact)",h) , strofreal(S.doflist_M_is_exact[h]) )
-			st_global( sprintf("e(M%f_nested)",h) , strofreal(S.doflist_M_is_nested[h]) )
-			st_global( sprintf("e(G%f)",h) , strofreal(g) ) // unused?
+			st_numscalar( sprintf("e(M%f_exact)",h) , S.doflist_M_is_exact[h])
+			st_numscalar( sprintf("e(M%f_nested)",h) , S.doflist_M_is_nested[h])
+			st_numscalar( sprintf("e(G%f)",h) , g) // unused?
 		}
 	}
 }

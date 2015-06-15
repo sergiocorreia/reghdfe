@@ -1,8 +1,9 @@
 mata:
 mata set matastrict on
 
+// (Note: This function is doing too many things at once; need to refactor it)
 void function map_solve(`Problem' S, `Varlist' vars,
-		| `Varlist' newvars, `Varlist' partial, `Boolean' save_fe) {
+		| `Varlist' newvars, `Varlist' partial, `Boolean' save_fe, `Boolean' original_dta) {
 	`Integer' i, Q, Q_partial, offset, g
 	`Group' y
 	`FunctionPointer' transform, accelerate
@@ -29,17 +30,25 @@ void function map_solve(`Problem' S, `Varlist' vars,
 
 	st_dropvar(vars) // We need the new ones on double precision
 
-	if (args()<3 | newvars=="") newvars = vars
+	if (args()<3 | newvars=="") {
+		newvars = vars
+	}
+	else {
+		newvars = tokens(newvars)
+	}
 	assert_msg(length(vars)==length(newvars), "map_solve error: newvars must have the same size as vars")
 
 	// Load additional partialled-out regressors
 	Q_partial = 0
-	if (args()==4 & partial!="") {
+	if (args()>=4 & partial!="") {
 		vars = tokens(partial)
 		Q_partial = cols(vars)
 		y = y , st_data(., vars)
 		st_dropvar(vars) // We need the new ones on double precision		
 	}
+
+	// Saving in reduced or original dataset? (only for hdfe.ado)
+	if (args()<6) original_dta = 0
 
 	// Storing FEs and returning them requires 6 changes
 	// 1) Extend the S and FE structures (add S.storing_betas, FE.alphas FE.tmp_alphas)
@@ -130,16 +139,29 @@ void function map_solve(`Problem' S, `Varlist' vars,
 	// 	stdevs =  stdevs[1..Q]
 	// }
 
+	// Restore for hdfe.ado if original_dta==1 (i.e. with generate() instead of clear)
+	if (original_dta==1) stata("restore")
+
 	// Store variables in dataset; do it by blocks to avoid 2x memory consumption
 	if (S.verbose>1) printf("{txt} - Saving transformed variables\n")
 	i = 1
 	while (cols(y)>0) {
 		if (S.poolsize>=cols(y)) {
-			st_store(., st_addvar("double", newvars[i..length(newvars)]), y)
+			if (original_dta) {
+				st_store(S.uid, st_addvar("double", newvars[i..length(newvars)]), y)
+			}
+			else {
+				st_store(., st_addvar("double", newvars[i..length(newvars)]), y)
+			}
 			y = J(0,0,.) // clear space
 		}
 		else {
-			st_store(., st_addvar("double", newvars[i..(i+S.poolsize-1)]), y[., 1..(S.poolsize)])
+			if (original_dta) {
+				st_store(S.uid, st_addvar("double", newvars[i..(i+S.poolsize-1)]), y[., 1..(S.poolsize)])
+			}
+			else {
+				st_store(., st_addvar("double", newvars[i..(i+S.poolsize-1)]), y[., 1..(S.poolsize)])
+			}
 			y = y[., (S.poolsize+1)..cols(y)] // clear space
 		}
 		i = i + S.poolsize
