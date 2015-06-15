@@ -40,7 +40,7 @@ syntax varlist(min=1 numeric fv ts) [if] [,setname(string)] [SAVECACHE(integer 0
 			if !r(is_dropped) {
 				local contents `contents' `r(varname)'
 				// if (`savecache') di as error `"<mata: asarray(varlist_cache, "`factorvar'", "`r(varname)'")>"'
-				if (`savecache') mata: asarray(varlist_cache, "`factorvar'", "`r(varname)'")
+				if (`savecache') mata: asarray(varlist_cache, "`factorvar'", asarray(varlist_cache, "`factorvar'") + " " + "`r(varname)'")
 			}
 			* Yellow=Already existed, White=Created, Red=NotCreated (omitted or base)
 			local color = cond(r(is_dropped), "error", cond(r(is_newvar), "input", "result"))
