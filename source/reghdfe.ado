@@ -92,6 +92,8 @@ end
 include "common/Assert.ado"
 include "common/Debug.ado"
 include "common/Version.ado"
+include "common/Tic.ado"
+include "common/Toc.ado"
 include "internal/Inner.ado"
 	include "internal/Parse.ado"
 		include "internal/ParseCache.ado"

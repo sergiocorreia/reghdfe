@@ -1,4 +1,4 @@
-*! reghdfe 3.1.7 13jun2015
+*! reghdfe 3.1.8 14jun2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -2010,7 +2010,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.1.7 13jun2015"
+    local version "3.1.8 14jun2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2027,6 +2027,20 @@ program define Version, eclass
     	}
     }
 
+end
+
+program define Tic
+syntax, n(integer)
+	timer clear `n'
+	timer on `n'
+end
+
+program define Toc
+syntax, n(integer) msg(string)
+	timer off `n'
+	qui timer list `n'
+	di as text "[timer]{tab}" as result %8.3f `r(t`n')' as text "{col 20}`msg'{col 77}`n'" 
+	timer clear `n'
 end
 
 program define Inner, eclass
@@ -2325,20 +2339,6 @@ foreach lhs_endogvar of local lhs_endogvars {
 * CLEANUP
 	mata: mata drop HDFE_S // cleanup
 	if (`timeit') Toc, n(50) msg([TOTAL])
-end
-
-program define Tic
-syntax, n(integer)
-	timer clear `n'
-	timer on `n'
-end
-
-program define Toc
-syntax, n(integer) msg(string)
-	timer off `n'
-	qui timer list `n'
-	di as text "[timer]{tab}" as result %8.3f `r(t`n')' as text "{col 20}`msg'{col 77}`n'" 
-	timer clear `n'
 end
 
 	
@@ -2692,9 +2692,9 @@ program define ParseIV, sclass
 			local left `left'`tmp'
 			* Avoid matching the parens of e.g. L(-1/2) and L.(var1 var2)
 			* Using Mata to avoid regexm() and trim() space limitations
-			mata: st_local("tmp1", subinstr("`0'", " ", "") ) // wrong parens if ( and then a number
-			mata: st_local("tmp2", substr(strtrim("`left'"), -1) ) // wrong parens if dot
-			local wrongparens = regexm("`tmp1'", "^\([0-9-]") | ("`tmp2'"==".")
+			mata: st_local("tmp1", subinstr(`"`0'"', " ", "") ) // wrong parens if ( and then a number
+			mata: st_local("tmp2", substr(strtrim(`"`left'"'), -1) ) // wrong parens if dot
+			local wrongparens = regexm(`"`tmp1'"', "^\([0-9-]") | (`"`tmp2'"'==".")
 			if (`wrongparens') {
 				gettoken tmp 0 : 0 ,p(")")
 				local left `left'`tmp'
@@ -4769,7 +4769,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 		tempname statsmatrix
 		Stats `expandedvars', weightexp(`weightexp') stats(`stats') statsmatrix(`statsmatrix') usecache
 		// stats() will be ignored
-		if (`timeit') Tic, n(71) msg(Stats.ado)
+		if (`timeit') Toc, n(71) msg(Stats.ado)
 	}
 	if (`timeit') Tic, n(72)
 	Attach, notes(`notes') statsmatrix(`statsmatrix') summarize_quietly(`summarize_quietly') // Attach only once, not per stage

@@ -54,9 +54,9 @@ program define ParseIV, sclass
 			local left `left'`tmp'
 			* Avoid matching the parens of e.g. L(-1/2) and L.(var1 var2)
 			* Using Mata to avoid regexm() and trim() space limitations
-			mata: st_local("tmp1", subinstr("`0'", " ", "") ) // wrong parens if ( and then a number
-			mata: st_local("tmp2", substr(strtrim("`left'"), -1) ) // wrong parens if dot
-			local wrongparens = regexm("`tmp1'", "^\([0-9-]") | ("`tmp2'"==".")
+			mata: st_local("tmp1", subinstr(`"`0'"', " ", "") ) // wrong parens if ( and then a number
+			mata: st_local("tmp2", substr(strtrim(`"`left'"'), -1) ) // wrong parens if dot
+			local wrongparens = regexm(`"`tmp1'"', "^\([0-9-]") | (`"`tmp2'"'==".")
 			if (`wrongparens') {
 				gettoken tmp 0 : 0 ,p(")")
 				local left `left'`tmp'

@@ -208,7 +208,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 		tempname statsmatrix
 		Stats `expandedvars', weightexp(`weightexp') stats(`stats') statsmatrix(`statsmatrix') usecache
 		// stats() will be ignored
-		if (`timeit') Tic, n(71) msg(Stats.ado)
+		if (`timeit') Toc, n(71) msg(Stats.ado)
 	}
 	if (`timeit') Tic, n(72)
 	Attach, notes(`notes') statsmatrix(`statsmatrix') summarize_quietly(`summarize_quietly') // Attach only once, not per stage
