@@ -21,8 +21,9 @@
 
 ## Author
 
-[Sergio Correia](sergio.correia@gmail.com)
+[Sergio Correia](http://scorreia.com)
 <br>Fuqua School of Business, Duke University
+<br>Email: sergio.correia@duke.edu
 
 ## Acknowledgments
 
