@@ -51,7 +51,7 @@ for f in files:
 # Update version number
 with open(os.path.join(source_path, "version.txt"), 'rb') as fh:
     old_version = fh.read().decode()
-    regex_string = r'^(\d+)\.(\d+)\.(\d+) \d+\w+\d+$'
+    regex_string = r'^(\d+)\.(\d+)\.(\d+) \d+\w+\d+\s*$'
     regex = re.search(regex_string, old_version)
     today = time.strftime("%d%b%Y").lower() # See http://strftime.net/
     new_version = '{}.{}.{} {}'.format(regex.group(1), regex.group(2), int(regex.group(3))+1, today)
