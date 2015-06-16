@@ -32,8 +32,9 @@ This package wouldn't have existed without the invaluable feedback and contribut
 
 `reghdfe` is a free contribution to the research community, like a paper. Please cite it as such:
 
-    Sergio Correia, 2015. reghdfe: Stata module for linear and instrumental-variable/GMM regression absorbing multiple levels of fixed effects.
-    https://ideas.repec.org/c/boc/bocode/s457874.html
+> Sergio Correia, 2015. *reghdfe: Stata module for linear and instrumental-variable/GMM regression absorbing multiple levels of fixed effects.*
+>
+> https://ideas.repec.org/c/boc/bocode/s457874.html
 
 ## Description
 
