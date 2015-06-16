@@ -1,4 +1,4 @@
-# REGHDFE: Linear and IV/GMM Regressions With Many Levels of Fixed Effects
+# REGHDFE: Linear and IV/GMM Regressions With Many Fixed Effects
 
 `reghdfe` is a [Stata](http://www.stata.com/) package that estimates linear regressions with multiple levels of fixed effects. It works as a generalization of the built-in `areg`, `xtreg,fe` and `xtivreg,fe` regression commands. It's objectives are similar to the R package [lfe](http://cran.r-project.org/web/packages/lfe/index.html) by Simen Gaure. It's features include:
 
