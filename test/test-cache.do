@@ -38,45 +38,45 @@ cscript "reghdfe with cache" adofile reghdfe
 	fvunab tmp : `rhs'
 	local K : list sizeof tmp
 
-	local include ///
-		scalar: N rmse tss rss mss r2 r2_a F df_r df_m F_absorb ///
-		matrix: trim_b trim_V ///
-		macros: wexp wtype 
+	local exclude scalar: F_absorb macros: cmdline
+
+
+	*	scalar: N rmse tss rss mss r2 r2_a F df_r df_m F_absorb ///
+	*	matrix: trim_b trim_V ///
+	*	macros: wexp wtype 
 
 	* 1. Run benchmark
-	areg `lhs' `rhs', absorb(`absvars')
-	TrimMatrix `K'
-	local bench_df_a = e(df_a)
+	reghdfe `lhs' `rhs', absorb(`absvars')
 	storedresults save benchmark e()
 	
 	* 2. Save cache
-	local fn "D:/Github/tmp/thecache"
-	reghdfe `lhs' `othervar' `rhs', absorb(`absvars') savecache("`fn'")
+	preserve
+	reghdfe `lhs' `othervar' `rhs', absorb(`absvars') cache(save)
 
 	* 3. Use cache
-	reghdfe `lhs' `othervar', absorb(`absvars') usecache("`fn'")
-	reghdfe `lhs' `rhs', absorb(`absvars') usecache("`fn'")
-	TrimMatrix `K'
+	reghdfe `lhs' `othervar', absorb(`absvars') cache(use)
+	reghdfe `lhs' `rhs', absorb(`absvars') cache(use)
 	
 	* 3. Compare
-	assert `bench_df_a'==e(df_a)-1
-	storedresults compare benchmark e(), tol(1e-12) include(`include')
+	storedresults compare benchmark e(), tol(1e-12) exclude(`exclude')
 
-	* Repeat with -fast- in usecache
-	local fn "D:/Github/tmp/thecache"
-	reghdfe `lhs' `othervar' `rhs', absorb(`absvars') savecache("`fn'")
-	reghdfe `lhs' `rhs', absorb(`absvars') usecache("`fn'") fast
-	TrimMatrix `K'
-	assert `bench_df_a'==e(df_a)-1
-	storedresults compare benchmark e(), tol(1e-12) include(`include')
+	* 4. Cleanup
+	reghdfe, cache(clear)
+	restore
 
-	* Repeat with multiple cores
-	local fn "D:/Github/tmp/thecache"
-	reghdfe `lhs' `othervar' `rhs', absorb(`absvars') savecache("`fn'") cores(3)
-	reghdfe `lhs' `rhs', absorb(`absvars') usecache("`fn'") fast
-	TrimMatrix `K'
-	assert `bench_df_a'==e(df_a)-1
-	storedresults compare benchmark e(), tol(1e-12) include(`include')
+	* Repeat with -fast- in cache(use), a keep(), and vce(cluster)
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `absvars')
+	storedresults save benchmark e()
+
+	reghdfe `lhs' `othervar' `rhs', absorb(`absvars') cache(save, keep(foreign)) fast vce(cluster `absvars')
+	reghdfe `lhs' `rhs', absorb(`absvars') cache(use) fast vce(cluster `absvars')
+	storedresults compare benchmark e(), tol(1e-12) exclude(`exclude')
+
+	reghdfe `lhs' `rhs', absorb(`absvars') cache(use) fast vce(cluster `absvars') resid(resid)
+	bys foreign: su resid
+
+	* Cleanup
+	reghdfe, cache(clear)
 
 	storedresults drop benchmark
 /*

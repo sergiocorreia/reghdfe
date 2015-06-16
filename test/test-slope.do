@@ -50,7 +50,7 @@ noi cscript "reghdfe with FE interacted with slope" adofile reghdfe
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe and compare
-	reghdfe `lhs' `rhs', absorb(`absvars'##c.`cvar')
+	reghdfe `lhs' `rhs', absorb(`absvars'##c.`cvar') keepsingletons
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-12) include(`included_e')
 

@@ -47,13 +47,13 @@ noi cscript "reghdfe with unadjusted/ols VCV" adofile reghdfe
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe-avar and compare
-	reghdfe `lhs' `rhs', absorb(`absvars') vce(unadjusted, suite(avar))
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(unadjusted, suite(avar)) keepsingletons
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-12) include(`included_e')
 	assert `bench_df_a'==e(df_a)-1
 
 	* 3. Run reghdfe-default and compare
-	reghdfe `lhs' `rhs', absorb(`absvars') vce(unadjusted, suite(default))
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(unadjusted, suite(default)) keepsingletons
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-12) include(`included_e')
 	assert `bench_df_a'==e(df_a)-1

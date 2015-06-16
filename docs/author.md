@@ -7,7 +7,7 @@ For any comments or suggestions, feel free to contact me at: [sergio.correia@duk
 ## Acknowledgments
 
 This package wouldn't have existed without the invaluable feedback and contributions of Paulo Guimarães
- and Amine Quazad. I am also indebted to the guidance of Kit Baum and Mark Schaffer, and to the great bug-spotting abilities of many users.
+ and Amine Ouazad. I am also indebted to the guidance of Kit Baum and Mark Schaffer, and to the great bug-spotting abilities of many users.
 
 In addition, `reghdfe` uses several important contributions from the Stata community:
 

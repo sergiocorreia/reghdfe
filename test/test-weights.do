@@ -28,13 +28,13 @@ cscript "reghdfe with weights" adofile reghdfe
 	TrimMatrix 2
 	storedresults save areg e()
 
-	reghdfe price weight disp [fw=n], a(turn#foreign) tol(1e-10)
+	reghdfe price weight disp [fw=n], a(turn#foreign) tol(1e-10) keepsingletons
 	TrimMatrix 2
 	storedresults compare areg e(), tol(1e-10) include(scalar: N r2 matrix: trim_b trim_V macros: wexp wtype)
 
 foreach suite in default avar {
 	di as text "SUITE=<`suite'>"
-	reghdfe price weight disp [fw=n], a(turn#foreign) tol(1e-10) vce(ols, suite(`suite'))
+	reghdfe price weight disp [fw=n], a(turn#foreign) tol(1e-10) vce(ols, suite(`suite')) keepsingletons
 	TrimMatrix 2
 	storedresults compare areg e(), tol(1e-10) include(scalar: N r2 matrix: trim_b trim_V macros: wexp wtype)	
 }
@@ -55,7 +55,7 @@ foreach suite in default avar {
 	TrimMatrix 2
 	storedresults save areg e()
 	
-	reghdfe price weight disp [fw=n], a(turn#foreign) tol(1e-10)
+	reghdfe price weight disp [fw=n], a(turn#foreign) tol(1e-10) keepsingletons
 	TrimMatrix 2
 	storedresults compare areg e(), tol(1e-10) include(scalar: N r2 matrix: trim_b trim_V macros: wexp wtype)
 	storedresults drop areg
@@ -68,7 +68,7 @@ foreach suite in default avar {
 	TrimMatrix 3
 	storedresults save areg e()
 	
-	reghdfe price weight disp trunk [aw=n], a(turn#foreign) tol(1e-10) dof(none) vce(robust)
+	reghdfe price weight disp trunk [aw=n], a(turn#foreign) tol(1e-10) dof(none) vce(robust) keepsingletons
 	TrimMatrix 3
 	storedresults compare areg e(), tol(1e-10) include(scalar: N r2 matrix: trim_b trim_V macros: wexp wtype)
 	storedresults drop areg
@@ -87,7 +87,7 @@ foreach suite in default avar {
 	TrimMatrix 3
 	storedresults save areg e()
 	
-	reghdfe price weight disp trunk [pw=n], a(turn#foreign) tol(1e-10) dof(none) vce(robust)
+	reghdfe price weight disp trunk [pw=n], a(turn#foreign) tol(1e-10) dof(none) vce(robust) keepsingletons
 	TrimMatrix 3
 	storedresults compare areg e(), tol(1e-10) include(scalar: N r2 matrix: trim_b trim_V macros: wexp wtype)
 	storedresults drop areg

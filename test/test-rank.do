@@ -33,11 +33,12 @@ end
 areg y x ibn.j , a(i) // Variables are omitted
 di e(df_a)
 di e(df_r)
-reghdfe y x, absorb(i j)
+reghdfe y x, absorb(i j)  keepsingletons
 di e(df_r)
-reghdfe y x, absorb(i j) dropsingleton
+cap noi reghdfe y x, absorb(i j)
+assert c(rc)==2001
 di e(df_r)
-reghdfe y x, absorb(i j)
+reghdfe y x, absorb(i j)  keepsingletons
 di e(df_r)
 assert e(df_r)==0
 

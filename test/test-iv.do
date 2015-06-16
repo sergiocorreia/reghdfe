@@ -55,11 +55,11 @@ noi cscript "reghdfe comparison with iv" adofile reghdfe
 	matrix list e(trim_V)
 	storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' `endogvars', absorb(`absvars') vce(cluster `absvars', suite(avar)) dropsingletons
+	reghdfe `depvar' `indepvars' `endogvars', absorb(`absvars') vce(cluster `absvars', suite(avar))
 	estadd scalar r2 = e(r2_within), replace
-	local scale = e(unclustered_df_r) / (e(unclustered_df_r) + 1)
+	//local scale = e(unclustered_df_r) / (e(unclustered_df_r) + 1)
 	TrimMatrix `K' `scale'
-	estadd scalar F = e(F) / `scale', replace
+	//estadd scalar F = e(F) / `scale', replace
 	matrix list e(trim_V)
 	storedresults compare benchmark e(), tol(1e-8) include(`include_ols')
 	storedresults drop benchmark
@@ -72,7 +72,7 @@ noi cscript "reghdfe comparison with iv" adofile reghdfe
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted, suite(avar)) tol(1e-12) // dropsingletons
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(unadjusted, suite(avar)) tol(1e-12) keepsingletons
 	estadd scalar r2 = e(r2_within), replace
 	*local scale = 1 // e(unclustered_df_r) / (e(unclustered_df_r) + 1)
 	TrimMatrix `K' // `scale'
@@ -88,7 +88,7 @@ noi cscript "reghdfe comparison with iv" adofile reghdfe
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust, suite(avar)) tol(1e-12) // dropsingletons
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust, suite(avar)) tol(1e-12) keepsingletons
 	estadd scalar r2 = e(r2_within), replace
 	*local scale = 1 // e(unclustered_df_r) / (e(unclustered_df_r) + 1)
 	TrimMatrix `K' // `scale'
@@ -105,12 +105,12 @@ noi cscript "reghdfe comparison with iv" adofile reghdfe
 	TrimMatrix `K'
 	storedresults save benchmark e()
 
-	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(cluster `clustervars', suite(avar)) tol(1e-12) // dropsingletons
-	estadd scalar r2 = e(r2_within), replace
+	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(cluster `clustervars', suite(avar)) tol(1e-12) keepsingletons
 	*local scale = 1 // e(unclustered_df_r) / (e(unclustered_df_r) + 1)
 	TrimMatrix `K' // `scale'
 	*estadd scalar F = e(F) / `scale', replace
 	*matrix list e(trim_V)
+	estadd scalar r2 = e(r2_within), replace
 	storedresults compare benchmark e(), tol(1e-6) include(`include_ols')
 	storedresults drop benchmark
 

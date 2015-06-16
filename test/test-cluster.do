@@ -47,8 +47,8 @@ cscript "reghdfe with clusters" adofile reghdfe
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe
-	di as result "reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervar')"
-	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervar') // dof(none)	
+	di as result "reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervar') keepsingletons"
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervar') keepsingletons // dof(none)	
 	matrix list e(V)
 	TrimMatrix `K'
 	
@@ -79,7 +79,7 @@ cscript "reghdfe with clusters" adofile reghdfe
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe
-	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervar') // dof(none)
+	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervar') keepsingletons // dof(none)
 	TrimMatrix `K'
 	
 	* 3. Compare

@@ -1,0 +1,243 @@
+----------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  D:\Github\reghdfe\misc\Benchmarks\areg_xtreg.log
+  log type:  text
+ opened on:   5 Jun 2015, 16:36:46
+
+. version
+version 14.0
+
+. 
+. cap ado uninstall reghdfe
+
+. net from https://raw.githubusercontent.com/sergiocorreia/reghdfe/updated_mata/package/
+----------------------------------------------------------------------------------------------------------------------------------------------
+https://raw.githubusercontent.com/sergiocorreia/reghdfe/updated_mata/package/
+Sergio Correia, Duke University (sergio.correia@duke.edu)
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+PACKAGES you could -net describe-:
+    reghdfe           REGHDFE - Linear regression with many high-dimensional fixed effects
+    hdfe              HDFE - Partial out variables with respect to a set of fixed effects
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+. net install reghdfe
+checking reghdfe consistency and verifying not already installed...
+installing into c:\ado\plus\...
+installation complete.
+
+. 
+. set obs 2000000
+number of observations (_N) was 0, now 2,000,000
+
+. gen y = uniform()
+
+. gen x1 = uniform()
+
+. gen x2 = uniform()
+
+. gen x3 = uniform()
+
+. gen id = 1 + int((_n-1)/1000)
+
+. bys id: gen long t = _n
+
+. compress
+  variable id was float now int
+  variable t was long now int
+  (8,000,000 bytes saved)
+
+. xtset id t
+       panel variable:  id (strongly balanced)
+        time variable:  t, 1 to 1000
+                delta:  1 unit
+
+. 
+. local vce vce(cluster id)
+
+. 
+. set rmsg on
+r; t=0.00 16:36:54
+
+. 
+. areg y x* , absorb(id) `vce'
+
+Linear regression, absorbing indicators         Number of obs     =  2,000,000
+                                                F(   3,   1999)   =       1.46
+                                                Prob > F          =     0.2226
+                                                R-squared         =     0.0010
+                                                Adj R-squared     =     0.0000
+                                                Root MSE          =     0.2885
+
+                                 (Std. Err. adjusted for 2,000 clusters in id)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+          x1 |   .0003261   .0007188     0.45   0.650    -.0010837    .0017358
+          x2 |   -.000757   .0007171    -1.06   0.291    -.0021634    .0006493
+          x3 |   .0011787   .0006902     1.71   0.088     -.000175    .0025323
+       _cons |   .4993925   .0006183   807.65   0.000     .4981799    .5006052
+-------------+----------------------------------------------------------------
+          id |   absorbed                                    (2000 categories)
+r; t=3.58 16:36:57
+
+. xtreg y x*, fe `vce'
+
+Fixed-effects (within) regression               Number of obs     =  2,000,000
+Group variable: id                              Number of groups  =      2,000
+
+R-sq:                                           Obs per group:
+     within  = 0.0000                                         min =      1,000
+     between = 0.0000                                         avg =    1,000.0
+     overall = 0.0000                                         max =      1,000
+
+                                                F(3,1999)         =       1.46
+corr(u_i, Xb)  = -0.0002                        Prob > F          =     0.2222
+
+                                 (Std. Err. adjusted for 2,000 clusters in id)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+          x1 |   .0003261   .0007185     0.45   0.650     -.001083    .0017351
+          x2 |   -.000757   .0007167    -1.06   0.291    -.0021627    .0006486
+          x3 |   .0011787   .0006899     1.71   0.088    -.0001743    .0025316
+       _cons |   .4993925    .000618   808.05   0.000     .4981805    .5006046
+-------------+----------------------------------------------------------------
+     sigma_u |  .00921489
+     sigma_e |  .28849339
+         rho |  .00101922   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+r; t=7.48 16:37:05
+
+. reghdfe y x* , absorb(id) `vce' old // v2
+(running historical version of reghdfe)
+
+HDFE Linear regression                            Number of obs   =    2000000
+Absorbing 1 HDFE indicator                        F(   3,   1999) =       1.46
+Statistics robust to heteroskedasticity           Prob > F        =     0.2222
+                                                  R-squared       =     0.0010
+                                                  Adj R-squared   =     0.0000
+                                                  Within R-sq.    =     0.0000
+Number of clusters (id)      =       2000         Root MSE        =     0.2885
+
+                                 (Std. Err. adjusted for 2,000 clusters in id)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+          x1 |   .0003261   .0007185     0.45   0.650     -.001083    .0017351
+          x2 |   -.000757   .0007167    -1.06   0.291    -.0021627    .0006486
+          x3 |   .0011787   .0006899     1.71   0.088    -.0001743    .0025316
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+------------------------------------------------------------------------------
+ Absorbed FE |  Num. Coefs.  =   Categories  -   Redundant     |    Corr. w/xb
+-------------+-------------------------------------------------+--------------
+        i.id |            1            2000           1999 *   |       -0.0002
+------------------------------------------------------------------------------
+* = fixed effect nested within cluster; treated as redundant for DoF computation
+r; t=12.41 16:37:17
+
+. reghdfe y x* , absorb(id) `vce' // v3-slow
+(dropped 0 singleton observations)
+(converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    2000000
+Absorbing 1 HDFE group                            F(   3,   1999) =       1.46
+Statistics robust to heteroskedasticity           Prob > F        =     0.2222
+                                                  R-squared       =     0.0010
+                                                  Adj R-squared   =     0.0000
+                                                  Within R-sq.    =     0.0000
+Number of clusters (id)      =       2000         Root MSE        =     0.2885
+
+                                 (Std. Err. adjusted for 2,000 clusters in id)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+          x1 |   .0003261   .0007185     0.45   0.650     -.001083    .0017351
+          x2 |   -.000757   .0007167    -1.06   0.291    -.0021627    .0006486
+          x3 |   .0011787   .0006899     1.71   0.088    -.0001743    .0025316
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+---------------------------------------------------------------+
+ Absorbed FE |  Num. Coefs.  =   Categories  -   Redundant     | 
+-------------+-------------------------------------------------|
+          id |            0            2000           2000 *   | 
+---------------------------------------------------------------+
+* = fixed effect nested within cluster; treated as redundant for DoF computation
+r; t=3.48 16:37:20
+
+. reghdfe y x* , absorb(id) `vce' fast // v3-fast
+(dropped 0 singleton observations)
+(converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    2000000
+Absorbing 1 HDFE group                            F(   3,   1999) =       1.46
+Statistics robust to heteroskedasticity           Prob > F        =     0.2222
+                                                  R-squared       =     0.0010
+                                                  Adj R-squared   =     0.0000
+                                                  Within R-sq.    =     0.0000
+Number of clusters (id)      =       2000         Root MSE        =     0.2885
+
+                                 (Std. Err. adjusted for 2,000 clusters in id)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+          x1 |   .0003261   .0007185     0.45   0.650     -.001083    .0017351
+          x2 |   -.000757   .0007167    -1.06   0.291    -.0021627    .0006486
+          x3 |   .0011787   .0006899     1.71   0.088    -.0001743    .0025316
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+---------------------------------------------------------------+
+ Absorbed FE |  Num. Coefs.  =   Categories  -   Redundant     | 
+-------------+-------------------------------------------------|
+          id |            0            2000           2000 *   | 
+---------------------------------------------------------------+
+* = fixed effect nested within cluster; treated as redundant for DoF computation
+r; t=3.14 16:37:24
+
+. reghdfe y x* , absorb(id) `vce' fast dof(none) keepsingletons // v3-fastest
+[WARNING] Singletons are not dropped; statistical significance will be biased
+(dropped 0 singleton observations)
+(converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    2000000
+Absorbing 1 HDFE group                            F(   3,   1999) =       1.46
+Statistics robust to heteroskedasticity           Prob > F        =     0.2226
+                                                  R-squared       =     0.0010
+                                                  Adj R-squared   =     0.0000
+                                                  Within R-sq.    =     0.0000
+Number of clusters (id)      =       2000         Root MSE        =     0.2885
+
+                                 (Std. Err. adjusted for 2,000 clusters in id)
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+          x1 |   .0003261   .0007188     0.45   0.650    -.0010837    .0017358
+          x2 |   -.000757   .0007171    -1.06   0.291    -.0021634    .0006493
+          x3 |   .0011787   .0006902     1.71   0.088     -.000175    .0025323
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+---------------------------------------------------------------+
+ Absorbed FE |  Num. Coefs.  =   Categories  -   Redundant     | 
+-------------+-------------------------------------------------|
+          id |         2000            2000              0     | 
+---------------------------------------------------------------+
+r; t=2.96 16:37:27
+
+. 
+. log close _all
+      name:  <unnamed>
+       log:  D:\Github\reghdfe\misc\Benchmarks\areg_xtreg.log
+  log type:  text
+ closed on:   5 Jun 2015, 16:37:27
+----------------------------------------------------------------------------------------------------------------------------------------------

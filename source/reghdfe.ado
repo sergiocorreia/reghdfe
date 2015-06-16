@@ -1,79 +1,127 @@
-*! reghdfe VERSION_NUMBER
-*! Sergio Correia (sergio.correia@duke.edu)
-* (built from multiple source files using build.py)
 
-include _mata/reghdfe.mata
+// Mata code is first, then main reghdfe.ado, then auxiliary .ado files
+clear mata
+include "mata/map.mata"
 
-cap pr drop reghdfe
+capture program drop reghdfe
 program define reghdfe
-	local version `=clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
-	qui version `version'
 
-	* Intercept version calls
+* Set Stata version
+	version `=clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
+
+* Intercept old+version
+	cap syntax, version old
+	if !c(rc) {
+		reghdfe_old, version
+		exit
+	}
+
+* Intercept version
 	cap syntax, version
-	local rc = _rc
-	 if (`rc'==0) {
+	if !c(rc) {
 		Version
 		exit
 	}
 
-	* Intercept multiprocessor/parallel calls
-	cap syntax, instance [*]
-	local rc = _rc
-	 if (`rc'==0) {
-		ParallelInstance, `options'
+* Intercept old
+	cap syntax anything(everything) [fw aw pw/], [*] old
+	if !c(rc) {
+		di as error "(running historical version of reghdfe)"
+		if ("`weight'"!="") local weightexp [`weight'=`exp']
+		reghdfe_old `anything' `weightexp', `options'
 		exit
 	}
 
+* Intercept cache(clear) (must be before replay)
+	local cache
+	cap syntax, CACHE(string)
+	if ("`cache'"=="clear") {
+		cap mata: mata drop HDFE_S // overwrites c(rc)
+		cap mata: mata drop varlist_cache
+		cap mata: mata drop tss_cache
+		cap global updated_clustervars
+		cap matrix drop reghdfe_statsmatrix
+		exit
+	}
+
+* Intercept replay
 	if replay() {
 		if (`"`e(cmd)'"'!="reghdfe") error 301
-		Replay `0'
+		if ("`0'"=="") local comma ","
+		Replay `comma' `0' stored // also replays stored regressions (first stages, reduced, etc.)
+		exit
 	}
-	else {
-		* Estimate, and then clean up Mata in case of failure
-		mata: st_global("reghdfe_pwd",pwd())
-		Stop // clean leftovers for a possible [break]
-		cap noi Estimate `0'
-		if (_rc) {
-			local rc = _rc
-			Stop
+
+* Intercept cache(save)
+	local cache
+	cap syntax anything(everything) [fw aw pw/], [*] CACHE(string)
+	if (strpos("`cache'", "save")==1) {
+		cap noi InnerSaveCache `0'
+		if (c(rc)) {
+			local rc = c(rc)
+			cap mata: mata drop HDFE_S // overwrites c(rc)
+			cap mata: mata drop varlist_cache
+			cap mata: mata drop tss_cache
+			global updated_clustervars
+			cap matrix drop reghdfe_statsmatrix
 			exit `rc'
 		}
+		exit
+	}
+
+* Intercept cache(use)
+	local cache
+	cap syntax anything(everything) [fw aw pw/], [*] CACHE(string)
+	if ("`cache'"=="use") {
+		InnerUseCache `0'
+		exit
+	}
+
+* Finally, call Inner if not intercepted before
+	local is_cache : char _dta[reghdfe_cache]
+	Assert ("`is_cache'"!="1"), msg("reghdfe error: data transformed with -savecache- requires option -usecache-")
+	cap noi Inner `0'
+	if (c(rc)) {
+		local rc = c(rc)
+		cap mata: mata drop HDFE_S // overwrites c(rc)
+		exit `rc'
 	}
 end
 
-* Note: Assert and Debug must go first
-include "_common/Assert.ado"
-include "_common/Debug.ado"
-include "_common/Version.ado"
-include "_common/SortPreserve.ado"
-
-include "_mata/fix_psd.mata"
-
-include "_reghdfe/Estimate.ado"
-include "_reghdfe/Parse.ado"
-include "_hdfe/DropSingletons.ado"
-include "_reghdfe/ExpandFactorVariables.ado"
-include "_reghdfe/FixVarnames.ado"
-include "_reghdfe/Wrapper_regress.ado"
-include "_reghdfe/Wrapper_mwc.ado"
-include "_reghdfe/Wrapper_avar.ado"
-include "_reghdfe/Wrapper_ivregress.ado"
-include "_reghdfe/Wrapper_ivreg2.ado"
-include "_reghdfe/Attach.ado"
-include "_reghdfe/Replay.ado"
-include "_reghdfe/Header.ado"
-
-include "_hdfe/ConnectedGroups.ado"
-include "_hdfe/GenerateID.ado"
-include "_hdfe/AverageOthers.ado"
-include "_hdfe/EstimateDoF.ado"
-include "_hdfe/Start.ado"
-include "_hdfe/ParseOneAbsvar.ado"
-include "_hdfe/Precompute.ado"
-include "_hdfe/Demean.ado"
-include "_hdfe/DemeanParallel.ado"
-include "_hdfe/ParallelInstance.ado"
-include "_hdfe/Save.ado"
-include "_hdfe/Stop.ado"
-include "_hdfe/CheckCorrectOrder.ado"
+// -------------------------------------------------------------------------------------------------
+include "common/Assert.ado"
+include "common/Debug.ado"
+include "common/Version.ado"
+include "common/Tic.ado"
+include "common/Toc.ado"
+include "internal/Inner.ado"
+	include "internal/Parse.ado"
+		include "internal/ParseCache.ado"
+		include "internal/ParseIV.ado"
+		include "internal/ParseStages.ado"
+		include "internal/ParseVCE.ado"
+		include "internal/ParseAbsvars.ado"
+		include "internal/ParseDOF.ado"
+		include "internal/ParseImplicit.ado"
+	include "internal/GenUID.ado"
+	include "internal/Compact.ado"
+		include "internal/ExpandFactorVariables.ado"
+	include "internal/Prepare.ado"
+	include "internal/Stats.ado"
+	include "internal/JointTest.ado"
+	include "internal/Wrapper_regress.ado"
+	include "internal/Wrapper_avar.ado"
+	include "internal/Wrapper_mwc.ado"
+	include "internal/Wrapper_ivreg2.ado"
+	include "internal/Wrapper_ivregress.ado"
+		include "internal/GenerateID.ado"
+	include "internal/SaveFE.ado"
+	include "internal/Post.ado"
+		include "internal/FixVarnames.ado"
+		include "internal/Subtitle.ado"
+	include "internal/Attach.ado"
+include "internal/Replay.ado"
+	include "internal/Header.ado"
+include "internal/InnerSaveCache.ado"
+include "internal/InnerUseCache.ado"
+// -------------------------------------------------------------------------------------------------

@@ -1,226 +1,173 @@
-*! hdfe VERSION_NUMBER
-*! Sergio Correia (sergio.correia@duke.edu)
-* (built from multiple source files using build.py)
 
-include _mata/reghdfe.mata
+// Mata code is first, then main reghdfe.ado, then auxiliary .ado files
+clear mata
+include "mata/map.mata"
 
-cap pr drop hdfe
-program define hdfe, rclass
-	local version `=clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
-	qui version `version'
+capture program drop hdfe
+program define hdfe, eclass
+* Note: based on 
 
-* Intercept version calls
+* Set Stata version
+	version `=clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
+
+* Intercept version
 	cap syntax, version
-	local rc = _rc
-	 if (`rc'==0) {
+	if !c(rc) {
 		Version
 		exit
 	}
 
-* Intercept multiprocessor/parallel calls
-	cap syntax, instance [*]
-	local rc = _rc
-	 if (`rc'==0) {
-		ParallelInstance, `options'
-		exit
+* Parse options specific to hdfe.ado: partial sample generate clear clustervars
+	syntax anything(everything) [fw aw pw/], [*] ///
+		[CACHE(string) VCE(string) CLUSTER(string) FAST] /// Disabled options
+		Absorb(string) [ ///
+		/// PARTIAL(varlist numeric) /// Additional regressors besides those in absorb()
+		CLUSTERVars(string) /// Used to estimate the DoF
+		Generate(name) SAMPLE(name) ///
+		CLEAR KEEPIDs KEEPVars(varlist) ///
+		 ///
+		]
+
+	Assert "`cache'"=="", msg("invalid option {cmd:cache()}")
+	Assert "`vce'"=="", msg("invalid option {cmd:vce()}")
+	Assert "`fast'"=="", msg("invalid option {cmd:fast()}")
+	Assert "`cluster'"=="", msg("invalid option {cmd:cluster()}, perhaps you meant {opt clusterv:ars()}?")
+	Assert ("`generate'"!="") + ("`clear'"!="") == 1 , ///
+		msg("hdfe error: you need to specify one and only one of the following options: clear generate(...)")
+
+	if ("`clear'"!="") Assert "`sample'"=="", msg("option {cmd:sample()} not compatible with {cmd:clear}")
+	if ("`generate'"!="") Assert "`keepids'"=="", msg("option {cmd:keepids} not compatible with {cmd:generate()}")
+	if ("`generate'"!="") Assert "`keepvars'"=="", msg("option {cmd:keepvars()} not compatible with {cmd:generate()}")
+
+	cap drop __ID*__
+	cap drop __CL*__
+	
+	if ("`keepvars'"!="") {
+		qui ds `keepvars'
+		local keepvars `r(varlist)'
 	}
 
-* Parse
-	syntax varlist [if] [in] [fweight aweight pweight/] , Absorb(string) ///
-		[PARTIAL(varlist numeric)] ///
-		[CORES(integer 1)] ///
-		[DROPSIngletons] ///
-		[SAMPLE(name)] ///
-		[GENerate(name)] [CLEAR] ///
-		[CLUSTERVARs(string) Verbose(integer 0) TOLerance(real 1e-7) MAXITerations(integer 10000)] ///
-		[noACCELerate*]
+	local 0 `partial' `anything' [`weight'`exp'] , absorb(`absorb') `options' ///
+		cluster(`clustervars') cache(save, keepvars(`keepvars'))
 
-	Assert ("`generate'"!="") + ("`clear'"!="") == 1 , msg("hdfe error: you need to specify one and only one of the following options: clear generate(...)")
-
-	if ("`accelerate'"!="") local options `options' accelerate(0) // Deal with noACCELerate
-
-
-	* Check that intersection(partial,varlist) = Null
-	local intersection : list varlist & partial
-	Assert "`intersection'"=="", msg("variables in varlist cannot appear in partial()")
-
-	if ("`sample'"!="") conf new var `sample'
-
-	if ("`weight'"!="") {
-		local weightvar `exp'
-		conf var `weightvar' // just allow simple weights
-		local weighttype `weight'
-		local weightequal "="
-	}
-
-* Preserve if asked to
-	if ("`generate'"!="") {
-
-		* The new var must not exist!
-		foreach var of varlist `varlist' {
-			conf new var `generate'`var', exact
-		}
-
-		tempvar uid
-		gen double `uid' = _n
-		preserve
-	}
-
-* Clear previous errors
-	Stop
+* INITIAL CLEANUP
+	ereturn clear // Clear previous results and drops e(sample)
 
 * From now on, we will pollute the Mata workspace, so wrap this in case of error
-cap noi {
+	cap noi {
 
-* Time/panel variables
-	cap conf var `_dta[_TStvar]'
-	if (!_rc) local timevar `_dta[_TStvar]'
-	cap conf var `_dta[_TSpanel]'
-	if (!_rc) local panelvar `_dta[_TSpanel]'
+* PARSE - inject opts with c_local, create Mata structure HDFE_S (use verbose>2 for details)
+	Parse `0'
+	assert `savecache'
+	Assert !`will_save_fe', msg("savecache disallows saving FEs")
 
-* Set Verbosity
-	mata: VERBOSE = `verbose' // Pick a number between 0 (quiet) and 4 (lots of debugging info)
-
-* Parse: absorb, clusters, and weights
-	Start, absorb(`absorb') clustervars(`clustervars') weight(`weighttype') weightvar(`weightvar')
-	local absorb_keepvars = r(keepvars)
-	local N_hdfe = r(N_hdfe)
-
-* Check if we can save FEs
-	forval g = 1/`N_hdfe' {
-		mata: fe2local(`g')
-		local targets "`targets'`target'"
-	}
-	if ("`targets'"!="") {
-		Assert ("`partial'"==""), msg("hdfe error: partial() not allowed when saving fixed effects")
-		local numvars : word count `varlist'
-		Assert `numvars'==1 , msg("hdfe error: to save the fixed effects, you need to demean only one variable")
-		local opt_savefe "save_fe(1)"
+	if ("`clear'"=="") {
+		preserve
+		tempvar uid
+		GenUID `uid'
 	}
 
-* Keep relevant observations
-	marksample touse, novar
-	markout `touse' `varlist' `partial' `absorb_keepvars'
-	qui keep if `touse'
+* PROBLEM:z
+	* I can translate L(1/2).x into __L__x __L2__x
+	* But how can I translate i.x if I don't have the original anymore?
+
+* SOLUTION
+	* The cache option of ExpandFactorVariables (called from Compact.ado)
+
+* COMPACT - Expand time and factor variables, and drop unused variables and obs.
+	Compact, basevars(`basevars') depvar(`depvar' `indepvars') uid(`uid') timevar(`timevar') panelvar(`panelvar') weightvar(`weightvar') ///
+		absorb_keepvars(`absorb_keepvars') clustervars(`clustervars') ///
+		if(`if') in(`in') verbose(`verbose') vceextra(`vceextra') savecache(1) more_keepvars(`keepvars')
+	// Injects locals: depvar indepvars endogvars instruments expandedvars cachevars
+
+* PRECOMPUTE MATA OBJECTS (means, counts, etc.)
+	mata: map_init_keepvars(HDFE_S, "`expandedvars' `uid' `cachevars' `keepvars'") 	// Non-essential vars will be deleted (e.g. interactions of a clustervar)
+	mata: map_precompute(HDFE_S)
+	global updated_clustervars = "`r(updated_clustervars)'"
+
+* Store UID in Mata so we can then attach the variables without an expensive merge
+	if ("`clear'"=="") mata: store_uid(HDFE_S, "`uid'")
 	
-* Keep relevant variables
-	keep `varlist' `partial' `clustervars' `weightvar' `panelvar' `timevar' `uid' `absorb_keepvars'
+* COMPUTE DOF
+	if (`timeit') Tic, n(62)
+	mata: map_estimate_dof(HDFE_S, "`dofadjustments'", "`groupvar'") // requires the IDs
+	if (`timeit') Toc, n(62) msg(estimate dof)
+	assert e(df_a)<. // estimate_dof() only sets e(df_a); map_ereturn_dof() is for setting everything aferwards
+	local kk = e(df_a) // we need this for the regression step
 
-* Drop singletons
-	if ("`dropsingletons'"!="") DropSingletons, num_absvars(`N_hdfe')
+* MAP_SOLVE() - WITHIN TRANFORMATION (note: overwrites variables)
+	qui ds `expandedvars'
+	local NUM_VARS : word count `r(varlist)'
+	Debug, msg("(computing residuals for `NUM_VARS' variables)")
 	
-* Construct Mata objects and auxiliary variables
-	Precompute, ///
-		keep(`varlist' `partial' `clustervars' `weightvar' `panelvar' `timevar' `uid') ///
-		tsvars(`panelvar' `timevar') dofadjustments(pairwise clusters continuous)
-	
-* Compute e(df_a)
-	EstimateDoF, dofadjustments(pairwise clusters continuous)
-	* return list // what matters is r(kk) which will be e(df_a)
-	local kk = r(kk)
-	forval g = 1/`N_hdfe' {
-		local df_a`g' = r(K`g') - r(M`g')
-	}
-	
-* We don't need the FE variables (they are in mata objects now)
-	*drop __FE*__
-
-* Demean variables wrt to the fixed effects
-	local opt varlist(`varlist' `partial') tol(`tolerance') maxiterations(`maxiterations') `options' `opt_savefe'
-	if (`cores'>1) {
-		DemeanParallel, `opt' self(hdfe) cores(`cores')
-	}
-	else {
-		Demean, `opt'
+* Build newvar string (trick: if generate is empty, then newvars==expandedvars)
+	foreach var of local expandedvars {
+		local newvars `newvars' `generate'`var'
 	}
 
-	if ("`opt_savefe'"!="") {
-		Save, original_depvar(`varlist')
-		local saved_fe = r(keepvars)
-	}
-	
-	return scalar df_a = `kk'
-	return scalar N_hdfe = `N_hdfe'
-	forv g=1/`N_hdfe' {
-		mata: fe2local(`g') // copies Mata structure into locals
-		* Will inject the following with c_local:
-		* ivars cvars target varname varlabel is_interaction is_cont_interaction is_bivariate is_mock levels
-		return local hdfe`g' = "`varlabel'"
-		return scalar df_a`g' = `df_a`g'' // `levels'
-	}
-* Clean up Mata objects
-	Stop
+	local restore_original = ("`clear'"=="")
+	mata: map_solve(HDFE_S, "`expandedvars'", "`newvars'", "", 0, `restore_original')
 
-* Deal with partial() option (Alternative: do as ivreg-partial: precompute inv x'x )
-	if ("`partial'"!="") {
-		tempvar resid
-		_rmcoll `partial', forcedrop
-		local partial = r(varlist)
-		foreach var of local varlist {
-			_regress `var' `partial' `weightexp' [`weighttype'`weightequal'`weightvar'], nohead notable
-			_predict double `resid', resid
-			qui replace `var' = `resid' // preserve labels
-			drop `resid'
-		}
-		local numpartial : word count `partial'
-		return scalar df_partial = `numpartial'
+	foreach var of local expandedvars {
+		local label : char `generate'`var'[name]
+		if ("`label'"=="") local label `var'
+		la var `generate'`var' "Residuals: `label'"
 	}
 
-	if ("`generate'"!="") {
-		keep `varlist' `uid' `saved_fe'
-		foreach var of local varlist {
-			rename `var' `generate'`var'
-		}
+	if ("`groupvar'"!="") mata: groupvar2dta(HDFE_S, `restore_original')
 
-		tempfile output
-		sort `uid'
-		qui save "`output'"
-		restore
-		SafeMerge, uid(`uid') file("`output'") sample(`sample')
-	}
-
-}
-if (_rc) {
-	local rc = _rc
-	Stop
-	exit `rc'
-}
-end
-
-* [SafeMerge: ADAPTED FROM THE ONE IN ESTIMATE.ADO]
-* The idea of this program is to keep the sort order when doing the merges
-cap pr drop SafeMerge
-program define SafeMerge, eclass sortpreserve
-syntax, uid(varname numeric) file(string) [sample(string)]
-	* Merging gives us e(sample) and the FEs / AvgEs
 	if ("`sample'"!="") {
-		tempvar smpl
-		merge 1:1 `uid' using "`file'", assert(master match) nolabel nonotes noreport gen(`smpl')
-		gen byte `sample' = (`smpl'==3)
-		drop `smpl' // redundant
+		mata: esample2dta(HDFE_S, "`sample'")
+		qui replace `sample' = 0 if `sample'==.
+		la var `sample' "[HDFE Sample]"
+		mata: drop_uid(HDFE_S)
 	}
-	else {
-		merge 1:1 `uid' using "`file'", assert(master match) nolabel nonotes noreport nogen
+
+* Absorbed-specific returns
+	* e(N_hdfe) e(N_hdfe_extended) e(mobility)==M e(df_a)==K-M
+	* e(M#) e(K#) e(M#_exact) e(M#_nested) -> for #=1/e(N_hdfe_extended)
+	mata: map_ereturn_dof(HDFE_S)
+	local N_hdfe = e(N_hdfe)
+	ereturn local cmd = "hdfe"
+	ereturn local extended_absvars = "`extended_absvars'"
+	ereturn local absvars = "`original_absvars'"
+
+* Cleanup
+	} // cap noi
+	local rc = c(rc)
+	cap mata: mata drop HDFE_S // overwrites c(rc)
+	*cap mata: mata drop varlist_cache
+	cap global updated_clustervars
+
+	local keys absorb N_hdfe original_absvars extended_absvars vce vceoption vcetype ///
+		vcesuite vceextra num_clusters clustervars bw kernel dkraay kiefer twicerobust ///
+		reghdfe_cache // cache_obs
+	foreach key of local keys {
+		char _dta[`key']
 	}
+
+	if ("`keepids'"=="" | `rc') cap drop __ID*__
+	if ("`keepids'"=="" | `rc') cap drop __CL*__
+
+	if (`rc') exit `rc'
 end
 
-include "_common/Assert.ado"
-include "_common/Debug.ado"
-include "_common/Version.ado"
-include "_common/SortPreserve.ado"
-
-include "_hdfe/ConnectedGroups.ado"
-include "_hdfe/GenerateID.ado"
-include "_hdfe/AverageOthers.ado"
-include "_hdfe/EstimateDoF.ado"
-
-include "_hdfe/Start.ado"
-include "_hdfe/ParseOneAbsvar.ado"
-include "_hdfe/Precompute.ado"
-include "_hdfe/Demean.ado"
-include "_hdfe/DemeanParallel.ado"
-include "_hdfe/ParallelInstance.ado"
-include "_hdfe/Save.ado"
-include "_hdfe/Stop.ado"
-include "_hdfe/CheckCorrectOrder.ado"
-include "_hdfe/DropSingletons.ado"
+// -------------------------------------------------------------------------------------------------
+include "common/Assert.ado"
+include "common/Debug.ado"
+include "common/Version.ado"
+include "common/Tic.ado"
+include "common/Toc.ado"
+	include "internal/Parse.ado"
+		include "internal/ParseCache.ado"
+		include "internal/ParseIV.ado"
+		include "internal/ParseStages.ado"
+		include "internal/ParseVCE.ado"
+		include "internal/ParseAbsvars.ado"
+		include "internal/ParseDOF.ado"
+		include "internal/ParseImplicit.ado"
+	include "internal/GenUID.ado"
+	include "internal/Compact.ado"
+		include "internal/ExpandFactorVariables.ado"
+		include "internal/GenerateID.ado"
+// -------------------------------------------------------------------------------------------------

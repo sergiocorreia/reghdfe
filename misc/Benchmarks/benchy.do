@@ -38,6 +38,10 @@ program define RunMany
 	args rep
 	RunOnce // Warm up (load ADOs into memory, etc)
 	* reghdfe // replay
+	
+	di
+	reghdfe, version
+
 	tic
 	forval i = 1/`rep' {
 		di as text "." _c
@@ -54,13 +58,13 @@ clear
 
 
 local fn 2e6 // 1e5 2e6 1e7 1e8
-local reps 10
+local reps 5
 local versions 	/// working ///
 				master /// current
-				mata /// ALPHA VERSION
+				updated_mata /// ALPHA VERSION
 				/// 67a346699f698c7e77e44c100eca775b47fea321 /// first on github OK
-				b00d9b5e8425d5795f8f4183fed6981d440922c6 /// mar3 OK
-				4e950be9d9a0f65749e8dfd9544cd51a7a7b0765 /// mar3 CAGADO
+				/// b00d9b5e8425d5795f8f4183fed6981d440922c6 /// mar3 OK
+				/// 4e950be9d9a0f65749e8dfd9544cd51a7a7b0765 /// mar3 CAGADO
 				/// 866f85551b77fe7fda2af0aafccbbf87f8a01987 /// last with _cons
 				//
 

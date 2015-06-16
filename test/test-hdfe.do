@@ -1,4 +1,4 @@
-cscript "reghdfe with clusters" adofile reghdfe
+cscript "hdfe" adofile reghdfe
 
 * Setup
 	discard
@@ -28,10 +28,6 @@ cscript "reghdfe with clusters" adofile reghdfe
 	
 * Create fake dataset
 	sysuse auto
-	*gen n = int(uniform()*10+3) // used for weights
-	*replace length = 0 if rep==3 // used for DoF adjustment of cont var
-	*replace length = 5 if rep==1
-	*gen byte one = 1
 	bys turn: gen t = _n
 	tsset turn t
 
@@ -53,9 +49,9 @@ cscript "reghdfe with clusters" adofile reghdfe
 	storedresults save benchmark e()
 
 	* 2. Run -hdfe-
-	preserve
-	hdfe `lhs' `rhs', abs(`absvars') clustervars(`clustervar') clear
-	local df_a = r(df_a)
+	hdfe `lhs' `rhs', abs(`absvars') clustervars(`clustervar') clear keepids
+	rename __CL1__ `clustervar'
+	local df_a = e(df_a)
 	return list
 	qui regress `lhs' `rhs' , vce(cluster `clustervar') nocons // this will have different DoF so of course different VCE
 	local n = e(N)
@@ -66,7 +62,6 @@ cscript "reghdfe with clusters" adofile reghdfe
 	TrimMatrix `K' `q'
 	`e(cmd)'
 	matrix list e(trim_V)
-	restore
 
 	storedresults compare benchmark e(), tol(1e-12) include( ///
 		scalar: N rss df_r ///
@@ -89,32 +84,11 @@ cscript "reghdfe with clusters" adofile reghdfe
 
 	storedresults drop benchmark
 
-* partial()
+* syntax()
 	sysuse auto, clear
 	
-	* benchmark
-	reghdfe price weight length gear disp, absorb(turn trunk)
-
-	areg price weight length gear disp i.trunk, absorb(turn)
-	*reghdfe price weight length gear disp, a(turn trunk)
-	TrimMatrix `K'
-	storedresults save benchmark e()
-
-	hdfe price weight length, a(turn trunk) partial(gear disp) clear
-	return list
-	local df_a = r(df_a) + r(df_partial)
-
-	qui regress price weight length, nocons
-	local dof = e(df_r) - `df_a'
-	regress price weight length, dof(`dof') nocons
-	TrimMatrix `K'
-	
-	storedresults compare benchmark e(), tol(1e-12) include( ///
-		scalar: N rss df_r ///
-		matrix: trim_b trim_V ///
-		macros: wexp wtype)
-
-	storedresults drop benchmark
+	hdfe price weight length, a(turn trunk) gen(R_) sample(smpl) clusterv(trunk)
+	hdfe price weight length, a(turn trunk) clear keepv(make) keepids clusterv(trunk)
 
 cd "D:/Github/reghdfe/test"
 exit

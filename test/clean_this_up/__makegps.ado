@@ -1,7 +1,7 @@
 *************************************************************
 * __MAKEGPS
 *************************************************************
-/* This routine is from Amine Quazad's a2reg program */
+/* This routine is from Amine Ouazad's a2reg program */
 /* It establishes the connected groups in the data */
 program define __makegps
 version 9.2

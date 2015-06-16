@@ -69,7 +69,7 @@ noi cscript "reghdfe with liml" adofile reghdfe
 
 	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(robust) ivsuite(ivreg2) tol(1e-12) estim(liml)
 	TrimMatrix `K'
-	storedresults compare benchmark e(), tol(1e-10) include(`include')
+	storedresults compare benchmark e(), tol(1e-8) include(`include')
 
 	* Just for reference
 	ivregress liml `depvar' `indepvars' ABS_* foreign (`endogvars'=`instruments'), vce(robust) small
@@ -109,8 +109,8 @@ noi cscript "reghdfe with liml" adofile reghdfe
 
 	reghdfe `depvar' `indepvars' (`endogvars'=`instruments'), absorb(`absvars') vce(cluster `cluster') ivsuite(ivreg2) tol(1e-12) est(liml)
 	TrimMatrix `K'
-	storedresults compare benchmark e(), tol(1e-10) include(scalar: N df_r matrix: trim_b macros: wexp wtype)
-	storedresults compare benchmark e(), tol(1e-10) include(matrix: trim_V)
+	storedresults compare benchmark e(), tol(1e-8) include(scalar: N df_r matrix: trim_b macros: wexp wtype)
+	storedresults compare benchmark e(), tol(1e-8) include(matrix: trim_V)
 
 	storedresults drop benchmark
 

@@ -98,4 +98,4 @@ For clarity reasons, the source code is spread through several files and folders
 
 ## Acknowledgments
 
-This package wouldn't have existed without the invaluable feedback and contributions of Paulo Guimaraes and Amine Quazad, as well as the great bug-spotting abilities of many users.
+This package wouldn't have existed without the invaluable feedback and contributions of Paulo Guimaraes and Amine Ouazad, as well as the great bug-spotting abilities of many users.

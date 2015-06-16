@@ -54,8 +54,8 @@ noi cscript "reghdfe with HAC VCE (bw>1)" adofile reghdfe
 	storedresults save benchmark2 e()	
 	
 	* 2. Run reghdfe
-	reghdfe `lhs' `rhs', a(`absvars') vce(cluster `absvars', suite(avar))
-	reghdfe `lhs' `rhs', a(`absvars') vce(cluster `absvars', bw(2)) dof(none)
+	reghdfe `lhs' `rhs', a(`absvars') vce(cluster `absvars', suite(avar)) keepsingletons
+	reghdfe `lhs' `rhs', a(`absvars') vce(cluster `absvars', bw(2)) dof(none) keepsingletons
 	TrimMatrix `K'
 
 	* 3. Compare
