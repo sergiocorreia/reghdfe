@@ -1,4 +1,4 @@
-*! reghdfe 3.1.10 16jun2015
+*! reghdfe 3.1.11 16jun2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -2035,7 +2035,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.1.10 16jun2015"
+    local version "3.1.11 16jun2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2343,6 +2343,9 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * REPLAY - Show the regression table
 	Replay
+
+* Store stage result
+	if (!inlist("`stage'","none", "iv") & `savestages') est store reghdfe_`stage'`i_endogvar', nocopy
 
 } // lhs_endogvar
 } // stage
@@ -4758,6 +4761,9 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * REPLAY - Show the regression table	
 	Replay
+
+* Store stage result
+	if (!inlist("`stage'","none", "iv") & `savestages') estimates store reghdfe_`stage'`i_endogvar', nocopy
 
 } // lhs_endogvar
 } // stage

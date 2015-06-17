@@ -185,6 +185,9 @@ foreach lhs_endogvar of local lhs_endogvars {
 * REPLAY - Show the regression table	
 	Replay
 
+* Store stage result
+	if (!inlist("`stage'","none", "iv") & `savestages') estimates store reghdfe_`stage'`i_endogvar', nocopy
+
 } // lhs_endogvar
 } // stage
 
