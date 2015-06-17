@@ -3,6 +3,7 @@ program define InnerUseCache, eclass
 
 * INITIAL CLEANUP
 	ereturn clear // Clear previous results and drops e(sample)
+	cap estimates drop reghdfe_*
 
 * PARSE - inject opts with c_local, create Mata structure HDFE_S (use verbose>2 for details)
 	Parse `0'
@@ -96,7 +97,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 			local indepvars `indepvars' `endogvars' `instruments'
 		}
 		else if ("`stage'"=="first") {
-			local ++ i_endogvar
+			local ++i_endogvar
 			local tss = `tss_`lhs_endogvar''
 			assert `tss'<.
 			local depvar `lhs_endogvar'
@@ -183,21 +184,6 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * REPLAY - Show the regression table	
 	Replay
-
-* STAGES - END
-	if (`timeit') Tic, n(70)
-	if (!inlist("`stage'","none", "iv") & `savestages') {
-		local estimate_name reghdfe_`stage'`i_endogvar'
-		local stored_estimates `stored_estimates' `estimate_name'
-		local cmd estimates store `estimate_name', nocopy
-		Debug, level(2) msg(" - Storing estimate: `cmd'")
-		`cmd'
-	}
-	else if ("`stage'"=="iv") {
-		* On the last stage, save list of all stored estimates
-		if ("`stored_estimates'"!="") ereturn `hidden' local stored_estimates = "`stored_estimates'"
-	}
-	if (`timeit') Toc, n(70) msg(store estimates if needed)
 
 } // lhs_endogvar
 } // stage

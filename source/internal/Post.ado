@@ -169,7 +169,7 @@ program define Post, eclass
 
 	* List of stored estimates
 	if ("`e(savestages)'"=="1" & "`e(model)'"=="iv") {
-		local stages = e(stages)
+		local stages = "`e(stages)'"
 		local endogvars = e(endogvars)
 		foreach stage of local stages {
 			if ("`stage'"=="first") {
@@ -178,7 +178,7 @@ program define Post, eclass
 					local stored_estimates `stored_estimates' reghdfe_`stage'`++i'
 				}
 			}
-			else {
+			else if ("`stage'"!="iv"){
 				local stored_estimates `stored_estimates' reghdfe_`stage'
 			}
 		}
