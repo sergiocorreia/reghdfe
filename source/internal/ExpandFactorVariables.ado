@@ -90,6 +90,9 @@ syntax varname
 			local var `newvar'
 		}
 	}
+	else {
+		char `var'[name] `var'
+	}
 
 	return scalar is_newvar = `is_newvar'
 	return scalar is_dropped = `will_drop'

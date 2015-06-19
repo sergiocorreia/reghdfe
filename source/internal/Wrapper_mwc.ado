@@ -8,7 +8,6 @@ syntax , depvar(varname) [indepvars(varlist)] ///
 	[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
-	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars'" )) ) // Just for aesthetic purposes
 	if (`c(version)'>=12) local hidden hidden
 
 * Parse contents of VCE()
@@ -18,8 +17,13 @@ syntax , depvar(varname) [indepvars(varlist)] ///
 	assert "`vcetype'"=="cluster"
 	local clustervars `clustervars' // Trim
 
+* Remove collinear variables; better than what -regress- does
+	RemoveCollinear, depvar(`depvar') indepvars(`indepvars') weightexp(`weightexp')
+	local K = r(df_m)
+	local vars `r(vars)'
+
 * Obtain e(b), e(df_m), and resids
-	local subcmd regress `depvar' `indepvars' `weightexp', noconstant
+	local subcmd regress `vars' `weightexp', noconstant
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	qui `subcmd'
 

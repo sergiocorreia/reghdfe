@@ -7,7 +7,6 @@ program define Wrapper_regress, eclass
 		[SUBOPTions(string)] [*] // [*] are ignored!
 	
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
-	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars'" )) ) // Just for aesthetic purposes
 	if (`c(version)'>=12) local hidden hidden
 
 * Convert -vceoption- to what -regress- expects
@@ -16,24 +15,16 @@ program define Wrapper_regress, eclass
 	local vceoption : subinstr local vceoption "unadjusted" "ols"
 	local vceoption "vce(`vceoption')"
 
-* Note: the dof() option of regress is *useless* with robust errors,
-* and overriding e(df_r) is also useless because -test- ignores it,
-* so we have to go all the way and do a -post- from scratch
-
-* Obtain K so we can obtain DoF = N - K - kk
-* This is already done by regress EXCEPT when clustering
-* (but we still need the unclustered version for r2_a, etc.)
-	_rmcoll `indepvars' `weightexp', forcedrop
-	local varlist = r(varlist)
-	if ("`varlist'"==".") local varlist
-	local K : list sizeof varlist
+	RemoveCollinear, depvar(`depvar') indepvars(`indepvars') weightexp(`weightexp')
+	local K = r(df_m)
+	local vars `r(vars)'
 
 * Run -regress-
 	local subcmd regress `vars' `weightexp', `vceoption' `suboptions' noconstant noheader notable
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	qui `subcmd'
 	
-	local N = e(N) // We couldn't just use c(N) due to possible frequency weights
+	local N = e(N) // We can't use c(N) due to possible frequency weights
 	local WrongDoF = `N' - `K'
 	if ("`vcetype'"!="cluster" & e(df_r)!=`WrongDoF') {
 		local difference = `WrongDoF' - e(df_r)
@@ -70,6 +61,10 @@ program define Wrapper_regress, eclass
 	}
 	local df_r = cond( "`vcetype'"=="cluster" , e(df_r) , max( `CorrectDoF' , 0 ) )
 
+	* Post
+		* Note: the dof() option of regress is *useless* with robust errors,
+		* and overriding e(df_r) is also useless because -test- ignores it,
+		* so we have to go all the way and do a -post- from scratch
 	capture ereturn post `b' `V' `weightexp', dep(`depvar') obs(`N') dof(`df_r') properties(b V)
 	local rc = _rc
 	Assert inlist(_rc,0,504), msg("error `=_rc' when adjusting the VCV") // 504 = Matrix has MVs

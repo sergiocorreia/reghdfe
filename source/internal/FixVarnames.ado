@@ -6,33 +6,25 @@ program define FixVarnames, rclass
 local vars `0'
 
 	foreach var of local vars {
-		local newname `var'
+		* Note: -var- can be <o.var>
+		_ms_parse_parts `var'
+		local is_omitted = r(omit)
+		local name = r(name)
 
-		* -var- can be <o.__W1__>
-		if ("`var'"=="_cons") {
-			local newname `var'
-		}
-		else {
-			fvrevar `var', list
-			local basevar "`r(varlist)'"
-			local label : var label `basevar'
-			local is_temp = substr("`basevar'",1,2)=="__"
-			local is_omitted = strpos("`var'", "o.")
-			local prefix = cond(`is_omitted'>0, "o.", "")
-			local name : char `basevar'[name]
+		local is_temp = substr("`name'",1,2)=="__"
+		local newname : char `name'[name]
+		*local label : var label `basevar'
 
-			 if (`is_temp' & "`name'"!="") {
-				local newname `prefix'`name'
-				
-				* Fix bug when the var is omitted:
-				local bugmatch = regexm("`newname'", "^o\.([0-9]+)b?\.(.+)$")
-				if (`bugmatch') {
-					local newname = regexs(1) + "o." + regexs(2) // EG: 1o.var
-				}
+		* Stata requires all interaction elements to have an o.
+		if (`is_omitted' & `is_temp') {
+			while regexm("`newname'", "^(.*[^o])\.(.*)$") {
+				local newname = regexs(1) + "o." + regexs(2)
 			}
-
 		}
-		
+		else if (`is_omitted') {
+			local newname "o.`name'" // same as initial `var'!
+		}
+
 		Assert ("`newname'"!=""), msg("var=<`var'> --> new=<`newname'>")
 		local newnames `newnames' `newname'
 	}
@@ -40,7 +32,5 @@ local vars `0'
 	local A : word count `vars'
 	local B : word count `newnames'
 	Assert `A'==`B', msg("`A' vars but `B' newnames")
-	
-	***di as error "newnames=`newnames'"
 	return local newnames "`newnames'"
 end

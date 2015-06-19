@@ -7,7 +7,6 @@ program define Wrapper_avar, eclass
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
-	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars'" )) ) // Just for aesthetic purposes
 	if (`c(version)'>=12) local hidden hidden
 
 	local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)
@@ -29,8 +28,14 @@ program define Wrapper_avar, eclass
 *	i) inv(X'X)
 *	ii) DoF lost due to included indepvars
 *	iii) resids
+
+* Remove collinear variables; better than what -regress- does
+	RemoveCollinear, depvar(`depvar') indepvars(`indepvars') weightexp(`weightexp')
+	local K = r(df_m)
+	local vars `r(vars)'
+
 * Note: It would be shorter to use -mse1- (b/c then invSxx==e(V)*e(N)) but then I don't know e(df_r)
-	local subcmd regress `depvar' `indepvars' `weightexp', noconstant
+	local subcmd regress `vars' `weightexp', noconstant
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	qui `subcmd'
 	qui cou if !e(sample)

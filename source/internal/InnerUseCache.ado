@@ -103,7 +103,6 @@ foreach lhs_endogvar of local lhs_endogvars {
 			local depvar `lhs_endogvar'
 			local indepvars `indepvars' `instruments'
 			local original_depvar : char `depvar'[name]
-			if ("`original_depvar'"=="") local original_depvar `depvar' 
 		}
 
 		if ("`stage'"!="iv") {
