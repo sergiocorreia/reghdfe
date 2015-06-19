@@ -69,7 +69,7 @@ mata set matastrict on
 	u = r
 
 	for (iter=1; iter<=S.maxiterations; iter++) {
-		(*T)(S, u, v, 1) // This is the hotest loop in the entire program
+		(*T)(S, u, v, 1) // This is the hottest loop in the entire program
 		alpha = safe_divide( ssr , weighted_quadcolsum(S, u, v) )
 		recent_ssr[1 + mod(iter-1, d), .] = alpha :* ssr
 		improvement_potential = improvement_potential - alpha :* ssr
