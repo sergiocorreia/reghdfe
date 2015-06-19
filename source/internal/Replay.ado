@@ -59,10 +59,5 @@ cap pr drop Replay
 		local plus = cond("`e(model)'"=="ols" & inlist("`e(vce)'", "unadjusted", "ols"), "plus", "")
 		_coef_table, `plus' `diopts'
 	}
-	mata: reghdfe_width = max(strlen(st_matrixcolstripe_split("r(table)", 32, 0)))
-	mata: st_local("width" , strofreal(reghdfe_width))
-	mata: mata drop reghdfe_width
-	if (`width'<12) local width 12
-	ereturn `hidden' scalar width = `width'
 	reghdfe_footnote
 end
