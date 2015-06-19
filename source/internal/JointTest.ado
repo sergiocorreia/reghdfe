@@ -6,7 +6,7 @@ program define JointTest, eclass
 		RemoveOmitted
 		qui test `r(indepvars)' // Wald test
 		if (r(drop)==1) {
-			Debug, level(0) msg("Warning: Missing F statistic (dropped variables due to collinearity or too few clusters).")
+			Debug, level(0) msg("WARNING: Missing F statistic (dropped variables due to collinearity or too few clusters).")
 			ereturn scalar F = .
 		}
 		else {

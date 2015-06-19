@@ -41,7 +41,7 @@ program define ParseIV, sclass
 			msg("reghdfe error: invalid estimator `estimator'")
 		if ("`estimator'"=="cue") Assert "`ivsuite'"=="ivreg2", ///
 			msg("reghdfe error: estimator `estimator' only available with the ivreg2 command, not ivregress")
-		if ("`estimator'"=="cue") di as text "(warning: -cue- estimator is not exact, see help file)"
+		if ("`estimator'"=="cue") di as text "(WARNING: -cue- estimator is not exact, see help file)"
 	}
 
 	* For this, _iv_parse would have been useful, but I don't want to do factor expansions when parsing

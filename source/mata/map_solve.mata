@@ -89,7 +89,7 @@ void function map_solve(`Problem' S, `Varlist' vars,
 
 	// Warnings
 	if (S.transform=="kaczmarz" & S.acceleration=="conjugate_gradient") {
-		printf("{err}(warning: convergence is {bf:unlikely} with transform=kaczmarz and accel=CG)\n")
+		printf("{err}(WARNING: convergence is {bf:unlikely} with transform=kaczmarz and accel=CG)\n")
 	}
 
 	// Load transform pointer
