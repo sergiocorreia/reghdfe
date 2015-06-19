@@ -1,4 +1,4 @@
-*! reghdfe 3.1.11 16jun2015
+*! reghdfe 3.1.12 19jun2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -457,7 +457,15 @@ void function map_precompute(`Problem' S) {
 	transmorphic counter, loc
 	`Varname' key
 	`String' all_clustervars
+	`Boolean' has_intercept
 	if (S.verbose>0) printf("\n{txt}{bf:mata: map_precompute()}\n")
+
+	// Warn if there are no fixed intercepts (i.e. heterogeneous intercepts)
+	has_intercept = 0
+	for (g=1; g<=S.G; g++) {
+		if (S.fes[g].has_intercept) has_intercept = 1
+	}
+	if (has_intercept==0) printf("{txt}(WARNING: no intercepts terms in absorb(); regression lacks constant term)\n")
 
 	// Count how many times each var is used, so we can drop them when the counter reaches zero
 	counter = asarray_create()
@@ -562,7 +570,7 @@ void map_precompute_part1(`Problem' S, transmorphic counter) {
 	i = i_last_singleton = g = 1
 
 	// Give huge warning if keeping singletons
-	if (S.keepsingletons) printf(`"{txt}(warning: singletons are not dropped; statistical significance might be biased {browse "http://scorreia.com/reghdfe/nested_within_cluster.pdf":[link]})\n"')
+	if (S.keepsingletons) printf(`"{txt}(WARNING: singletons are not dropped; statistical significance might be biased {browse "http://scorreia.com/reghdfe/nested_within_cluster.pdf":[link]})\n"')
 
 	initial_N = st_nobs()
 
@@ -1141,7 +1149,7 @@ void function map_solve(`Problem' S, `Varlist' vars,
 
 	// Warnings
 	if (S.transform=="kaczmarz" & S.acceleration=="conjugate_gradient") {
-		printf("{err}(warning: convergence is {bf:unlikely} with transform=kaczmarz and accel=CG)\n")
+		printf("{err}(WARNING: convergence is {bf:unlikely} with transform=kaczmarz and accel=CG)\n")
 	}
 
 	// Load transform pointer
@@ -1306,7 +1314,7 @@ void function map_solve(`Problem' S, `Varlist' vars,
 	u = r
 
 	for (iter=1; iter<=S.maxiterations; iter++) {
-		(*T)(S, u, v, 1) // This is the hotest loop in the entire program
+		(*T)(S, u, v, 1) // This is the hottest loop in the entire program
 		alpha = safe_divide( ssr , weighted_quadcolsum(S, u, v) )
 		recent_ssr[1 + mod(iter-1, d), .] = alpha :* ssr
 		improvement_potential = improvement_potential - alpha :* ssr
@@ -2099,7 +2107,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.1.11 16jun2015"
+    local version "3.1.12 19jun2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2470,7 +2478,7 @@ program define ParseIV, sclass
 			msg("reghdfe error: invalid estimator `estimator'")
 		if ("`estimator'"=="cue") Assert "`ivsuite'"=="ivreg2", ///
 			msg("reghdfe error: estimator `estimator' only available with the ivreg2 command, not ivregress")
-		if ("`estimator'"=="cue") di as text "(warning: -cue- estimator is not exact, see help file)"
+		if ("`estimator'"=="cue") di as text "(WARNING: -cue- estimator is not exact, see help file)"
 	}
 
 	* For this, _iv_parse would have been useful, but I don't want to do factor expansions when parsing
@@ -2954,6 +2962,9 @@ syntax varname
 			rename `var' `newvar'
 			local var `newvar'
 		}
+	}
+	else {
+		char `var'[name] `var'
 	}
 
 	return scalar is_newvar = `is_newvar'

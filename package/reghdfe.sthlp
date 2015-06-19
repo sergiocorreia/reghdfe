@@ -84,7 +84,8 @@ rarely used{p_end}
 {syntab:Reporting {help reghdfe##opt_reporting:[+]}}
 {synopt :{opt version:}}reports the version number and date of reghdfe, and saves it in e(version). standalone option{p_end}
 {synopt :{opt l:evel(#)}}set confidence level; default is {cmd:level(95)}{p_end}
-{synopt :{it:{help reghdfe##display_options:display_options}}}control column formats, row spacing, line width, display of omitted variables and base and empty cells, and factor-variable labeling{p_end}
+{synopt :{it:{help reghdfe##display_options:display_options}}}control column formats, row spacing, line width, display of omitted variables and base and empty cells, and factor-variable labeling.{p_end}
+{synopt :}particularly useful are the {opt noomit:ted} and {opt noempty} options to hide regressors omitted due to collinearity{p_end}
 
 {syntab:Undocumented}
 {synopt :{opt keepsin:gletons}}do not drop singleton groups{p_end}
@@ -538,7 +539,8 @@ Only {cmd:estat summarize}, {cmd:predict} and {cmd:test} are currently supported
 {newvar} 
 {ifin}
 [{cmd:,} {it:statistic}]
-{p_end}{col 23}Requires all set of fixed effects to be previously saved by {cmd:reghdfe} (except for option {opt xb})
+{p_end}{col 23}May requires you to previously save the fixed effects (except for option {opt xb}).
+{col 23}To see how, see the details of the {help reghdfe##absvar:absorb} option
 {col 23}Equation: y = xb + d_absorbvars + e
 
 {synoptset 20 tabbed}{...}
@@ -550,25 +552,22 @@ Only {cmd:estat summarize}, {cmd:predict} and {cmd:test} are currently supported
 {p2coldent: {opt d}}d_absorbvars{p_end}
 {p2coldent: {opt r:esiduals}}residual{p_end}
 {p2coldent: {opt sc:ore}}score; equivalent to {opt residuals}{p_end}
+{p2coldent: {opt stdp}}standard error of the prediction (of the xb component){p_end}
 {synoptline}
 {p2colreset}{...}
+{p 4 6 2}although {cmd:predict} {help data_types:type} {help newvar} is allowed,
+the resulting variable will always be of type {it:double}.{p_end}
 
-{p 8 13 2}
-{cmd:test}
-{p_end}{col 23}Performs significance test on the parameters, see the {help test:stata help}
 
-{p 8 13 2}
-{cmd:suest}
-{p_end}
+{col 8}{cmd:test}{col 23}Performs significance test on the parameters, see the {help test:stata help}
 
-{pstd}
-If you want to perform tests that are usually run with {cmd:suest},
+{col 8}{cmd:suest}{col 23}Do not use {cmd:suest}. It will run, but the results will be incorrect. See workaround below
+
+{pmore}If you want to perform tests that are usually run with {cmd:suest},
 such as non-nested models, tests using alternative specifications of the variables,
 or tests on different groups, you can replicate it manually, as described 
 {browse "http://www.stata.com/statalist/archive/2009-11/msg01485.html":here}.
 {p_end}
-
-{pstd}Note: do not use {cmd:suest}. It will run, but the results will be incorrect.{p_end}
 
 {marker remarks}{...}
 

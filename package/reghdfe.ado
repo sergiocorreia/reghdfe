@@ -1,4 +1,4 @@
-*! reghdfe 3.1.11 16jun2015
+*! reghdfe 3.1.12 19jun2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -457,7 +457,15 @@ void function map_precompute(`Problem' S) {
 	transmorphic counter, loc
 	`Varname' key
 	`String' all_clustervars
+	`Boolean' has_intercept
 	if (S.verbose>0) printf("\n{txt}{bf:mata: map_precompute()}\n")
+
+	// Warn if there are no fixed intercepts (i.e. heterogeneous intercepts)
+	has_intercept = 0
+	for (g=1; g<=S.G; g++) {
+		if (S.fes[g].has_intercept) has_intercept = 1
+	}
+	if (has_intercept==0) printf("{txt}(WARNING: no intercepts terms in absorb(); regression lacks constant term)\n")
 
 	// Count how many times each var is used, so we can drop them when the counter reaches zero
 	counter = asarray_create()
@@ -562,7 +570,7 @@ void map_precompute_part1(`Problem' S, transmorphic counter) {
 	i = i_last_singleton = g = 1
 
 	// Give huge warning if keeping singletons
-	if (S.keepsingletons) printf(`"{txt}(warning: singletons are not dropped; statistical significance might be biased {browse "http://scorreia.com/reghdfe/nested_within_cluster.pdf":[link]})\n"')
+	if (S.keepsingletons) printf(`"{txt}(WARNING: singletons are not dropped; statistical significance might be biased {browse "http://scorreia.com/reghdfe/nested_within_cluster.pdf":[link]})\n"')
 
 	initial_N = st_nobs()
 
@@ -1141,7 +1149,7 @@ void function map_solve(`Problem' S, `Varlist' vars,
 
 	// Warnings
 	if (S.transform=="kaczmarz" & S.acceleration=="conjugate_gradient") {
-		printf("{err}(warning: convergence is {bf:unlikely} with transform=kaczmarz and accel=CG)\n")
+		printf("{err}(WARNING: convergence is {bf:unlikely} with transform=kaczmarz and accel=CG)\n")
 	}
 
 	// Load transform pointer
@@ -1306,7 +1314,7 @@ void function map_solve(`Problem' S, `Varlist' vars,
 	u = r
 
 	for (iter=1; iter<=S.maxiterations; iter++) {
-		(*T)(S, u, v, 1) // This is the hotest loop in the entire program
+		(*T)(S, u, v, 1) // This is the hottest loop in the entire program
 		alpha = safe_divide( ssr , weighted_quadcolsum(S, u, v) )
 		recent_ssr[1 + mod(iter-1, d), .] = alpha :* ssr
 		improvement_potential = improvement_potential - alpha :* ssr
@@ -2035,7 +2043,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.1.11 16jun2015"
+    local version "3.1.12 19jun2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2223,7 +2231,6 @@ foreach lhs_endogvar of local lhs_endogvars {
 			local depvar `lhs_endogvar'
 			local indepvars `indepvars' `instruments'
 			local original_depvar : char `depvar'[name]
-			if ("`original_depvar'"=="") local original_depvar `depvar' 
 		}
 
 		if ("`stage'"!="iv") {
@@ -2696,7 +2703,7 @@ program define ParseIV, sclass
 			msg("reghdfe error: invalid estimator `estimator'")
 		if ("`estimator'"=="cue") Assert "`ivsuite'"=="ivreg2", ///
 			msg("reghdfe error: estimator `estimator' only available with the ivreg2 command, not ivregress")
-		if ("`estimator'"=="cue") di as text "(warning: -cue- estimator is not exact, see help file)"
+		if ("`estimator'"=="cue") di as text "(WARNING: -cue- estimator is not exact, see help file)"
 	}
 
 	* For this, _iv_parse would have been useful, but I don't want to do factor expansions when parsing
@@ -3181,6 +3188,9 @@ syntax varname
 			local var `newvar'
 		}
 	}
+	else {
+		char `var'[name] `var'
+	}
 
 	return scalar is_newvar = `is_newvar'
 	return scalar is_dropped = `will_drop'
@@ -3264,7 +3274,7 @@ program define JointTest, eclass
 		RemoveOmitted
 		qui test `r(indepvars)' // Wald test
 		if (r(drop)==1) {
-			Debug, level(0) msg("Warning: Missing F statistic (dropped variables due to collinearity or too few clusters).")
+			Debug, level(0) msg("WARNING: Missing F statistic (dropped variables due to collinearity or too few clusters).")
 			ereturn scalar F = .
 		}
 		else {
@@ -3305,7 +3315,6 @@ program define Wrapper_regress, eclass
 		[SUBOPTions(string)] [*] // [*] are ignored!
 	
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
-	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars'" )) ) // Just for aesthetic purposes
 	if (`c(version)'>=12) local hidden hidden
 
 * Convert -vceoption- to what -regress- expects
@@ -3314,24 +3323,16 @@ program define Wrapper_regress, eclass
 	local vceoption : subinstr local vceoption "unadjusted" "ols"
 	local vceoption "vce(`vceoption')"
 
-* Note: the dof() option of regress is *useless* with robust errors,
-* and overriding e(df_r) is also useless because -test- ignores it,
-* so we have to go all the way and do a -post- from scratch
-
-* Obtain K so we can obtain DoF = N - K - kk
-* This is already done by regress EXCEPT when clustering
-* (but we still need the unclustered version for r2_a, etc.)
-	_rmcoll `indepvars' `weightexp', forcedrop
-	local varlist = r(varlist)
-	if ("`varlist'"==".") local varlist
-	local K : list sizeof varlist
+	RemoveCollinear, depvar(`depvar') indepvars(`indepvars') weightexp(`weightexp')
+	local K = r(df_m)
+	local vars `r(vars)'
 
 * Run -regress-
 	local subcmd regress `vars' `weightexp', `vceoption' `suboptions' noconstant noheader notable
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	qui `subcmd'
 	
-	local N = e(N) // We couldn't just use c(N) due to possible frequency weights
+	local N = e(N) // We can't use c(N) due to possible frequency weights
 	local WrongDoF = `N' - `K'
 	if ("`vcetype'"!="cluster" & e(df_r)!=`WrongDoF') {
 		local difference = `WrongDoF' - e(df_r)
@@ -3368,6 +3369,10 @@ program define Wrapper_regress, eclass
 	}
 	local df_r = cond( "`vcetype'"=="cluster" , e(df_r) , max( `CorrectDoF' , 0 ) )
 
+	* Post
+		* Note: the dof() option of regress is *useless* with robust errors,
+		* and overriding e(df_r) is also useless because -test- ignores it,
+		* so we have to go all the way and do a -post- from scratch
 	capture ereturn post `b' `V' `weightexp', dep(`depvar') obs(`N') dof(`df_r') properties(b V)
 	local rc = _rc
 	Assert inlist(_rc,0,504), msg("error `=_rc' when adjusting the VCV") // 504 = Matrix has MVs
@@ -3389,6 +3394,34 @@ program define Wrapper_regress, eclass
 	JointTest `K' // adds e(F), e(df_m), e(rank)
 end
 
+		
+* Tag Collinear Variables with an o. and compute correct e(df_m)
+	* Obtain K so we can obtain DoF = N - K - kk
+	* This is already done by regress EXCEPT when clustering
+	* (but we still need the unclustered version for r2_a, etc.)
+
+program define RemoveCollinear, rclass
+	syntax, depvar(varname numeric) [indepvars(varlist numeric) weightexp(string)]
+
+	qui _rmcoll `indepvars' `weightexp', forcedrop
+	local okvars = r(varlist)
+	if ("`okvars'"==".") local okvars
+	local df_m : list sizeof okvars
+
+	foreach var of local indepvars {
+		local ok : list var in okvars
+		local prefix = cond(`ok', "", "o.")
+		local label : char `var'[name]
+		if (!`ok') di as text "note: `label' omitted because of collinearity"
+		local varlist `varlist' `prefix'`var'
+	}
+
+	mata: st_local("vars", strtrim(stritrim( "`depvar' `varlist'" )) ) // Just for aesthetic purposes
+	return local vars "`vars'"
+	return scalar df_m = `df_m'
+
+end
+
 program define Wrapper_avar, eclass
 	syntax , depvar(varname) [indepvars(varlist)] ///
 		vceoption(string asis) ///
@@ -3397,7 +3430,6 @@ program define Wrapper_avar, eclass
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
-	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars'" )) ) // Just for aesthetic purposes
 	if (`c(version)'>=12) local hidden hidden
 
 	local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)
@@ -3419,8 +3451,14 @@ program define Wrapper_avar, eclass
 *	i) inv(X'X)
 *	ii) DoF lost due to included indepvars
 *	iii) resids
+
+* Remove collinear variables; better than what -regress- does
+	RemoveCollinear, depvar(`depvar') indepvars(`indepvars') weightexp(`weightexp')
+	local K = r(df_m)
+	local vars `r(vars)'
+
 * Note: It would be shorter to use -mse1- (b/c then invSxx==e(V)*e(N)) but then I don't know e(df_r)
-	local subcmd regress `depvar' `indepvars' `weightexp', noconstant
+	local subcmd regress `vars' `weightexp', noconstant
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	qui `subcmd'
 	qui cou if !e(sample)
@@ -3530,7 +3568,6 @@ syntax , depvar(varname) [indepvars(varlist)] ///
 	[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
-	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars'" )) ) // Just for aesthetic purposes
 	if (`c(version)'>=12) local hidden hidden
 
 * Parse contents of VCE()
@@ -3540,8 +3577,13 @@ syntax , depvar(varname) [indepvars(varlist)] ///
 	assert "`vcetype'"=="cluster"
 	local clustervars `clustervars' // Trim
 
+* Remove collinear variables; better than what -regress- does
+	RemoveCollinear, depvar(`depvar') indepvars(`indepvars') weightexp(`weightexp')
+	local K = r(df_m)
+	local vars `r(vars)'
+
 * Obtain e(b), e(df_m), and resids
-	local subcmd regress `depvar' `indepvars' `weightexp', noconstant
+	local subcmd regress `vars' `weightexp', noconstant
 	Debug, level(3) msg("Subcommand: " in ye "`subcmd'")
 	qui `subcmd'
 
@@ -4160,33 +4202,25 @@ program define FixVarnames, rclass
 local vars `0'
 
 	foreach var of local vars {
-		local newname `var'
+		* Note: -var- can be <o.var>
+		_ms_parse_parts `var'
+		local is_omitted = r(omit)
+		local name = r(name)
 
-		* -var- can be <o.__W1__>
-		if ("`var'"=="_cons") {
-			local newname `var'
-		}
-		else {
-			fvrevar `var', list
-			local basevar "`r(varlist)'"
-			local label : var label `basevar'
-			local is_temp = substr("`basevar'",1,2)=="__"
-			local is_omitted = strpos("`var'", "o.")
-			local prefix = cond(`is_omitted'>0, "o.", "")
-			local name : char `basevar'[name]
+		local is_temp = substr("`name'",1,2)=="__"
+		local newname : char `name'[name]
+		*local label : var label `basevar'
 
-			 if (`is_temp' & "`name'"!="") {
-				local newname `prefix'`name'
-				
-				* Fix bug when the var is omitted:
-				local bugmatch = regexm("`newname'", "^o\.([0-9]+)b?\.(.+)$")
-				if (`bugmatch') {
-					local newname = regexs(1) + "o." + regexs(2) // EG: 1o.var
-				}
+		* Stata requires all interaction elements to have an o.
+		if (`is_omitted' & `is_temp') {
+			while regexm("`newname'", "^(.*[^o])\.(.*)$") {
+				local newname = regexs(1) + "o." + regexs(2)
 			}
-
 		}
-		
+		else if (`is_omitted') {
+			local newname "o.`name'" // same as initial `var'!
+		}
+
 		Assert ("`newname'"!=""), msg("var=<`var'> --> new=<`newname'>")
 		local newnames `newnames' `newname'
 	}
@@ -4194,8 +4228,6 @@ local vars `0'
 	local A : word count `vars'
 	local B : word count `newnames'
 	Assert `A'==`B', msg("`A' vars but `B' newnames")
-	
-	***di as error "newnames=`newnames'"
 	return local newnames "`newnames'"
 end
 
@@ -4321,11 +4353,6 @@ end
 		local plus = cond("`e(model)'"=="ols" & inlist("`e(vce)'", "unadjusted", "ols"), "plus", "")
 		_coef_table, `plus' `diopts'
 	}
-	mata: reghdfe_width = max(strlen(st_matrixcolstripe_split("r(table)", 32, 0)))
-	mata: st_local("width" , strofreal(reghdfe_width))
-	mata: mata drop reghdfe_width
-	if (`width'<12) local width 12
-	ereturn `hidden' scalar width = `width'
 	reghdfe_footnote
 end
 
@@ -4680,7 +4707,6 @@ foreach lhs_endogvar of local lhs_endogvars {
 			local depvar `lhs_endogvar'
 			local indepvars `indepvars' `instruments'
 			local original_depvar : char `depvar'[name]
-			if ("`original_depvar'"=="") local original_depvar `depvar' 
 		}
 
 		if ("`stage'"!="iv") {

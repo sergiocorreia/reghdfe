@@ -5,20 +5,13 @@
 program reghdfe_footnote
 syntax [, linesize(int 79)]
 
+	local skip1 = max(`s(width_col1)'-1, 12) // works with both _coef_table, ivreg2 and ivregress
 
 if ("`e(model)'"=="ols" & inlist("`e(vce)'", "unadjusted", "ols")) {
 	local dfa1  = e(df_a) + 1
 	local todisp `"F(`=e(df_a)-1', `e(df_r)') = "'
 	local skip3 = max(23-length(`"`todisp'"')-2,0)
 	local skip2 = max(14-length(`"`dfa1'"')-2,0)
-
-	* This is messy b/c when displaying AvgE(..) we might go beyond 12 chars
-	local vars : colnames e(b)
-	local skip1 = max(e(width), 12)
-
-	foreach var of local vars {
-		local skip1 = max(`skip1', length("`var'"))
-	}
 	local skip0 `skip1'
 
 	foreach fe in `e(extended_absvars)' {
@@ -63,7 +56,6 @@ if ("`e(model)'"=="ols" & inlist("`e(vce)'", "unadjusted", "ols")) {
 	if (e(rss0)<.) di as text " R-squared as we add HDFEs: " `r2_report'
 } // regress-unadjusted specific
 else {
-	local skip1 = max(e(width), 12)
 	foreach fe in `e(absvars)' {
 		local skip1 = max(`skip1', length("`fe'"))
 	}
