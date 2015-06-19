@@ -53,6 +53,7 @@
 	run test-rank
 	
 	run test-postestimation-predict
+	run test-postestimation-stdp // predict stdp
 	run test-postestimation-test
 	run test-attach
 

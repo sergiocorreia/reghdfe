@@ -1,11 +1,13 @@
 program define reghdfe_p
+	* (Maybe refactor using _pred_se ??)
+
 	local version `clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
 	qui version `version'
 	
 	*if "`e(cmd)'" != "reghdfe" {
 	*	error 301
 	*}
-	syntax anything [if] [in] , [XB XBD D Residuals SCores]
+	syntax anything [if] [in] , [XB XBD D Residuals SCores STDP]
 	if (`"`scores'"' != "") {
 		_score_spec	`anything'
 		local varlist `s(varlist)'
@@ -16,7 +18,7 @@ program define reghdfe_p
 	}
 
 	local weight "[`e(wtype)'`e(wexp)']" // After -syntax-!!!
-	local option `xb' `xbd' `d' `residuals' `scores'
+	local option `xb' `xbd' `d' `residuals' `scores' `stdp'
 	if ("`option'"=="") local option xb // The default, as in -areg-
 	local numoptions : word count `option'
 	if (`numoptions'!=1) {
@@ -26,6 +28,13 @@ program define reghdfe_p
 	if ("`option'"=="scores") local option residuals
 
 	local fixed_effects = e(absvars)
+
+	* Intercept stdp call
+	if ("`option'"=="stdp") {
+		_predict double `varlist' `if' `in', stdp
+		* la var `varlist' "STDP"
+		exit
+	}
 
 	* We need to have saved FEs and AvgEs for every option except -xb-
 	if ("`option'"!="xb") {
