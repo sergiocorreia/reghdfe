@@ -91,6 +91,9 @@ program define AddOne, eclass
 	if ("`absvars'"=="") local absvars "`e(absvar)'"
 	FixAbsvars `absvars'
 
+	* Allow xtreg_fe, xtivreg_fe, etc
+	if ("`absvars'"=="" & "`e(model)'"=="fe") local absvars "`e(ivar)'"
+
 	matrix `new' = J(1, `G', 0)
 	matrix colnames `new' = `absvars'
 	matrix `b' = `b', `new'
@@ -158,6 +161,9 @@ end
 	clear all
 	set more off
 	sysuse auto
+
+	bys turn: gen t = _n
+	xtset turn t
 	
 * Run and store regressions
 	reghdfe price weight, a(turn foreign#trunk##c.gear) keepsing
@@ -167,7 +173,16 @@ end
 	estimates store model2, nocopy
 	
 	areg price length, a(turn)
-	* estimates store model3
+	estimates store model3, nocopy
+
+	regress price weight
+	estimates store model4, nocopy
+
+	xtreg price gear, fe
+	estimates store model5, nocopy
+
+	xtreg price gear length, re
+	*estimates store model6, nocopy
 
 * Prepare estimates for -estout-
 	estfe . model*, labels(turn "Turn FE" foreign#trunk "Foreign-Trunk FE" foreign#trunk#c.gear_ratio "Foreign-Trunk Gear Slope")
