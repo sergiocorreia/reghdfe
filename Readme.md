@@ -6,7 +6,8 @@
 - Extremely fast compared to similar Stata programs. 
   - With one fixed effect and clustered-standard errors, it is 3-4 times faster than `areg` and `xtreg,fe` (see [benchmarks](./misc/Benchmarks/areg_xtreg.log.txt)). Note: speed improvements in Stata 14 have reduced this gap. 
   - With multiple fixed effects, it is at least an order of magnitude faster that the alternatives (`reg2hdfe`, `a2reg`, `felsdvreg`, `res2fe`, etc.). Note: a recent paper by [Somaini and Wolak, 2015](http://web.stanford.edu/group/fwolak/cgi-bin/sites/default/files/jem-2014-0008.pdf) reported that `res2fe` was faster than `reghdfe` on some scenarios (namely, with only two fixed effects, where the second fixed effect was low-dimensional). This is no longer correct for the current version of `reghdfe`, which outperforms `res2fe` even on the authors' benchmark (with a low-dimensional second fixed effect; see the [benchmark results](./misc/Benchmarks/res2fe.log.txt) and the Stata [code](./misc/Benchmarks/res2fe.do)).
-- Allows two- and multi-way clustering of standard errors, as well as an extensive list of asymptotic variance estimators (thanks to the [avar](https://ideas.repec.org/c/boc/bocode/s457689.html) package by Kit Baum and Mark Schaffer).
+- Allows two- and multi-way clustering of standard errors, as described in [Cameron *et al* (2011)](http://amstat.tandfonline.com/doi/abs/10.1198/jbes.2010.07136)
+- Allows an extensive list of robust variance estimators (thanks to the [avar](https://ideas.repec.org/c/boc/bocode/s457689.html) package by Kit Baum and Mark Schaffer).
 - Works with instrumental-variable and GMM estimators (such as two-step-GMM, LIML, etc.) thanks to the [ivreg2](https://ideas.repec.org/c/boc/bocode/s425401.html) routine by Baum, Schaffer and Stillman.
 - Allows multiple heterogeneous slopes (e.g. a separate slope coefficients for each individual).
 - Supports all standard Stata features:
