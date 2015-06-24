@@ -65,7 +65,7 @@ net install reghdfe, from(https://raw.githubusercontent.com/sergiocorreia/reghdf
 ```
 With Stata 12 or older:
 
-1. Download the [zipfile](/misc/reghdfe.zip)
+1. Download the [zipfile](/misc/reghdfe.zip?raw=true)
 2. Extract it into a folder (e.g. C:\SOMEFOLDER)
 3. Run: (changing *SOMEFOLDER* with whatever you picked)
 
@@ -97,7 +97,7 @@ net install hdfe, from(https://raw.githubusercontent.com/sergiocorreia/reghdfe/m
 ```
 With Stata 12 or older:
 
-1. Download the [zipfile](/misc/reghdfe.zip)
+1. Download the [zipfile](/misc/reghdfe.zip?raw=true)
 2. Extract it into a folder (e.g. C:\SOMEFOLDER)
 3. Run: (changing *SOMEFOLDER* with whatever you picked)
 
@@ -108,15 +108,15 @@ net install hdfe, from("C:\SOMEFOLDER")
 
 ## Recent Updates
 
-* 3.1.x Improved syntax for the `cache()` and `stage()` options
-* 3.0.x Three key changes: i) faster underlying algorithm (symmetric transforms and cg acceleration perform much better on "hard" cases); ii) slow parts rewritten in mata, iii) simpler syntax
-* 2.2.x [internal] murphy-topel (unadjusted, robust, cluster), double-or-nothing IV/control function
-* 2.1.x removed `_cons`. If you really want to see the constant, run *summarize* on the first fixed effect. The last version that supported constants is available with `net from https://raw.githubusercontent.com/sergiocorreia/reghdfe/866f85551b77fe7fda2af0aafccbbf87f8a01987/package/`
+* 3.1 Improved syntax for the `cache()` and `stage()` options
+* 3.0 Three key changes: i) faster underlying algorithm (symmetric transforms and cg acceleration perform much better on "hard" cases); ii) slow parts rewritten in mata, iii) simpler syntax
+* 2.2 [internal] murphy-topel (unadjusted, robust, cluster), double-or-nothing IV/control function
+* 2.1 removed `_cons`. If you really want to see the constant, run *summarize* on the first fixed effect. The last version that supported constants is available with `net from https://raw.githubusercontent.com/sergiocorreia/reghdfe/866f85551b77fe7fda2af0aafccbbf87f8a01987/package/`
 
 ## Future/possible updates
 
-* 4.0.x Improve underlying algorithm with GT precomputation
-* 5.0.x Increase features for recovering the fixed effects. For instance, bootstrapping the standard errors, a better algorithm (Kaczmarz) for recovering the point estimates, and a wider set of statistics for the standard errors. If you currently require any of those, I recomment the [lfe suite](cran.r-project.org/web/packages/lfe/index.html) by Simen Gaure (for the R language).
+* 4.0 Improve underlying algorithm with GT preconditioning
+* 5.0 Increase features for recovering the fixed effects. For instance, bootstrapping the standard errors, a better algorithm (Kaczmarz) for recovering the point estimates, and a wider set of statistics for the standard errors. If you currently require any of those, I recomment the [lfe suite](cran.r-project.org/web/packages/lfe/index.html) by Simen Gaure (for the R language).
 
 ## Contributing
 
