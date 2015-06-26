@@ -43,12 +43,12 @@ This package wouldn't have existed without the invaluable feedback and contribut
 This is the *readme* file for developing the reghdfe project, which is comprised of the reghdfe package and the underlying hdfe package. The help files and tutorials [are available here](http://scorreia.com/reghdfe) (work in progress).
 
 Latest version
-* Version 3.1.9
-* Date: June 15, 2015
+* Version 3.1.13
+* Date: June 19, 2015
 
 ## Installing REGHDFE
 
-The latest stable release (2.1.x) can be downloaded from SSC with
+The latest stable release (version 3.1.13) can be downloaded from SSC with
 
 ```stata
 cap ado uninstall reghdfe
@@ -80,7 +80,7 @@ To find out which version you have installed, type `reghdfe, version`.
 
 `hdfe` is a routine that facilitates absorbing multiple fixed effects in other Stata packages. It is similar to `avar` in that it is a building-block routine that other packages may call (for instance, see [regife](https://github.com/matthieugomez/stata-regife) and [poi2hdfe](https://ideas.repec.org/c/boc/bocode/s457777.html))
 
-The latest stable release (2.1.x) can be downloaded from SSC with
+The latest stable release (version 3.1.13) can be downloaded from SSC with
 
 ```stata
 cap ado uninstall hdfe
