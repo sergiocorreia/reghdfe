@@ -1,4 +1,4 @@
-*! reghdfe 3.1.13 19jun2015
+*! reghdfe 3.1.14 26jun2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -2043,7 +2043,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.1.13 19jun2015"
+    local version "3.1.14 26jun2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2216,20 +2216,20 @@ foreach lhs_endogvar of local lhs_endogvars {
 		}
 
 		if ("`stage'"=="ols") {
-			local indepvars `indepvars' `endogvars'
+			local indepvars `endogvars' `indepvars'
 		}
 		else if ("`stage'"=="reduced") {
-			local indepvars `indepvars' `instruments'
+			local indepvars `instruments' `indepvars'
 		}
 		else if ("`stage'"=="acid") {
-			local indepvars `indepvars' `endogvars' `instruments'
+			local indepvars `endogvars' `instruments' `indepvars'
 		}
 		else if ("`stage'"=="first") {
 			local ++i_endogvar
 			local tss = `tss_`lhs_endogvar''
 			assert `tss'<.
 			local depvar `lhs_endogvar'
-			local indepvars `indepvars' `instruments'
+			local indepvars `instruments' `indepvars'
 			local original_depvar : char `depvar'[name]
 		}
 
@@ -4692,20 +4692,20 @@ foreach lhs_endogvar of local lhs_endogvars {
 		}
 
 		if ("`stage'"=="ols") {
-			local indepvars `indepvars' `endogvars'
+			local indepvars `endogvars' `indepvars'
 		}
 		else if ("`stage'"=="reduced") {
-			local indepvars `indepvars' `instruments'
+			local indepvars `instruments' `indepvars'
 		}
 		else if ("`stage'"=="acid") {
-			local indepvars `indepvars' `endogvars' `instruments'
+			local indepvars `endogvars' `instruments' `indepvars'
 		}
 		else if ("`stage'"=="first") {
 			local ++i_endogvar
 			local tss = `tss_`lhs_endogvar''
 			assert `tss'<.
 			local depvar `lhs_endogvar'
-			local indepvars `indepvars' `instruments'
+			local indepvars `instruments' `indepvars'
 			local original_depvar : char `depvar'[name]
 		}
 

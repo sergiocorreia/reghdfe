@@ -139,20 +139,20 @@ foreach lhs_endogvar of local lhs_endogvars {
 		}
 
 		if ("`stage'"=="ols") {
-			local indepvars `indepvars' `endogvars'
+			local indepvars `endogvars' `indepvars'
 		}
 		else if ("`stage'"=="reduced") {
-			local indepvars `indepvars' `instruments'
+			local indepvars `instruments' `indepvars'
 		}
 		else if ("`stage'"=="acid") {
-			local indepvars `indepvars' `endogvars' `instruments'
+			local indepvars `endogvars' `instruments' `indepvars'
 		}
 		else if ("`stage'"=="first") {
 			local ++i_endogvar
 			local tss = `tss_`lhs_endogvar''
 			assert `tss'<.
 			local depvar `lhs_endogvar'
-			local indepvars `indepvars' `instruments'
+			local indepvars `instruments' `indepvars'
 			local original_depvar : char `depvar'[name]
 		}
 

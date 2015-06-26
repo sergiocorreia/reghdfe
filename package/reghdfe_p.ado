@@ -50,7 +50,8 @@ program define reghdfe_p
 		* Construct -d- (sum of FEs)
 		tempvar d
 		if ("`e(equation_d)'"=="") {
-				di as error "In order to predict, all the FEs need to be saved with the absorb option (#`g' was not)" _n "For instance, instead of {it:absorb(i.year i.firm)}, set absorb(FE_YEAR=i.year FE_FIRM=i.firm)"
+				di as error "In order to predict, all the FEs need to be saved with the absorb option (#`g' was not)"
+				di as error "For instance, instead of {it:absorb(i.year i.firm)}, set absorb(FE_YEAR=i.year FE_FIRM=i.firm)"
 				exit 112
 		}
 		qui gen double `d' = `e(equation_d)' `if' `in'

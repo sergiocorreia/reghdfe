@@ -18,7 +18,7 @@ d KW: GMM
 d
 d Requires: Stata version 11.2
 d
-d Distribution-Date: 20150619
+d Distribution-Date: 20150626
 d
 
 f reghdfe.ado
