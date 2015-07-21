@@ -15,9 +15,9 @@ local vars `0'
 		local newname : char `name'[name]
 		*local label : var label `basevar'
 
-		* Stata requires all interaction elements to have an o.
+		* Stata requires all parts of an omitted interaction to have an o.
 		if (`is_omitted' & `is_temp') {
-			while regexm("`newname'", "^(.*[^o])\.(.*)$") {
+			while regexm("`newname'", "^(.*[^bo])\.(.*)$") {
 				local newname = regexs(1) + "o." + regexs(2)
 			}
 		}

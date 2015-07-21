@@ -4,7 +4,7 @@ cscript "reghdfe test bugfix ibn.x1#c.x2 do not drop base cat." adofile reghdfe
 	discard
 	clear all
 	set more off
-	* cls
+	*cls
 
 * Convenience: "Trim <size>" will trim e(b) and e(V)
 	capture program drop TrimMatrix
@@ -60,6 +60,8 @@ cscript "reghdfe test bugfix ibn.x1#c.x2 do not drop base cat." adofile reghdfe
 	reghdfe `lhs' `rhs' weight, absorb(`absvars')
 	reghdfe `lhs' weight `rhs', absorb(`absvars')
 	egen x = std(weight)
+	set trace off
+	cls
 	reghdfe `lhs' x c.x#i.rep weight c.weight#i.rep, absorb(`absvars')
 
 cd "D:/Github/reghdfe/test"
