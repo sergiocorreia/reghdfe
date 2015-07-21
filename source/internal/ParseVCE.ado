@@ -11,7 +11,6 @@ program define ParseVCE, sclass
 			model(string) ///
 			[ivsuite(string)]
 
-	if ("`anything'"=="") local anything unadjusted
 	Assert `bw'>0, msg("VCE bandwidth must be a positive integer")
 	gettoken vcetype clustervars : anything
 	* Expand variable abbreviations; but this adds unwanted i. prefixes
@@ -28,11 +27,21 @@ program define ParseVCE, sclass
 	if ("`vcetype'"=="conventional") local vcetype unadjusted // Conventional is the name given in e.g. xtreg
 	Assert strpos("`vcetype'",",")==0, msg("Unexpected contents of VCE: <`vcetype'> has a comma")
 
-	* Sanity checks on vcetype
+	* Implicit defaults
 	if ("`vcetype'"=="" & "`weighttype'"=="pweight") local vcetype robust
-	Assert !("`vcetype'"=="unadjusted" & "`weighttype'"=="pweight"), msg("pweights do not work with unadjusted errors, use a different vce()")
 	if ("`vcetype'"=="") local vcetype unadjusted
-	Assert inlist("`vcetype'", "unadjusted", "robust", "cluster"), msg("VCE type not supported: `vcetype'")
+
+	* Sanity checks on vcetype
+	Assert inlist("`vcetype'", "unadjusted", "robust", "cluster"), ///
+		msg("vcetype '`vcetype'' not allowed")
+
+	Assert !("`vcetype'"=="unadjusted" & "`weighttype'"=="pweight"), ///
+		msg("pweights do not work with vce(unadjusted), use a different vce()")
+	* Recall that [pw] = [aw] + _robust http://www.stata.com/statalist/archive/2007-04/msg00282.html
+	
+	* Also see: http://www.stata.com/statalist/archive/2004-11/msg00275.html
+	* "aweights are for cell means data, i.e. data which have been collapsed through averaging,
+	* and pweights are for sampling weights"
 
 	* Cluster vars
 	local num_clusters : word count `clustervars'
