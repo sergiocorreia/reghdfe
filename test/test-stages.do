@@ -55,7 +55,7 @@ cscript "reghdfe with iv-stages" adofile reghdfe
 	storedresults save b_iv e()
 
 	* OLS
-	areg `lhs' `rhs' `endogvar', abs(`absvars') cluster(`clustervar')
+	areg `lhs' `endogvar' `rhs' , abs(`absvars') cluster(`clustervar')
 	fvunab tmp : `rhs'
 	local K_ols : list sizeof tmp
 	TrimMatrix `K_ols'
@@ -63,7 +63,7 @@ cscript "reghdfe with iv-stages" adofile reghdfe
 	storedresults save b_ols e()
 
 	* Reduced
-	areg `lhs' `rhs' `iv', abs(`absvars') cluster(`clustervar')
+	areg `lhs' `iv' `rhs', abs(`absvars') cluster(`clustervar')
 	fvunab tmp : `rhs' `iv'
 	local K_reduced : list sizeof tmp
 	TrimMatrix `K_reduced'
@@ -71,7 +71,7 @@ cscript "reghdfe with iv-stages" adofile reghdfe
 	storedresults save b_reduced e()
 
 	* Acid
-	areg `lhs' `rhs' `endogvar' `iv', abs(`absvars') cluster(`clustervar')
+	areg `lhs' `endogvar' `iv' `rhs', abs(`absvars') cluster(`clustervar')
 	fvunab tmp : `rhs' `endogvar' `iv'
 	local K_acid : list sizeof tmp
 	TrimMatrix `K_acid'
@@ -79,7 +79,7 @@ cscript "reghdfe with iv-stages" adofile reghdfe
 	storedresults save b_acid e()
 
 	* First stage
-	areg `endogvar' `rhs' `iv', abs(`absvars') cluster(`clustervar')
+	areg `endogvar' `iv' `rhs', abs(`absvars') cluster(`clustervar')
 	fvunab tmp : `rhs' `iv'
 	local K_first1 : list sizeof tmp
 	TrimMatrix `K_first1'
