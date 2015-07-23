@@ -23,6 +23,7 @@
 	set varabbrev on
 
 	run test-unadjusted
+	run test-fvvarlist
 	run test-robust
 	run test-cluster
 	run test-ivreg2
