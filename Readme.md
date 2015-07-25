@@ -43,8 +43,8 @@ This package wouldn't have existed without the invaluable feedback and contribut
 This is the *readme* file for developing the reghdfe project, which is comprised of the reghdfe package and the underlying hdfe package. The help files and tutorials [are available here](http://scorreia.com/reghdfe) (work in progress).
 
 Latest version
-* Version 3.1.13
-* Date: June 19, 2015
+* Version 3.2.1
+* Date: July 25, 2015
 
 ## Installing REGHDFE
 
@@ -55,7 +55,7 @@ cap ado uninstall reghdfe
 ssc install reghdfe
 ```
 
-The installation of the latest dev. release (3.1.x) depends on the Stata version:
+The installation of the latest dev. release (3.2.x) depends on the Stata version:
 
 With Stata 13:
 
@@ -87,7 +87,7 @@ cap ado uninstall hdfe
 ssc install hdfe
 ```
 
-The installation of the latest developer release (3.1.x) depends on the Stata version:
+The installation of the latest developer release (3.2.x) depends on the Stata version:
 
 With Stata 13:
 
@@ -108,6 +108,7 @@ net install hdfe, from("C:\SOMEFOLDER")
 
 ## Recent Updates
 
+* 3.2 Fixed [bug](../../issues/33) where a slopes-only model (i.e. no constant or intercepts) returned incorrect alphas (estimates for the fixed effects). Note that the estimates for the betas were unaffected. Thanks to [Matthieu Gomez](https://github.com/matthieugomez) for the bug report
 * 3.1 Improved syntax for the `cache()` and `stage()` options
 * 3.0 Three key changes: i) faster underlying algorithm (symmetric transforms and cg acceleration perform much better on "hard" cases); ii) slow parts rewritten in mata, iii) simpler syntax
 * 2.2 [internal] murphy-topel (unadjusted, robust, cluster), double-or-nothing IV/control function
