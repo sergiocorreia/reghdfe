@@ -41,6 +41,7 @@ mata set matastrict on
 
 	S.keepsingletons = 0
 	S.G = G = st_numscalar("r(G)")
+	S.has_intercept = st_numscalar("r(has_intercept)")
 	S.C = 0
 	S.clustervars = S.clustervars_original = J(0,0,"")
 	S.fes = FixedEffect(G)

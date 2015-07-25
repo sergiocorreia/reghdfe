@@ -66,7 +66,7 @@ program define Inner, eclass
 
 * PREPARE - Compute untransformed tss, R2 of eqn w/out FEs
 if (`timeit') Tic, n(55)
-	Prepare, weightexp(`weightexp') depvar(`depvar') stages(`stages') model(`model') expandedvars(`expandedvars') vcetype(`vcetype') endogvars(`endogvars')
+	Prepare, weightexp(`weightexp') depvar(`depvar') stages(`stages') model(`model') expandedvars(`expandedvars') vcetype(`vcetype') endogvars(`endogvars') has_intercept(`has_intercept')
 	* Injects tss, tss_`endogvar' (with stages), and r2c
 	if (`timeit') Toc, n(55) msg(prepare)
 
@@ -211,7 +211,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 	if (`will_save_fe') {
 		if (`timeit') Tic, n(68)
 		local subpredict = e(predict) // used to recover the FEs
-		SaveFE, model(`model') depvar(`depvar') untransformed(`untransformed') weightexp(`weightexp') subpredict(`subpredict') `drop_resid_vector'
+		SaveFE, model(`model') depvar(`depvar') untransformed(`untransformed') weightexp(`weightexp') has_intercept(`has_intercept') subpredict(`subpredict') `drop_resid_vector'
 		if (`timeit') Toc, n(68) msg(save fes in mata)
 	}
 
@@ -263,7 +263,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * POST ERETURN - Add e(...) (besides e(sample) and those added by the wrappers)	
 	local opt_list
-	local opts dofadjustments subpredict model stage stages subcmd cmdline vceoption equation_d original_absvars extended_absvars vcetype vcesuite tss r2c savestages diopts weightvar estimator dkraay by level num_clusters clustervars timevar backup_original_depvar original_indepvars original_endogvars original_instruments
+	local opts dofadjustments subpredict model stage stages subcmd cmdline vceoption equation_d original_absvars extended_absvars vcetype vcesuite tss r2c savestages diopts weightvar estimator dkraay by level num_clusters clustervars timevar backup_original_depvar original_indepvars original_endogvars original_instruments has_intercept
 	foreach opt of local opts {
 		local opt_list `opt_list' `opt'(``opt'')
 	}

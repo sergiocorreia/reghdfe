@@ -32,12 +32,16 @@ syntax anything(id="absvars" name=absvars equalok everything), [SAVEfe]
 		
 		local 0 `absvar'
 		syntax varlist(numeric fv)
-			//di as error "    varlist=<`varlist'>"
+		* This will expand very aggressively:
+			* EG: x##c.y -> i.x c.y i.x#c.y
+			* di as error "    varlist=<`varlist'>"
 		
 		local ivars
 		local cvars
 		
+		local absvar_has_intercept 0
 		local has_intercept 0
+
 		foreach factor of local varlist {
 			local hasdot = strpos("`factor'", ".")
 			local haspound = strpos("`factor'", "#")
@@ -55,7 +59,7 @@ syntax anything(id="absvars" name=absvars equalok everything), [SAVEfe]
 					local factor_has_cvars 1
 				}
 			}
-			if (!`factor_has_cvars') local has_intercept 1
+			if (!`factor_has_cvars') local absvar_has_intercept 1
 		}
 		
 		local ivars : list uniq ivars
@@ -67,10 +71,12 @@ syntax anything(id="absvars" name=absvars equalok everything), [SAVEfe]
 		local all_cvars `all_cvars' `cvars'
 		local all_ivars `all_ivars' `ivars'
 
+		if (`absvar_has_intercept') local has_intercept 1
+
 		return local target`g' `target'
 		return local ivars`g' `ivars'
 		return local cvars`g' `cvars'
-		return scalar has_intercept`g' = `has_intercept'
+		return scalar has_intercept`g' = `absvar_has_intercept'
 		return scalar num_slopes`g' = `num_slopes'
 	
 		local label : subinstr local ivars " " "#", all
@@ -91,4 +97,5 @@ syntax anything(id="absvars" name=absvars equalok everything), [SAVEfe]
 	return scalar savefe = ("`savefe'"!="")
 	return local all_ivars `all_ivars'
 	return local all_cvars `all_cvars'
+	return scalar has_intercept = `has_intercept' // 1 if the model is not a pure-intercept one
 end

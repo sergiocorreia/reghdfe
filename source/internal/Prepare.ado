@@ -1,17 +1,26 @@
 capture program drop Prepare
 program define Prepare, sclass
 
-syntax, depvar(string) stages(string) model(string) expandedvars(string) vcetype(string) [weightexp(string) endogvars(string)]
+syntax, depvar(string) stages(string) model(string) expandedvars(string) vcetype(string) ///
+	 has_intercept(integer) ///
+	 [weightexp(string) endogvars(string)]
 
 * Save the statistics we need before transforming the variables
 	* Compute TSS of untransformed depvar
 	local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)
-	qui su `depvar' `tmpweightexp' // BUGBUG: Is this correct?!
-	c_local tss = r(Var)*(r(N)-1)
+	qui su `depvar' `tmpweightexp'
+	
+	local tss = r(Var)*(r(N)-1)
+	if (!`has_intercept') local tss = `tss' + r(sum)^2 / (r(N))
+	c_local tss = `tss'
+
 	if (`: list posof "first" in stages') {
 		foreach var of varlist `endogvars' {
-			qui su `var' `tmpweightexp' // BUGBUG: Is this correct?!
-			c_local tss_`var' = r(Var)*(r(N)-1)
+			qui su `var' `tmpweightexp'
+
+			local tss = r(Var)*(r(N)-1)
+			if (!`has_intercept') local tss = `tss' + r(sum)^2 / (r(N))
+			c_local tss_`var' = `tss'
 		}
 	}
 

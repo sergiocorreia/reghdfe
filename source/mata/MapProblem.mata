@@ -7,6 +7,7 @@ mata set matastrict on
 struct MapProblem {
 	struct FixedEffect vector fes	// The G*1 vector of FE structures
 	`Integer'		G 				// Number of FEs when bunching slopes
+	`Boolean'		has_intercept   // 1 if the model is not a pure-slope one
 	`Varname'		weightvar 		// Name variable contaning the fw/pw/aw
 	`String'		weighttype 		// fw/pw/aw
 	`String'		weights 		// "[weighttype=weightvar]"

@@ -1,6 +1,8 @@
 capture program drop SaveFE
 program define SaveFE
-	syntax, model(string) depvar(string) untransformed(string) subpredict(string) [weightexp(string)] [drop_resid_vector(integer 1)]
+	syntax, model(string) depvar(string) untransformed(string) subpredict(string) ///
+		has_intercept(integer) ///
+		[weightexp(string)] [drop_resid_vector(integer 1)]
 
 	Debug, level(2) msg("(calculating fixed effects)")
 	tempvar resid
@@ -30,12 +32,20 @@ program define SaveFE
 
 	Debug, level(3) msg(" - computing d = resid_d - mean(resid_d) - resid")
 	tempvar d
-	local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)
-	// if ("`weightvar'"!="") assert "`tmpweightexp'"!=""
-	su `resid_d' `tmpweightexp', mean
-	gen double `d' = `resid_d' - r(mean) - `resid'
+
+	* Computing mean(resid_d), the constant term (only if there is an intercept in absorb)
+	if (`has_intercept') {
+		local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)
+		su `resid_d' `tmpweightexp', mean
+		gen double `d' = `resid_d' - r(mean) - `resid'
+	}
+	else {
+		gen double `d' = `resid_d' - `resid'
+	}	
+	
 	drop `resid' `resid_d'
 	//clonevar dd = `d'
+
 	Debug, level(3) msg(" - disaggregating d = z1 + z2 + ...")
 	mata: map_solve(HDFE_S, "`d'", "", "", 1) // Store FEs in Mata (will fail if partial is set)
 	//regress dd __hdfe*, nocons

@@ -35,6 +35,7 @@ program define InnerSaveCache, eclass
 	foreach var of local expandedvars {
 		qui su `var' `tmpweightexp' // BUGBUG: Is this correct?!
 		local tss = r(Var)*(r(N)-1)
+		if (!`has_intercept') local tss = `tss' + r(sum)^2 / (r(N))
 		mata: asarray(tss_cache, "`var'", "`tss'")
 	}
 	*NOTE: r2c is too slow and thus won't be saved

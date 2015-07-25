@@ -1,4 +1,4 @@
-*! reghdfe 3.1.15 21jul2015
+*! reghdfe 3.2.1 25jul2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -76,6 +76,7 @@ mata set matastrict on
 struct MapProblem {
 	struct FixedEffect vector fes	// The G*1 vector of FE structures
 	`Integer'		G 				// Number of FEs when bunching slopes
+	`Boolean'		has_intercept   // 1 if the model is not a pure-slope one
 	`Varname'		weightvar 		// Name variable contaning the fw/pw/aw
 	`String'		weighttype 		// fw/pw/aw
 	`String'		weights 		// "[weighttype=weightvar]"
@@ -283,6 +284,7 @@ void function alphas2dta(`Problem' S) {
 
 	S.keepsingletons = 0
 	S.G = G = st_numscalar("r(G)")
+	S.has_intercept = st_numscalar("r(has_intercept)")
 	S.C = 0
 	S.clustervars = S.clustervars_original = J(0,0,"")
 	S.fes = FixedEffect(G)
@@ -2043,7 +2045,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.1.15 21jul2015"
+    local version "3.2.1 25jul2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2143,7 +2145,7 @@ program define Inner, eclass
 
 * PREPARE - Compute untransformed tss, R2 of eqn w/out FEs
 if (`timeit') Tic, n(55)
-	Prepare, weightexp(`weightexp') depvar(`depvar') stages(`stages') model(`model') expandedvars(`expandedvars') vcetype(`vcetype') endogvars(`endogvars')
+	Prepare, weightexp(`weightexp') depvar(`depvar') stages(`stages') model(`model') expandedvars(`expandedvars') vcetype(`vcetype') endogvars(`endogvars') has_intercept(`has_intercept')
 	* Injects tss, tss_`endogvar' (with stages), and r2c
 	if (`timeit') Toc, n(55) msg(prepare)
 
@@ -2288,7 +2290,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 	if (`will_save_fe') {
 		if (`timeit') Tic, n(68)
 		local subpredict = e(predict) // used to recover the FEs
-		SaveFE, model(`model') depvar(`depvar') untransformed(`untransformed') weightexp(`weightexp') subpredict(`subpredict') `drop_resid_vector'
+		SaveFE, model(`model') depvar(`depvar') untransformed(`untransformed') weightexp(`weightexp') has_intercept(`has_intercept') subpredict(`subpredict') `drop_resid_vector'
 		if (`timeit') Toc, n(68) msg(save fes in mata)
 	}
 
@@ -2340,7 +2342,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * POST ERETURN - Add e(...) (besides e(sample) and those added by the wrappers)	
 	local opt_list
-	local opts dofadjustments subpredict model stage stages subcmd cmdline vceoption equation_d original_absvars extended_absvars vcetype vcesuite tss r2c savestages diopts weightvar estimator dkraay by level num_clusters clustervars timevar backup_original_depvar original_indepvars original_endogvars original_instruments
+	local opts dofadjustments subpredict model stage stages subcmd cmdline vceoption equation_d original_absvars extended_absvars vcetype vcesuite tss r2c savestages diopts weightvar estimator dkraay by level num_clusters clustervars timevar backup_original_depvar original_indepvars original_endogvars original_instruments has_intercept
 	foreach opt of local opts {
 		local opt_list `opt_list' `opt'(``opt'')
 	}
@@ -2463,8 +2465,11 @@ program define Parse
 * Parse Absvars and optimization options
 if (!`usecache') {
 	ParseAbsvars `absorb' // Stores results in r()
+		if (inlist("`verbose'", "4", "5")) return list
 		local absorb_keepvars `r(all_ivars)' `r(all_cvars)'
 		local N_hdfe `r(G)'
+		local has_intercept = `r(has_intercept)'
+		assert inlist(`has_intercept', 0, 1)
 
 	mata: HDFE_S = map_init() // Reads results from r()
 		local will_save_fe = `r(will_save_fe)' // Returned from map_init()
@@ -2478,8 +2483,9 @@ else {
 	local extended_absvars : char _dta[extended_absvars]
 	local equation_d
 	local N_hdfe : char _dta[N_hdfe]
+	local has_intercept : char _dta[has_intercept]
 }
-	local allkeys `allkeys' absorb_keepvars N_hdfe will_save_fe original_absvars extended_absvars equation_d
+	local allkeys `allkeys' absorb_keepvars N_hdfe will_save_fe original_absvars extended_absvars equation_d has_intercept
 
 	* Tell Mata what weightvar we have
 	if ("`weightvar'"!="" & !`usecache') mata: map_init_weights(HDFE_S, "`weightvar'", "`weighttype'")
@@ -2599,7 +2605,7 @@ else {
 		* Savecache "requires" a previous preserve, so we can directly modify the dataset
 		Assert "`endogvars'`instruments'"=="", msg("cache(save) option requires a normal varlist, not an iv varlist")
 		char _dta[reghdfe_cache] 1
-		local chars absorb N_hdfe original_absvars extended_absvars vce vceoption vcetype vcesuite vceextra num_clusters clustervars bw kernel dkraay kiefer twicerobust
+		local chars absorb N_hdfe has_intercept original_absvars extended_absvars vce vceoption vcetype vcesuite vceextra num_clusters clustervars bw kernel dkraay kiefer twicerobust
 		foreach char of local  chars {
 			char _dta[`char'] ``char''	
 		}
@@ -2930,12 +2936,16 @@ syntax anything(id="absvars" name=absvars equalok everything), [SAVEfe]
 		
 		local 0 `absvar'
 		syntax varlist(numeric fv)
-			//di as error "    varlist=<`varlist'>"
+		* This will expand very aggressively:
+			* EG: x##c.y -> i.x c.y i.x#c.y
+			* di as error "    varlist=<`varlist'>"
 		
 		local ivars
 		local cvars
 		
+		local absvar_has_intercept 0
 		local has_intercept 0
+
 		foreach factor of local varlist {
 			local hasdot = strpos("`factor'", ".")
 			local haspound = strpos("`factor'", "#")
@@ -2953,7 +2963,7 @@ syntax anything(id="absvars" name=absvars equalok everything), [SAVEfe]
 					local factor_has_cvars 1
 				}
 			}
-			if (!`factor_has_cvars') local has_intercept 1
+			if (!`factor_has_cvars') local absvar_has_intercept 1
 		}
 		
 		local ivars : list uniq ivars
@@ -2965,10 +2975,12 @@ syntax anything(id="absvars" name=absvars equalok everything), [SAVEfe]
 		local all_cvars `all_cvars' `cvars'
 		local all_ivars `all_ivars' `ivars'
 
+		if (`absvar_has_intercept') local has_intercept 1
+
 		return local target`g' `target'
 		return local ivars`g' `ivars'
 		return local cvars`g' `cvars'
-		return scalar has_intercept`g' = `has_intercept'
+		return scalar has_intercept`g' = `absvar_has_intercept'
 		return scalar num_slopes`g' = `num_slopes'
 	
 		local label : subinstr local ivars " " "#", all
@@ -2989,6 +3001,7 @@ syntax anything(id="absvars" name=absvars equalok everything), [SAVEfe]
 	return scalar savefe = ("`savefe'"!="")
 	return local all_ivars `all_ivars'
 	return local all_cvars `all_cvars'
+	return scalar has_intercept = `has_intercept' // 1 if the model is not a pure-intercept one
 end
 
 program define ParseDOF, sclass
@@ -3209,17 +3222,26 @@ end
 
 program define Prepare, sclass
 
-syntax, depvar(string) stages(string) model(string) expandedvars(string) vcetype(string) [weightexp(string) endogvars(string)]
+syntax, depvar(string) stages(string) model(string) expandedvars(string) vcetype(string) ///
+	 has_intercept(integer) ///
+	 [weightexp(string) endogvars(string)]
 
 * Save the statistics we need before transforming the variables
 	* Compute TSS of untransformed depvar
 	local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)
-	qui su `depvar' `tmpweightexp' // BUGBUG: Is this correct?!
-	c_local tss = r(Var)*(r(N)-1)
+	qui su `depvar' `tmpweightexp'
+	
+	local tss = r(Var)*(r(N)-1)
+	if (!`has_intercept') local tss = `tss' + r(sum)^2 / (r(N))
+	c_local tss = `tss'
+
 	if (`: list posof "first" in stages') {
 		foreach var of varlist `endogvars' {
-			qui su `var' `tmpweightexp' // BUGBUG: Is this correct?!
-			c_local tss_`var' = r(Var)*(r(N)-1)
+			qui su `var' `tmpweightexp'
+
+			local tss = r(Var)*(r(N)-1)
+			if (!`has_intercept') local tss = `tss' + r(sum)^2 / (r(N))
+			c_local tss_`var' = `tss'
 		}
 	}
 
@@ -3929,7 +3951,9 @@ assert ("`replace'"!="") + ("`generate'"!="") == 1
 end
 
 program define SaveFE
-	syntax, model(string) depvar(string) untransformed(string) subpredict(string) [weightexp(string)] [drop_resid_vector(integer 1)]
+	syntax, model(string) depvar(string) untransformed(string) subpredict(string) ///
+		has_intercept(integer) ///
+		[weightexp(string)] [drop_resid_vector(integer 1)]
 
 	Debug, level(2) msg("(calculating fixed effects)")
 	tempvar resid
@@ -3959,12 +3983,20 @@ program define SaveFE
 
 	Debug, level(3) msg(" - computing d = resid_d - mean(resid_d) - resid")
 	tempvar d
-	local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)
-	// if ("`weightvar'"!="") assert "`tmpweightexp'"!=""
-	su `resid_d' `tmpweightexp', mean
-	gen double `d' = `resid_d' - r(mean) - `resid'
+
+	* Computing mean(resid_d), the constant term (only if there is an intercept in absorb)
+	if (`has_intercept') {
+		local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)
+		su `resid_d' `tmpweightexp', mean
+		gen double `d' = `resid_d' - r(mean) - `resid'
+	}
+	else {
+		gen double `d' = `resid_d' - `resid'
+	}	
+	
 	drop `resid' `resid_d'
 	//clonevar dd = `d'
+
 	Debug, level(3) msg(" - disaggregating d = z1 + z2 + ...")
 	mata: map_solve(HDFE_S, "`d'", "", "", 1) // Store FEs in Mata (will fail if partial is set)
 	//regress dd __hdfe*, nocons
@@ -3974,6 +4006,7 @@ end
 program define Post, eclass
 	syntax, coefnames(string) ///
 		model(string) stage(string) stages(string) subcmd(string) cmdline(string) vceoption(string) original_absvars(string) extended_absvars(string) vcetype(string) vcesuite(string) tss(string) num_clusters(string) ///
+			has_intercept(integer) ///
 		[dofadjustments(string) clustervars(string) timevar(string) r2c(string) equation_d(string) subpredict(string) savestages(string) diopts(string) weightvar(string) dkraay(string) estimator(string) by(string) level(string)] ///
 		[backup_original_depvar(string) original_indepvars(string) original_endogvars(string) original_instruments(string)]
 
@@ -4099,7 +4132,7 @@ program define Post, eclass
 
 	if ("`model'"=="ols" & `num_clusters'>0) Assert e(unclustered_df_r)<., msg("wtf-`vcesuite'")
 	local used_df_r = cond(e(unclustered_df_r)<., e(unclustered_df_r), e(df_r)) - e(M_due_to_nested)
-	ereturn scalar r2_a = 1 - (e(rss)/`used_df_r') / ( e(tss) / (e(N)-1) )
+	ereturn scalar r2_a = 1 - (e(rss)/`used_df_r') / ( e(tss) / (e(N)-`has_intercept') )
 	ereturn scalar rmse = sqrt( e(rss) / `used_df_r' )
 	ereturn scalar r2_a_within = 1 - (e(rss)/`used_df_r') / ( e(tss_within) / (`used_df_r'+e(df_m)) )
 
@@ -4584,6 +4617,7 @@ program define InnerSaveCache, eclass
 	foreach var of local expandedvars {
 		qui su `var' `tmpweightexp' // BUGBUG: Is this correct?!
 		local tss = r(Var)*(r(N)-1)
+		if (!`has_intercept') local tss = `tss' + r(sum)^2 / (r(N))
 		mata: asarray(tss_cache, "`var'", "`tss'")
 	}
 	*NOTE: r2c is too slow and thus won't be saved
@@ -4786,7 +4820,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * POST ERETURN - Add e(...) (besides e(sample) and those added by the wrappers)	
 	local opt_list
-	local opts dofadjustments subpredict model stage stages subcmd cmdline vceoption equation_d original_absvars extended_absvars vcetype vcesuite tss r2c savestages diopts weightvar estimator dkraay by level num_clusters clustervars timevar backup_original_depvar original_indepvars original_endogvars original_instruments
+	local opts dofadjustments subpredict model stage stages subcmd cmdline vceoption equation_d original_absvars extended_absvars vcetype vcesuite tss r2c savestages diopts weightvar estimator dkraay by level num_clusters clustervars timevar backup_original_depvar original_indepvars original_endogvars original_instruments has_intercept
 	foreach opt of local opts {
 		local opt_list `opt_list' `opt'(``opt'')
 	}
