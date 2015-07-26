@@ -47,7 +47,8 @@ program define hdfe, eclass
 		local keepvars `r(varlist)'
 	}
 
-	local 0 `partial' `anything' [`weight'`exp'] , absorb(`absorb') `options' ///
+	if ("`weight'"!="") local weight_part [`weight'=`exp']
+	local 0 `partial' `anything' `weight_part' , absorb(`absorb') `options' ///
 		cluster(`clustervars') cache(save, keepvars(`keepvars'))
 
 * INITIAL CLEANUP
@@ -67,7 +68,7 @@ program define hdfe, eclass
 		GenUID `uid'
 	}
 
-* PROBLEM:z
+* PROBLEM:
 	* I can translate L(1/2).x into __L__x __L2__x
 	* But how can I translate i.x if I don't have the original anymore?
 

@@ -1,4 +1,4 @@
-*! reghdfe 3.2.1 25jul2015
+*! reghdfe 3.2.2 26jul2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -2045,7 +2045,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.2.1 25jul2015"
+    local version "3.2.2 26jul2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2448,7 +2448,7 @@ program define Parse
 
 		* Check that weights are correct (e.g. with fweight they need to be integers)
 		local num_type = cond("`weight'"=="fweight", "integers", "reals")
-		local basenote "weight {res}`weightvar'{txt} can only contain strictly positive `num_type', but"
+		local basenote "{txt}weight {res}`weightvar'{txt} can only contain strictly positive `num_type', but"
 		qui cou if `weightvar'<0
 		Assert (`r(N)'==0), msg("`basenote' `r(N)' negative values were found!")  rc(402)
 		qui cou if `weightvar'==0
@@ -2457,7 +2457,7 @@ program define Parse
 		if (`r(N)'>0) di as text "`basenote' `r(N)' missing values were found (will be dropped)"
 		if ("`weight'"=="fweight") {
 			qui cou if mod(`weightvar',1) & `weightvar'<.
-			Assert (`r(N)'==0), msg("`basenote' `r(N)' non-integer values were found!") rc(401)
+			Assert (`r(N)'==0), msg("`basenote' `r(N)' non-integer values were found!" "{err} Stopping execution") rc(401)
 		}
 	}
 	local allkeys `allkeys' weightvar weighttype weightexp

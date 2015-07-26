@@ -86,9 +86,11 @@ cscript "hdfe" adofile reghdfe
 
 * syntax()
 	sysuse auto, clear
-	
 	hdfe price weight length, a(turn trunk) gen(R_) sample(smpl) clusterv(trunk)
 	hdfe price weight length, a(turn trunk) clear keepv(make) keepids clusterv(trunk)
+	
+	sysuse auto, clear
+	hdfe price gear [w=weight], a(turn trunk) clear keepv(make) keepids clusterv(trunk)
 
 cd "D:/Github/reghdfe/test"
 exit
