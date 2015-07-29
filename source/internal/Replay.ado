@@ -10,7 +10,7 @@ cap pr drop Replay
 	if (`c(version)'>=12) local hidden hidden
 
 	if ("`stored'"!="" & "`e(stored_estimates)'"!="" & "`e(stage)'"=="iv") {
-		local est_list = e(stored_estimates)
+		local est_list "`e(stored_estimates)'"
 		tempname hold
 		estimates store `hold'
 		foreach est of local est_list {

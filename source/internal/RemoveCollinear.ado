@@ -8,7 +8,7 @@ program define RemoveCollinear, rclass
 	syntax, depvar(varname numeric) [indepvars(varlist numeric) weightexp(string)]
 
 	qui _rmcoll `indepvars' `weightexp', forcedrop
-	local okvars = r(varlist)
+	local okvars "`r(varlist)'"
 	if ("`okvars'"==".") local okvars
 	local df_m : list sizeof okvars
 

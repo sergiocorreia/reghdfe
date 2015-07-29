@@ -41,7 +41,7 @@ syntax , depvar(varname) [indepvars(varlist)] ///
 
 	local predict = e(predict)
 	local cmd = e(cmd)
-	local cmdline = e(cmdline)
+	local cmdline "`e(cmdline)'"
 	local title = e(title)
 
 	* Compute the bread of the sandwich D := inv(X'X/N)
@@ -124,7 +124,7 @@ syntax , depvar(varname) [indepvars(varlist)] ///
 	ereturn local marginsok = "`marginsok'"
 	ereturn local predict = "`predict'"
 	ereturn local cmd = "`cmd'"
-	ereturn local cmdline = "`cmdline'"
+	ereturn local cmdline `"`cmdline'"'
 	ereturn local title = "`title'"
 	ereturn scalar rmse = `rmse'
 	ereturn scalar rss = `rss'

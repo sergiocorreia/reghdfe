@@ -1,4 +1,4 @@
-*! reghdfe 3.2.2 26jul2015
+*! reghdfe 3.2.3 29jul2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -2045,7 +2045,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.2.2 26jul2015"
+    local version "3.2.3 29jul2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2207,8 +2207,15 @@ if (`timeit') Tic, n(55)
 * STAGES LOOPS
 foreach stage of local stages {
 Assert inlist("`stage'", "none", "iv", "first", "ols", "reduced", "acid")
-local lhs_endogvars = cond("`stage'"=="first", "`backup_endogvars'", "<none>")
-local i_endogvar = cond("`stage'"=="first", "0", "")
+if ("`stage'"=="first") {
+	local lhs_endogvars "`backup_endogvars'"
+	local i_endogvar 0
+}
+else {
+	local lhs_endogvars "<none>"
+	local i_endogvar
+}
+
 foreach lhs_endogvar of local lhs_endogvars {
 
 	if ("`stage'"!="none") {
@@ -2473,9 +2480,9 @@ if (!`usecache') {
 
 	mata: HDFE_S = map_init() // Reads results from r()
 		local will_save_fe = `r(will_save_fe)' // Returned from map_init()
-		local original_absvars = "`r(original_absvars)'"
-		local extended_absvars = "`r(extended_absvars)'"
-		local equation_d = "`r(equation_d)'"
+		local original_absvars "`r(original_absvars)'"
+		local extended_absvars "`r(extended_absvars)'"
+		local equation_d "`r(equation_d)'"
 }
 else {
 	local will_save_fe 0
@@ -3387,7 +3394,7 @@ program define Wrapper_regress, eclass
 
 	local predict = e(predict)
 	local cmd = e(cmd)
-	local cmdline = e(cmdline)
+	local cmdline "`e(cmdline)'"
 	local title = e(title)
 
 	* Fix V
@@ -3411,7 +3418,7 @@ program define Wrapper_regress, eclass
 	ereturn local marginsok = "`marginsok'"
 	ereturn local predict = "`predict'"
 	ereturn local cmd = "`cmd'"
-	ereturn local cmdline = "`cmdline'"
+	ereturn local cmdline `"`cmdline'"'
 	ereturn local title = "`title'"
 	ereturn local clustvar = "`clustervars'"
 	ereturn scalar rmse = `rmse'
@@ -3435,7 +3442,7 @@ program define RemoveCollinear, rclass
 	syntax, depvar(varname numeric) [indepvars(varlist numeric) weightexp(string)]
 
 	qui _rmcoll `indepvars' `weightexp', forcedrop
-	local okvars = r(varlist)
+	local okvars "`r(varlist)'"
 	if ("`okvars'"==".") local okvars
 	local df_m : list sizeof okvars
 
@@ -3509,7 +3516,7 @@ program define Wrapper_avar, eclass
 
 	local predict = e(predict)
 	local cmd = e(cmd)
-	local cmdline = e(cmdline)
+	local cmdline `"`e(cmdline)'"'
 	local title = e(title)
 
 	* Compute the bread of the sandwich inv(X'X/N)
@@ -3566,7 +3573,7 @@ program define Wrapper_avar, eclass
 	ereturn local marginsok = "`marginsok'"
 	ereturn local predict = "`predict'"
 	ereturn local cmd = "`cmd'"
-	ereturn local cmdline = "`cmdline'"
+	ereturn local cmdline `"`cmdline'"'
 	ereturn local title = "`title'"
 	ereturn local clustvar = "`clustervars'"
 
@@ -3632,7 +3639,7 @@ syntax , depvar(varname) [indepvars(varlist)] ///
 
 	local predict = e(predict)
 	local cmd = e(cmd)
-	local cmdline = e(cmdline)
+	local cmdline "`e(cmdline)'"
 	local title = e(title)
 
 	* Compute the bread of the sandwich D := inv(X'X/N)
@@ -3715,7 +3722,7 @@ syntax , depvar(varname) [indepvars(varlist)] ///
 	ereturn local marginsok = "`marginsok'"
 	ereturn local predict = "`predict'"
 	ereturn local cmd = "`cmd'"
-	ereturn local cmdline = "`cmdline'"
+	ereturn local cmdline `"`cmdline'"'
 	ereturn local title = "`title'"
 	ereturn scalar rmse = `rmse'
 	ereturn scalar rss = `rss'
@@ -4046,9 +4053,9 @@ program define Post, eclass
 	ereturn local predict = "reghdfe_p"
 	ereturn local estat_cmd = "reghdfe_estat"
 	ereturn local footnote = "reghdfe_footnote"
-	ereturn `hidden' local equation_d = "`equation_d'" // The equation used to construct -d- (used to predict)
-	ereturn local absvars = "`original_absvars'"
-	ereturn `hidden' local extended_absvars = "`extended_absvars'"
+	ereturn `hidden' local equation_d "`equation_d'" // The equation used to construct -d- (used to predict)
+	ereturn local absvars "`original_absvars'"
+	ereturn `hidden' local extended_absvars "`extended_absvars'"
 	
 
 	ereturn `hidden' local diopts = "`diopts'"
@@ -4175,7 +4182,7 @@ program define Post, eclass
 	* List of stored estimates
 	if ("`e(savestages)'"=="1" & "`e(model)'"=="iv") {
 		local stages = "`e(stages)'"
-		local endogvars = e(endogvars)
+		local endogvars "`e(endogvars)'"
 		foreach stage of local stages {
 			if ("`stage'"=="first") {
 				local i 0
@@ -4346,7 +4353,7 @@ end
 	if (`c(version)'>=12) local hidden hidden
 
 	if ("`stored'"!="" & "`e(stored_estimates)'"!="" & "`e(stage)'"=="iv") {
-		local est_list = e(stored_estimates)
+		local est_list "`e(stored_estimates)'"
 		tempname hold
 		estimates store `hold'
 		foreach est of local est_list {
@@ -4724,8 +4731,15 @@ program define InnerUseCache, eclass
 * STAGES LOOPS
 foreach stage of local stages {
 Assert inlist("`stage'", "none", "iv", "first", "ols", "reduced", "acid")
-local lhs_endogvars = cond("`stage'"=="first", "`backup_endogvars'", "<none>")
-local i_endogvar = cond("`stage'"=="first", "0", "")
+if ("`stage'"=="first") {
+	local lhs_endogvars "`backup_endogvars'"
+	local i_endogvar 0
+}
+else {
+	local lhs_endogvars "<none>"
+	local i_endogvar
+}
+
 foreach lhs_endogvar of local lhs_endogvars {
 
 	if ("`stage'"!="none") {

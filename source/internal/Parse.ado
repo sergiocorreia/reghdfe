@@ -104,9 +104,9 @@ if (!`usecache') {
 
 	mata: HDFE_S = map_init() // Reads results from r()
 		local will_save_fe = `r(will_save_fe)' // Returned from map_init()
-		local original_absvars = "`r(original_absvars)'"
-		local extended_absvars = "`r(extended_absvars)'"
-		local equation_d = "`r(equation_d)'"
+		local original_absvars "`r(original_absvars)'"
+		local extended_absvars "`r(extended_absvars)'"
+		local equation_d "`r(equation_d)'"
 }
 else {
 	local will_save_fe 0

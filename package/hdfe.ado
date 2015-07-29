@@ -1,4 +1,4 @@
-*! reghdfe 3.2.2 26jul2015
+*! reghdfe 3.2.3 29jul2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -2025,8 +2025,8 @@ program define hdfe, eclass
 	mata: map_ereturn_dof(HDFE_S)
 	local N_hdfe = e(N_hdfe)
 	ereturn local cmd = "hdfe"
-	ereturn local extended_absvars = "`extended_absvars'"
-	ereturn local absvars = "`original_absvars'"
+	ereturn local extended_absvars "`extended_absvars'"
+	ereturn local absvars "`original_absvars'"
 
 * Cleanup
 	} // cap noi
@@ -2110,7 +2110,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.2.2 26jul2015"
+    local version "3.2.3 29jul2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2249,9 +2249,9 @@ if (!`usecache') {
 
 	mata: HDFE_S = map_init() // Reads results from r()
 		local will_save_fe = `r(will_save_fe)' // Returned from map_init()
-		local original_absvars = "`r(original_absvars)'"
-		local extended_absvars = "`r(extended_absvars)'"
-		local equation_d = "`r(equation_d)'"
+		local original_absvars "`r(original_absvars)'"
+		local extended_absvars "`r(extended_absvars)'"
+		local equation_d "`r(equation_d)'"
 }
 else {
 	local will_save_fe 0

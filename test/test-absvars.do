@@ -4,8 +4,6 @@
 
 sysuse auto, clear
 set more off
-cls
-
 
 local absvar1		turn
 local G_1			1

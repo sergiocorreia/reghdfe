@@ -130,8 +130,8 @@ program define hdfe, eclass
 	mata: map_ereturn_dof(HDFE_S)
 	local N_hdfe = e(N_hdfe)
 	ereturn local cmd = "hdfe"
-	ereturn local extended_absvars = "`extended_absvars'"
-	ereturn local absvars = "`original_absvars'"
+	ereturn local extended_absvars "`extended_absvars'"
+	ereturn local absvars "`original_absvars'"
 
 * Cleanup
 	} // cap noi

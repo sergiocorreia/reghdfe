@@ -48,7 +48,7 @@ program define Wrapper_regress, eclass
 
 	local predict = e(predict)
 	local cmd = e(cmd)
-	local cmdline = e(cmdline)
+	local cmdline "`e(cmdline)'"
 	local title = e(title)
 
 	* Fix V
@@ -72,7 +72,7 @@ program define Wrapper_regress, eclass
 	ereturn local marginsok = "`marginsok'"
 	ereturn local predict = "`predict'"
 	ereturn local cmd = "`cmd'"
-	ereturn local cmdline = "`cmdline'"
+	ereturn local cmdline `"`cmdline'"'
 	ereturn local title = "`title'"
 	ereturn local clustvar = "`clustervars'"
 	ereturn scalar rmse = `rmse'

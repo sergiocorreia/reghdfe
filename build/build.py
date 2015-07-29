@@ -146,10 +146,10 @@ shutil.copy(os.path.join(source_path, "reghdfe_old_p.ado"), os.path.join(server_
 shutil.copy(os.path.join(source_path, "reghdfe_old_estat.ado"), os.path.join(server_path, "reghdfe_old_estat.ado"))
 shutil.copy(os.path.join(source_path, "reghdfe_old_footnote.ado"), os.path.join(server_path, "reghdfe_old_footnote.ado"))
 
-print("Building zip file")
-zipf = zipfile.ZipFile('../misc/reghdfe.zip', 'w', zipfile.ZIP_DEFLATED)
-zipdir('../package/', zipf)
-zipf.close()
+# print("Building zip file")
+# zipf = zipfile.ZipFile('../misc/reghdfe.zip', 'w', zipfile.ZIP_DEFLATED)
+# zipdir('../package/', zipf)
+# zipf.close()
 
 # Update version file now that the deed is done
 with open(os.path.join(source_path, "version.txt"), 'wb') as fh:

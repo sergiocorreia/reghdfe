@@ -62,7 +62,7 @@ program define Add, rclass
 		local indicate_fe `"`indicate_fe' "`fixed_fe'=`fe'""'
 	}
 
-	return local indicate_fe = `"`indicate_fe'"'
+	return local indicate_fe `"`indicate_fe'"'
 end
 
 capture program drop AddOne
@@ -101,7 +101,7 @@ program define AddOne, eclass
 
 	erepost b=`b' V=`V', rename // Minor problem: removes "hidden" attribute
 	estimates store `model', nocopy
-	c_local absvars = "`absvars'"
+	c_local absvars "`absvars'"
 end
 
 capture program drop FixAbsvars

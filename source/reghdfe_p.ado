@@ -27,7 +27,7 @@ program define reghdfe_p
 	}
 	if ("`option'"=="scores") local option residuals
 
-	local fixed_effects = e(absvars)
+	local fixed_effects "`e(absvars)'"
 
 	* Intercept stdp call
 	if ("`option'"=="stdp") {

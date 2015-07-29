@@ -42,9 +42,9 @@ program define Post, eclass
 	ereturn local predict = "reghdfe_p"
 	ereturn local estat_cmd = "reghdfe_estat"
 	ereturn local footnote = "reghdfe_footnote"
-	ereturn `hidden' local equation_d = "`equation_d'" // The equation used to construct -d- (used to predict)
-	ereturn local absvars = "`original_absvars'"
-	ereturn `hidden' local extended_absvars = "`extended_absvars'"
+	ereturn `hidden' local equation_d "`equation_d'" // The equation used to construct -d- (used to predict)
+	ereturn local absvars "`original_absvars'"
+	ereturn `hidden' local extended_absvars "`extended_absvars'"
 	
 
 	ereturn `hidden' local diopts = "`diopts'"
@@ -171,7 +171,7 @@ program define Post, eclass
 	* List of stored estimates
 	if ("`e(savestages)'"=="1" & "`e(model)'"=="iv") {
 		local stages = "`e(stages)'"
-		local endogvars = e(endogvars)
+		local endogvars "`e(endogvars)'"
 		foreach stage of local stages {
 			if ("`stage'"=="first") {
 				local i 0

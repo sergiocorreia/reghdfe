@@ -55,7 +55,7 @@ program define Wrapper_avar, eclass
 
 	local predict = e(predict)
 	local cmd = e(cmd)
-	local cmdline = e(cmdline)
+	local cmdline `"`e(cmdline)'"'
 	local title = e(title)
 
 	* Compute the bread of the sandwich inv(X'X/N)
@@ -112,7 +112,7 @@ program define Wrapper_avar, eclass
 	ereturn local marginsok = "`marginsok'"
 	ereturn local predict = "`predict'"
 	ereturn local cmd = "`cmd'"
-	ereturn local cmdline = "`cmdline'"
+	ereturn local cmdline `"`cmdline'"'
 	ereturn local title = "`title'"
 	ereturn local clustvar = "`clustervars'"
 

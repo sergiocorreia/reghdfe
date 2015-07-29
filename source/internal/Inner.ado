@@ -128,8 +128,15 @@ if (`timeit') Tic, n(55)
 * STAGES LOOPS
 foreach stage of local stages {
 Assert inlist("`stage'", "none", "iv", "first", "ols", "reduced", "acid")
-local lhs_endogvars = cond("`stage'"=="first", "`backup_endogvars'", "<none>")
-local i_endogvar = cond("`stage'"=="first", "0", "")
+if ("`stage'"=="first") {
+	local lhs_endogvars "`backup_endogvars'"
+	local i_endogvar 0
+}
+else {
+	local lhs_endogvars "<none>"
+	local i_endogvar
+}
+
 foreach lhs_endogvar of local lhs_endogvars {
 
 	if ("`stage'"!="none") {
