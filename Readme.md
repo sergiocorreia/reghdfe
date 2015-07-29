@@ -48,22 +48,20 @@ Latest version
 
 ## Installing REGHDFE
 
-The latest stable release (version 3.1.13) can be downloaded from SSC with
+The latest stable release (version 3.2.1) can be downloaded from SSC with
 
 ```stata
 cap ado uninstall reghdfe
 ssc install reghdfe
 ```
 
-The installation of the latest dev. release (3.2.x) depends on the Stata version:
-
-With Stata 13:
+The latest dev. release (3.2.x) can be installed with
 
 ```stata
 cap ado uninstall reghdfe
-net install reghdfe, from(https://raw.githubusercontent.com/sergiocorreia/reghdfe/master/package/)
+net install reghdfe, from(http://scorreia.com/stata/reghdfe)
 ```
-With Stata 12 or older:
+It can also be installed manually:
 
 1. Download the [zipfile](/misc/reghdfe.zip?raw=true)
 2. Extract it into a folder (e.g. C:\SOMEFOLDER)
@@ -80,22 +78,20 @@ To find out which version you have installed, type `reghdfe, version`.
 
 `hdfe` is a routine that facilitates absorbing multiple fixed effects in other Stata packages. It is similar to `avar` in that it is a building-block routine that other packages may call (for instance, see [regife](https://github.com/matthieugomez/stata-regife) and [poi2hdfe](https://ideas.repec.org/c/boc/bocode/s457777.html))
 
-The latest stable release (version 3.1.13) can be downloaded from SSC with
+The latest stable release (version 3.2.1) can be downloaded from SSC with
 
 ```stata
 cap ado uninstall hdfe
 ssc install hdfe
 ```
 
-The installation of the latest developer release (3.2.x) depends on the Stata version:
-
-With Stata 13:
+The latest dev. release (3.2.x) can be installed with
 
 ```stata
-cap ado uninstall hdfe
-net install hdfe, from(https://raw.githubusercontent.com/sergiocorreia/reghdfe/master/package/)
+cap ado uninstall reghdfe
+net install hdfe, from(http://scorreia.com/stata/reghdfe)
 ```
-With Stata 12 or older:
+It can also be installed manually:
 
 1. Download the [zipfile](/misc/reghdfe.zip?raw=true)
 2. Extract it into a folder (e.g. C:\SOMEFOLDER)
