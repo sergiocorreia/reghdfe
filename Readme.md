@@ -18,7 +18,7 @@
 - Allows precomputing results with the `cache()` option, so subsequent regressions are faster.
 - If requested, saves the point estimates of the fixed effects (*caveat emptor*: these fixed effects may not be consistent nor identifiable; see the Abowd paper for an introduction to the topic).
 - Calculates the degrees-of-freedom lost due to the fixed effects (beyond two levels of fixed effects this is still an open problem, but we provide a conservative upper bound).
-- Avoids common pitfalls, by excluding singleton groups (see [notes](scorreia.com/reghdfe/nested_within_cluster.pdf)), computing correct within- adjusted-R-squares ([see initial discussion](http://www.statalist.org/forums/forum/general-stata-discussion/general/1290416-anyone-knows-what-is-an-adjusted-within-r2)), etc.
+- Avoids common pitfalls, by excluding singleton groups (see [notes](scorreia.com/stata/reghdfe/nested_within_cluster.pdf)), computing correct within- adjusted-R-squares ([see initial discussion](http://www.statalist.org/forums/forum/general-stata-discussion/general/1290416-anyone-knows-what-is-an-adjusted-within-r2)), etc.
 
 ## Author
 
@@ -40,7 +40,7 @@ This package wouldn't have existed without the invaluable feedback and contribut
 
 ## Description
 
-This is the *readme* file for developing the reghdfe project, which is comprised of the reghdfe package and the underlying hdfe package. The help files and tutorials [are available here](http://scorreia.com/reghdfe) (work in progress).
+This is the *readme* file for developing the reghdfe project, which is comprised of the reghdfe package and the underlying hdfe package. The help files and tutorials [are available here](http://scorreia.com/stata/reghdfe) (work in progress).
 
 Latest version
 * Version 3.2.1
@@ -48,22 +48,20 @@ Latest version
 
 ## Installing REGHDFE
 
-The latest stable release (version 3.1.13) can be downloaded from SSC with
+The latest stable release (version 3.2.1) can be downloaded from SSC with
 
 ```stata
 cap ado uninstall reghdfe
 ssc install reghdfe
 ```
 
-The installation of the latest dev. release (3.2.x) depends on the Stata version:
-
-With Stata 13:
+The latest dev. release (3.2.x) can be installed with
 
 ```stata
 cap ado uninstall reghdfe
-net install reghdfe, from(https://raw.githubusercontent.com/sergiocorreia/reghdfe/master/package/)
+net install reghdfe, from(http://scorreia.com/stata/reghdfe)
 ```
-With Stata 12 or older:
+It can also be installed manually:
 
 1. Download the [zipfile](/misc/reghdfe.zip?raw=true)
 2. Extract it into a folder (e.g. C:\SOMEFOLDER)
@@ -80,22 +78,20 @@ To find out which version you have installed, type `reghdfe, version`.
 
 `hdfe` is a routine that facilitates absorbing multiple fixed effects in other Stata packages. It is similar to `avar` in that it is a building-block routine that other packages may call (for instance, see [regife](https://github.com/matthieugomez/stata-regife) and [poi2hdfe](https://ideas.repec.org/c/boc/bocode/s457777.html))
 
-The latest stable release (version 3.1.13) can be downloaded from SSC with
+The latest stable release (version 3.2.1) can be downloaded from SSC with
 
 ```stata
 cap ado uninstall hdfe
 ssc install hdfe
 ```
 
-The installation of the latest developer release (3.2.x) depends on the Stata version:
-
-With Stata 13:
+The latest dev. release (3.2.x) can be installed with
 
 ```stata
-cap ado uninstall hdfe
-net install hdfe, from(https://raw.githubusercontent.com/sergiocorreia/reghdfe/master/package/)
+cap ado uninstall reghdfe
+net install hdfe, from(http://scorreia.com/stata/reghdfe)
 ```
-With Stata 12 or older:
+It can also be installed manually:
 
 1. Download the [zipfile](/misc/reghdfe.zip?raw=true)
 2. Extract it into a folder (e.g. C:\SOMEFOLDER)
@@ -117,7 +113,8 @@ net install hdfe, from("C:\SOMEFOLDER")
 ## Future/possible updates
 
 * 4.0 Improve underlying algorithm with GT preconditioning
-* 5.0 Increase features for recovering the fixed effects. For instance, bootstrapping the standard errors, a better algorithm (Kaczmarz) for recovering the point estimates, and a wider set of statistics for the standard errors. If you currently require any of those, I recomment the [lfe suite](cran.r-project.org/web/packages/lfe/index.html) by Simen Gaure (for the R language).
+* 5.0 Increase features for recovering the fixed effects. For instance, bootstrapping the standard errors, a better algorithm (Kaczmarz) for recovering the point estimates, and a wider set of statistics for the standard errors. If you currently require any of those, I recommend the [lfe package](cran.r-project.org/web/packages/lfe/index.html) by Simen Gaure (for R users) and the [reg package](https://github.com/matthieugomez/FixedEffectModels.jl) by Matthieu Gomez (for Julia users).
+* 6.0 Additional variance-covariance estimators. In particular, [Conley Spatial HAC](http://www.trfetzer.com/conley-spatial-hac-errors-with-fixed-effects/) [2] (http://freigeist.devmag.net/category/economics/econometrics) and [Cattaneo-Jansson-Newey heteroskedasticity-and-many-covariantes robust errors](http://www-personal.umich.edu/~cattaneo/papers/Cattaneo-Jansson-Newey_2015_wp.pdf) (similar to `vce(robust)` but correcting for the fact that the number of covariantes is increasing asymptotically, which solves Stock and Watson's [critique](http://www.princeton.edu/~mwatson/papers/ecta6489.pdf)).
 
 ## Contributing
 
