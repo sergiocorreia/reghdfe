@@ -1,4 +1,4 @@
-*! reghdfe 3.2.3 29jul2015
+*! reghdfe 3.2.4 11aug2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -2045,7 +2045,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.2.3 29jul2015"
+    local version "3.2.4 11aug2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2359,15 +2359,15 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * REPLAY - Show the regression table
 	Replay
+	
+* ATTACH - Add e(stats) and e(notes)
+	Attach, notes(`notes') statsmatrix(`statsmatrix') summarize_quietly(`summarize_quietly')
 
 * Store stage result
 	if (!inlist("`stage'","none", "iv") & `savestages') est store reghdfe_`stage'`i_endogvar', nocopy
 
 } // lhs_endogvar
 } // stage
-
-* ATTACH - Add e(stats) and e(notes)
-	Attach, notes(`notes') statsmatrix(`statsmatrix') summarize_quietly(`summarize_quietly') // Attach only once, not per stage
 
 * CLEANUP
 	mata: mata drop HDFE_S // cleanup
@@ -2936,10 +2936,9 @@ syntax anything(id="absvars" name=absvars equalok everything), [SAVEfe]
 			gettoken eqsign absvar : absvar, parse("=")
 		}
 
-		local n : word count absvar
 		local hasdot = strpos("`absvar'", ".")
 		local haspound = strpos("`absvar'", "#")
-		if (`n'==1 & !`hasdot' & !`haspound') local absvar i.`absvar'
+		if (!`hasdot' & !`haspound') local absvar i.`absvar'
 		
 		local 0 `absvar'
 		syntax varlist(numeric fv)
@@ -2975,7 +2974,7 @@ syntax anything(id="absvars" name=absvars equalok everything), [SAVEfe]
 		
 		local ivars : list uniq ivars
 		local num_slopes : word count `cvars'
-		Assert "`ivars'"!="", msg("error parsing absvars: no indicator variables in absvar <`absvar'>")
+		Assert "`ivars'"!="", msg("error parsing absvars: no indicator variables in absvar <`absvar'> (expanded to `varlist')")
 		local unique_cvars : list uniq cvars
 		Assert (`: list unique_cvars == cvars'), msg("error parsing absvars: factor interactions such as i.x##i.y not allowed")
 
@@ -4230,9 +4229,7 @@ program define Post, eclass
 		estimates drop `hold'
 	}
 
-
 		ereturn local stored_estimates "`stored_estimates'"
-
 
 	if ("`e(model)'"=="iv") {
 		if ("`e(stage)'"=="first") estimates title: First-stage regression: `e(depvar)'
@@ -4845,12 +4842,6 @@ foreach lhs_endogvar of local lhs_endogvars {
 * REPLAY - Show the regression table	
 	Replay
 
-* Store stage result
-	if (!inlist("`stage'","none", "iv") & `savestages') estimates store reghdfe_`stage'`i_endogvar', nocopy
-
-} // lhs_endogvar
-} // stage
-
 * ATTACH - Add e(stats) and e(notes)
 	if ("`stats'"!="") {
 		if (`timeit') Tic, n(71)
@@ -4862,6 +4853,12 @@ foreach lhs_endogvar of local lhs_endogvars {
 	if (`timeit') Tic, n(72)
 	Attach, notes(`notes') statsmatrix(`statsmatrix') summarize_quietly(`summarize_quietly') // Attach only once, not per stage
 	if (`timeit') Toc, n(72) msg(Attach.ado)
+
+* Store stage result
+	if (!inlist("`stage'","none", "iv") & `savestages') estimates store reghdfe_`stage'`i_endogvar', nocopy
+
+} // lhs_endogvar
+} // stage
 
 	if (`timeit') Toc, n(50) msg([TOTAL])
 end

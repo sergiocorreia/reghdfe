@@ -219,9 +219,7 @@ program define Post, eclass
 		estimates drop `hold'
 	}
 
-
 		ereturn local stored_estimates "`stored_estimates'"
-
 
 	if ("`e(model)'"=="iv") {
 		if ("`e(stage)'"=="first") estimates title: First-stage regression: `e(depvar)'

@@ -1,4 +1,4 @@
-*! reghdfe 3.2.3 29jul2015
+*! reghdfe 3.2.4 11aug2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -2110,7 +2110,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.2.3 29jul2015"
+    local version "3.2.4 11aug2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2705,10 +2705,9 @@ syntax anything(id="absvars" name=absvars equalok everything), [SAVEfe]
 			gettoken eqsign absvar : absvar, parse("=")
 		}
 
-		local n : word count absvar
 		local hasdot = strpos("`absvar'", ".")
 		local haspound = strpos("`absvar'", "#")
-		if (`n'==1 & !`hasdot' & !`haspound') local absvar i.`absvar'
+		if (!`hasdot' & !`haspound') local absvar i.`absvar'
 		
 		local 0 `absvar'
 		syntax varlist(numeric fv)
@@ -2744,7 +2743,7 @@ syntax anything(id="absvars" name=absvars equalok everything), [SAVEfe]
 		
 		local ivars : list uniq ivars
 		local num_slopes : word count `cvars'
-		Assert "`ivars'"!="", msg("error parsing absvars: no indicator variables in absvar <`absvar'>")
+		Assert "`ivars'"!="", msg("error parsing absvars: no indicator variables in absvar <`absvar'> (expanded to `varlist')")
 		local unique_cvars : list uniq cvars
 		Assert (`: list unique_cvars == cvars'), msg("error parsing absvars: factor interactions such as i.x##i.y not allowed")
 

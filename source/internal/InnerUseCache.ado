@@ -191,12 +191,6 @@ foreach lhs_endogvar of local lhs_endogvars {
 * REPLAY - Show the regression table	
 	Replay
 
-* Store stage result
-	if (!inlist("`stage'","none", "iv") & `savestages') estimates store reghdfe_`stage'`i_endogvar', nocopy
-
-} // lhs_endogvar
-} // stage
-
 * ATTACH - Add e(stats) and e(notes)
 	if ("`stats'"!="") {
 		if (`timeit') Tic, n(71)
@@ -208,6 +202,12 @@ foreach lhs_endogvar of local lhs_endogvars {
 	if (`timeit') Tic, n(72)
 	Attach, notes(`notes') statsmatrix(`statsmatrix') summarize_quietly(`summarize_quietly') // Attach only once, not per stage
 	if (`timeit') Toc, n(72) msg(Attach.ado)
+
+* Store stage result
+	if (!inlist("`stage'","none", "iv") & `savestages') estimates store reghdfe_`stage'`i_endogvar', nocopy
+
+} // lhs_endogvar
+} // stage
 
 	if (`timeit') Toc, n(50) msg([TOTAL])
 end

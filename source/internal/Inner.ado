@@ -280,15 +280,15 @@ foreach lhs_endogvar of local lhs_endogvars {
 
 * REPLAY - Show the regression table
 	Replay
+	
+* ATTACH - Add e(stats) and e(notes)
+	Attach, notes(`notes') statsmatrix(`statsmatrix') summarize_quietly(`summarize_quietly')
 
 * Store stage result
 	if (!inlist("`stage'","none", "iv") & `savestages') est store reghdfe_`stage'`i_endogvar', nocopy
 
 } // lhs_endogvar
 } // stage
-
-* ATTACH - Add e(stats) and e(notes)
-	Attach, notes(`notes') statsmatrix(`statsmatrix') summarize_quietly(`summarize_quietly') // Attach only once, not per stage
 
 * CLEANUP
 	mata: mata drop HDFE_S // cleanup
