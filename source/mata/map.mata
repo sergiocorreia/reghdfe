@@ -33,6 +33,7 @@
 	include map_precompute_part3.mata
 	include map_projection.mata
 	include map_solve.mata
+	include map_save_fe.mata
 	include map_solve_accelerations.mata
 	include map_solve_transformations.mata
 	include map_estimate_dof.mata

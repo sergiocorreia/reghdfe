@@ -61,7 +61,7 @@ cscript "reghdfe test bugfix ibn.x1#c.x2 do not drop base cat." adofile reghdfe
 	reghdfe `lhs' weight `rhs', absorb(`absvars')
 	egen x = std(weight)
 	set trace off
-	cls
+	*cls
 	reghdfe `lhs' x c.x#i.rep weight c.weight#i.rep, absorb(`absvars')
 
 cd "D:/Github/reghdfe/test"

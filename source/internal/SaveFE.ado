@@ -47,7 +47,7 @@ program define SaveFE
 	//clonevar dd = `d'
 
 	Debug, level(3) msg(" - disaggregating d = z1 + z2 + ...")
-	mata: map_solve(HDFE_S, "`d'", "", "", 1) // Store FEs in Mata (will fail if partial is set)
+	mata: map_save_fe(HDFE_S, "`d'")
 	//regress dd __hdfe*, nocons
 	drop `d'
 end

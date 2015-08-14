@@ -106,8 +106,8 @@ program define hdfe, eclass
 		local newvars `newvars' `generate'`var'
 	}
 
-	local restore_original = ("`clear'"=="")
-	mata: map_solve(HDFE_S, "`expandedvars'", "`newvars'", "", 0, `restore_original')
+	local restore_dta = ("`clear'"=="")
+	mata: map_solve(HDFE_S, "`expandedvars'", "`newvars'", `restore_dta')
 
 	foreach var of local expandedvars {
 		local label : char `generate'`var'[name]
@@ -115,7 +115,7 @@ program define hdfe, eclass
 		la var `generate'`var' "Residuals: `label'"
 	}
 
-	if ("`groupvar'"!="") mata: groupvar2dta(HDFE_S, `restore_original')
+	if ("`groupvar'"!="") mata: groupvar2dta(HDFE_S, `restore_dta')
 
 	if ("`sample'"!="") {
 		mata: esample2dta(HDFE_S, "`sample'")
