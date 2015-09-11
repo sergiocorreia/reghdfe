@@ -63,8 +63,8 @@ net install reghdfe, from(http://scorreia.com/stata/reghdfe)
 ```
 It can also be installed manually:
 
-1. Download the [zipfile](/misc/reghdfe.zip?raw=true)
-2. Extract it into a folder (e.g. C:\SOMEFOLDER)
+1. Press the [Download Zip](../../archive/master.zip) button on the right
+2. Navigate to the "Package" folder and extract it into a folder on your computer (e.g. C:\SOMEFOLDER)
 3. Run: (changing *SOMEFOLDER* with whatever you picked)
 
 ```stata
@@ -93,8 +93,8 @@ net install hdfe, from(http://scorreia.com/stata/reghdfe)
 ```
 It can also be installed manually:
 
-1. Download the [zipfile](/misc/reghdfe.zip?raw=true)
-2. Extract it into a folder (e.g. C:\SOMEFOLDER)
+1. Press the [Download Zip](../../archive/master.zip) button on the right
+2. Navigate to the "Package" folder and extract it into a folder on your computer (e.g. C:\SOMEFOLDER)
 3. Run: (changing *SOMEFOLDER* with whatever you picked)
 
 ```stata
