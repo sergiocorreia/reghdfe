@@ -73,7 +73,7 @@ program define ParseVCE, sclass
 
 	* Some combinations are not coded
 	Assert !("`ivsuite'"=="ivregress" & (`num_clusters'>1 | `bw'>1 | `dkraay'>1 | "`kiefer'"!="" | "`kernel'"!="") ), msg("option vce(`vce') incompatible with ivregress")
-	Assert !(strpos("`ivsuite'","ivreg2")==1 & (`num_clusters'>2) ), msg("ivreg2 doesn't allow more than two cluster variables")
+	Assert !("`ivsuite'"=="ivreg2" & (`num_clusters'>2) ), msg("ivreg2 doesn't allow more than two cluster variables")
 	Assert !("`model'"=="ols" & "`vcesuite'"=="avar" & (`num_clusters'>2) ), msg("avar doesn't allow more than two cluster variables")
 	Assert !("`model'"=="ols" & "`vcesuite'"=="default" & (`bw'>1 | `dkraay'>1 | "`kiefer'"!="" | "`kernel'"!="") ), msg("to use those vce options you need to use -avar- as the vce suite")
 	if (`num_clusters'>0) local temp_clustervars " <CLUSTERVARS>"

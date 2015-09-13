@@ -1,4 +1,4 @@
-*! reghdfe 3.2.7 12sep2015
+*! reghdfe 3.2.5 14aug2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -2022,13 +2022,13 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.2.7 12sep2015"
+    local version "3.2.5 14aug2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
 
     di as text _n "Dependencies installed?"
-    local dependencies ivreg2 ivreg2h avar tuples
+    local dependencies ivreg2 avar tuples
     foreach dependency of local dependencies {
     	cap findfile `dependency'.ado
     	if (_rc) {
@@ -2233,7 +2233,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 * REGRESS - Call appropiate wrapper (regress, avar, mwc for ols; ivreg2, ivregress for iv)
 	ereturn clear
 	if ("`stage'"=="none") Debug, level(2) msg("(running regresion: `model'.`ivsuite')")
-	local wrapper "Wrapper_`subcmd'" // regress ivreg2 ivreg2h ivregress
+	local wrapper "Wrapper_`subcmd'" // regress ivreg2 ivregress
 	if ("`subcmd'"=="regress" & "`vcesuite'"=="avar") local wrapper "Wrapper_avar"
 	if ("`subcmd'"=="regress" & "`vcesuite'"=="mwc") local wrapper "Wrapper_mwc"
 	if (!inlist("`stage'","none", "iv")) {
@@ -2372,8 +2372,8 @@ program define Parse
 		/// IV/2SLS/GMM ///
 		ESTimator(string) /// 2SLS GMM2s CUE LIML
 		STAGEs(string) /// besides iv (always on), first reduced ols acid (and all)
-		FFirst /// Save first-stage stats (only with ivreg2/ivreg2h)
-		IVsuite(string) /// ivreg2, ivreg2h or ivregress
+		FFirst /// Save first-stage stats (only with ivreg2)
+		IVsuite(string) /// ivreg2 or ivregress
 		/// Diagnostic ///
 		Verbose(string) ///
 		TIMEit ///
@@ -2538,7 +2538,7 @@ else {
 * Parse FFIRST (save first stage statistics)
 	local allkeys `allkeys' ffirst
 	if (`ffirst') Assert "`model'"!="ols", msg("ols does not support {cmd}ffirst")
-	if (`ffirst') Assert strpos("`ivsuite'","ivreg2")==1, msg("option {cmd}ffirst{err} requires ivreg2/ivreg2h")
+	if (`ffirst') Assert "`ivsuite'"=="ivreg2", msg("option {cmd}ffirst{err} requires ivreg2")
 	
 * Update Mata
 	if ("`clustervars'"!="" & !`usecache') mata: map_init_clustervars(HDFE_S, "`clustervars'")
@@ -2673,8 +2673,8 @@ program define ParseIV, sclass
 	* IV Suite
 	if ("`model'"=="iv") {
 		if ("`ivsuite'"=="") local ivsuite ivreg2 // Set default
-		Assert inlist("`ivsuite'","ivreg2","ivregress", "ivreg2h") , ///
-			msg("error: wrong IV routine (`ivsuite'), valid options are -ivreg2-, -ivreg2h- and -ivregress-")
+		Assert inlist("`ivsuite'","ivreg2","ivregress") , ///
+			msg("error: wrong IV routine (`ivsuite'), valid options are -ivreg2- and -ivregress-")
 		cap findfile `ivsuite'.ado
 		Assert !_rc , msg("error: -`ivsuite'- not installed, please run {stata ssc install `ivsuite'} or change the option 	-ivsuite-")
 		local subcmd `ivsuite'
@@ -2691,8 +2691,8 @@ program define ParseIV, sclass
 		if (substr("`estimator'", 1, 3)=="gmm") local estimator gmm2s
 		Assert inlist("`estimator'", "2sls", "gmm2s", "liml", "cue"), ///
 			msg("reghdfe error: invalid estimator `estimator'")
-		if ("`estimator'"=="cue") Assert strpos("`ivsuite'","ivreg2")==1, ///
-			msg("reghdfe error: estimator `estimator' only available with the ivreg2/ivreg2h command, not ivregress")
+		if ("`estimator'"=="cue") Assert "`ivsuite'"=="ivreg2", ///
+			msg("reghdfe error: estimator `estimator' only available with the ivreg2 command, not ivregress")
 		if ("`estimator'"=="cue") di as text "(WARNING: -cue- estimator is not exact, see help file)"
 	}
 
@@ -2864,7 +2864,7 @@ program define ParseVCE, sclass
 
 	* Some combinations are not coded
 	Assert !("`ivsuite'"=="ivregress" & (`num_clusters'>1 | `bw'>1 | `dkraay'>1 | "`kiefer'"!="" | "`kernel'"!="") ), msg("option vce(`vce') incompatible with ivregress")
-	Assert !(strpos("`ivsuite'","ivreg2")==1 & (`num_clusters'>2) ), msg("ivreg2 doesn't allow more than two cluster variables")
+	Assert !("`ivsuite'"=="ivreg2" & (`num_clusters'>2) ), msg("ivreg2 doesn't allow more than two cluster variables")
 	Assert !("`model'"=="ols" & "`vcesuite'"=="avar" & (`num_clusters'>2) ), msg("avar doesn't allow more than two cluster variables")
 	Assert !("`model'"=="ols" & "`vcesuite'"=="default" & (`bw'>1 | `dkraay'>1 | "`kiefer'"!="" | "`kernel'"!="") ), msg("to use those vce options you need to use -avar- as the vce suite")
 	if (`num_clusters'>0) local temp_clustervars " <CLUSTERVARS>"
@@ -3774,10 +3774,6 @@ program define Wrapper_ivreg2, eclass
 	}
 end
 
-program define Wrapper_ivreg2h, eclass
-	Wrapper_ivreg2 `0'
-end
-
 program define Wrapper_ivregress, eclass
 	syntax , depvar(varname) endogvars(varlist) instruments(varlist) ///
 		[indepvars(varlist)] ///
@@ -4044,18 +4040,18 @@ program define Post, eclass
 * CLUSTER AND VCE
 	
 	ereturn local vcesuite = "`vcesuite'"
-	if (strpos("`e(subcmd)'","ivreg2")==1) local vcesuite = "avar" // This is what ivreg2 uses
+	if ("`e(subcmd)'"=="ivreg2") local vcesuite = "avar" // This is what ivreg2 uses
 	if ("`e(subcmd)'"=="ivregress") local vcesuite = "default"
 
 	* Replace __CL#__ and __ID#__ from cluster subtitles
 
 	if ("`e(clustvar)'"!="") {
-		if (strpos("`e(subcmd)'","ivreg2")==1) local subtitle = "`e(hacsubtitleV)'"
+		if ("`e(subcmd)'"=="ivreg2") local subtitle = "`e(hacsubtitleV)'"
 		if (`num_clusters'>1) {
 			local rest `clustervars'
 			forval i = 1/`num_clusters' {
 				gettoken token rest : rest
-				if (strpos("`e(subcmd)'","ivreg2")==1 & strpos("`e(clustvar`i')'", "__")==1) {
+				if ("`e(subcmd)'"=="ivreg2" & strpos("`e(clustvar`i')'", "__")==1) {
 					local subtitle = subinstr("`subtitle'", "`e(clustvar`i')'", "`token'", 1)
 				}
 				ereturn local clustvar`i' `token'
@@ -4066,7 +4062,7 @@ program define Post, eclass
 		}
 		ereturn scalar N_clustervars = `num_clusters'
 		ereturn local clustvar `clustervars'
-		if (strpos("`e(subcmd)'","ivreg2")==1) ereturn local hacsubtitleV = "`subtitle'"
+		if ("`e(subcmd)'"=="ivreg2") ereturn local hacsubtitleV = "`subtitle'"
 	}
 	if (`dkraay'>1) {
 		ereturn local clustvar `timevar'
@@ -4357,7 +4353,7 @@ end
 		_coef_table_header
 		_coef_table, `diopts'
 	}
-	else if (strpos("`subcmd'","ivreg2")==1) {
+	else if ("`subcmd'"=="ivreg2") {
 		cap conf matrix e(first)
 		if (c(rc)==0) local ffirst ffirst
 		ereturn local cmd = "`subcmd'"

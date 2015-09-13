@@ -177,7 +177,7 @@ foreach lhs_endogvar of local lhs_endogvars {
 * REGRESS - Call appropiate wrapper (regress, avar, mwc for ols; ivreg2, ivregress for iv)
 	ereturn clear
 	if ("`stage'"=="none") Debug, level(2) msg("(running regresion: `model'.`ivsuite')")
-	local wrapper "Wrapper_`subcmd'" // regress ivreg2 ivreg2h ivregress
+	local wrapper "Wrapper_`subcmd'" // regress ivreg2 ivregress
 	if ("`subcmd'"=="regress" & "`vcesuite'"=="avar") local wrapper "Wrapper_avar"
 	if ("`subcmd'"=="regress" & "`vcesuite'"=="mwc") local wrapper "Wrapper_mwc"
 	if (!inlist("`stage'","none", "iv")) {

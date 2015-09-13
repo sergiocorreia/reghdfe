@@ -36,7 +36,7 @@ cap pr drop Replay
 		_coef_table_header
 		_coef_table, `diopts'
 	}
-	else if (strpos("`subcmd'","ivreg2")==1) {
+	else if ("`subcmd'"=="ivreg2") {
 		cap conf matrix e(first)
 		if (c(rc)==0) local ffirst ffirst
 		ereturn local cmd = "`subcmd'"

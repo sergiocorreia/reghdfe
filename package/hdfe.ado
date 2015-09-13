@@ -1,4 +1,4 @@
-*! reghdfe 3.2.7 12sep2015
+*! reghdfe 3.2.5 14aug2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -2087,13 +2087,13 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.2.7 12sep2015"
+    local version "3.2.5 14aug2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
 
     di as text _n "Dependencies installed?"
-    local dependencies ivreg2 ivreg2h avar tuples
+    local dependencies ivreg2 avar tuples
     foreach dependency of local dependencies {
     	cap findfile `dependency'.ado
     	if (_rc) {
@@ -2141,8 +2141,8 @@ program define Parse
 		/// IV/2SLS/GMM ///
 		ESTimator(string) /// 2SLS GMM2s CUE LIML
 		STAGEs(string) /// besides iv (always on), first reduced ols acid (and all)
-		FFirst /// Save first-stage stats (only with ivreg2/ivreg2h)
-		IVsuite(string) /// ivreg2, ivreg2h or ivregress
+		FFirst /// Save first-stage stats (only with ivreg2)
+		IVsuite(string) /// ivreg2 or ivregress
 		/// Diagnostic ///
 		Verbose(string) ///
 		TIMEit ///
@@ -2307,7 +2307,7 @@ else {
 * Parse FFIRST (save first stage statistics)
 	local allkeys `allkeys' ffirst
 	if (`ffirst') Assert "`model'"!="ols", msg("ols does not support {cmd}ffirst")
-	if (`ffirst') Assert strpos("`ivsuite'","ivreg2")==1, msg("option {cmd}ffirst{err} requires ivreg2/ivreg2h")
+	if (`ffirst') Assert "`ivsuite'"=="ivreg2", msg("option {cmd}ffirst{err} requires ivreg2")
 	
 * Update Mata
 	if ("`clustervars'"!="" & !`usecache') mata: map_init_clustervars(HDFE_S, "`clustervars'")
@@ -2442,8 +2442,8 @@ program define ParseIV, sclass
 	* IV Suite
 	if ("`model'"=="iv") {
 		if ("`ivsuite'"=="") local ivsuite ivreg2 // Set default
-		Assert inlist("`ivsuite'","ivreg2","ivregress", "ivreg2h") , ///
-			msg("error: wrong IV routine (`ivsuite'), valid options are -ivreg2-, -ivreg2h- and -ivregress-")
+		Assert inlist("`ivsuite'","ivreg2","ivregress") , ///
+			msg("error: wrong IV routine (`ivsuite'), valid options are -ivreg2- and -ivregress-")
 		cap findfile `ivsuite'.ado
 		Assert !_rc , msg("error: -`ivsuite'- not installed, please run {stata ssc install `ivsuite'} or change the option 	-ivsuite-")
 		local subcmd `ivsuite'
@@ -2460,8 +2460,8 @@ program define ParseIV, sclass
 		if (substr("`estimator'", 1, 3)=="gmm") local estimator gmm2s
 		Assert inlist("`estimator'", "2sls", "gmm2s", "liml", "cue"), ///
 			msg("reghdfe error: invalid estimator `estimator'")
-		if ("`estimator'"=="cue") Assert strpos("`ivsuite'","ivreg2")==1, ///
-			msg("reghdfe error: estimator `estimator' only available with the ivreg2/ivreg2h command, not ivregress")
+		if ("`estimator'"=="cue") Assert "`ivsuite'"=="ivreg2", ///
+			msg("reghdfe error: estimator `estimator' only available with the ivreg2 command, not ivregress")
 		if ("`estimator'"=="cue") di as text "(WARNING: -cue- estimator is not exact, see help file)"
 	}
 
@@ -2633,7 +2633,7 @@ program define ParseVCE, sclass
 
 	* Some combinations are not coded
 	Assert !("`ivsuite'"=="ivregress" & (`num_clusters'>1 | `bw'>1 | `dkraay'>1 | "`kiefer'"!="" | "`kernel'"!="") ), msg("option vce(`vce') incompatible with ivregress")
-	Assert !(strpos("`ivsuite'","ivreg2")==1 & (`num_clusters'>2) ), msg("ivreg2 doesn't allow more than two cluster variables")
+	Assert !("`ivsuite'"=="ivreg2" & (`num_clusters'>2) ), msg("ivreg2 doesn't allow more than two cluster variables")
 	Assert !("`model'"=="ols" & "`vcesuite'"=="avar" & (`num_clusters'>2) ), msg("avar doesn't allow more than two cluster variables")
 	Assert !("`model'"=="ols" & "`vcesuite'"=="default" & (`bw'>1 | `dkraay'>1 | "`kiefer'"!="" | "`kernel'"!="") ), msg("to use those vce options you need to use -avar- as the vce suite")
 	if (`num_clusters'>0) local temp_clustervars " <CLUSTERVARS>"

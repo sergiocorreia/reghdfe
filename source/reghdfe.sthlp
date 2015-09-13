@@ -5,10 +5,9 @@
 {vieweralsosee "[R] ivregress" "help ivregress"}{...}
 {vieweralsosee "" "--"}{...}
 {vieweralsosee "ivreg2" "help ivreg2"}{...}
-{vieweralsosee "ivreg2h" "help ivreg2h"}{...}
 {vieweralsosee "ivregress" "help ivregress"}{...}
 {vieweralsosee "reg2hdfe" "help reg2hdfe"}{...}
-{vieweralsosee "a2reg" "help a2reg"}{..}{...}
+{vieweralsosee "a2reg" "help a2reg"}{...}
 {viewerjumpto "Syntax" "reghdfe##syntax"}{...}
 {viewerjumpto "Description" "reghdfe##description"}{...}
 {viewerjumpto "Options" "reghdfe##options"}{...}
@@ -44,7 +43,7 @@ However, see also the {it:resid} option.{p_end}
 {synopt : {opth res:iduals(newvar)}}save residuals; more direct and much faster than saving the fixed effects and then running predict{p_end}
 {synopt :{opth su:mmarize(tabstat##statname:stats)}}equivalent to {help reghdfe##postestimation:estat summarize} after the regression,
 but more flexible, compatible with the {opt fast:} option, and saves results on {it:e(summarize)}{p_end}
-{synopt : {opt subopt:ions(...)}}additional options that will be passed to the regression command (either {help regress}, {help ivreg2}, {help ivreg2h}, or {help ivregress}){p_end}
+{synopt : {opt subopt:ions(...)}}additional options that will be passed to the regression command (either {help regress}, {help ivreg2}, or {help ivregress}){p_end}
 	
 {syntab:SE/Robust {help reghdfe##opt_vce:[+]}}
 {p2coldent:+ {opt vce}{cmd:(}{help reghdfe##opt_vce:vcetype} [{cmd:,}{it:opt}]{cmd:)}}{it:vcetype}
@@ -57,8 +56,7 @@ may be {opt un:adjusted} (default), {opt r:obust} or {opt cl:uster} {help fvvarl
 {synopt :{opt stage:s(list)}}estimate additional regressions; choose any of {opt first} {opt ols} {opt reduced} {opt acid} (or {opt all}){p_end}
 {synopt :{opt ff:irst}}compute first-stage diagnostic and identification statistics{p_end}
 {synopt :{opth iv:suite(subcmd)}}package used in the IV/GMM regressions;
-options are {opt ivreg2} (default; needs installing),
-{opt ivregress} and {opt ivreg2h} (default; needs installing){p_end}
+options are {opt ivreg2} (default; needs installing) and {opt ivregress}{p_end}
 
 {syntab:Diagnostic {help reghdfe##opt_diagnostic:[+]}}
 {synopt :{opt v:erbose(#)}}amount of debugging information to show (0=None, 1=Some, 2=More, 3=Parsing/convergence details, 4=Every iteration){p_end}
@@ -180,7 +178,7 @@ variables (including the instruments, if applicable), using the same sample as t
 
 {phang}
 {opt subopt:ions(...)}
-options that will be passed directly to the regression command (either {help regress}, {help ivreg2}, {help ivreg2h}, or {help ivregress})
+options that will be passed directly to the regression command (either {help regress}, {help ivreg2}, or {help ivregress})
 
 {marker opt_vce}{...}
 {dlgtab:SE/Robust}
@@ -224,8 +222,7 @@ A frequent rule of thumb is that each cluster variable must have at least 50 dif
 (the number of categories for each clustervar appears on the header of the regression table).
 
 {pstd}
-The following suboptions require either the {help ivreg2}/{help ivreg2h} or
-the {help avar} package from SSC.
+The following suboptions require either the {help ivreg2} or the {help avar} package from SSC.
 For a careful explanation, see the {help ivreg2##s_robust:ivreg2 help file}, from which the comments below borrow.
 
 {pmore}
