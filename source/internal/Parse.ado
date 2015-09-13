@@ -19,8 +19,8 @@ program define Parse
 		/// IV/2SLS/GMM ///
 		ESTimator(string) /// 2SLS GMM2s CUE LIML
 		STAGEs(string) /// besides iv (always on), first reduced ols acid (and all)
-		FFirst /// Save first-stage stats (only with ivreg2)
-		IVsuite(string) /// ivreg2 or ivregress
+		FFirst /// Save first-stage stats (only with ivreg2/ivreg2h)
+		IVsuite(string) /// ivreg2, ivreg2h or ivregress
 		/// Diagnostic ///
 		Verbose(string) ///
 		TIMEit ///
@@ -185,7 +185,7 @@ else {
 * Parse FFIRST (save first stage statistics)
 	local allkeys `allkeys' ffirst
 	if (`ffirst') Assert "`model'"!="ols", msg("ols does not support {cmd}ffirst")
-	if (`ffirst') Assert "`ivsuite'"=="ivreg2", msg("option {cmd}ffirst{err} requires ivreg2")
+	if (`ffirst') Assert strpos("`ivsuite'","ivreg2")==1, msg("option {cmd}ffirst{err} requires ivreg2/ivreg2h")
 	
 * Update Mata
 	if ("`clustervars'"!="" & !`usecache') mata: map_init_clustervars(HDFE_S, "`clustervars'")

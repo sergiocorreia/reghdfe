@@ -21,8 +21,8 @@ program define ParseIV, sclass
 	* IV Suite
 	if ("`model'"=="iv") {
 		if ("`ivsuite'"=="") local ivsuite ivreg2 // Set default
-		Assert inlist("`ivsuite'","ivreg2","ivregress") , ///
-			msg("error: wrong IV routine (`ivsuite'), valid options are -ivreg2- and -ivregress-")
+		Assert inlist("`ivsuite'","ivreg2","ivregress", "ivreg2h") , ///
+			msg("error: wrong IV routine (`ivsuite'), valid options are -ivreg2-, -ivreg2h- and -ivregress-")
 		cap findfile `ivsuite'.ado
 		Assert !_rc , msg("error: -`ivsuite'- not installed, please run {stata ssc install `ivsuite'} or change the option 	-ivsuite-")
 		local subcmd `ivsuite'
@@ -39,8 +39,8 @@ program define ParseIV, sclass
 		if (substr("`estimator'", 1, 3)=="gmm") local estimator gmm2s
 		Assert inlist("`estimator'", "2sls", "gmm2s", "liml", "cue"), ///
 			msg("reghdfe error: invalid estimator `estimator'")
-		if ("`estimator'"=="cue") Assert "`ivsuite'"=="ivreg2", ///
-			msg("reghdfe error: estimator `estimator' only available with the ivreg2 command, not ivregress")
+		if ("`estimator'"=="cue") Assert strpos("`ivsuite'","ivreg2")==1, ///
+			msg("reghdfe error: estimator `estimator' only available with the ivreg2/ivreg2h command, not ivregress")
 		if ("`estimator'"=="cue") di as text "(WARNING: -cue- estimator is not exact, see help file)"
 	}
 

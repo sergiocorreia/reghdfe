@@ -53,18 +53,18 @@ program define Post, eclass
 * CLUSTER AND VCE
 	
 	ereturn local vcesuite = "`vcesuite'"
-	if ("`e(subcmd)'"=="ivreg2") local vcesuite = "avar" // This is what ivreg2 uses
+	if (strpos("`e(subcmd)'","ivreg2")==1) local vcesuite = "avar" // This is what ivreg2 uses
 	if ("`e(subcmd)'"=="ivregress") local vcesuite = "default"
 
 	* Replace __CL#__ and __ID#__ from cluster subtitles
 
 	if ("`e(clustvar)'"!="") {
-		if ("`e(subcmd)'"=="ivreg2") local subtitle = "`e(hacsubtitleV)'"
+		if (strpos("`e(subcmd)'","ivreg2")==1) local subtitle = "`e(hacsubtitleV)'"
 		if (`num_clusters'>1) {
 			local rest `clustervars'
 			forval i = 1/`num_clusters' {
 				gettoken token rest : rest
-				if ("`e(subcmd)'"=="ivreg2" & strpos("`e(clustvar`i')'", "__")==1) {
+				if (strpos("`e(subcmd)'","ivreg2")==1 & strpos("`e(clustvar`i')'", "__")==1) {
 					local subtitle = subinstr("`subtitle'", "`e(clustvar`i')'", "`token'", 1)
 				}
 				ereturn local clustvar`i' `token'
@@ -75,7 +75,7 @@ program define Post, eclass
 		}
 		ereturn scalar N_clustervars = `num_clusters'
 		ereturn local clustvar `clustervars'
-		if ("`e(subcmd)'"=="ivreg2") ereturn local hacsubtitleV = "`subtitle'"
+		if (strpos("`e(subcmd)'","ivreg2")==1) ereturn local hacsubtitleV = "`subtitle'"
 	}
 	if (`dkraay'>1) {
 		ereturn local clustvar `timevar'
