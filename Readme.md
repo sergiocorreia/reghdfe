@@ -18,7 +18,7 @@
 - Allows precomputing results with the `cache()` option, so subsequent regressions are faster.
 - If requested, saves the point estimates of the fixed effects (*caveat emptor*: these fixed effects may not be consistent nor identifiable; see the Abowd paper for an introduction to the topic).
 - Calculates the degrees-of-freedom lost due to the fixed effects (beyond two levels of fixed effects this is still an open problem, but we provide a conservative upper bound).
-- Avoids common pitfalls, by excluding singleton groups (see [notes](scorreia.com/stata/reghdfe/nested_within_cluster.pdf)), computing correct within- adjusted-R-squares ([see initial discussion](http://www.statalist.org/forums/forum/general-stata-discussion/general/1290416-anyone-knows-what-is-an-adjusted-within-r2)), etc.
+- Avoids common pitfalls, by excluding singleton groups (see [notes](scorreia.com/software/reghdfe/nested_within_cluster.pdf)), computing correct within- adjusted-R-squares ([see initial discussion](http://www.statalist.org/forums/forum/general-stata-discussion/general/1290416-anyone-knows-what-is-an-adjusted-within-r2)), etc.
 
 ## Author
 
@@ -40,7 +40,7 @@ This package wouldn't have existed without the invaluable feedback and contribut
 
 ## Description
 
-This is the *readme* file for developing the reghdfe project, which is comprised of the reghdfe package and the underlying hdfe package. The help files and tutorials [are available here](http://scorreia.com/stata/reghdfe) (work in progress).
+This is the *readme* file for developing the reghdfe project, which is comprised of the reghdfe package and the underlying hdfe package. The help files and tutorials [are available here](http://scorreia.com/software/reghdfe) (work in progress).
 
 Latest version
 * Version 3.2.1
@@ -59,7 +59,7 @@ The latest dev. release (3.2.x) can be installed with
 
 ```stata
 cap ado uninstall reghdfe
-net install reghdfe, from(http://scorreia.com/stata/reghdfe)
+net install reghdfe, from(http://scorreia.com/software/reghdfe)
 ```
 It can also be installed manually:
 
@@ -89,7 +89,7 @@ The latest dev. release (3.2.x) can be installed with
 
 ```stata
 cap ado uninstall reghdfe
-net install hdfe, from(http://scorreia.com/stata/reghdfe)
+net install hdfe, from(http://scorreia.com/software/reghdfe)
 ```
 It can also be installed manually:
 
