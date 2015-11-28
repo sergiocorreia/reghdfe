@@ -1,4 +1,4 @@
-*! reghdfe 3.2.5 14aug2015
+*! reghdfe 3.2.6 28nov2015
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -2022,7 +2022,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.2.5 14aug2015"
+    local version "3.2.6 28nov2015"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2093,7 +2093,7 @@ program define Inner, eclass
 		local original_`cat' "``cat''"
 	}
 	if (`timeit') Tic, n(53)
-	Compact, basevars(`basevars') depvar(`depvar') indepvars(`indepvars') endogvars(`endogvars') instruments(`instruments') uid(`uid') timevar(`timevar') panelvar(`panelvar') weightvar(`weightvar') absorb_keepvars(`absorb_keepvars') clustervars(`clustervars') if(`if') in(`in') verbose(`verbose') vceextra(`vceextra')
+	Compact, basevars(`basevars') depvar(`depvar') indepvars(`indepvars') endogvars(`endogvars') instruments(`instruments') uid(`uid') timevar(`timevar') panelvar(`panelvar') weightvar(`weightvar') weighttype(`weighttype') absorb_keepvars(`absorb_keepvars') clustervars(`clustervars') if(`if') in(`in') verbose(`verbose') vceextra(`vceextra')
 	// Injects locals: depvar indepvars endogvars instruments expandedvars
 	if (`timeit') Toc, n(53) msg(compact)
 
@@ -2433,14 +2433,16 @@ program define Parse
 		* Check that weights are correct (e.g. with fweight they need to be integers)
 		local num_type = cond("`weight'"=="fweight", "integers", "reals")
 		local basenote "{txt}weight {res}`weightvar'{txt} can only contain strictly positive `num_type', but"
-		qui cou if `weightvar'<0
+		local if_and "if"
+		if ("`if'"!="") local if_and "`if' &"
+		qui cou `if_and' `weightvar'<0
 		Assert (`r(N)'==0), msg("`basenote' `r(N)' negative values were found!")  rc(402)
-		qui cou if `weightvar'==0
+		qui cou `if_and' `weightvar'==0
 		if (`r(N)'>0) di as text "`basenote' `r(N)' zero values were found (will be dropped)"
-		qui cou if `weightvar'>=.
+		qui cou `if_and' `weightvar'>=.
 		if (`r(N)'>0) di as text "`basenote' `r(N)' missing values were found (will be dropped)"
 		if ("`weight'"=="fweight") {
-			qui cou if mod(`weightvar',1) & `weightvar'<.
+			qui cou `if_and' mod(`weightvar',1) & `weightvar'<.
 			Assert (`r(N)'==0), msg("`basenote' `r(N)' non-integer values were found!" "{err} Stopping execution") rc(401)
 		}
 	}
@@ -3045,11 +3047,14 @@ end
 
 program define Compact, sclass
 syntax, basevars(string) verbose(integer) [depvar(string) indepvars(string) endogvars(string) instruments(string)] ///
-	[uid(string) timevar(string) panelvar(string) weightvar(string) absorb_keepvars(string) clustervars(string)] ///
+	[uid(string) timevar(string) panelvar(string) weightvar(string) weighttype(string) ///
+	absorb_keepvars(string) clustervars(string)] ///
 	[if(string) in(string) vceextra(string)] [savecache(integer 0) more_keepvars(varlist)]
 
 * Drop unused variables
+	local weight "`weighttype'"
 	local exp "= `weightvar'"
+
 	marksample touse, novar // Uses -if- , -in- and -exp- ; can't drop any var until this
 	local cluster_keepvars `clustervars'
 	local cluster_keepvars : subinstr local cluster_keepvars "#" " ", all
@@ -4581,7 +4586,7 @@ program define InnerSaveCache, eclass
 	* The cache option of ExpandFactorVariables (called from Compact.ado)
 
 * COMPACT - Expand time and factor variables, and drop unused variables and obs.
-	Compact, basevars(`basevars') depvar(`depvar' `indepvars') uid(`uid') timevar(`timevar') panelvar(`panelvar') weightvar(`weightvar') ///
+	Compact, basevars(`basevars') depvar(`depvar' `indepvars') uid(`uid') timevar(`timevar') panelvar(`panelvar') weightvar(`weightvar') weighttype(`weighttype') ///
 		absorb_keepvars(`absorb_keepvars') clustervars(`clustervars') ///
 		if(`if') in(`in') verbose(`verbose') vceextra(`vceextra') savecache(1) more_keepvars(`keepvars')
 	// Injects locals: depvar indepvars endogvars instruments expandedvars cachevars

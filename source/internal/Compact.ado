@@ -1,11 +1,14 @@
 capture program drop Compact
 program define Compact, sclass
 syntax, basevars(string) verbose(integer) [depvar(string) indepvars(string) endogvars(string) instruments(string)] ///
-	[uid(string) timevar(string) panelvar(string) weightvar(string) absorb_keepvars(string) clustervars(string)] ///
+	[uid(string) timevar(string) panelvar(string) weightvar(string) weighttype(string) ///
+	absorb_keepvars(string) clustervars(string)] ///
 	[if(string) in(string) vceextra(string)] [savecache(integer 0) more_keepvars(varlist)]
 
 * Drop unused variables
+	local weight "`weighttype'"
 	local exp "= `weightvar'"
+
 	marksample touse, novar // Uses -if- , -in- and -exp- ; can't drop any var until this
 	local cluster_keepvars `clustervars'
 	local cluster_keepvars : subinstr local cluster_keepvars "#" " ", all

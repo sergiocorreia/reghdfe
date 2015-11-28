@@ -80,14 +80,16 @@ program define Parse
 		* Check that weights are correct (e.g. with fweight they need to be integers)
 		local num_type = cond("`weight'"=="fweight", "integers", "reals")
 		local basenote "{txt}weight {res}`weightvar'{txt} can only contain strictly positive `num_type', but"
-		qui cou if `weightvar'<0
+		local if_and "if"
+		if ("`if'"!="") local if_and "`if' &"
+		qui cou `if_and' `weightvar'<0
 		Assert (`r(N)'==0), msg("`basenote' `r(N)' negative values were found!")  rc(402)
-		qui cou if `weightvar'==0
+		qui cou `if_and' `weightvar'==0
 		if (`r(N)'>0) di as text "`basenote' `r(N)' zero values were found (will be dropped)"
-		qui cou if `weightvar'>=.
+		qui cou `if_and' `weightvar'>=.
 		if (`r(N)'>0) di as text "`basenote' `r(N)' missing values were found (will be dropped)"
 		if ("`weight'"=="fweight") {
-			qui cou if mod(`weightvar',1) & `weightvar'<.
+			qui cou `if_and' mod(`weightvar',1) & `weightvar'<.
 			Assert (`r(N)'==0), msg("`basenote' `r(N)' non-integer values were found!" "{err} Stopping execution") rc(401)
 		}
 	}
