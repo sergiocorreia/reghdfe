@@ -82,5 +82,5 @@ set trace off
 
 	estimates clear
 
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

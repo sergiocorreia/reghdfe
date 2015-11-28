@@ -57,5 +57,5 @@ noi cscript "reghdfe with FE interacted with slope" adofile reghdfe
 
 	storedresults drop benchmark
 
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

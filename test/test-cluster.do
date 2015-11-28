@@ -91,5 +91,5 @@ cscript "reghdfe with clusters" adofile reghdfe
 	assert `bench_df_a'==e(df_a)-1
 
 	
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

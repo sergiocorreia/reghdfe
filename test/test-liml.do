@@ -114,5 +114,5 @@ noi cscript "reghdfe with liml" adofile reghdfe
 
 	storedresults drop benchmark
 
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

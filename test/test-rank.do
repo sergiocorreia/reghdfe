@@ -42,5 +42,5 @@ reghdfe y x, absorb(i j)  keepsingletons
 di e(df_r)
 assert e(df_r)==0
 
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

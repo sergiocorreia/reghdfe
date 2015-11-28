@@ -196,5 +196,5 @@ asdasd
 
 	storedresults drop benchmark
 
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

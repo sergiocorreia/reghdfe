@@ -116,6 +116,6 @@ cscript "reghdfe with cache" adofile reghdfe
 	storedresults compare benchmark e(), tol(1e-10) include(`include')
 
 */
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit
 

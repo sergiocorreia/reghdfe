@@ -69,5 +69,5 @@ noi cscript "reghdfe with only slope effects" adofile reghdfe
 
 	storedresults drop benchmark
 
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

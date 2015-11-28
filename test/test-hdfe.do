@@ -92,5 +92,5 @@ cscript "hdfe" adofile reghdfe
 	sysuse auto, clear
 	hdfe price gear [w=weight], a(turn trunk) clear keepv(make) keepids clusterv(trunk)
 
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

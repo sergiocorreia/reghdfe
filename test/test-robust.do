@@ -62,5 +62,5 @@ noi cscript "reghdfe with robust VCV" adofile reghdfe
 	
 	* NOTE: What should I use to build F_absorb in this case?
 
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

@@ -55,5 +55,5 @@ noi cscript "reghdfe with ivreg2 should use nocons" adofile reghdfe
 	
 	reghdfe price weight (length=disp), a(turn) vce(cluster rep) keepsingletons
 	
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

@@ -116,5 +116,5 @@ noi cscript "reghdfe comparison with iv" adofile reghdfe
 
 // -------------------------------------------------------------------------------------------------
 
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

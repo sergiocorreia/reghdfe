@@ -112,5 +112,5 @@ set trace off
 	drop resid resid_bench
 	* BUGBUG:
 
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

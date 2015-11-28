@@ -150,5 +150,5 @@ cscript "reghdfe with ivreg2/ivregress and two-step gmm" adofile reghdfe
 
 	storedresults drop benchmark
 
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

@@ -4,18 +4,18 @@
 	discard
 	cap cls
 	set more off
-	cd "D:/Github/reghdfe/test"
+	cd "C:/Git/reghdfe/test"
 
 	rebuild_git reghdfe
 	cap pr drop _all
 	discard
 	
 * Run scripts
-	adopath + "D:\Github\reghdfe\source\internal"
-	adopath + "D:\Github\reghdfe\source\common"
+	adopath + "C:\Git\reghdfe\source\internal"
+	adopath + "C:\Git\reghdfe\source\common"
 	run test-absvars // Need to fix so we can find the path of the ADO
-	adopath - "D:\Github\reghdfe\source\internal"
-	adopath - "D:\Github\reghdfe\source\common"
+	adopath - "C:\Git\reghdfe\source\internal"
+	adopath - "C:\Git\reghdfe\source\common"
 
 	*run test-minimal
 	set trace off

@@ -49,5 +49,5 @@ cscript "reghdfe with summarize" adofile reghdfe
 	reghdfe `lhs' `rhs', absorb(`absvars') notes(a=b x=123 z="hola juan")
 	assert e(z)=="hola juan"
 
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

@@ -134,5 +134,5 @@ cscript "reghdfe fixed effect nested in cluster" adofile reghdfe
 
 
 // -------------------------------------------------------------------------------------------------
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

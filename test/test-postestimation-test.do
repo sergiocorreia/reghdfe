@@ -133,5 +133,5 @@ cscript "reghdfe postestimation: test" adofile reghdfe
 	storedresults compare bench_r r(), tol(1e-12) // include(scalar: drop df_r F df p)
 
 	storedresults drop bench_e bench_r
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

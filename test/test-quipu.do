@@ -85,7 +85,7 @@ rebuild_git quipu
 discard
 
 	* Quipu path
-	quipu setpath "D:\Github\tmp", replace
+	quipu setpath "C:\Git\tmp", replace
 
 	* 2. Run reghdfe
 	quipu save, notes(somekey=123): reghdfe `lhs' `rhs' (`endogvar'=`iv'), absorb(`absvars') stages(ols first acid reduced) vce(cluster `clustervar') // will be saved as reghdfe_`stage'
@@ -100,7 +100,7 @@ discard
 	quipu tab
 	quipu table
 
-	quipu export using "D:\Github\tmp\page.html", header(vce clustvar depvar model stage #)
+	quipu export using "C:\Git\tmp\page.html", header(vce clustvar depvar model stage #)
 
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

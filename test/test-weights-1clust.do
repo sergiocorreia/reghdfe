@@ -19,7 +19,7 @@ cscript "reghdfe with weights and 1 MWC" adofile reghdfe
 	end
 	
 * Create fake dataset
-	use "D:/Github/reghdfe/test/data/nlswork"
+	use "C:/Git/reghdfe/test/data/nlswork"
 
 * Variables
 	local depvar ln_wage
@@ -183,5 +183,5 @@ foreach suite in default avar mwc {
 
 // -------------------------------------------------------------------------------------------------
 
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

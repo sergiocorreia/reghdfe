@@ -105,5 +105,5 @@ cscript "reghdfe with singletons" adofile reghdfe
 	**storedresults compare benchmark e(), tol(1e-10) exclude(`excluded')
 	**storedresults drop benchmark
 
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

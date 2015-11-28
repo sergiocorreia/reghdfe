@@ -119,5 +119,5 @@ noi cscript "reghdfe comparison with ivreg2" adofile reghdfe
 
 	
 	
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

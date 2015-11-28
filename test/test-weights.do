@@ -78,6 +78,17 @@ foreach suite in default avar {
 	replace m = -2 in 1/2
 	rcof "reghdfe price weight disp [aw=m], a(turn#foreign)" == 402 // negative weights
 	drop m
+
+* [TEST] Should work with zero weights and MVs
+	gen ff = foreign
+	replace ff = . if foreign==0 & turn>42
+	areg price length weight [aw=ff], a(turn)
+	TrimMatrix 2
+	storedresults save areg_zwmv e()
+	reghdfe price length weight [aw=ff], a(turn) keepsingletons
+	TrimMatrix 2
+	storedresults compare areg_zwmv e(), tol(1e-10) include(scalar: N r2 matrix: trim_b trim_V macros: wexp wtype)
+	storedresults drop areg_zwmv
 	
 * [TEST] Probability/sampling weights
 	noi di as text " - probability weight"
@@ -92,8 +103,6 @@ foreach suite in default avar {
 	storedresults compare areg e(), tol(1e-10) include(scalar: N r2 matrix: trim_b trim_V macros: wexp wtype)
 	storedresults drop areg
 	
-	
-cd "D:/Github/reghdfe/test"
 exit
 
 

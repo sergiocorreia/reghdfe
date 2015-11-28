@@ -71,5 +71,5 @@ noi cscript "reghdfe with HAC VCE (bw>1)" adofile reghdfe
 	* NOTE: There seems to be a loss of precision somewhere in the code or in the benchmark
 	* Is it in avar/reghdfe? In ivreg2?
 
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

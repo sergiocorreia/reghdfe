@@ -89,5 +89,5 @@ end
 	FixAreg
 	_vassert se se_bench, tol(1e-8)
 	
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

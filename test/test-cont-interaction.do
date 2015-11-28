@@ -64,5 +64,5 @@ cscript "reghdfe test bugfix ibn.x1#c.x2 do not drop base cat." adofile reghdfe
 	*cls
 	reghdfe `lhs' x c.x#i.rep weight c.weight#i.rep, absorb(`absvars')
 
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

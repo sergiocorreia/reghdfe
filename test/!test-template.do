@@ -56,5 +56,5 @@ cscript "reghdfe template" adofile reghdfe
 		macros: wexp wtype )
 	storedresults drop benchmark
 
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

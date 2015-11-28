@@ -36,7 +36,7 @@ cscript "reghdfe with advanced robustness options from avar" adofile reghdfe
 forv i=1/2 {
 	tsset turn t`i'
 	cap drop ABS_*
-	do "D:/Github/reghdfe/test/test-avar-inner" `i'
+	do "C:/Git/reghdfe/test/test-avar-inner" `i'
 }
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

@@ -38,5 +38,5 @@ noi cscript "reghdfe with rhs equal to zero" adofile reghdfe
 	keep price zero turn trunk
 	reghdfe price zero, a(turn trunk) v(5) maxiter(20) pool(5)
 
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit

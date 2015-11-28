@@ -9,7 +9,7 @@ noi cscript "reghdfe with multi-way clustering" adofile reghdfe
 	discard
 	clear all
 	set more off
-	qui adopath + "D:/Github/reghdfe/test" // allows us to run the fixed_cgmreg.ado
+	qui adopath + "C:/Git/reghdfe/test" // allows us to run the fixed_cgmreg.ado
 	set more off
 
 * Convenience
@@ -205,5 +205,5 @@ noi cscript "reghdfe with multi-way clustering" adofile reghdfe
 	* BUGBUG/NOTE: I can't get a match with CGMREG in the VCV; it's close but not there
 	* Maybe it's due to the small sample adjustments? Maybe it's due to the N_clust adjustments?
 	
-cd "D:/Github/reghdfe/test"
+cd "C:/Git/reghdfe/test"
 exit
