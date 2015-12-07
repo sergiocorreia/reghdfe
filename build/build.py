@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 
 """
@@ -123,6 +124,21 @@ for fn in output_filenames:
     with open(new_fn, 'wb') as new_fh:
         new_fh.write(data.encode())
 
+# Update version in help files
+for fn in ["reghdfe.sthlp", "hdfe.sthlp"]:
+    # Read
+    source_fn = os.path.join(source_path, fn)
+    with open(source_fn, "rb") as f:
+        text = f.read().decode()
+    
+    # Update
+    text = text.replace("VERSION_NUMBER", new_version)
+    
+    # Save
+    package_fn = os.path.join(server_path, fn)
+    with open(package_fn, 'wb') as f:
+        f.write(text.encode())
+
 # Update hdfe/reghdfe.pkg
 for pkgname in ["reghdfe.pkg", "hdfe.pkg"]:
     print("updating date in " + pkgname)
@@ -135,8 +151,6 @@ for pkgname in ["reghdfe.pkg", "hdfe.pkg"]:
 
 # Copy
 print("Copying misc files...")
-shutil.copy(os.path.join(source_path, "reghdfe.sthlp"), os.path.join(server_path, "reghdfe.sthlp"))
-shutil.copy(os.path.join(source_path, "hdfe.sthlp"), os.path.join(server_path, "hdfe.sthlp"))
 shutil.copy(os.path.join(source_path, "stata.toc"), os.path.join(server_path, "stata.toc"))
 shutil.copy(os.path.join(source_path, "estfe.ado"), os.path.join(server_path, "estfe.ado"))
 
