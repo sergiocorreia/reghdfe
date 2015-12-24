@@ -695,7 +695,7 @@ on the other hand, there may be alternatives:
 {it:Note: it also keeps most e() results placed by the regression subcommands (ivreg2, ivregress)}
 
 {synoptset 24 tabbed}{...}
-{p2col 5 24 28 2: Scalars}{p_end}
+{syntab:Scalars}
 {synopt:{cmd:e(N)}}number of observations{p_end}
 {synopt:{cmd:e(N_hdfe)}}number of absorbed fixed-effects{p_end}
 {synopt:{cmd:e(tss)}}total sum of squares{p_end}
@@ -723,7 +723,7 @@ on the other hand, there may be alternatives:
 {synopt:{cmd:e(df_r)}}residual degrees of freedom{p_end}
 
 {synoptset 24 tabbed}{...}
-{p2col 5 24 28 2: Macros}{p_end}
+{syntab:Macros}
 {synopt:{cmd:e(cmd)}}{cmd:reghdfe}{p_end}
 {synopt:{cmd:e(subcmd)}}either {cmd:regress}, {cmd:ivreg2} or {cmd:ivregress}{p_end}
 {synopt:{cmd:e(model)}}{cmd:ols}, {cmd:iv}, {cmd:gmm2s}, {cmd:liml} or {cmd:cue}{p_end}
@@ -743,12 +743,12 @@ on the other hand, there may be alternatives:
 {synopt:{cmd:e(properties)}}{cmd:b V}{p_end}
 
 {synoptset 24 tabbed}{...}
-{p2col 5 24 28 2: Matrices}{p_end}
+{syntab:Matrices}
 {synopt:{cmd:e(b)}}coefficient vector{p_end}
 {synopt:{cmd:e(V)}}variance-covariance matrix of the estimators{p_end}
 
 {synoptset 24 tabbed}{...}
-{p2col 5 24 28 2: Functions}{p_end}
+{syntab:Functions}
 {synopt:{cmd:e(sample)}}marks estimation sample{p_end}
 {p2colreset}{...}
 
