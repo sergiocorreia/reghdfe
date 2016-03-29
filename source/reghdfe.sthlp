@@ -52,7 +52,7 @@ may be {opt un:adjusted} (default), {opt r:obust} or {opt cl:uster} {help fvvarl
 
 {syntab:Instrumental-Variable/2SLS/GMM {help reghdfe##opt_iv:[+]}}
 {synopt :{opt est:imator(str)}}either {opt 2sls} (default), {opt gmm:2s} (two-stage GMM),
-{opt liml:} (limited-information maximum likelihood) or {opt cue:} (which gives approximate results, see discussion below){p_end}
+{opt liml} (limited-information maximum likelihood) or {opt cue} (which gives approximate results, see discussion below){p_end}
 {synopt :{opt stage:s(list)}}estimate additional regressions; choose any of {opt first} {opt ols} {opt reduced} {opt acid} (or {opt all}){p_end}
 {synopt :{opt ff:irst}}compute first-stage diagnostic and identification statistics{p_end}
 {synopt :{opth iv:suite(subcmd)}}package used in the IV/GMM regressions;
@@ -131,12 +131,13 @@ convergence will still be {it:much} faster.{p_end}
 (including heterogeneous slopes), alternative estimators (2sls, gmm2s, liml), and additional robust standard errors (multi-way clustering, HAC standard errors, etc).{p_end}
 
 {pstd}Additional features include:{p_end}
-{p2col 6 9 9 2: a)}A novel and robust algorithm to efficiently absorb the fixed effects (extending the work of Guimaraes and Portugal, 2010).{p_end}
-{p2col 6 9 9 2: b)}Coded in Mata, which in most scenarios makes it even faster than {it:areg} and {it:xtreg} for a single fixed effect (see benchmarks on the Github page).{p_end}
-{p2col 6 9 9 2: c)}Can save the point estimates of the fixed effects ({it:caveat emptor}: the fixed effects may not be identified, see the {help reghdfe##references:references}).{p_end}
-{p2col 6 9 9 2: d)}Calculates the degrees-of-freedom lost due to the fixed effects
+
+{p2col 8 12 12 2: a)}A novel and robust algorithm to efficiently absorb the fixed effects (extending the work of Guimaraes and Portugal, 2010).{p_end}
+{p2col 8 12 12 2: b)}Coded in Mata, which in most scenarios makes it even faster than {it:areg} and {it:xtreg} for a single fixed effect (see benchmarks on the Github page).{p_end}
+{p2col 8 12 12 2: c)}Can save the point estimates of the fixed effects ({it:caveat emptor}: the fixed effects may not be identified, see the {help reghdfe##references:references}).{p_end}
+{p2col 8 12 12 2: d)}Calculates the degrees-of-freedom lost due to the fixed effects
 (note: beyond two levels of fixed effects, this is still an open problem, but we provide a conservative approximation).{p_end}
-{p2col 6 9 9 2: e)}Iteratively removes singleton groups by default, to avoid biasing the standard errors (see ancillary document).{p_end}
+{p2col 8 12 12 2: e)}Iteratively removes singleton groups by default, to avoid biasing the standard errors (see ancillary document).{p_end}
 
 {marker options}{...}
 {title:Options}
@@ -150,7 +151,7 @@ this is equivalent to including an indicator/dummy variable for each category of
 
 {pmore}
 To save a fixed effect, prefix the absvar with "{newvar}{cmd:=}".
-For instance, the option {input:absorb(firm_id worker_id year_coefs=year_id)} will include firm,
+For instance, the option {cmd:absorb(firm_id worker_id year_coefs=year_id)} will include firm,
 worker and year fixed effects, but will only save the estimates for the year fixed effects (in the new variable {it:year_coefs}).
 
 {pmore}
@@ -539,7 +540,7 @@ Only {cmd:estat summarize}, {cmd:predict} and {cmd:test} are currently supported
 {newvar} 
 {ifin}
 [{cmd:,} {it:statistic}]
-{p_end}{col 23}May requires you to previously save the fixed effects (except for option {opt xb}).
+{p_end}{col 23}May require you to previously save the fixed effects (except for option {opt xb}).
 {col 23}To see how, see the details of the {help reghdfe##absvar:absorb} option
 {col 23}Equation: y = xb + d_absorbvars + e
 
@@ -573,20 +574,20 @@ or tests on different groups, you can replicate it manually, as described
 
 {title:Possible Pitfalls and Common Mistakes}
 
-{p 5 8 2}1. (note: as of version 2.1, the constant is no longer reported) Ignore the constant; it doesn't tell you much. If you want to use descriptive stats, that's what the {opt sum:marize()} and {cmd:estat summ} commands are for.
+{p2col 8 12 12 2: 1.}(note: as of version 2.1, the constant is no longer reported) Ignore the constant; it doesn't tell you much. If you want to use descriptive stats, that's what the {opt sum:marize()} and {cmd:estat summ} commands are for.
 Even better, use {opt noconstant} to drop it (although it's not really dropped as it never existed on the first place!){p_end}
-{p 5 8 2}2. Think twice before saving the fixed effects. They are probably inconsistent / not identified and you will likely be using them wrong.{p_end}
-{p 5 8 2}3. (note: as of version 3.0 singletons are dropped by default) It's good practice to drop singletons. {opt dropsi:ngleton} is your friend.{p_end}
-{p 5 8 2}4. If you use {opt vce(robust)}, be sure that your {it:other} dimension is not "fixed" but grows with N, or your SEs will be wrong.{p_end}
-{p 5 8 2}5. If you use {opt vce(cluster ...)}, check that your number of clusters is high enough (50+ is a rule of thumb). If not, you are making the SEs even worse!{p_end}
-{p 5 8 2}6. The panel variables (absvars) should probably be nested within the clusters (clustervars) due to the within-panel correlation induced by the FEs.
+{p2col 8 12 12 2: 2.}Think twice before saving the fixed effects. They are probably inconsistent / not identified and you will likely be using them wrong.{p_end}
+{p2col 8 12 12 2: 3.}(note: as of version 3.0 singletons are dropped by default) It's good practice to drop singletons. {opt dropsi:ngleton} is your friend.{p_end}
+{p2col 8 12 12 2: 4.}If you use {opt vce(robust)}, be sure that your {it:other} dimension is not "fixed" but grows with N, or your SEs will be wrong.{p_end}
+{p2col 8 12 12 2: 5.}If you use {opt vce(cluster ...)}, check that your number of clusters is high enough (50+ is a rule of thumb). If not, you are making the SEs even worse!{p_end}
+{p2col 8 12 12 2: 6.}The panel variables (absvars) should probably be nested within the clusters (clustervars) due to the within-panel correlation induced by the FEs.
 (this is not the case for *all* the absvars, only those that are treated as growing as N grows){p_end}
-{p 5 8 2}7. If you run analytic or probability weights,
+{p2col 8 12 12 2: 7.}If you run analytic or probability weights,
 you are responsible for ensuring that the weights stay
 constant within each unit of a fixed effect (e.g. individual),
 or that it is correct to allow varying-weights for that case.
 {p_end}
-{p 5 8 2}8. Be aware that adding several HDFEs is not a panacea.
+{p2col 8 12 12 2: 8.}Be aware that adding several HDFEs is not a panacea.
 The first limitation is that it only uses within variation (more than acceptable if you have a large enough dataset).
 The second and subtler limitation occurs if the fixed effects are themselves outcomes of the variable of interest (as crazy as it sounds).
 For instance, imagine a regression where we study the effect of past corporate fraud on future firm performance.
@@ -605,23 +606,23 @@ and thus {it:understate} the negative effects of fraud on future firm performanc
 
 {phang}Code, medium term:
 
-{p2col 5 7 7 2: -}Complete GT preconditioning (v4){p_end}
-{p2col 5 7 7 2: -}Improve algorithm that recovers the fixed effects (v5){p_end}
-{p2col 5 7 7 2: -}Improve statistics and tests related to the fixed effects (v5){p_end}
-{p2col 5 7 7 2: -}Implement a -bootstrap- option in DoF estimation (v5){p_end}
+{p2col 8 12 12 2: -}Complete GT preconditioning (v4){p_end}
+{p2col 8 12 12 2: -}Improve algorithm that recovers the fixed effects (v5){p_end}
+{p2col 8 12 12 2: -}Improve statistics and tests related to the fixed effects (v5){p_end}
+{p2col 8 12 12 2: -}Implement a -bootstrap- option in DoF estimation (v5){p_end}
 
 {phang}Code, long term:
 
-{p2col 5 7 7 2: -}The interaction with cont vars (i.a#c.b) may suffer from numerical accuracy issues, as we are dividing by a sum of squares{p_end}
-{p2col 5 7 7 2: -}Calculate exact DoF adjustment for 3+ HDFEs (note: not a problem with cluster VCE when one FE is nested within the cluster){p_end}
-{p2col 5 7 7 2: -}More postestimation commands (lincom? margins?){p_end}
+{p2col 8 12 12 2: -}The interaction with cont vars (i.a#c.b) may suffer from numerical accuracy issues, as we are dividing by a sum of squares{p_end}
+{p2col 8 12 12 2: -}Calculate exact DoF adjustment for 3+ HDFEs (note: not a problem with cluster VCE when one FE is nested within the cluster){p_end}
+{p2col 8 12 12 2: -}More postestimation commands (lincom? margins?){p_end}
 
 {phang}Theory:
 
-{p2col 5 7 7 2: -}Add a more thorough discussion on the possible identification issues{p_end}
-{p2col 5 7 7 2: -}Find out a way to use reghdfe iteratively with CUE
+{p2col 8 12 12 2: -}Add a more thorough discussion on the possible identification issues{p_end}
+{p2col 8 12 12 2: -}Find out a way to use reghdfe iteratively with CUE
 (right now only OLS/2SLS/GMM2S/LIML give the exact same results){p_end}
-{p2col 5 7 7 2: -}Not sure if I should add an F-test for the absvars in the vce(robust) and vce(cluster) cases.
+{p2col 8 12 12 2: -}Not sure if I should add an F-test for the absvars in the vce(robust) and vce(cluster) cases.
 Discussion on e.g. -areg- (methods and formulas) and textbooks suggests not;
 on the other hand, there may be alternatives:
 {it:{browse "http://www.socialsciences.manchester.ac.uk/disciplines/economics/research/discussionpapers/pdf/EDP-1124.pdf" :A Heteroskedasticity-Robust F-Test Statistic for Individual Effects}}{p_end}
@@ -764,7 +765,7 @@ Email: {browse "mailto:sergio.correia@duke.edu":sergio.correia@duke.edu}
 {title:User Guide}
 
 {pstd}
-A copy of this help file, as well as a more in-depth user guide is in development and will be available at {browse "http://scorreia.com/reghdfe"}.{p_end}
+A more in-depth user guide, as well as a copy of this help file, are available at {browse "http://scorreia.com/software/reghdfe"}.{p_end}
 
 {marker updates}{...}
 {title:Latest Updates}
@@ -795,7 +796,7 @@ and {browse "https://ideas.repec.org/c/boc/bocode/s456942.html":a2reg} from Amin
 
 {phang}{browse "https://ideas.repec.org/c/boc/bocode/s457689.html":avar} by Christopher F Baum and Mark E Schaffer, is the package used for estimating the HAC-robust standard errors of ols regressions.{p_end}
 
-{phang}{browse "http://econpapers.repec.org/software/bocbocode/s456797.htm)":tuples} by Joseph Lunchman and Nicholas Cox, is used when computing standard errors with multi-way clustering (two or more clustering variables).{p_end}
+{phang}{browse "http://econpapers.repec.org/software/bocbocode/s456797.htm":tuples} by Joseph Lunchman and Nicholas Cox, is used when computing standard errors with multi-way clustering (two or more clustering variables).{p_end}
 
 {marker references}{...}
 {title:References}
