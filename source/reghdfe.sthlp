@@ -77,8 +77,19 @@ options are {opt ivreg2} (default; needs installing) and {opt ivregress}{p_end}
 {synopt :{opt fast}}will not create {it:e(sample)}; disabled when saving fixed effects, residuals or mobility groups{p_end}
 
 {syntab:Degrees-of-Freedom Adjustments {help reghdfe##opt_dof:[+]}}
-{synopt :{opt dof:adjustments(list)}}allows selecting the desired adjustments for degrees of freedom;
-rarely used{p_end}
+{synopt :{opth dof:adjustments(reghdfe##opt_dof:list)}}methods
+used to compute degrees-of-freedom. These
+methods select either the exact DOFs or conservative approximations. Default
+is {opt all} (equivalent to {cmd:pairwise clusters continuous}); alternatives
+include
+{opt none},
+{opt two},
+{opt three},
+{opt pair:wise},
+{opt cl:usters} and
+{opt cont:inous}.
+{p_end}
+
 {synopt: {opth groupv:ar(newvar)}}unique identifier for the first mobility group{p_end}
 
 {syntab:Reporting {help reghdfe##opt_reporting:[+]}}
@@ -354,19 +365,24 @@ Note: changing the default option is rarely needed, except in benchmarks, and to
 {opt none} assumes no collinearity across the fixed effects (i.e. no redundant fixed effects). This is overtly conservative, although it is the faster method by virtue of not doing anything.
 
 {pmore}
-{opt first:pair} will exactly identify the number of collinear fixed effects across the first two sets of fixed effects
+{opt two} will exactly identify the number of collinear fixed effects across the first two sets of fixed effects
 (i.e. the first absvar and the second absvar).
 The algorithm used for this is described in Abowd et al (1999), and relies on results from graph theory
 (finding the number of connected sub-graphs in a bipartite graph).
 It will not do anything for the third and subsequent sets of fixed effects.
 
 {pmore}
-For more than two sets of fixed effects, there are no known results that provide exact degrees-of-freedom as in the case above.
-One solution is to ignore subsequent fixed effects (and thus oversestimate e(df_a) and understimate the degrees-of-freedom).
+{opt three} implements the method of
+{browse "https://ideas.repec.org/c/boc/bocode/s458181.html":Guimaraes (2016)},
+and requires the {stata ssc install group3hdfe:group3hdfe} package from SSC.
+
+{pmore}
+For more than three sets of fixed effects, there are no known results that provide exact degrees-of-freedom as in the above cases.
+One solution is to ignore subsequent fixed effects (and thus overestimate e(df_a) and underestimate the degrees-of-freedom).
 Another solution, described below, applies the algorithm between pairs of fixed effects to obtain a better (but not exact) estimate:
 
 {pmore}
-{opt pair:wise} applies the aforementioned connected-subgraphs algorithm between pairs of fixed effects.
+{opt pair:wise} applies the connected-subgraphs algorithm used with {opt two} between pairs of fixed effects.
 For instance, if there are four sets of FEs, the first dimension will usually have no redundant coefficients (i.e. e(M1)==1), since we are running the model without a constant.
 For the second FE, the number of connected subgraphs with respect to the first FE will provide an exact estimate of the degrees-of-freedom lost, e(M2).
 
@@ -400,7 +416,7 @@ In the case where continuous is constant for a level of categorical, we know it 
 
 {pmore}
 Additional methods, such as {opt bootstrap} are also possible but not yet implemented.
-Some preliminary simulations done by the author showed a very poor convergence of this method.
+Preliminary simulations done by the author showed a very poor convergence of this method.
 
 {phang}
 {opth groupv:ar(newvar)} name of the new variable that will contain the first mobility group.
@@ -719,7 +735,7 @@ on the other hand, there may be alternatives:
 
 {synopt:{cmd:e(K}#{cmd:)}}Number of categories of the #th absorbed FE{p_end}
 {synopt:{cmd:e(M}#{cmd:)}}Number of redundant categories of the #th absorbed FE{p_end}
-{synopt:{cmd:e(mobility)}}Sum of all {cmd:e(M#)}{p_end}
+{synopt:{cmd:e(redundant)}}Sum of all {cmd:e(M#)}{p_end}
 {synopt:{cmd:e(df_m)}}model degrees of freedom{p_end}
 {synopt:{cmd:e(df_r)}}residual degrees of freedom{p_end}
 

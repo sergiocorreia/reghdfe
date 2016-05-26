@@ -18,11 +18,7 @@ program define reghdfe_p
 	else {
 		local option `xb' `xbd' `d' `residuals' `stdp'
 		if ("`option'"=="") local option xb // The default, as in -areg-
-		local numoptions : word count `option'
-		if (`numoptions'!=1) {
-			di as error "{bf:predict} only allows one option, got <`option'>"
-			exit 198
-		}
+		opts_exclusive "`option'"
 	}
 
 * More options

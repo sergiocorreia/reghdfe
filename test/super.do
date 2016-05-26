@@ -33,6 +33,8 @@
 
 	run test-avar
 
+	run test-dof
+
 	run test-cluster-same-as-absvar
 	run test-cluster-nested // Prevent regression of bug reported by Michael Wittry (see email)
 	run test-vce-complex-bw

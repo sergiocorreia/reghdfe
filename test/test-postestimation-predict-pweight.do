@@ -4,7 +4,6 @@ noi cscript "reghdfe postestimation: predict after pweight" adofile reghdfe
 	discard
 	clear all
 	set more off
-	cls
 
 	local included_e ///
 		scalar: N rmse tss rss r2 r2_a F df_r df_m ///

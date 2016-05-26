@@ -1,4 +1,4 @@
-*! reghdfe 3.3.1 26may2016
+*! reghdfe 3.3.2 26may2016
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1530,20 +1530,17 @@ void function transform_rand_kaczmarz(`Problem' S, `Group' y, `Group' ans,| `Boo
 	
 void map_estimate_dof(`Problem' S, string rowvector adjustments, 
 		| `Varname' groupvar, `String' cond) {
-	`Boolean' adj_firstpairs, adj_pairwise, adj_clusters, adj_continuous, belongs, already_first_constant
+	`Boolean' adj_two, adj_pairwise, adj_clusters, adj_continuous, belongs, already_first_constant
 	string rowvector all_adjustments
 	`String' adj, label, basestring
-	`Integer' i, g, SuperG, h, M_due_to_nested, j, m, sum_levels
-	`Vector' M, M_is_exact, M_is_nested, is_slope, solved, prev_g, SubGs
-
-	// TODO - BY
-	// With by, I need to i) discard the first FE, ii) use only the `cond' sample in the calculations
+	`Integer' i, g, SuperG, h, M_due_to_nested, j, m, sum_levels, m2
+	`Vector' M, M_is_exact, M_is_nested, is_slope, solved, i_to_g, SubGs
 
 	// Parse list of adjustments/tricks to do
 	if (S.verbose>1) printf("\n")
 	if (S.verbose>0) printf("{txt}{bf:mata: map_estimate_dof()}\n")
 	if (S.verbose>1) printf("{txt} - Estimating degrees-of-freedom used by the fixed effects\n")
-	all_adjustments = "firstpairs", "pairwise", "clusters", "continuous"
+	all_adjustments = "two", "three", "pairwise", "clusters", "continuous"
 	adjustments = tokens(adjustments)
 	for (i=1; i<=length(adjustments);i++) {
 		assert_msg(anyof(all_adjustments, adjustments[i]), 
@@ -1554,7 +1551,8 @@ void map_estimate_dof(`Problem' S, string rowvector adjustments,
 		adj = all_adjustments[i]
 		belongs = anyof(adjustments, adj)
 		if (S.verbose>1) printf("{txt}    - %s:  {col 20}{res} %s\n", adj, belongs ? "yes" : "no")
-		if (adj=="firstpairs") adj_firstpairs = belongs
+		if (adj=="two") adj_two = belongs
+		if (adj=="three") adj_three = belongs
 		if (adj=="pairwise") adj_pairwise = belongs
 		if (adj=="clusters") adj_clusters = belongs
 		if (adj=="continuous") adj_continuous = belongs
@@ -1565,10 +1563,10 @@ void map_estimate_dof(`Problem' S, string rowvector adjustments,
 		stata(sprintf("confirm numeric variable %s, exact", S.clustervars[i]))
 	}
 
-	// Can only save connected group if firstpairs or pairwise are active
+	// Can only save connected group if two or pairwise are active
 	if (args()<3) groupvar = ""
 	if (groupvar!="") {
-		assert_msg(adj_firstpairs | adj_pairwise, "map_estimate_dof error: group option requires 'pairwise' or 'firstpairs' adjustments")
+		assert_msg(adj_two | adj_pairwise, "map_estimate_dof error: group option requires 'pairwise' or 'two' adjustments")
 	}
 
 	// Count all fixed intercepts and slopes
@@ -1620,7 +1618,7 @@ void map_estimate_dof(`Problem' S, string rowvector adjustments,
 		}
 	}
 
-	// (Intercept-only) Excluding those already solved, the first absvar is exact, and the second can be with pairwise/firstpairs
+	// (Intercept-only) Excluding those already solved, the first absvar is exact, and the second can be with pairwise/two
 
 	// Note: I dont't include the FEs that are clusters or are nested within cluster when computing redundant coefs
 	// On principle, that would be nice to have. EG: reghdfe .... abs(zipcode state##c.time) vce(zipcode)
@@ -1630,32 +1628,46 @@ void map_estimate_dof(`Problem' S, string rowvector adjustments,
 	// Than the number of observations; so I don't worry much about that case (also, there may be possible 
 	// complications with that)
 
-	i = 0
-	h = 1
-	prev_g = J(S.G, 1, 0)
+	i = 0 // Different from -g- as it iterates over effective FEs (i<=g)
+	h = 1 // Different from -g- as it counts multiple FEs in one g (h>=g)
+	m2 = 0 // needed for group3hdfe
+	i_to_g = J(S.G, 1, 0)
 	for (g=1;g<=S.G;g++) {
+
+		assert( (i <= g) & (g <= h) )
+
 		if (!solved[h] & S.fes[g].has_intercept) {
 			i++
 			if (i==1) {
 				M_is_exact[h] = 1
 			}
-			else if (i==2 & (adj_pairwise | adj_firstpairs)) {
+			else if (i==2 & (adj_pairwise | adj_two | adj_three)) {
 				M_is_exact[h] = 1
-				m = map_connected_groups(S, prev_g[1], g, groupvar)
-				if (S.verbose>2) printf("{txt}    - Mobility groups between fixed intercept #%f and #%f: {res}%f\n", prev_g[1], g, m)
+				m = map_connected_groups(S, i_to_g[1], g, groupvar)
+				if (S.verbose>2) printf("{txt}    - Mobility groups between fixed intercept #%f and #%f: {res}%f\n", i_to_g[1], g, m)
 				M[h] = m
+				m2 = m
 			}
 			else if (i>2 & adj_pairwise) {
 				// Call connected in a LOOP (but I need to save the list of those that I needed to check)
 				for (j=1; j<i; j++) {
-					m = map_connected_groups(S, prev_g[j], g)
-					if (S.verbose>2) printf("{txt}    - Mobility groups between fixed intercept #%f and #%f: {res}%f\n", prev_g[j], g, m)
+					m = map_connected_groups(S, i_to_g[j], g)
+					if (S.verbose>2) printf("{txt}    - Mobility groups between fixed intercept #%f and #%f: {res}%f\n", i_to_g[j], g, m)
 					M[h] = max((M[h], m))
 				}
 				if (S.verbose>2) printf("{txt}    - Maximum of mobility groups wrt fixed intercept #%f: {res}%f\n", g, M[h])
 
 			}
-			prev_g[i] = g
+			else if (i==3 & adj_three) {
+				M_is_exact[h] = 1
+				cmd = "qui group3hdfe __ID%s__ __ID%s__ __ID%s__"
+				cmd = sprintf(cmd, strofreal(i_to_g[i-2]), strofreal(i_to_g[i-1]), strofreal(g))
+				stata(cmd)
+				m = st_numscalar("r(rest)") - m2
+				if (S.verbose>2) printf("{txt}    - Redundant coefs in #%f from previous FEs: {res}%f\n", g, m)
+				M[h] = m
+			}
+			i_to_g[i] = g
 		}
 		h = h + SubGs[g]
 	}
@@ -1715,7 +1727,7 @@ void function map_ereturn_dof(`Problem' S) {
 
 	st_numscalar("e(N_hdfe)", S.G)
 	st_numscalar("e(N_hdfe_extended)", S.dof_N_hdfe_extended)
-	st_numscalar("e(mobility)", S.dof_M)
+	st_numscalar("e(redundant)", S.dof_M)
 	st_numscalar("e(M_due_to_nested)", S.dof_M_due_to_nested)
 	st_numscalar("e(df_a)", S.dof_KminusM)
 
@@ -1755,58 +1767,6 @@ void function map_ereturn_dof(`Problem' S) {
 	if (S.verbose>=2) printf("{txt}    - Fixed slope {res}%s#c.%s {txt}has {res}%f/%f{txt} redundant coefs.\n", invtokens(S.fes[g].ivars,"#"), S.fes[g].cvars[ii], ans, L)
 	return(ans)
 }
-
-/*
-	In general, we can't know the exact number of DoF lost because we don't know when multiple FEs are collinear
-	When we have two pure FEs, we can use an existing algorithm, but besides that we'll just use an upper (conservative) bound
-
-	Features:
-	 - Save the first mobility group if asked
-	 - Within the pure FEs, we can use the existing algorithm pairwise (FE1 vs FE2, FE3, .., FE2 vs FE3, ..)
-	 - If there are n pure FEs, that means the algo gets called n! times, which may be kinda slow
-	 - With FEs interacted with continuous variables, we can't do this, but can do two things:
-		a) With i.a#c.b , whenever b==0 for all values of a group (of -a-), add one redundant
-		b) With i.a##c.b, do the same but whenever b==CONSTANT (so not just zero)
-     - With clusters, it gets trickier but in summary you don't need to penalize DoF for params that only exist within a cluster. This happens:
-		a) if absvar==clustervar
-		b) if absvar is nested within a clustervar. EG: if we do vce(cluster state), and -absorb(district)- or -absorb(state#year)
-		c) With cont. interactions, e.g. absorb(i.state##c.year) vce(cluster year), then i) state FE is redundant, but ii) also state#c.year
-		   The reason is that at the param for each "fixed slope" is shared only within a state
-
-	Procedure:
-	 - Go through all FEs and see if i) they share the same ivars as any clusters, and if not, ii) if they are nested within clusters
-	 - For each pure FE in the list, run the algorithm pairwise, BUT DO NOT RUN IT BEETWEEN TWO PAIRS OF redundant
-	   (since the redundants are on the left, we just need to check the rightmost FE for whether it was tagged)
-	 - For the ones with cont interactions, do either of the two tests depending on the case
-
-	Misc:
-	 - There are two places where DoFs enter in the results:
-		a) When computing e(V), we do a small sample adjustment (seen in Stata documentation as the -q-)
-		   Instead of doing V*q with q = N/(N-k), we use q = N / (N-k-kk), so THE PURPOSE OF THIS PROGRAM IS TO COMPUTE "kk"
-		   This kk will be used to adjust V and also stored in e(df_a)
-		   With clusters, q = (N-1) / (N-k-kk) * M / (M-1)
-		   With multiway clustering, we use the smallest N_clust as our M
-	    b) In the DoF of the F and t tests (not when doing chi/normal)
-	       When there are clusters, note that e(df_r) is M-1 instead of N-1-k
-	       Again, here we want to use the smallest M with multiway clustering
-
-	Inputs: +-+- if we just use -fe2local- we can avoid passing stuff around when building subroutines
-	 - We need the current name of the absvars and clustervars (remember a#b is replaced by something different)
-	 - Do a conf var at this point to be SURE that we didn't mess up before
-	 - We need the ivars and cvars in a list
-	 - For the c. interactions, we need to know if they are bivariate or univariate
-	 - SOLN -> mata: fe2local(`g')  ; from mata: ivars_clustervar`i' (needed???) , and G
-	 - Thus, do we really needed the syntax part??
-	 - fe2local saves: ivars cvars target varname varlabel is_interaction is_cont_interaction is_bivariate is_mock levels // Z group_k weightvar
-
-	DOF Syntax:
-	 DOFadjustments(none | all | CLUSTERs | PAIRwise | FIRSTpair | CONTinuous)
-	 dof() = dof(all) = dof(cluster pairwise continuous)
-	 dof(none) -> do nothing; all Ms = 0 
-	 dof(first) dof(first cluster) dof(cluster) dof(continuous)
-
-	For this to work, the program MUST be modular
-*/
 	
 `Integer' function map_connected_groups(`Problem' S, `Integer' g1, `Integer' g2, | `Varname' groupvar) {
 	`Boolean' changed
@@ -2022,13 +1982,13 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.3.1 26may2016"
+    local version "3.3.2 26may2016"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
 
     di as text _n "Dependencies installed?"
-    local dependencies ivreg2 avar tuples
+    local dependencies ivreg2 avar tuples group3hdfe
     foreach dependency of local dependencies {
     	cap findfile `dependency'.ado
     	if (_rc) {
@@ -2990,21 +2950,25 @@ syntax anything(id="absvars" name=absvars equalok everything), [SAVEfe]
 end
 
 program define ParseDOF, sclass
-	syntax, [ALL NONE] [PAIRwise FIRSTpair] [CLusters] [CONTinuous]
+	syntax, [ALL NONE] [PAIRwise TWO THREE] [CLusters] [CONTinuous]
+	local opts `pairwise' `two' `three' `clusters' `continuous'
+	local n : word count `opts'
+	local first_opt : word 1 of `opt'
+
 	opts_exclusive "`all' `none'" dofadjustments
-	opts_exclusive "`pairwise' `firstpair'" dofadjustments
-	if ("`none'"!="") {
-		Assert "`pairwise'`firstpair'`clusters'`continuous'"=="", msg("option {bf:dofadjustments()} invalid; {bf:none} not allowed with other alternatives")
-		local dofadjustments
+	opts_exclusive "`pairwise' `two' `three'" dofadjustments
+	opts_exclusive "`all' `first_opt'" dofadjustments
+	opts_exclusive "`none' `first_opt'" dofadjustments
+
+	if ("`none'" != "") local opts
+	if ("`all'" != "") local opts pairwise clusters continuous
+
+	if (`: list posof "three" in opts') {
+		cap findfile group3hdfe.ado
+		Assert !_rc , msg("error: -group3hdfe- not installed, please run {stata ssc install group3hdfe}")
 	}
-	if ("`all'"!="") {
-		Assert "`pairwise'`firstpair'`clusters'`continuous'"=="", msg("option {bf:dofadjustments()} invalid; {bf:all} not allowed with other alternatives")
-		local dofadjustments pairwise clusters continuous
-	}
-	else {
-		local dofadjustments `pairwise' `firstpair' `clusters' `continuous'
-	}
-	sreturn local dofadjustments "`dofadjustments'"
+
+	sreturn local dofadjustments "`opts'"
 end
 
 program define ParseImplicit

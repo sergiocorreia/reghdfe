@@ -9,7 +9,7 @@ program define Version, eclass
     ereturn local version "`version'"
 
     di as text _n "Dependencies installed?"
-    local dependencies ivreg2 avar tuples
+    local dependencies ivreg2 avar tuples group3hdfe
     foreach dependency of local dependencies {
     	cap findfile `dependency'.ado
     	if (_rc) {

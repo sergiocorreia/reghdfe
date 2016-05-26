@@ -1,18 +1,22 @@
 capture program drop ParseDOF
 program define ParseDOF, sclass
-	syntax, [ALL NONE] [PAIRwise FIRSTpair] [CLusters] [CONTinuous]
+	syntax, [ALL NONE] [PAIRwise TWO THREE] [CLusters] [CONTinuous]
+	local opts `pairwise' `two' `three' `clusters' `continuous'
+	local n : word count `opts'
+	local first_opt : word 1 of `opt'
+
 	opts_exclusive "`all' `none'" dofadjustments
-	opts_exclusive "`pairwise' `firstpair'" dofadjustments
-	if ("`none'"!="") {
-		Assert "`pairwise'`firstpair'`clusters'`continuous'"=="", msg("option {bf:dofadjustments()} invalid; {bf:none} not allowed with other alternatives")
-		local dofadjustments
+	opts_exclusive "`pairwise' `two' `three'" dofadjustments
+	opts_exclusive "`all' `first_opt'" dofadjustments
+	opts_exclusive "`none' `first_opt'" dofadjustments
+
+	if ("`none'" != "") local opts
+	if ("`all'" != "") local opts pairwise clusters continuous
+
+	if (`: list posof "three" in opts') {
+		cap findfile group3hdfe.ado
+		Assert !_rc , msg("error: -group3hdfe- not installed, please run {stata ssc install group3hdfe}")
 	}
-	if ("`all'"!="") {
-		Assert "`pairwise'`firstpair'`clusters'`continuous'"=="", msg("option {bf:dofadjustments()} invalid; {bf:all} not allowed with other alternatives")
-		local dofadjustments pairwise clusters continuous
-	}
-	else {
-		local dofadjustments `pairwise' `firstpair' `clusters' `continuous'
-	}
-	sreturn local dofadjustments "`dofadjustments'"
+
+	sreturn local dofadjustments "`opts'"
 end

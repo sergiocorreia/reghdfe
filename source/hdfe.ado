@@ -124,7 +124,7 @@ program define hdfe, eclass
 	}
 
 * Absorbed-specific returns
-	* e(N_hdfe) e(N_hdfe_extended) e(mobility)==M e(df_a)==K-M
+	* e(N_hdfe) e(N_hdfe_extended) e(redundant)==M e(df_a)==K-M
 	* e(M#) e(K#) e(M#_exact) e(M#_nested) -> for #=1/e(N_hdfe_extended)
 	mata: map_ereturn_dof(HDFE_S)
 	local N_hdfe = e(N_hdfe)
