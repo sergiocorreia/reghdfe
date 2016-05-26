@@ -10,7 +10,7 @@ program define Wrapper_ivreg2, eclass
 		[num_clusters(string) clustervars(string)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
-	if (`c(version)'>=12) local hidden hidden
+	if (c(version)>=12) local hidden hidden
 	
 	* Disable some options
 	local 0 , `suboptions'

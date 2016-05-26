@@ -7,7 +7,7 @@ program define Wrapper_avar, eclass
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
-	if (`c(version)'>=12) local hidden hidden
+	if (c(version)>=12) local hidden hidden
 
 	local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)
 

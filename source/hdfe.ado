@@ -5,10 +5,9 @@ include "mata/map.mata"
 
 capture program drop hdfe
 program define hdfe, eclass
-* Note: based on 
 
 * Set Stata version
-	version `=clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
+	version `=clip(c(version), 11.2, 14.1)'
 
 * Intercept version
 	cap syntax, version

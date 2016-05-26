@@ -7,7 +7,7 @@ program define Wrapper_regress, eclass
 		[SUBOPTions(string)] [*] // [*] are ignored!
 	
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
-	if (`c(version)'>=12) local hidden hidden
+	if (c(version)>=12) local hidden hidden
 
 * Convert -vceoption- to what -regress- expects
 	gettoken vcetype clustervars : vceoption

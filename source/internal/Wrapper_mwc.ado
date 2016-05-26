@@ -8,7 +8,7 @@ syntax , depvar(varname) [indepvars(varlist)] ///
 	[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
-	if (`c(version)'>=12) local hidden hidden
+	if (c(version)>=12) local hidden hidden
 
 * Parse contents of VCE()
 	local 0 `vceoption'

@@ -1,4 +1,4 @@
-*! reghdfe 3.2.7 07dec2015
+*! reghdfe 3.3.1 26may2016
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1879,7 +1879,7 @@ end
 program define reghdfe
 
 * Set Stata version
-	version `=clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
+	version `=clip(c(version), 11.2, 14.1)'
 
 * Intercept old+version
 	cap syntax, version old
@@ -2022,7 +2022,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.2.7 07dec2015"
+    local version "3.3.1 26may2016"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -3334,7 +3334,7 @@ program define Wrapper_regress, eclass
 		[SUBOPTions(string)] [*] // [*] are ignored!
 	
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
-	if (`c(version)'>=12) local hidden hidden
+	if (c(version)>=12) local hidden hidden
 
 * Convert -vceoption- to what -regress- expects
 	gettoken vcetype clustervars : vceoption
@@ -3449,7 +3449,7 @@ program define Wrapper_avar, eclass
 		[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
-	if (`c(version)'>=12) local hidden hidden
+	if (c(version)>=12) local hidden hidden
 
 	local tmpweightexp = subinstr("`weightexp'", "[pweight=", "[aweight=", 1)
 
@@ -3587,7 +3587,7 @@ syntax , depvar(varname) [indepvars(varlist)] ///
 	[SUBOPTions(string)] [*] // [*] are ignored!
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
-	if (`c(version)'>=12) local hidden hidden
+	if (c(version)>=12) local hidden hidden
 
 * Parse contents of VCE()
 	local 0 `vceoption'
@@ -3732,7 +3732,7 @@ program define Wrapper_ivreg2, eclass
 		[num_clusters(string) clustervars(string)] ///
 		[SUBOPTions(string)] [*] // [*] are ignored!
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
-	if (`c(version)'>=12) local hidden hidden
+	if (c(version)>=12) local hidden hidden
 	
 	* Disable some options
 	local 0 , `suboptions'
@@ -3790,7 +3790,7 @@ program define Wrapper_ivregress, eclass
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
 	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' (`endogvars'=`instruments')" )) )
-	if (`c(version)'>=12) local hidden hidden
+	if (c(version)>=12) local hidden hidden
 
 	local opt_estimator = cond("`estimator'"=="gmm2s", "gmm", "`estimator'")
 

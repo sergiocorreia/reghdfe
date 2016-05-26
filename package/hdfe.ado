@@ -1,4 +1,4 @@
-*! reghdfe 3.2.7 07dec2015
+*! reghdfe 3.3.1 26may2016
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1877,10 +1877,9 @@ end
 // -------------------------------------------------------------------------------------------------
 
 program define hdfe, eclass
-* Note: based on 
 
 * Set Stata version
-	version `=clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
+	version `=clip(c(version), 11.2, 14.1)'
 
 * Intercept version
 	cap syntax, version
@@ -2087,7 +2086,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.2.7 07dec2015"
+    local version "3.3.1 26may2016"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"

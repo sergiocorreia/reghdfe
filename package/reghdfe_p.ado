@@ -1,42 +1,43 @@
 program define reghdfe_p
-	* (Maybe refactor using _pred_se ??)
 
-	local version `clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
-	qui version `version'
+* Set Stata version
+	version `=clip(c(version), 11.2, 14.1)'
 	
-	*if "`e(cmd)'" != "reghdfe" {
-	*	error 301
-	*}
-	syntax anything [if] [in] , [XB XBD D Residuals SCores STDP]
-	if (`"`scores'"' != "") {
+* Parse syntax
+	cap syntax newvarname [if] [in], [XB XBD D Residuals STDP]
+
+* Special case; scores use wildcards: predict sc*, scores
+	if c(rc) {
+		syntax anything [if] [in] , SCores
 		_score_spec	`anything'
 		local varlist `s(varlist)'
+		local option residuals
 	}
+
+* Continue syntax
 	else {
-		local 0 `anything'
-		syntax newvarname  // [if] [in] , [XB XBD D Residuals SCores]
+		local option `xb' `xbd' `d' `residuals' `stdp'
+		if ("`option'"=="") local option xb // The default, as in -areg-
+		local numoptions : word count `option'
+		if (`numoptions'!=1) {
+			di as error "{bf:predict} only allows one option, got <`option'>"
+			exit 198
+		}
 	}
 
-	local weight "[`e(wtype)'`e(wexp)']" // After -syntax-!!!
-	local option `xb' `xbd' `d' `residuals' `scores' `stdp'
-	if ("`option'"=="") local option xb // The default, as in -areg-
-	local numoptions : word count `option'
-	if (`numoptions'!=1) {
-		di as error "(predict reghdfe) syntax error; specify one and only one option"
-		exit 112
-	}
-	if ("`option'"=="scores") local option residuals
-
+* More options
+	local wtype "`e(wtype)'"
+	if ("`wtype'"=="pweight") local wtype "aweight" // -su- fails with pweight
+	local weight "[`wtype'`e(wexp)']" // Must be after -syntax-
 	local fixed_effects "`e(absvars)'"
 
 	* Intercept stdp call
 	if ("`option'"=="stdp") {
 		_predict double `varlist' `if' `in', stdp
-		* la var `varlist' "STDP"
 		exit
 	}
 
-	* We need to have saved FEs and AvgEs for every option except -xb-
+	* We need previously-saved FEs for every option except -xb-
 	if ("`option'"!="xb") {
 		
 		* Only estimate using e(sample) except when computing xb (when we don't need -d- and can predict out-of-sample)
@@ -71,7 +72,7 @@ program define reghdfe_p
 		su `xb' `if' `in' `weight', mean
 		local mean = `mean' - r(mean)
 		su `d' `if' `in' `weight', mean
-		local mean = `mean' - r(mean)
+		local mean = `mean' - r(mean) // This is _cons !!!
 		qui replace `d' = `d' + `mean' `if' `in'
 
 		if ("`option'"=="d") {

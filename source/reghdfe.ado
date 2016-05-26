@@ -7,7 +7,7 @@ capture program drop reghdfe
 program define reghdfe
 
 * Set Stata version
-	version `=clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
+	version `=clip(c(version), 11.2, 14.1)'
 
 * Intercept old+version
 	cap syntax, version old

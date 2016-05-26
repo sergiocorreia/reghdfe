@@ -10,7 +10,7 @@ program define Wrapper_ivregress, eclass
 
 	if ("`options'"!="") Debug, level(3) msg("(ignored options: `options')")
 	mata: st_local("vars", strtrim(stritrim( "`depvar' `indepvars' (`endogvars'=`instruments')" )) )
-	if (`c(version)'>=12) local hidden hidden
+	if (c(version)>=12) local hidden hidden
 
 	local opt_estimator = cond("`estimator'"=="gmm2s", "gmm", "`estimator'")
 

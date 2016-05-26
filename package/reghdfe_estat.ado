@@ -1,5 +1,8 @@
 program reghdfe_estat, rclass
-	version `=cond(c(version)<14, c(version), 13)'
+
+* Set Stata version
+	version `=clip(c(version), 11.2, 14.1)'
+	
 	if "`e(cmd)'" != "reghdfe" {
 		error 301
 	}

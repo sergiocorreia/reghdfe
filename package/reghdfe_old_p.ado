@@ -3,7 +3,7 @@
 * TODO: Not tested for -avge- variables!
 
 program define reghdfe_old_p
-	local version `clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
+	local version `=clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
 	qui version `version'
 	
 	*if "`e(cmd)'" != "reghdfe" {
