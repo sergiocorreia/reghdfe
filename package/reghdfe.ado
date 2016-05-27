@@ -1,4 +1,4 @@
-*! reghdfe 3.3.4 26may2016
+*! reghdfe 3.3.5 26may2016
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1982,7 +1982,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.3.4 26may2016"
+    local version "3.3.5 26may2016"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -3372,7 +3372,10 @@ program define Wrapper_regress, eclass
 	* DoF
 	if ("`vcetype'"=="cluster") {
 		Assert e(df_r) == e(N_clust) - 1
-		Assert e(N_clust) > `K', msg("insufficient observations (N_clust=`e(N_clust)', K=`K')") rc(2001)
+		*Assert e(N_clust) > `K', msg("insufficient observations (N_clust=`e(N_clust)', K=`K')") rc(2001)
+		if (e(N_clust) <= `K') {
+			di as error "WARNING: insufficient observations (N_clust=`e(N_clust)', K=`K')"
+		}
 	}
 	local df_r = cond( "`vcetype'"=="cluster" , e(df_r) , max( `CorrectDoF' , 0 ) )
 

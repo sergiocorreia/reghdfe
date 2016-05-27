@@ -1,4 +1,4 @@
-*! reghdfe 3.3.4 26may2016
+*! reghdfe 3.3.5 26may2016
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -2046,7 +2046,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.3.4 26may2016"
+    local version "3.3.5 26may2016"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
