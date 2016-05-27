@@ -52,10 +52,10 @@ for f in files:
 # Update version number
 with open(os.path.join(source_path, "version.txt"), 'rb') as fh:
     old_version = fh.read().decode()
-    regex_string = r'^(\d+)\.(\d+)\.(\d+) \d+\w+\d+\s*$'
+    regex_string = r'^(\d+)\.(\d+)\.(\d+) \d+\w+\d+\s\((\w+)\)$'
     regex = re.search(regex_string, old_version)
     today = time.strftime("%d%b%Y").lower() # See http://strftime.net/
-    new_version = '{}.{}.{} {}'.format(regex.group(1), regex.group(2), int(regex.group(3))+1, today)
+    new_version = '{}.{}.{} {} ({})'.format(regex.group(1), regex.group(2), int(regex.group(3))+1, today, regex.group(4))
     print("Version updated from [{}] to [{}]".format(old_version, new_version))
 
 # Append Mata includes

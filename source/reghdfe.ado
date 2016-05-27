@@ -17,9 +17,9 @@ program define reghdfe
 	}
 
 * Intercept version
-	cap syntax, version
+	cap syntax, version [*]
 	if !c(rc) {
-		Version
+		Version , `options'
 		exit
 	}
 
