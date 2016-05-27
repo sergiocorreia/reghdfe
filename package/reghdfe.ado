@@ -1,4 +1,4 @@
-*! reghdfe 3.3.2 26may2016
+*! reghdfe 3.3.3 26may2016
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1982,7 +1982,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.3.2 26may2016"
+    local version "3.3.3 26may2016"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -3056,6 +3056,20 @@ syntax, basevars(string) verbose(integer) [depvar(string) indepvars(string) endo
 * Drop unused basevars and tsset vars (usually no longer needed)
 	if ("`vceextra'"!="") local tsvars `panelvar' `timevar' // We need to keep them only with autoco-robust VCE
 	keep `uid' `touse' `expandedvars' `weightvar' `absorb_keepvars' `cluster_keepvars' `tsvars' `cachevars' `more_keepvars'
+
+* Convert absvar and clustervar string variables to numeric
+* Note that this will still fail if we did absorb(i.somevar)
+	tempvar encoded
+	foreach var of varlist `absorb_keepvars' `cluster_keepvars' {
+		local vartype : type `var'
+		local is_string = substr("`vartype'", 1, 3) == "str"
+		if (`is_string') {
+			encode `var', gen(`encoded')
+			drop `var'
+			rename `encoded' `var'
+			qui compress `var'
+		}
+	}
 
 * Drop excluded observations and observations with missing values
 	markout `touse' `expandedvars' `weightvar' `absorb_keepvars' `cluster_keepvars'

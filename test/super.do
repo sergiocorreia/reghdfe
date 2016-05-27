@@ -27,6 +27,7 @@
 	run test-fvvarlist
 	run test-robust
 	run test-cluster
+	run test-cluster-string
 	run test-ivreg2
 
 	run test-zero
