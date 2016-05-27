@@ -15,6 +15,8 @@ syntax anything(id="absvars" name=absvars equalok everything), [SAVEfe]
 	local absvars : subinstr local absvars " =" "=", all
 	local absvars : subinstr local absvars "= " "=", all
 
+	local has_intercept 0
+	
 	while ("`absvars'"!="") {
 		local ++g
 		gettoken absvar absvars : absvars, bind
@@ -39,7 +41,6 @@ syntax anything(id="absvars" name=absvars equalok everything), [SAVEfe]
 		local cvars
 		
 		local absvar_has_intercept 0
-		local has_intercept 0
 
 		foreach factor of local varlist {
 			local hasdot = strpos("`factor'", ".")
@@ -96,5 +97,5 @@ syntax anything(id="absvars" name=absvars equalok everything), [SAVEfe]
 	return scalar savefe = ("`savefe'"!="")
 	return local all_ivars `all_ivars'
 	return local all_cvars `all_cvars'
-	return scalar has_intercept = `has_intercept' // 1 if the model is not a pure-intercept one
+	return scalar has_intercept = `has_intercept' // 1 if the model is not a pure-slope one
 end
