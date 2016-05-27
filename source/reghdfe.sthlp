@@ -775,9 +775,17 @@ on the other hand, there may be alternatives:
 
 {pstd}Sergio Correia{break}
 Fuqua School of Business, Duke University{break}
-Email: {browse "mailto:sergio.correia@duke.edu":sergio.correia@duke.edu}
+Email: {browse "mailto:sergio.correia@gmail.com":sergio.correia@gmail.com}
 {p_end}
 
+{title:Contributors}
+
+{pstd}reghdfe includes the {browse "https://github.com/markeschaffer/stata-utilities":fvstrip} utility, from:
+
+{pmore}Mark E Schaffer{break}
+Heriot-Watt University, UK{break}
+Email: {browse "mailto:m.e.schaffer@hw.ac.uk":m.e.schaffer@hw.ac.uk}
+       
 {marker user_guide}{...}
 {title:User Guide}
 
@@ -814,6 +822,8 @@ and {browse "https://ideas.repec.org/c/boc/bocode/s456942.html":a2reg} from Amin
 {phang}{browse "https://ideas.repec.org/c/boc/bocode/s457689.html":avar} by Christopher F Baum and Mark E Schaffer, is the package used for estimating the HAC-robust standard errors of ols regressions.{p_end}
 
 {phang}{browse "http://econpapers.repec.org/software/bocbocode/s456797.htm":tuples} by Joseph Lunchman and Nicholas Cox, is used when computing standard errors with multi-way clustering (two or more clustering variables).{p_end}
+
+{phang}{browse "https://ideas.repec.org/c/boc/bocode/s458181.html":group3hdfe} by Paulo Guimaraes, computes exact degrees-of-freedom for three levels of fixed effects.{p_end}
 
 {marker references}{...}
 {title:References}
