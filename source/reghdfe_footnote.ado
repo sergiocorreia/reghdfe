@@ -7,7 +7,7 @@ syntax [, linesize(int 79)]
 
 	local skip1 = max(`s(width_col1)'-1, 12) // works with both _coef_table, ivreg2 and ivregress
 
-if ("`e(model)'"=="ols" & inlist("`e(vce)'", "unadjusted", "ols")) {
+if ("`e(model)'"=="ols" & inlist("`e(vce)'","unadjusted","ols") & e(df_a)>1) {
 	local dfa1  = e(df_a) + 1
 	local todisp `"F(`=e(df_a)-1', `e(df_r)') = "'
 	local skip3 = max(23-length(`"`todisp'"')-2,0)

@@ -29,6 +29,7 @@
 	run test-cluster
 	run test-cluster-string
 	run test-ivreg2
+	run test-noabsorb
 
 	run test-zero
 

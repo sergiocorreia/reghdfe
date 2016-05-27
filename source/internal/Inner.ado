@@ -5,18 +5,18 @@ program define Inner, eclass
 	ereturn clear // Clear previous results and drops e(sample)
 	cap estimates drop reghdfe_*
 
+* PRESERVE (optional)
+	*if (`timeit') Tic, n(51)
+	preserve
+	*Debug, level(2) newline
+	*Debug, level(2) msg("(dataset preserved)")
+	*if (`timeit') Toc, n(51) msg(preserve)
+
 * PARSE - inject opts with c_local, create Mata structure HDFE_S (use verbose>2 for details)
 	Parse `0'
 	assert !`savecache'
 	assert !`usecache'
 	if (`timeit') Tic, n(50)
-
-* PRESERVE (optional)
-	if (`timeit') Tic, n(51)
-	preserve
-	Debug, level(2) newline
-	Debug, level(2) msg("(dataset preserved)")
-	if (`timeit') Toc, n(51) msg(preserve)
 
 * MEMORY REPORT - Store dataset size
 	qui de, simple

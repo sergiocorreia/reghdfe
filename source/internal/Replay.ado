@@ -56,7 +56,8 @@ cap pr drop Replay
 		Header // _coef_table_header
 
 		di
-		local plus = cond("`e(model)'"=="ols" & inlist("`e(vce)'", "unadjusted", "ols"), "plus", "")
+		local cond ("`e(model)'"=="ols" & inlist("`e(vce)'","unadjusted","ols") & e(df_a)>1)
+		local plus = cond(`cond', "plus", "")
 		_coef_table, `plus' `diopts'
 	}
 	reghdfe_footnote

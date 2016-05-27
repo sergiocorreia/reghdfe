@@ -55,7 +55,7 @@ void function map_solve(`Problem' S, `Varlist' vars, | `Varlist' newvars, `Boole
 	S.num_iters_max = 0
 	if (restore_dta) residuals = J(S.N, 0, .)
 
-	for (i=1;i<=Q;i=i+S.poolsize) {
+	for (i=1; i<=Q; i=i+S.poolsize) {
 		
 		j = i + S.poolsize - 1
 		if (j>Q) j = Q

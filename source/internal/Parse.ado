@@ -11,7 +11,8 @@ program define Parse
 * Parse the broad syntax (also see map_init(), ParseAbsvars.ado, ParseVCE.ado, etc.)
 	syntax anything(id="varlist" name=0 equalok) [if] [in] [aw pw fw/] , ///
 		/// Model ///
-		Absorb(string) [ ///
+		[Absorb(string) NOAbsorb] ///
+		[ ///
 		RESiduals(name) ///
 		SUBOPTions(string) /// Options to be passed to the estimation command (e.g . to regress)
 		/// Standard Errors ///
@@ -75,7 +76,7 @@ program define Parse
 		local weightvar `exp'
 		local weighttype `weight'
 		local weightexp [`weight'=`weightvar']
-		confirm var `weightvar', exact // just allow simple weights
+		unab weightvar : `weightvar', min(1) max(1) // simple weights only
 
 		* Check that weights are correct (e.g. with fweight they need to be integers)
 		local num_type = cond("`weight'"=="fweight", "integers", "reals")
@@ -97,6 +98,14 @@ program define Parse
 
 * Parse Absvars and optimization options
 if (!`usecache') {
+	Assert ("`absorb'"!="") + ("`noabsorb'"!="") > 0, ///
+		msg("options {bf:absorb()} or {bf:noabsorb} required")
+	Assert ("`absorb'"!="") + ("`noabsorb'"!="") < 2, ///
+		msg("cannot have both {bf:absorb()} and {bf:noabsorb} options")
+	if ("`noabsorb'" != "") {
+		gen byte _constant = 1
+		local absorb _constant
+	}
 	ParseAbsvars `absorb' // Stores results in r()
 		if (inlist("`verbose'", "4", "5")) return list
 		local absorb_keepvars `r(all_ivars)' `r(all_cvars)'

@@ -1,4 +1,4 @@
-*! reghdfe 3.3.3 26may2016
+*! reghdfe 3.3.4 26may2016
 *! Sergio Correia (sergio.correia@duke.edu)
 
 
@@ -1117,7 +1117,7 @@ void function map_solve(`Problem' S, `Varlist' vars, | `Varlist' newvars, `Boole
 	S.num_iters_max = 0
 	if (restore_dta) residuals = J(S.N, 0, .)
 
-	for (i=1;i<=Q;i=i+S.poolsize) {
+	for (i=1; i<=Q; i=i+S.poolsize) {
 		
 		j = i + S.poolsize - 1
 		if (j>Q) j = Q
@@ -2046,7 +2046,7 @@ end
 // -------------------------------------------------------------
 
 program define Version, eclass
-    local version "3.3.3 26may2016"
+    local version "3.3.4 26may2016"
     ereturn clear
     di as text "`version'"
     ereturn local version "`version'"
@@ -2092,7 +2092,8 @@ program define Parse
 * Parse the broad syntax (also see map_init(), ParseAbsvars.ado, ParseVCE.ado, etc.)
 	syntax anything(id="varlist" name=0 equalok) [if] [in] [aw pw fw/] , ///
 		/// Model ///
-		Absorb(string) [ ///
+		[Absorb(string) NOAbsorb] ///
+		[ ///
 		RESiduals(name) ///
 		SUBOPTions(string) /// Options to be passed to the estimation command (e.g . to regress)
 		/// Standard Errors ///
@@ -2156,7 +2157,7 @@ program define Parse
 		local weightvar `exp'
 		local weighttype `weight'
 		local weightexp [`weight'=`weightvar']
-		confirm var `weightvar', exact // just allow simple weights
+		unab weightvar : `weightvar', min(1) max(1) // simple weights only
 
 		* Check that weights are correct (e.g. with fweight they need to be integers)
 		local num_type = cond("`weight'"=="fweight", "integers", "reals")
@@ -2178,6 +2179,14 @@ program define Parse
 
 * Parse Absvars and optimization options
 if (!`usecache') {
+	Assert ("`absorb'"!="") + ("`noabsorb'"!="") > 0, ///
+		msg("options {bf:absorb()} or {bf:noabsorb} required")
+	Assert ("`absorb'"!="") + ("`noabsorb'"!="") < 2, ///
+		msg("cannot have both {bf:absorb()} and {bf:noabsorb} options")
+	if ("`noabsorb'" != "") {
+		gen byte _constant = 1
+		local absorb _constant
+	}
 	ParseAbsvars `absorb' // Stores results in r()
 		if (inlist("`verbose'", "4", "5")) return list
 		local absorb_keepvars `r(all_ivars)' `r(all_cvars)'
@@ -2633,6 +2642,8 @@ syntax anything(id="absvars" name=absvars equalok everything), [SAVEfe]
 	local absvars : subinstr local absvars " =" "=", all
 	local absvars : subinstr local absvars "= " "=", all
 
+	local has_intercept 0
+	
 	while ("`absvars'"!="") {
 		local ++g
 		gettoken absvar absvars : absvars, bind
@@ -2657,7 +2668,6 @@ syntax anything(id="absvars" name=absvars equalok everything), [SAVEfe]
 		local cvars
 		
 		local absvar_has_intercept 0
-		local has_intercept 0
 
 		foreach factor of local varlist {
 			local hasdot = strpos("`factor'", ".")
@@ -2714,7 +2724,7 @@ syntax anything(id="absvars" name=absvars equalok everything), [SAVEfe]
 	return scalar savefe = ("`savefe'"!="")
 	return local all_ivars `all_ivars'
 	return local all_cvars `all_cvars'
-	return scalar has_intercept = `has_intercept' // 1 if the model is not a pure-intercept one
+	return scalar has_intercept = `has_intercept' // 1 if the model is not a pure-slope one
 end
 
 program define ParseDOF, sclass

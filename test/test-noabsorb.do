@@ -1,4 +1,4 @@
-noi cscript "reghdfe with only slope effects" adofile reghdfe
+noi cscript "reghdfe with NOAbsorb" adofile reghdfe
 
 * Setup
 	discard
@@ -29,44 +29,35 @@ noi cscript "reghdfe with only slope effects" adofile reghdfe
 	tsset turn t
 	drop if missing(rep)
 	
-	local included_e scalar: N rmse rss r2 r2_a F df_r ll /// tss F_absorb ll_0 df_m 
+	local included_e scalar: N rmse rss r2 r2_a F df_r df_m ll ll_0 ///
 		matrix: trim_b trim_V ///
 		macros: wexp wtype
 
 * [TEST] Undjusted
 	local lhs price
 	local rhs weight length
-	local absvars i.turn#c.gear
+	local absvars turn
 	fvunab tmp : `rhs'
 	local K : list sizeof tmp
 	
 	* 1. Run benchmark
-	regress `lhs' `rhs' `absvars', nocons
-	predict double d, xb
-	foreach var of local rhs {
-		replace d = d - _b[`var']*`var'
-	}
-	rename d d_benchmark
+	reg `lhs' `rhs'
 	TrimMatrix `K'
-	test `rhs'
-	estadd scalar F = r(F), replace
+	local bench_df_a = 0
 	storedresults save benchmark e()
-
-	* 2. Run reghdfe and compare
-	reghdfe `lhs' `rhs', absorb(`absvars', save) keepsingletons
-	predict d_reghdfe, d
+	
+	* 2. Run reghdfe-avar and compare
+	reghdfe `lhs' `rhs', noabsorb vce(unadjusted, suite(avar)) keepsingletons
 	TrimMatrix `K'
 	storedresults compare benchmark e(), tol(1e-12) include(`included_e')
+	assert `bench_df_a'==e(df_a)-1
 
-	su d_*
-	corr d_*
-	tabstat __hdfe, by(turn)
-	assert r(rho)>=0.999
+	* 3. Run reghdfe-default and compare
+	reghdfe `lhs' `rhs', noabsorb vce(unadjusted, suite(default)) keepsingletons
+	TrimMatrix `K'
+	storedresults compare benchmark e(), tol(1e-12) include(`included_e')
+	assert `bench_df_a'==e(df_a)-1
 
-	drop __hdfe
-	reghdfe `lhs', absorb(`absvars', save) keepsingletons
-	predict xb_reghdfe, xb
-	assert abs(xb)<0.0001
 
 	storedresults drop benchmark
 
