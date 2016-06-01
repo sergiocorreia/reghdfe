@@ -3,7 +3,7 @@ v 3
 d hdfe. Partial out variables with respect to a set of fixed effects
 d
 d Author: Sergio Correia, Duke University
-d Support: sergio.correia@duke.edu
+d Support: sergio.correia@gmail.com
 d
 d hdfe will partial out a varlist with respect to a set of fixed effects. It will either overwrite the dataset in memory, or generate new variables.
 d

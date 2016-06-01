@@ -1,5 +1,5 @@
 v 3
-d Sergio Correia, Duke University (sergio.correia@duke.edu)
+d Sergio Correia, Duke University (sergio.correia@gmail.com)
 p reghdfe REGHDFE - Linear and instrumental-variable/GMM regression absorbing multiple levels of fixed effects
 p hdfe HDFE - Partial out variables with respect to a set of fixed effects
 

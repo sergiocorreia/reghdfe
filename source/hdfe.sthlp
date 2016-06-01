@@ -173,7 +173,7 @@ It contains the same code underlying {help reghdfe} and exposes most of its func
 
 {pstd}Sergio Correia{break}
 Fuqua School of Business, Duke University{break}
-Email: {browse "mailto:sergio.correia@duke.edu":sergio.correia@duke.edu}
+Email: {browse "mailto:sergio.correia@gmail.com":sergio.correia@gmail.com}
 {p_end}
 
 {marker user_guide}{...}

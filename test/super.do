@@ -31,6 +31,8 @@
 	run test-ivreg2
 	run test-noabsorb
 
+	run test-fvstrip // Test cases with complex factor variable 
+
 	run test-zero
 
 	run test-avar

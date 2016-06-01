@@ -41,7 +41,8 @@
 {synopt: {cmdab:a:bsorb(}{it:...}{cmd:,} {cmdab:save:fe)}}save all fixed effect estimates ({it:__hdfe*} prefix); useful for a subsequent {help reghdfe##postestimation:predict}.
 However, see also the {it:resid} option.{p_end}
 {synopt : {opth res:iduals(newvar)}}save residuals; more direct and much faster than saving the fixed effects and then running predict{p_end}
-{synopt :{opth su:mmarize(tabstat##statname:stats)}}equivalent to {help reghdfe##postestimation:estat summarize} after the regression,
+{synopt :{cmdab:su:mmarize}[{cmd:(}{it:{help tabstat##statname:stats}}{cmd:)}]}equivalent
+to {help reghdfe##postestimation:estat summarize} after the regression,
 but more flexible, compatible with the {opt fast:} option, and saves results on {it:e(summarize)}{p_end}
 {synopt : {opt subopt:ions(...)}}additional options that will be passed to the regression command (either {help regress}, {help ivreg2}, or {help ivregress}){p_end}
 	
@@ -427,7 +428,7 @@ Requires {opt pair:wise}, {opt first:pair}, or the default {opt all}.
 {dlgtab:Speeding Up Estimation}
 
 {phang}
-{cmd:reghdfe} {varlist} {ifin}{cmd:,} {opt a:bsorb(absvars)} {cmd:save(cache)} [{it:options}]
+{cmd:reghdfe} {varlist} {ifin}{cmd:,} {opt a:bsorb(absvars)} {cmd:cache(save)} [{it:options}]
 
 {pmore}
 This will transform {it:varlist}, absorbing the fixed effects indicated by {it:absvars}.
@@ -440,10 +441,10 @@ It replaces the current dataset, so it is a good idea to precede it with a {help
 To keep additional (untransformed) variables in the new dataset, use the {opth keep(varlist)} suboption.
 
 {phang}
-{cmd:cache(use)} is used when running reghdfe after a {it:save(cache)} operation. Both the {it:absorb()} and {it:vce()} options must be the same as when the cache was created (the latter because the degrees of freedom were computed at that point).
+{cmd:cache(use)} is used when running reghdfe after a {it:cache(save)} operation. Both the {it:absorb()} and {it:vce()} options must be the same as when the cache was created (the latter because the degrees of freedom were computed at that point).
 
 {phang}
-{cmd:cache(clear)} will delete the Mata objects created by {it:reghdfe} and kept in memory after the {it:save(cache)} operation. These objects may consume a lot of memory, so it is a good idea to clean up the cache. Additionally, if you previously specified {it:preserve}, it may be a good time to {it:restore}.
+{cmd:cache(clear)} will delete the Mata objects created by {it:reghdfe} and kept in memory after the {it:cache(save)} operation. These objects may consume a lot of memory, so it is a good idea to clean up the cache. Additionally, if you previously specified {it:preserve}, it may be a good time to {it:restore}.
 
 {pmore}Example:{p_end}
 {phang2}{cmd:. sysuse auto}{p_end}
