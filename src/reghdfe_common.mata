@@ -147,7 +147,7 @@ mata:
                                   `Vector' resid)
 {
 	`Integer'				K
-	`Matrix'				xx, inv_xx, W
+	`Matrix'				xx, inv_xx, W, inv_V
 	`Vector' 				xy, w
 	`Integer'				used_df_r
 
@@ -203,7 +203,15 @@ mata:
 	}
 
 	// Wald test: joint significance
-	W = b' * invsym(V) * b / S.output.df_m
+	inv_V = invsym(V) // this might not be of full rank but numerical inaccuracies hide it
+	if (diag0cnt(inv_V)) {
+		if (S.verbose > -1) printf("{txt}(Warning: missing F statistic; dropped variables due to collinearity or too few clusters)\n")
+		W = .
+	}
+	else {
+		W = b' * inv_V * b / S.output.df_m
+		if (missing(W) & S.verbose > -1) printf("{txt}(Warning: missing F statistic)\n")
+	}
 
 	// V can be missing if b is completely absorbed by the FEs
 	if (missing(V)) {
@@ -492,17 +500,10 @@ mata:
 	assert(rows(xx)==cols(xx))
 	K = cols(xx)
 	inv_xx = K ? invsym(xx, 1..K) : J(0, 0, .)
-	//"INV_XX IS:"
-	//inv_xx
-	//"DIAG0 IS"
-	//diag0cnt(inv_xx)
 	st_numscalar("r(k_omitted)", diag0cnt(inv_xx))
 	smat = (diagonal(inv_xx) :== 0)'
-	//smat
 	vl_drop = select(varnames, smat)
 	vl_keep = select(varnames, !smat)
-	//vl_drop
-	//vl_keep
 	if (cols(vl_keep)) st_global("r(varlist)", invtokens(vl_keep))
 	if (cols(vl_drop)) st_global("r(omitted)", invtokens(vl_drop))
 	return(inv_xx)

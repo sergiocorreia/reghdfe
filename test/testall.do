@@ -37,6 +37,7 @@
 	run pweight-cluster
 	run fvstrip // Test cases with complex factor variable 
 	run stdata
+	run singleton-x
 
 	* -prune- corner cases
 	* run prune
