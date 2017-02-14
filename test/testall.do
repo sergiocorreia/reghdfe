@@ -38,6 +38,7 @@
 	run fvstrip // Test cases with complex factor variable 
 	run stdata
 	run singleton-x
+	run inconsistent-r2
 
 	* -prune- corner cases
 	* run prune
