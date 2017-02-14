@@ -122,7 +122,7 @@ mata:
 	st_matrix(bname, b')
 	eps = sqrt(epsilon(1))
 	for (i=1; i<=rows(b); i++) {
-		if (abs(b[i])<eps) printf("{txt}(note: %s omitted because of collinearity)\n", tokens(S.options.indepvars)[i])
+		if (abs(b[i])<eps) printf("{txt}note: %s omitted because of collinearity\n", tokens(S.options.indepvars)[i])
 	}
 	st_matrix(Vname, V)
 	st_numscalar(nname, N)
