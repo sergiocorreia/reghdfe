@@ -24,6 +24,10 @@ program reghdfe_estat, rclass
 	else if `"`key'"' == "vce" {
 		vce `0'
 	}
+	else if `"`key'"' == "ic" {
+		syntax, [*]
+		estat_default ic, df(`=e(df_m)+1') `options'
+	}
 	else {
 		di as error `"invalid subcommand `key'"'
 		exit 321
