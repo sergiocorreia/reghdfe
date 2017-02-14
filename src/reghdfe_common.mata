@@ -150,6 +150,7 @@ mata:
 	`Matrix'				xx, inv_xx, W, inv_V
 	`Vector' 				xy, w
 	`Integer'				used_df_r
+	`RowVector'				kept
 
 	if (S.options.vcetype == "unadjusted" & S.weighttype=="pweight") S.options.vcetype = "robust"
 	if (S.verbose > 0) printf("\n{txt} ## Solving least-squares regression of partialled-out variables\n\n")
@@ -182,7 +183,7 @@ mata:
 	S.output.rss = quadcross(resid, w, resid) // do before reghdfe_robust() modifies w
 
 	// Bread of the robust VCV matrix
-	inv_xx = reghdfe_rmcoll(tokens(S.options.indepvars), xx) // invsym(xx, 1..K)
+	inv_xx = reghdfe_rmcoll(tokens(S.options.indepvars), xx, kept=.) // invsym(xx, 1..K)
 	S.output.df_m = rank = cols(X) - diag0cnt(inv_xx)
 	K = rank + S.output.df_a
 	S.output.df_r = N - K // replaced when clustering
@@ -203,13 +204,16 @@ mata:
 	}
 
 	// Wald test: joint significance
-	inv_V = invsym(V) // this might not be of full rank but numerical inaccuracies hide it
+	inv_V = invsym(V[kept, kept]) // this might not be of full rank but numerical inaccuracies hide it
 	if (diag0cnt(inv_V)) {
 		if (S.verbose > -1) printf("{txt}(Warning: missing F statistic; dropped variables due to collinearity or too few clusters)\n")
 		W = .
 	}
+	else if (length(b[kept])==0) {
+		W = .
+	}
 	else {
-		W = b' * inv_V * b / S.output.df_m
+		W = b[kept]' * inv_V * b[kept] / S.output.df_m
 		if (missing(W) & S.verbose > -1) printf("{txt}(Warning: missing F statistic)\n")
 	}
 
@@ -491,7 +495,8 @@ mata:
 // --------------------------------------------------------------------------
 // Based on ivreg2's s_rmcoll2
 `Matrix' reghdfe_rmcoll(`Varlist' varnames,
-                      `Matrix' xx)
+                        `Matrix' xx,
+                        `RowVector' kept)
 {
 	`Integer'				K
 	`Matrix'				inv_xx, smat
@@ -506,6 +511,7 @@ mata:
 	vl_keep = select(varnames, !smat)
 	if (cols(vl_keep)) st_global("r(varlist)", invtokens(vl_keep))
 	if (cols(vl_drop)) st_global("r(omitted)", invtokens(vl_drop))
+	kept = selectindex(!smat) // Return it, so we can exclude these variables from the joint Wald test
 	return(inv_xx)
 }
 
