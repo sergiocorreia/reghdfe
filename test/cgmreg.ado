@@ -96,7 +96,7 @@
 */
 
 
-program define cgmreg, eclass byable(onecall) sortpreserve
+pr cgmreg, eclass byable(onecall) sortpreserve
 
 	syntax anything [if] [in] [aweight fweight iweight pweight /], /*
 		*/ Cluster(string) [NOEIGenfix *] 
@@ -415,7 +415,7 @@ end
 
 *! version 1.1  mh 15/4/98  arb 20/8/98
 *got this from http://fmwww.bc.edu/repec/bocode/u/unique.ado
-program define unique
+pr unique
 local options "BY(string) GENerate(string) Detail"
 local varlist "req ex min(1)"
 local if "opt"

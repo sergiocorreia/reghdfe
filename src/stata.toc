@@ -1,0 +1,9 @@
+v 3
+d Sergio Correia, Federal Reserve Board (sergio.correia@gmail.com)
+p reghdfe REGHDFE - Linear and instrumental-variable/GMM regression absorbing multiple levels of fixed effects
+
+* l word-to-show path-or-url [description]
+* t: Directories within site:
+* t path [description]
+* Packages:
+* p pkgname [description]
