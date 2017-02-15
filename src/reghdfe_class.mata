@@ -481,16 +481,25 @@ class FixedEffects
 }
 
 
-`Void' FixedEffects::save_touse(`Varname' touse)
+`Void' FixedEffects::save_touse(`Varname' touse, | `Boolean' replace)
 {
     `Integer'               idx
     `Vector'                mask
+
+
     if (verbose > 0) printf("\n{txt} ## Saving e(sample)\n")
-    idx = st_addvar("byte", touse)
     mask = J(st_nobs(), 1, 0)
     mask[sample] = J(rows(sample), 1, 1)
-    st_store(., idx, mask)
-
+    
+    if (args()<2 | replace==.) {
+        // Generate
+        idx = st_addvar("byte", touse)
+        st_store(., idx, mask)
+    }
+    else {
+        // Replace
+        st_store(., touse, mask)
+    }
 }
 
 
