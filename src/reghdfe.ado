@@ -153,14 +153,13 @@ program Estimate, eclass
 	mata: HDFE = fixed_effects(`OPT'.absorb, "`touse'", `OPT'.weight_type, `OPT'.weight_var, `OPT'.drop_singletons, HDFE.verbose, HDFE)
 	mata: st_local("N", strofreal(HDFE.N))
 	if (`N' == 0) error 2000
-	drop `touse' // save memory
 
 * Compute degrees-of-freedom
 	mata: HDFE.estimate_dof()
 
 * Save updated e(sample) (singletons reduce sample);
 * required to parse factor variables to partial out
-	mata: HDFE.save_touse("`touse'")
+	mata: HDFE.save_touse("`touse'", 1)
 
 * Expand varlists
 	foreach cat in varlist depvar indepvars endogvars instruments {
