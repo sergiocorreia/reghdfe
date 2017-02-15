@@ -11,6 +11,7 @@
 	- enable prune code for G=2 *and* G>2 (carefully)
 	- (?) allow weights with cg+sd, in their scalar adjustements (does hestenes has weights now?)
 	- Add LSMR as with Mathieu's implem.
+	- Improve the case with id#c.var  and id##c.var . Currently it relies on a lot of calls to invsym. This is unnecessary, as we can i) do it once and save it, or ii) use something better than actually inverting the matrix, and saving the steps (see qrsolve or cholsolve)
 - Cleanup
 	- Remove code vestiges (ivsuite, vcesuite, method, etc.)
 - Docs
