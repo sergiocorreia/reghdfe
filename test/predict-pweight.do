@@ -5,9 +5,11 @@ noi cscript "reghdfe postestimation: predict after pweight" adofile reghdfe
 	bys turn: gen t = _n
 	tsset turn t
 	// drop if missing(rep)
+
+	if (c(version)>=14) loc mss mss
 	
 	local included_e ///
-		scalar: N rmse tss rss mss r2 r2_a F df_r df_m ll ll_0 ///
+		scalar: N rmse tss rss `mss' r2 r2_a F df_r df_m ll ll_0 ///
 		matrix: trim_b trim_V ///
 		macros: wexp wtype
 

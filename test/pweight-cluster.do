@@ -4,10 +4,11 @@ noi cscript "reghdfe postestimation: pweight with cluster" adofile reghdfe
 	sysuse auto
 	bys turn: gen t = _n
 	tsset turn t
-	// drop if missing(rep)
+	
+	if (c(version)>=14) loc mss mss
 	
 	local included_e1 ///
-		scalar: N rmse tss rss mss r2 r2_a df_r df_m ll ll_0 /// F 
+		scalar: N rmse tss rss `mss' r2 r2_a df_r df_m ll ll_0 /// F 
 		matrix: trim_b /// trim_V
 		macros: wexp wtype
 

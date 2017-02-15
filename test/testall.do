@@ -5,7 +5,7 @@
 	set trace off
 	set varabbrev on
 	do setup // cleanup, and reinstall reghdfe and dependencies
-	cls // uncomment
+	cap cls // uncomment
 
 **** RUN CERTIFICATION SCRIPTS
 
