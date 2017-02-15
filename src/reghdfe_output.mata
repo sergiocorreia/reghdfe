@@ -86,6 +86,8 @@ class FE_Output
 	st_matrix("e(dof_table)", table)
 	st_matrixrowstripe("e(dof_table)", rowstripe)
 	st_matrixcolstripe("e(dof_table)", colstripe)
+
+	st_numscalar("e(ic)", iteration_count)
 }
 
 
@@ -121,7 +123,6 @@ class FE_Output
 	// st_numscalar("e(df_r)", df_r)
 	st_numscalar("e(df_m)", df_m)
 	//st_numscalar("e(rank)", df_m)
-	st_numscalar("e(ic)", iteration_count)
 	st_numscalar("e(rss)", rss)
 	st_numscalar("e(rmse)", rmse)
 	st_numscalar("e(tss)", tss)
