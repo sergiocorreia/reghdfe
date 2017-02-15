@@ -49,6 +49,10 @@ mata:
     S.intercepts = strtoreal(tokens(st_global("s(intercepts)")))
     S.num_slopes = strtoreal(tokens(st_global("s(num_slopes)")))
 
+    // TODO:
+    // Allow verbose, timeit, all optimization options, keepsingleton
+    // "s(options)"
+
     if (S.verbose > -1 & !S.has_intercept) printf("{txt}(warning: no intercepts terms in absorb(); regression lacks constant term)\n")
 
 
