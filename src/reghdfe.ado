@@ -151,7 +151,7 @@ program Estimate, eclass
 * Construct HDFE object
 	// SYNTAX: fixed_effects(absvars | , touse, weighttype, weightvar, dropsing, verbose, object)
 	mata: HDFE = fixed_effects(`OPT'.absorb, "`touse'", `OPT'.weight_type, `OPT'.weight_var, `OPT'.drop_singletons, HDFE.verbose, HDFE)
-	mata: st_local("N", strofreal(HDFE.factors[1].num_obs))
+	mata: st_local("N", strofreal(HDFE.N))
 	if (`N' == 0) error 2000
 	drop `touse' // save memory
 

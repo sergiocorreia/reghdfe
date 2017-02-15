@@ -170,6 +170,9 @@ mata:
         printf("{txt}(dropped %s singleton observations)\n", strofreal(S.num_singletons))
     }
 
+    S.N = S.factors[1].num_obs // store number of obs.
+    assert(S.N = S.factors[S.G].num_obs)
+
 
     // (2) run *.panelsetup() after the sample is defined
     if (S.verbose > 0) printf("\n{txt} ## Initializing panelsetup() for each fixed effect\n\n")

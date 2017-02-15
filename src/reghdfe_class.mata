@@ -7,7 +7,8 @@ mata:
 class FixedEffects
 {
     // Factors
-    `Integer'               G
+    `Integer'               G // number of FE levels (2 for two-way-fe, etc.)
+    `Integer'               N // number of obs
     `Boolean'               has_intercept
     `Boolean'               save_any_fe
     `Boolean'               save_all_fe
