@@ -63,6 +63,11 @@ class FE_Output
 	`StringRowVector' 		colstripe
 	`String'				text
 
+	assert(!missing(G))
+	st_numscalar("e(N_hdfe)", G)
+	st_numscalar("e(mobility)", dof_M)
+	st_numscalar("e(M_due_to_nested)", M_due_to_nested)
+
 	text = invtokens(absvars)
 	st_global("e(absvars)", text)
 	
@@ -111,7 +116,6 @@ class FE_Output
 	st_global("e(model)", model)
 	st_global("e(cmdline)", cmdline)
 
-	st_numscalar("e(N_hdfe)", G)
 	st_numscalar("e(N_hdfe_extended)", G_extended)
 	st_numscalar("e(redundant)", dof_M)
 	// st_numscalar("e(df_r)", df_r)
@@ -124,12 +128,9 @@ class FE_Output
 	st_numscalar("e(tss_within)", tss_within)
 	st_numscalar("e(mss)", tss - rss)
 	st_numscalar("e(F)", F)
-	st_numscalar("e(mobility)", dof_M)
 
 	st_numscalar("e(ll)", ll)
 	st_numscalar("e(ll_0)", ll_0)
-
-	st_numscalar("e(M_due_to_nested)", M_due_to_nested)
 
 	st_numscalar("e(r2)", r2)
 	st_numscalar("e(r2_within)", r2_within)
