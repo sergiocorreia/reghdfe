@@ -1,8 +1,6 @@
-*! version 4.0.3 dev - 12feb2017
+*! version 4.0.4 dev - 15feb2017
 
 program reghdfe, eclass
-	version 13 // see header for ms_parse_absvars.ado
-
 	* Intercept old+version
 	cap syntax, version old
 	if !c(rc) {

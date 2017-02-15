@@ -127,7 +127,7 @@ class FixedEffects
 
         assert_msg(cols(y)==cols(vars), "st_data() constructed more columns than expected")
 
-        idx = selectindex(colmax(abs(colminmax(y))) :== 0)
+        idx = `selectindex'(colmax(abs(colminmax(y))) :== 0)
         if (cols(idx) & verbose>-1) {
             printf("{err}WARNING: after demeaning, some variables are just zeros: %s\n", invtokens(vars[idx]))
         }
@@ -209,7 +209,7 @@ class FixedEffects
 
     // This will edit to zero entire columns where *ALL* values are very close to zero
     needs_zeroing = colmax(abs(colminmax(y))) :< 1e-8 // chose something relatively close to epsilon() ~ 1e-16
-    needs_zeroing = selectindex(needs_zeroing)
+    needs_zeroing = `selectindex'(needs_zeroing)
     if (cols(needs_zeroing)) {
         y[., needs_zeroing] = J(rows(y), cols(needs_zeroing), 0)
     }
@@ -275,7 +275,7 @@ class FixedEffects
     SuperG = sum(SubGs)
     num_intercepts = sum(intercepts)
     offsets = runningsum(SubGs) - SubGs :+ 1 // start of each FE within the extended list
-    idx = selectindex(intercepts) // Select all FEs with intercepts
+    idx = `selectindex'(intercepts) // Select all FEs with intercepts
     if (verbose > 0) printf("{txt}    - there are %f fixed intercepts and slopes in the %f absvars\n", SuperG, G)
 
     // Initialize result vectors and scalars

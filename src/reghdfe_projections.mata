@@ -12,11 +12,11 @@ mata:
     if (has_weights) {
         Pw = &asarray(f.extra, "weights")
         Pcounts = &asarray(f.extra, "weighted_counts")
-        return(editmissing(panelsum(y, *Pw, f.info) :/ *Pcounts, 0))
+        return(editmissing(`panelsum'(y, *Pw, f.info) :/ *Pcounts, 0))
 
     }
     else {
-        return(panelsum(y, f.info) :/ f.counts)
+        return(`panelsum'(y, f.info) :/ f.counts)
     }
 }
 

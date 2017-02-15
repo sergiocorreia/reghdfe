@@ -511,7 +511,7 @@ mata:
 	vl_keep = select(varnames, !smat)
 	if (cols(vl_keep)) st_global("r(varlist)", invtokens(vl_keep))
 	if (cols(vl_drop)) st_global("r(omitted)", invtokens(vl_drop))
-	kept = selectindex(!smat) // Return it, so we can exclude these variables from the joint Wald test
+	kept = `selectindex'(!smat) // Return it, so we can exclude these variables from the joint Wald test
 	return(inv_xx)
 }
 

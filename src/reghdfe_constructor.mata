@@ -78,7 +78,7 @@ mata:
     S.weighttype = weighttype
     S.weightvar = weightvar
 
-    S.sample = (touse=="") ? 1::st_nobs() : selectindex(st_data(., touse))
+    S.sample = (touse=="") ? 1::st_nobs() : `selectindex'(st_data(., touse))
 
     if (drop_singletons) {
         S.num_singletons = 0
@@ -198,7 +198,7 @@ mata:
             pf = &(S.factors[g])
             w = (*pf).sort(S.weight)
             asarray((*pf).extra, "weights", w)
-            asarray((*pf).extra, "weighted_counts", panelsum(w, (*pf).info))
+            asarray((*pf).extra, "weighted_counts", `panelsum'(w, (*pf).info))
         }
         w = .
     }

@@ -387,7 +387,7 @@ class BipartiteGraph
 	if (verbose) printf("{txt}    - 1-core vertices found: {res}%g{txt}\n", N_drop)
 
 	drop_order = drop_order[1..N_drop]
-	drop1 = selectindex(cores[1..N1] :== 1)
+	drop1 = `selectindex'(cores[1..N1] :== 1)
 	cores = .
 	drop1 = (1::N1)[drop1]
 	drop2 = -select(drop_order, drop_order:<0)
@@ -431,18 +431,18 @@ class BipartiteGraph
 	// To undo pruning, I need (*PF1).info[drop1, .] & drop2info & drop2idx
 
 	// Set weights of pruned obs. to zero
-	weight[selectindex(mask)] = J(sum(mask), 1, 0)
+	weight[`selectindex'(mask)] = J(sum(mask), 1, 0)
 
 	// Update sorted weights for g=1,2
 	w = (*PF1).sort(weight)
 	asarray((*PF1).extra, "has_weights", 1)
 	asarray((*PF1).extra, "weights", w)
-	asarray((*PF1).extra, "weighted_counts", panelsum(w, (*PF1).info))
+	asarray((*PF1).extra, "weighted_counts", `panelsum'(w, (*PF1).info))
 
 	w = (*PF2).sort(weight)
 	asarray((*PF2).extra, "has_weights", 1)
 	asarray((*PF2).extra, "weights", w)
-	asarray((*PF2).extra, "weighted_counts", panelsum(w, (*PF2).info))
+	asarray((*PF2).extra, "weighted_counts", `panelsum'(w, (*PF2).info))
 	
 	// Select obs where both FEs are degree-1 (and thus omitted)
 	sorted_w = J(N, 1, 1)

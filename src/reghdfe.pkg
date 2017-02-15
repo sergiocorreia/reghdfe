@@ -23,11 +23,12 @@ d KW: xtreg
 d KW: instrumental variables
 d KW: GMM
 d
-d Requires: Stata version 13.0
+d Requires: Stata version 11.2
 d
-d Required packages: ftools moresyntax
+d Required packages:
 d 	moresyntax
 d 	ftools
+d 	boottest (for Stata version 12 or earlier)
 d
 d Distribution-Date: 20170210
 d

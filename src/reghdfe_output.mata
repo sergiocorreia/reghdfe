@@ -81,7 +81,7 @@ class FE_Output
 	table = (doflist_K \ doflist_M \ (doflist_K-doflist_M) \ !doflist_M_is_exact \ doflist_M_is_nested)'
 	rowstripe = extended_absvars'
 	rowstripe = J(rows(table), 1, "") , extended_absvars' // add equation col
-	colstripe = "Categories" \ "Redundant" \ "Num. Coefs." \ "Exact?" \ "Nested?"
+	colstripe = "Categories" \ "Redundant" \ "Num Coefs" \ "Exact?" \ "Nested?" // colstripe cannot have dots on Stata 12 or earlier
 	colstripe = J(cols(table), 1, "") , colstripe // add equation col
 	st_matrix("e(dof_table)", table)
 	st_matrixrowstripe("e(dof_table)", rowstripe)
