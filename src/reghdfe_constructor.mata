@@ -78,12 +78,16 @@ mata:
     S.weighttype = weighttype
     S.weightvar = weightvar
 
+    S.sample = (touse=="") ? 1::st_nobs() : selectindex(st_data(., touse))
+
     if (drop_singletons) {
         S.num_singletons = 0
         num_singletons_i = 0
+        if (weighttype=="fweight") {
+            S.weight = st_data(S.sample, S.weightvar) // just to use it in F.drop_singletons()
+        }
     }
 
-    S.sample = (touse=="") ? 1::st_nobs() : selectindex(st_data(., touse))
 
     // (1) create the factors and remove singletons
     remaining = S.G
@@ -117,7 +121,14 @@ mata:
         }
  
         if (drop_singletons) {
-            idx = S.factors[g].drop_singletons()
+            
+            if (weighttype=="fweight") {
+                idx = S.factors[g].drop_singletons(S.weight)
+            }
+            else {
+                idx = S.factors[g].drop_singletons()
+            }
+
             num_singletons_i = rows(idx)
             S.num_singletons = S.num_singletons + num_singletons_i
             if (S.verbose > 0) {

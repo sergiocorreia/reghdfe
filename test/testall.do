@@ -39,6 +39,7 @@
 	run stdata
 	run singleton-x
 	run inconsistent-r2
+	run singleton-and-fweights
 
 	* -prune- corner cases
 	* run prune
