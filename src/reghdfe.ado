@@ -73,7 +73,7 @@ program Reload
 	* 	reghdfe, reload // from github
 
 	args online
-	assert inlist("`online'", "", "1")
+	if ("`online'" == "") loc online 0
 
 	di as text _n "{bf:reghdfe: updating required packages}"
 	di as text "{hline 64}"
