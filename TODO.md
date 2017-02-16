@@ -1,17 +1,15 @@
 # Pending tasks
 
-## High priority:
+## Done or partly done:
 
 - Fix open issues
 - ivreg2 example
 	- basic demo
 	- allow passthrough of optimization options through `absorb(, ...)` (just set the absorb parser to return a `r(rest)`)
 	- stages
-- Optimization
-	- enable prune code for G=2 *and* G>2 (carefully)
-	- (?) allow weights with cg+sd, in their scalar adjustements (does hestenes has weights now?)
-	- Add LSMR as with Mathieu's implem.
-	- Improve the case with id#c.var  and id##c.var . Currently it relies on a lot of calls to invsym. This is unnecessary, as we can i) do it once and save it, or ii) use something better than actually inverting the matrix, and saving the steps (see qrsolve or cholsolve)
+
+## High priority:
+
 - Cleanup
 	- Remove code vestiges (ivsuite, vcesuite, method, etc.)
 - Docs
@@ -19,6 +17,11 @@
 	- Fix html help builder
 	- update website
 - Compute alphas
+- Optimization
+	- enable prune code for G=2 *and* G>2 (carefully)
+	- (?) allow weights with cg+sd, in their scalar adjustements (does hestenes has weights now?)
+	- Add LSMR as with Mathieu's implem.
+	- Improve the case with id#c.var  and id##c.var . Currently it relies on a lot of calls to invsym. This is unnecessary, as we can i) do it once and save it, or ii) use something better than actually inverting the matrix, and saving the steps (see qrsolve or cholsolve)
 
 ## Lower priority:
 
@@ -32,7 +35,7 @@
 	- The first case can be seen as an expanding interconnected economy
 	- The second, as adding more independent or poorly connected countries to a dataset
 - hdfe.ado
-- Improve degrees-of-ofreedom with group3hdfe (or Mata implem of it)
+- Improve degrees-of-freedom with group3hdfe (or Mata implem of it)
 - demo of how poi2hdfe could work
 - `savecache` and `usecache` (or `hold`) options?
 

@@ -260,8 +260,7 @@ end
 // -----------------------------------------------------------------------------
 // Matrix of summary statistics
 // -----------------------------------------------------------------------------
-cap pr drop Stats
-pr Stats
+program Stats
 	* Optional weights
 	mata: st_local("weight", sprintf("[%s=%s]", HDFE.weighttype, HDFE.weightvar))
 	assert "`weight'" != ""

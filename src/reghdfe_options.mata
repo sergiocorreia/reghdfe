@@ -27,7 +27,6 @@ class FE_Options
 	`String'		endogvars			//
 	`String'		instruments			//
 	`String'		varlist
-	`String'		fe_format			// Format of the depvar
 	`String'		model				// ols, iv
 	`String'		estimator			// 2sls, gmm2s, etc (IV/GMM only)
 	`String'		ivsuite				// ivregress/ivreg2
@@ -37,23 +36,16 @@ class FE_Options
 	`String'		stages_opt
 	`Boolean'		stages_save
 
-	`String'		vceoption
 	`String'		vcetype
-	`String'		vcesuite
-	`String'		vceextra
-	`Boolean'		vce_is_hac
 	`Integer'		num_clusters
 	`Varlist'		clustervars
 	`Varlist'		base_clustervars
-	`Integer'		bw
-	`Integer'		dkraay
-	`Integer'		twicerobust
-	`String'		kiefer
-	`String'		kernel
+	`String'		vceextra
 
-	`String'		dofadjustments
+	`StringRowVector' dofadjustments // firstpair pairwise cluster continuous
 	`Varname'		groupvar
 	`String'		residuals
 	`String'		diopts
+
 }
 end

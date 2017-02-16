@@ -259,16 +259,9 @@ class FixedEffects
     `String'                absvar, clustervar
     `Factor'                F
     `BipartiteGraph'        BG
-    
-    // `Boolean'               adj_clusters
+    `Integer'               pair_count
     
     if (verbose > 0) printf("\n{txt} ## Estimating degrees-of-freedom absorbed by the fixed effects\n\n")
-
-    // Options
-    // adj_clusters = 1
-    // adj_first_pair = 1
-    // adj_pairwise = 1
-
 
     // Count all FE intercepts and slopes
     SubGs = intercepts + num_slopes
@@ -286,9 +279,10 @@ class FixedEffects
     // (1) M will hold the redundant coefs for each extended absvar (G_extended, not G)
     M = J(1, SuperG, 0)
 
-    // (2) (Intercept-Only) Look for absvars that are clustervars
     assert(0 <= options.num_clusters & options.num_clusters <= 10)
-    if (options.num_clusters > 0) {
+    if (options.num_clusters > 0 & anyof(options.dofadjustments, "clusters")) {
+        
+        // (2) (Intercept-Only) Look for absvars that are clustervars
         for (i_intercept=1; i_intercept<=length(idx); i_intercept++) {
             g = idx[i_intercept]
             i = offsets[g]
@@ -301,44 +295,44 @@ class FixedEffects
                 if (verbose > 0) printf("{txt} - categorical variable {res}%s{txt} is also a cluster variable, so it doesn't reduce DoF\n", absvar)
             }
         }
-    }
-    idx = select(idx, idx)
-
-    // (3) (Intercept-Only) Look for absvars that are nested within a clustervar
-    for (i_cluster=1; i_cluster<= options.num_clusters; i_cluster++) {
-        cluster_data = .
-        if (!length(idx)) break // no more absvars to process
-        for (i_intercept=1; i_intercept<=length(idx); i_intercept++) {
-
-            g = idx[i_intercept]
-            i = offsets[g]
-            absvar = invtokens(tokens(ivars[g]), "#")
-            clustervar = options.clustervars[i_cluster]
-            if (M_is_exact[i]) continue // nothing to do
-
-            if (cluster_data == .) {
-                if (strpos(clustervar, "#")) {
-                    clustervar = options.base_clustervars[i_cluster]
-                    F = factor(clustervar, sample, ., "", 0, 0, ., 0)
-                    cluster_data = F.levels
-                    F = Factor() // clear
-                }
-                else {
-                    cluster_data = __fload_data(clustervar, sample)
-                }
-            }
-
-            if (factors[g].nested_within(cluster_data)) {
-                M[i] = factors[g].num_levels
-                M_is_exact[i] = M_is_nested[i] = 1
-                M_due_to_nested = M_due_to_nested + M[i]
-                idx[i_intercept] = 0
-                if (verbose > 0) printf("{txt} - categorical variable {res}%s{txt} is nested within a cluster variable, so it doesn't reduce DoF\n", absvar)
-            }
-        }
         idx = select(idx, idx)
-    }
-    cluster_data = . // save memory
+
+        // (3) (Intercept-Only) Look for absvars that are nested within a clustervar
+        for (i_cluster=1; i_cluster<= options.num_clusters; i_cluster++) {
+            cluster_data = .
+            if (!length(idx)) break // no more absvars to process
+            for (i_intercept=1; i_intercept<=length(idx); i_intercept++) {
+
+                g = idx[i_intercept]
+                i = offsets[g]
+                absvar = invtokens(tokens(ivars[g]), "#")
+                clustervar = options.clustervars[i_cluster]
+                if (M_is_exact[i]) continue // nothing to do
+
+                if (cluster_data == .) {
+                    if (strpos(clustervar, "#")) {
+                        clustervar = options.base_clustervars[i_cluster]
+                        F = factor(clustervar, sample, ., "", 0, 0, ., 0)
+                        cluster_data = F.levels
+                        F = Factor() // clear
+                    }
+                    else {
+                        cluster_data = __fload_data(clustervar, sample)
+                    }
+                }
+
+                if (factors[g].nested_within(cluster_data)) {
+                    M[i] = factors[g].num_levels
+                    M_is_exact[i] = M_is_nested[i] = 1
+                    M_due_to_nested = M_due_to_nested + M[i]
+                    idx[i_intercept] = 0
+                    if (verbose > 0) printf("{txt} - categorical variable {res}%s{txt} is nested within a cluster variable, so it doesn't reduce DoF\n", absvar)
+                }
+            }
+            idx = select(idx, idx)
+        }
+        cluster_data = . // save memory
+    } // end of the two cluster checks (absvar is clustervar; absvar is nested within clustervar)
 
 
     // (4) (Intercept-Only) Every intercept but the first has at least one redundant coef.
@@ -357,35 +351,40 @@ class FixedEffects
     }
 
     // Compute number of dijsoint subgraphs / mobility groups for each pair of remaining FEs
-    BG = BipartiteGraph()
-    bg_verbose = max(( verbose - 1 , 0 ))
+    if (anyof(options.dofadjustments, "firstpair") | anyof(options.dofadjustments, "pairwise")) {
+        BG = BipartiteGraph()
+        bg_verbose = max(( verbose - 1 , 0 ))
+        pair_count = 0
 
-    for (i_intercept=1; i_intercept<=length(idx)-1; i_intercept++) {
-        for (j_intercept=i_intercept+1; j_intercept<=length(idx); j_intercept++) {
-            g = idx[i_intercept]
-            h = idx[j_intercept]
-            i = offsets[h]
-            BG.init(&factors[g], &factors[h], bg_verbose)
-            m = BG.init_zigzag()
-            if (verbose > 0) printf("{txt}    - mobility groups between FE intercepts #%f and #%f: {res}%f\n", g, h, m)
-            M[i] = max(( M[i] , m ))
-            if (j_intercept==2) M_is_exact[i] = 1
+        for (i_intercept=1; i_intercept<=length(idx)-1; i_intercept++) {
+            for (j_intercept=i_intercept+1; j_intercept<=length(idx); j_intercept++) {
+                g = idx[i_intercept]
+                h = idx[j_intercept]
+                i = offsets[h]
+                BG.init(&factors[g], &factors[h], bg_verbose)
+                m = BG.init_zigzag()
+                ++pair_count
+                if (verbose > 0) printf("{txt}    - mobility groups between FE intercepts #%f and #%f: {res}%f\n", g, h, m)
+                M[i] = max(( M[i] , m ))
+                if (j_intercept==2) M_is_exact[i] = 1
+                if (pair_count & anyof(options.dofadjustments, "firstpair")) break
+            }
+            if (pair_count & anyof(options.dofadjustments, "firstpair")) break
         }
+        BG = BipartiteGraph() // clear
     }
-    BG = BipartiteGraph() // clear
     // TODO: add group3hdfe
-    // TODO: add option to only do the first pair
 
     // (6) See if cvars are zero (w/out intercept) or just constant (w/intercept)
-    i = 1
-    for (g=1; g<=G; g++) {
-        // If model has intercept, redundant cvars are those that are CONSTANT
-        // Without intercept, a cvar has to be zero within a FE for it to be redundant
-        // Since S.fes[g].x are already demeaned IF they have intercept, we don't have to worry about the two cases
-        has_int = intercepts[g]
-        if (has_int) i++
+    if (anyof(options.dofadjustments, "continuous")) {
+        for (i=g=1; g<=G; g++) {
+            // If model has intercept, redundant cvars are those that are CONSTANT
+            // Without intercept, a cvar has to be zero within a FE for it to be redundant
+            // Since S.fes[g].x are already demeaned IF they have intercept, we don't have to worry about the two cases
+            has_int = intercepts[g]
+            if (has_int) i++
+            if (!num_slopes[g]) continue
 
-        if (num_slopes[g]) {
             data = asarray(factors[g].extra, "x")
             assert(num_slopes[g]==cols(data))
             results = J(1, cols(data), 0)
@@ -422,7 +421,6 @@ class FixedEffects
         j = g==G ? SuperG : offsets[g+1]
         output.doflist_K[i..j] = J(1, j-i+1, factors[g].num_levels)
     }
-
     output.dof_M = sum(M)
     output.df_a = sum(output.doflist_K) - output.dof_M
     output.M_due_to_nested = M_due_to_nested

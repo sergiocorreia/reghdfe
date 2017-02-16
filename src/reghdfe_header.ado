@@ -1,6 +1,6 @@
 * (Modified from _coef_table_header.ado)
 
-pr reghdfe_header
+program reghdfe_header
 	if !c(noisily) exit
 
 	tempname left right
@@ -97,8 +97,7 @@ pr reghdfe_header
 	HeaderDisplay `left' `right' `"`title'"' `"`title2'"' `"`title3'"' `"`title4'"' `"`title5'"'
 end
 
-cap pr drop HeaderDisplay
-pr HeaderDisplay
+program HeaderDisplay
 		args left right title1 title2 title3 title4 title5
 
 		local nl = `.`left'.arrnels'
@@ -124,8 +123,7 @@ pr HeaderDisplay
 		}
 end
 
-cap pr drop Ftest
-pr Ftest
+program Ftest
 		args right C3 C4 c4wfmt is_svy
 
 		local df = e(df_r)
@@ -152,8 +150,7 @@ pr Ftest
 		}
 end
 
-cap pr drop Chi2test
-pr Chi2test
+program Chi2test
 
 		args right C3 C4 c4wfmt
 
