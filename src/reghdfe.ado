@@ -1,4 +1,4 @@
-*! version 4.0.4 dev - 15feb2017
+*! version 4.0.5 dev - 16feb2017
 
 program reghdfe, eclass
 	* Intercept old+version
@@ -19,9 +19,13 @@ program reghdfe, eclass
 
 	* Aux. subcommands
 	cap syntax, [*]
-	if inlist("`options'", "check", "compile", "requirements", "setup", "update", "version") {
+	if inlist("`options'", "check", "compile", "reload", "update", "version") {
 		if ("`options'"=="compile") loc args force
 		if ("`options'"=="check") loc options compile
+		if ("`options'"=="update") {
+			loc args 1
+			loc options reload
+		}
 		loc subcmd = proper("`options'")
 		`subcmd' `args'
 	}
@@ -57,52 +61,50 @@ program Compile
 end
 
 program Requirements
-	di as text _n "{bf:[reghdfe]} - updating required packages"
-	di as text "{dup 64:=}"
+
+end
+
+
+program Reload
+	* Internal debugging tool.
+	* Updates dependencies and reghdfe from local path or from github
+	* Usage:
+	* 	reghdfe, update // from c:\git\..
+	* 	reghdfe, reload // from github
+
+	args online
+	assert inlist("`online'", "", "1")
+
+	di as text _n "{bf:reghdfe: updating required packages}"
+	di as text "{hline 64}"
+
 	* -moresyntax- https://github.com/sergiocorreia/moresyntax/
 	cap ado uninstall moresyntax
-	//net install moresyntax, from(https://github.com/sergiocorreia/moresyntax/raw/master/source/)
-	net install moresyntax, from(c:\git\moresyntax\src)
-	di as text "{dup 64:-}"
+	if (`online') net install moresyntax, from("https://github.com/sergiocorreia/moresyntax/raw/master/src/")
+	if (!`online') net install moresyntax, from("c:\git\moresyntax\src")
+	di as text "{hline 64}"
 
 	* -ftools- https://github.com/sergiocorreia/ftools/
 	cap ado uninstall ftools
-	//net install ftools, from(https://github.com/sergiocorreia/ftools/raw/master/source/)
-	net install ftools, from(c:\git\ftools\src)
-	di as text "{dup 64:-}"
+	if (`online') net install ftools, from("https://github.com/sergiocorreia/ftools/raw/master/src/")
+	if (!`online') net install ftools, from("c:\git\ftools\src")
+	di as text "{hline 64}"
 	ftools, compile // requires moresyntax
-	di as text "{dup 64:-}"
-end
-
-
-program Setup
-	* Update requirements/dependencies
-	Requirements
-
-	* Compile -reghdfe-
-	loc source "c:\git\reghdfe\src"
-	di as text _n  _n "{bf:[reghdfe]} - compiling Mata code for {res}reghdfe"
-	di as text "{dup 64:=}"
-	reghdfe, compile
-	di as text "{dup 64:-}"
-end
-
-
-program Update
-	* Update requirements/dependencies
-	Requirements
+	di as text "{hline 64}"
 
 	* Update -reghdfe-
-	loc source "c:\git\reghdfe\src"
-	di as text _n  _n "{bf:[reghdfe]} - updating self from {res}`source'"
-	di as text "{dup 64:=}"
+	di as text _n  _n "{bf:reghdfe: updating self}"
+	di as text "{hline 64}"
 	qui ado uninstall reghdfe
-	net install reghdfe, from("`source'") // TODO: Change this
+	if (`online') net install reghdfe, from("https://github.com/sergiocorreia/reghdfe/raw/version-4/src/")
+	if (!`online') net install reghdfe, from("c:\git\reghdfe\src")
 	qui which reghdfe
-	di as text "{dup 64:-}"
+	di as text "{hline 64}"
 	reghdfe, compile
-	di as text "{dup 64:-}"
-	di as text "{bf:Note:} You need to run {stata program drop _all} now."
+	di as text "{hline 64}"
+
+	* Cleaning up
+	di as text _n "{bf:Note:} You need to run {stata program drop _all} now."
 end
 
 
