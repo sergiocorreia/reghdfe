@@ -5,36 +5,24 @@ mata:
 
 class FE_Options
 {
-	// Raw input
+	`String'		original_varlist	// y x1 x2 (x3 x4 = z1 z2 z3)
+	`String'		depvar				// y
+	`String'		indepvars			// x1 x2
+	`String'		endogvars			// x3 x4
+	`String'		instruments			// z1 z2 z3
+	`String'		varlist				// y x1 x2 x3 x4 z1 z2 z3
+	
 	`Boolean'		drop_singletons
-	`Boolean'		ffirst				// First-stage F tests (IV/GMM only)
-	`String'		original_depvar
-	`String'		original_indepvars
-	`String'		original_endogvars
-	`String'		original_instruments
-	`String'		original_varlist	// join the four above
 	`String'		weight_var			// Weighting variable
 	`String'		weight_type			// Weight type (pw, fw, etc)
-	`String'		weight_exp			// "[weight_type=weight_var]"
 	`String'		absorb				// contents of absorb()
-	`String'		suboptions
 	`String'		select_if			// If condition
 	`String'		select_in			// In condition
 
 	// Parsed input
-	`String'		depvar				//
-	`String'		indepvars			//
-	`String'		endogvars			//
-	`String'		instruments			//
-	`String'		varlist
 	`String'		model				// ols, iv
-	`String'		estimator			// 2sls, gmm2s, etc (IV/GMM only)
-	`String'		ivsuite				// ivregress/ivreg2
 	`String'		summarize_stats
 	`Boolean'		summarize_quietly
-	`String'		stages
-	`String'		stages_opt
-	`Boolean'		stages_save
 
 	`String'		vcetype
 	`Integer'		num_clusters

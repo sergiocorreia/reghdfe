@@ -135,25 +135,188 @@ program Cleanup
 	if (`rc') exit `rc'
 end
 
+// --------------------------------------------------------------------------
+
+program Parse
+	loc OPT = "HDFE.options"
+	loc OUT = "HDFE.output"
+
+* Trim whitespace (caused by "///" line continuations; aesthetic only)
+	mata: st_local("0", stritrim(st_local("0")))
+
+* Main syntax
+	#d;
+	syntax anything(id=varlist equalok) [if] [in] [aw pw fw/] , [
+
+		/* Model */
+		Absorb(string) NOAbsorb
+		RESiduals(name) RESiduals2 /* use _reghdfe_resid */
+		SUmmarize SUmmarize2(string asis) /* simulate implicit options */
+
+		/* Standard Errors */
+		VCE(string) CLuster(string)
+
+		/* Diagnostic */
+		Verbose(numlist min=1 max=1 >=-1 <=5 integer)
+		TIMEit
+
+		/* Undocumented */
+		KEEPSINgletons
+		OLD /* use latest v3 */
+		NOTES(string) /* NOTES(key=value ...), will be stored on e() */
+		
+		] [*] /* capture optimization options, display options, etc. */
+		;
+	#d cr
+
+* Unused
+		/* Speedup and memory Tricks */
+*		SAVEcache
+*		USEcache
+*		CLEARcache
+*		COMPACT /* use as little memory as possible but is slower */
+*		NOSAMPle /* do not save e(sample) */
+
+
+* Convert options to boolean
+	if ("`verbose'" == "") loc verbose 0
+	loc timeit = ("`timeit'"!="")
+	loc drop_singletons = ("`keepsingletons'"=="")
+
+	if (`verbose'>-1 & "`keepsingletons'"!="") {
+		di as error `"WARNING: Singleton observations not dropped; statistical significance is biased {browse "http://scorreia.com/reghdfe/nested_within_cluster.pdf":(link)}"'
+	}
+
+
+* Sanity checks
+	if ("`cluster'"!="") {
+		_assert ("`vce'"==""), msg("cannot specify both cluster() and vce()")
+		loc vce cluster `cluster'
+		loc cluster // clear it to avoid bugs in subsequent lines
+	}
+
+
+* Parse Varlist
+	ms_fvunab `anything'
+	// mata: HDFE.base_varlist = "`s(basevars)'"
+	ms_parse_varlist `s(varlist)'
+	foreach cat in depvar indepvars endogvars instruments {
+		loc `cat' "`s(`cat')'"
+	}
+	loc model = cond("`s(instruments)'" == "", "ols", "iv")
+	//mata: `OPT'.model = "`model'"
+	loc original_varlist = "`s(varlist)'" // no parens or equal // bugbug add to HDFE.options
+
+
+* Parse Weights
+	if ("`weight'"!="") {
+		unab exp : `exp', min(1) max(1) // simple weights only
+	}
+
+
+* Parse VCE
+	ms_parse_vce, vce(`vce') weighttype(`weight_type')
+	loc vcetype = "`s(vcetype)'"
+	loc num_clusters = `s(num_clusters)'
+	loc clustervars = "`s(clustervars)'"
+	loc base_clustervars = "`s(base_clustervars)'"
+	loc vceextra = "`s(vceextra)'"
+
+
+* Select sample
+	loc varlist `original_varlist' `base_clustervars'
+	tempvar touse
+	marksample touse, strok // based on varlist + cluster + if + in + weight
+
+
+* Parse noabsorb (only used for validation, run again from Mata!)
+	_assert  ("`absorb'`noabsorb'" != ""), msg("option {bf:absorb()} or {bf:noabsorb} required")
+	if ("`noabsorb'" != "") {
+		_assert ("`absorb'" == ""), msg("{bf:absorb()} and {bf:noabsorb} are mutually exclusive")
+		tempvar c
+		gen byte `c' = 1
+		loc absorb `c'
+	}
+
+
+* Construct HDFE object
+	// SYNTAX: fixed_effects(absvars | , touse, weighttype, weightvar, dropsing, verbose)
+	mata: st_local("comma", strpos(`"`absorb'"', ",") ? "" : ",")
+	mata: HDFE = fixed_effects(`"`absorb' `comma' `options'"', "`touse'", "`weight'", "`exp'", `drop_singletons', `verbose')
+	mata: `OUT'.cmdline = "reghdfe " + st_local("0")
+	loc options `s(options)'
+
+	mata: st_local("N", strofreal(HDFE.N))
+	if (`N' == 0) error 2000
+
+* Fill out HDFE object
+	mata: `OPT'.clustervars = tokens("`clustervars'")
+	...
+
+
+* Parse summarize
+	if ("`summarize'" != "") {
+		_assert ("`summarize2'" == ""), msg("summarize() syntax error")
+		loc summarize2 mean min max  // default values
+	}
+	ParseSummarize `summarize2'
+	mata: `OPT'.summarize_stats = "`s(stats)'"
+	mata: `OPT'.summarize_quietly = `s(quietly)'
+
+
+* Parse residuals
+	if ("`residuals2'" != "") {
+		_assert ("`residuals'" == ""), msg("residuals() syntax error")
+		loc residuals _reghdfe_resid
+		cap drop `residuals' // destructive!
+	}
+	else if ("`residuals'"!="") {
+		conf new var `residuals'
+	}
+	mata: `OPT'.residuals = "`residuals'"
+
+
+* Parse misc options
+	mata: `OUT'.notes = `"`notes'"'
+	mata: `OPT'.suboptions = `"`suboptions'"'
+
+
+* Parse Coef Table Options (do this last!)
+	_get_diopts diopts options, `options' // store in `diopts', and the rest back to `options'
+	_assert (`"`options'"'==""), msg(`"invalid options: `options'"')
+	if ("`hascons'"!="") di in ye "(option ignored: `hascons')"
+	if ("`tsscons'"!="") di in ye "(option ignored: `tsscons')"
+	mata: `OPT'.diopts = `"`diopts'"'
+
+
+* Inject back locals
+	c_local varlist `"`depvar' `indepvars' `endogvars' `instruments' `extended_absvars' `base_clustervars'"'
+	c_local if `"`if'"'
+	c_local in `"`in'"'
+	c_local weight `"`weight'"'
+	c_local exp `"`exp'"'
+end
+
+// --------------------------------------------------------------------------
+
+program ParseSummarize, sclass
+	sreturn clear
+	syntax [namelist(name=stats)] , [QUIetly]
+	local quietly = ("`quietly'"!="")
+	sreturn loc stats "`stats'"
+	sreturn loc quietly = `quietly'
+end
+
+// --------------------------------------------------------------------------
 
 program Estimate, eclass
 	ereturn clear
 
 * Parse and fill out HDFE object
-	mata: HDFE = FixedEffects()
-	reghdfe_parse `0' // store results on HDFE, HDFE.options, and HDFE.output
+	Parse `0'
 	loc OPT HDFE.options
 	loc OUT HDFE.output
 
-* Select sample
-	marksample touse, strok // based on locals for varlist+cluster+absvars+if+in+weight (injected by -reghdfe_parse-)
-	// -strok- because clustervars can be string
-
-* Construct HDFE object
-	// SYNTAX: fixed_effects(absvars | , touse, weighttype, weightvar, dropsing, verbose, object)
-	mata: HDFE = fixed_effects(`OPT'.absorb, "`touse'", `OPT'.weight_type, `OPT'.weight_var, `OPT'.drop_singletons, HDFE.verbose, HDFE)
-	mata: st_local("N", strofreal(HDFE.N))
-	if (`N' == 0) error 2000
 
 * Compute degrees-of-freedom
 	mata: HDFE.estimate_dof()
@@ -180,8 +343,8 @@ program Estimate, eclass
 * Partial out; and save TSS of depvar
 	mata: hdfe_variables = HDFE.partial_out(`OPT'.varlist, 1) // 1=Save TSS of first var if HDFE.output.tss is missing
 
-
 * Regress
+	mata: assert(`OPT'.model=="ols")
 	Regress `touse'
 	mata: st_local("diopts", `OPT'.diopts)
 	Replay, `diopts'

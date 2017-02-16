@@ -52,7 +52,6 @@ class FixedEffects
     `Vector'                pruned_weight       // temp. weight for the factors that were pruned
     `Integer'               prune_g1            // Factor 1/2 in the bipartite subgraph that gets pruned
     `Integer'               prune_g2            // Factor 2/2 in the bipartite subgraph that gets pruned
-    
 
 
     // Additional options not used here

@@ -9,13 +9,11 @@ mata:
                              `String' weighttype,
                              `Varname' weightvar,
                              `Boolean' drop_singletons,
-                             `Boolean' verbose,
-                             class FixedEffects matrix S // S must be of orgtype matrix, else it cannot be optional
-                             )
+                             `Boolean' verbose)
 {
+    `FixedEffects'          S
     `Varname'               absvar, cvars
     `Integer'               i, j, g, gg, remaining
-    `Boolean'               use_sample
     `Vector'                idx
     `Integer'               spaces
     `Integer'               num_singletons_i
@@ -29,13 +27,23 @@ mata:
     if (args()<4) weightvar = ""
     if (args()<5 | drop_singletons==.) drop_singletons = 1
     if (args()<6 | verbose==.) verbose = 0
-    if (args()<7) S = FixedEffects()
-
+    
+    S = FixedEffects()
     S.verbose = verbose
 
     // Parse absvars
-    if (S.verbose > 0) printf("\n{txt} ## Parsing absvars\n")
-    stata(`"ms_parse_absvars "' + absvars)
+    if (S.verbose > 0) printf("\n{txt} ## Parsing absvars and HDFE options\n")
+    
+    if (touse == "") touse = st_tempname()
+    st_global("reghdfe_touse", touse)
+    "<<<"
+    absvars
+    ">>>"
+    stata(`"reghdfe_parse "' + absvars)
+    touse = st_global("s(touse)")
+    S.sample = `selectindex'(st_data(., touse))
+    st_global("reghdfe_touse", "")
+
     if (S.verbose > 0) stata("sreturn list")
     S.G = strtoreal(st_global("s(G)"))
     S.absvars = tokens(st_global("s(absvars)"))
@@ -49,9 +57,13 @@ mata:
     S.intercepts = strtoreal(tokens(st_global("s(intercepts)")))
     S.num_slopes = strtoreal(tokens(st_global("s(num_slopes)")))
 
-    // TODO:
-    // Allow verbose, timeit, all optimization options, keepsingleton
-    // "s(options)"
+    if (st_global("s(tolerance)") != "") S.tolerance = strtoreal(st_global("s(tolerance)"))
+    if (st_global("s(maxiter)") != "") S.maxiter = strtoreal(st_global("s(maxiter)"))
+    if (st_global("s(prune)") != "") S.prune = strtoreal(st_global("s(prune)"))
+    if (st_global("s(transform)") != "") S.transform = st_global("s(transform)")
+    if (st_global("s(acceleration)") != "") S.acceleration = st_global("s(acceleration)")
+    S.options.dofadjustments = tokens(st_global("s(dofadjustments)"))
+    S.options.groupvar = st_global("s(groupvar)")
 
     if (S.verbose > -1 & !S.has_intercept) printf("{txt}(warning: no intercepts terms in absorb(); regression lacks constant term)\n")
 
@@ -78,8 +90,6 @@ mata:
     S.weighttype = weighttype
     S.weightvar = weightvar
 
-    S.sample = (touse=="") ? 1::st_nobs() : `selectindex'(st_data(., touse))
-
     if (drop_singletons) {
         S.num_singletons = 0
         num_singletons_i = 0
@@ -104,7 +114,6 @@ mata:
         ++i
         g = 1 + mod(i-1, S.G)
         absvar = S.absvars[g]
-        use_sample = (touse!="") | (i>1 & drop_singletons)
         
         if (S.verbose > 0) {
             printf("{txt}   | %2.0f | %1.0f | {res}%s{txt} | ", i, g, (spaces+5-strlen(absvar)) * " " + absvar)
@@ -112,8 +121,8 @@ mata:
             displayflush()
         }
         if (i<=S.G) {
-            if (use_sample) assert_msg(rows(S.sample), "empty sample")
-            S.factors[g] = factor(S.ivars[g], use_sample ? S.sample : .)
+            assert_msg(rows(S.sample), "empty sample")
+            S.factors[g] = factor(S.ivars[g], S.sample)
         }
         if (S.verbose > 0) {
             printf("{res}%10.0g{txt} | {res}%10.0g{txt} | %7.0f |", S.factors[g].num_obs, S.factors[g].num_levels, S.factors[g].is_sorted)
