@@ -60,10 +60,7 @@ program Compile
 		`force'
 end
 
-program Requirements
-
-end
-
+// --------------------------------------------------------------------------
 
 program Reload
 	* Internal debugging tool.
@@ -107,14 +104,18 @@ program Reload
 	di as text _n "{bf:Note:} You need to run {stata program drop _all} now."
 end
 
+// --------------------------------------------------------------------------
 
 program Version
 	which reghdfe
 
 	di as text _n "Dependencies installed?"
-	local dependencies moresyntax ftools ivreg2 avar tuples
+	local dependencies moresyntax ftools
+	// ivreg2 avar tuples group3hdfe boottest
 	foreach dependency of local dependencies {
-		cap findfile `dependency'.ado
+		loc fn `dependency'.ado
+		if ("`dependency'"=="moresyntax") loc fn ms_get_version.ado
+		cap findfile `fn'
 		if (_rc) {
 			di as text "{lalign 20:- `dependency'}" as error "not"
 		}
@@ -122,7 +123,6 @@ program Version
 			di as text "{lalign 20:- `dependency'}" as result "yes"
 		}
 	}
-
 end
 
 // --------------------------------------------------------------------------
