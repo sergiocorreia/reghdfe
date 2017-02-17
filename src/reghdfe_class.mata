@@ -21,6 +21,7 @@ class FixedEffects
     `Boolean'               save_any_fe
     `Boolean'               save_all_fe
     `Varlist'               targets
+    `RowVector'             save_fe
 
     // Optimization options
     `Real'                  tolerance
@@ -127,6 +128,7 @@ class FixedEffects
     `Void'                  _expand_1core()
     `Void'                  estimate_dof()
     `Void'                  save_touse()
+    `Void'                  store_alphas()
     `Void'                  save_variable()
     `Void'                  post_footnote()
     `Void'                  post()
@@ -203,12 +205,41 @@ class FixedEffects
     return(y)
 }
 
+`Void' FixedEffects::store_alphas(`Variables' d)
+{
+    `Integer'               g, i, j
+    `StringRowVector'       varlabel
+
+    // Create empty alphas
+    for (g=j=1; g<=G; g++) {
+        if (!save_fe[g]) continue
+        asarray(factors[g].extra, "alphas", J(factors[g].num_levels, intercepts[g] + num_slopes[g], 0))
+    }
+
+    // Fill out alphas
+    (void) accelerate_sd(this, d, &transform_kaczmarz())
+
+    // Store alphas in dataset
+    for (g=j=1; g<=G; g++) {
+        if (!save_fe[g]) {
+            j = j + intercepts[g] + num_slopes[g]
+            continue
+        }
+        varlabel = J(1, intercepts[g] + num_slopes[g], "")
+        for (i=1; i<=cols(varlabel); i++) {
+            varlabel[i] = sprintf("[FE] %s", extended_absvars[j])
+            j++
+        }
+        save_variable(targets[g], asarray(factors[g].extra, "alphas"), varlabel)
+    }
+}
+
 
 `Void' FixedEffects::_partial_out(`Variables' y, | `Boolean' save_tss)
 {
     `RowVector'             stdevs, needs_zeroing
     `FunctionP'             funct_transform, func_accel // transform
-    `Real'                y_mean
+    `Real'                  y_mean
 
     if (args()<2 | save_tss==.) save_tss = 0
 
@@ -557,11 +588,16 @@ class FixedEffects
                                    `Variable' data,
                                  | `String' varlabel)
 {
-    `Integer'               idx
+    `RowVector'               idx
+    `Integer'               i
     `Vector'                mask
-    idx = st_addvar("double", varname)
+    idx = st_addvar("double", tokens(varname))
     st_store(sample, idx, data)
-    if (args()>=3 & varlabel!="") st_varlabel(idx, varlabel)
+    if (args()>=3 & varlabel!="") {
+        for (i=1; i<=cols(data); i++) {
+            st_varlabel(idx[i], varlabel[i])
+        }
+    }
 
 }
 

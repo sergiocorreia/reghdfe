@@ -2,6 +2,7 @@
 program reghdfe_parse, sclass
 
 * Parse absorb
+	cap drop __hdfe* // destructive!
 	ms_parse_absvars `0'
 	loc extended_absvars `"`s(extended_absvars)'"'
 	mata: st_local("unquoted_absvars", subinstr(st_global("s(absvars)"), `"""', ""))

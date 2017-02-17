@@ -54,9 +54,10 @@ mata:
     S.save_all_fe = strtoreal(st_global("s(save_all_fe)"))
     S.ivars = tokens(st_global("s(ivars)"))
     S.cvars = tokens(st_global("s(cvars)"))
-    S.targets = tokens(st_global("s(targets)"))
+    S.targets = strtrim(tokens(st_global("s(targets)")))
     S.intercepts = strtoreal(tokens(st_global("s(intercepts)")))
     S.num_slopes = strtoreal(tokens(st_global("s(num_slopes)")))
+    S.save_fe = S.targets :!= ""
 
     if (st_global("s(tolerance)") != "") S.tolerance = strtoreal(st_global("s(tolerance)"))
     if (st_global("s(maxiter)") != "") S.maxiter = strtoreal(st_global("s(maxiter)"))
