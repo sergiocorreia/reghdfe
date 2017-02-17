@@ -2,11 +2,9 @@
 program reghdfe_parse, sclass
 
 * Parse absorb
-macro list
 	ms_parse_absvars `0'
 	loc extended_absvars `"`s(extended_absvars)'"'
 	loc 0 `s(options)'
-	sreturn list
 
 * Main syntax
 	#d;

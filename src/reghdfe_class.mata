@@ -24,8 +24,6 @@ class FixedEffects
 
     // Weight-specific
     `Boolean'               has_weights
-    `String'                weighttype
-    `Varname'               weightvar
     `Variabe'               weight // unsorted weight
 
     // Misc
@@ -182,7 +180,7 @@ class FixedEffects
         else {
             output.tss = cross(y[., 1], weight, y[., 1]) // Sum of w[i] * y[i] ^ 2
         }
-        if (weighttype=="aweight" | weighttype=="pweight") output.tss = output.tss * rows(y) / sum(weight)
+        if (options.weight_type=="aweight" | options.weight_type=="pweight") output.tss = output.tss * rows(y) / sum(weight)
     }
 
     // Standardize variables
@@ -277,7 +275,6 @@ class FixedEffects
 
     // (1) M will hold the redundant coefs for each extended absvar (G_extended, not G)
     M = J(1, SuperG, 0)
-
     assert(0 <= options.num_clusters & options.num_clusters <= 10)
     if (options.num_clusters > 0 & anyof(options.dofadjustments, "clusters")) {
         

@@ -152,7 +152,7 @@ mata:
 	`Integer'				used_df_r
 	`RowVector'				kept
 
-	if (S.options.vcetype == "unadjusted" & S.weighttype=="pweight") S.options.vcetype = "robust"
+	if (S.options.vcetype == "unadjusted" & S.options.weight_type=="pweight") S.options.vcetype = "robust"
 	if (S.verbose > 0) printf("\n{txt} ## Solving least-squares regression of partialled-out variables\n\n")
 
 	// Weight FAQ:
@@ -166,11 +166,11 @@ mata:
 	// We need to pick N and w
 	N = rows(y) // Default; will change with fweights
 	w = 1
-	if (S.weighttype=="fweight") {
+	if (S.options.weight_type=="fweight") {
 		N = sum(S.weight)
 		w = S.weight
 	}
-	else if (S.weighttype=="aweight" | S.weighttype=="pweight") {
+	else if (S.options.weight_type=="aweight" | S.options.weight_type=="pweight") {
 		w = S.weight * (N / sum(S.weight))
 	}
 
@@ -227,7 +227,7 @@ mata:
 	S.output.title = "Linear regression"
 	S.output.model = "ols"
 	
-	if (S.weighttype!="") S.output.sumweights = quadsum(S.weight)
+	if (S.options.weight_type!="") S.output.sumweights = quadsum(S.weight)
 
 	used_df_r = N - K - S.output.M_due_to_nested
 	S.output.r2 = 1 - S.output.rss / S.output.tss
@@ -267,15 +267,15 @@ mata:
 
 	if (S.verbose > 0) printf("\n{txt} ## Estimating Robust Variance-Covariance Matrix of the Estimators (VCE)\n\n")
 	if (S.verbose > 0) printf("{txt}    - VCE type: {res}%s{txt}\n", S.options.vcetype)
-	if (S.verbose > 0) printf("{txt}    - Weight type: {res}%s{txt}\n", S.weighttype=="" ? "<none>" : S.weighttype)
+	if (S.verbose > 0) printf("{txt}    - Weight type: {res}%s{txt}\n", S.options.weight_type=="" ? "<none>" : S.options.weight_type)
 
-	if (S.weighttype=="") {
+	if (S.options.weight_type=="") {
 		w = resid :^ 2
 	}
-	else if (S.weighttype=="fweight") {
+	else if (S.options.weight_type=="fweight") {
 		w = resid :^ 2 :* w
 	}
-	else if (S.weighttype=="aweight" | S.weighttype=="pweight") {
+	else if (S.options.weight_type=="aweight" | S.options.weight_type=="pweight") {
 		w = (resid :* w) :^ 2
 	}
 
@@ -310,13 +310,13 @@ mata:
 	`Matrix'				joined_levels
 
 	w = resid :* w
-	//if (S.weighttype=="") {
+	//if (S.options.weight_type=="") {
 	//	w = resid
 	//}
-	//else if (S.weighttype=="fweight") {
+	//else if (S.options.weight_type=="fweight") {
 	//	w = resid :* w
 	//}
-	//else if (S.weighttype=="aweight" | S.weighttype=="pweight") {
+	//else if (S.options.weight_type=="aweight" | S.options.weight_type=="pweight") {
 	//	w = resid :* w
 	//}
 
@@ -325,7 +325,7 @@ mata:
 	if (S.verbose > 0) printf("\n{txt} ## Estimating Cluster Robust Variance-Covariance Matrix of the Estimators (VCE)\n\n")
 	if (S.verbose > 0) printf("{txt}    - VCE type: {res}%s{txt} (%g-way clustering)\n", S.options.vcetype, Q)
 	if (S.verbose > 0) printf("{txt}    - Cluster variables: {res}%s{txt}\n", invtokens(vars))
-	if (S.verbose > 0) printf("{txt}    - Weight type: {res}%s{txt}\n", S.weighttype=="" ? "<none>" : S.weighttype)
+	if (S.verbose > 0) printf("{txt}    - Weight type: {res}%s{txt}\n", S.options.weight_type=="" ? "<none>" : S.options.weight_type)
 	assert_msg(0 < Q & Q < 10)
 
 	// Get or build factors associated with the clustervars

@@ -36,11 +36,7 @@ mata:
     
     if (touse == "") touse = st_tempname()
     st_global("reghdfe_touse", touse)
-    "<<<"
-    absvars
-    ">>>"
     stata(`"reghdfe_parse "' + absvars)
-    touse = st_global("s(touse)")
     S.sample = `selectindex'(st_data(., touse))
     st_global("reghdfe_touse", "")
 
@@ -67,8 +63,7 @@ mata:
 
     if (S.verbose > -1 & !S.has_intercept) printf("{txt}(warning: no intercepts terms in absorb(); regression lacks constant term)\n")
 
-
-    // Store results (HDFE.options cannot access HDFE easily because its class is defined before the HDFE class)
+    // Store results (HDFE.output cannot access HDFE easily because its class is defined before the HDFE class)
     S.output.G = S.G
     S.output.absvars = S.absvars
     S.output.extended_absvars = tokens(st_global("s(extended_absvars)"))
@@ -86,15 +81,16 @@ mata:
     // Fill out object
     S.G = cols(S.absvars)
     S.factors = Factor(S.G)
+
     assert_msg(anyof(("", "fweight", "pweight", "aweight"), weighttype), "wrong weight type")
-    S.weighttype = weighttype
-    S.weightvar = weightvar
+    S.options.weight_type = weighttype
+    S.options.weight_var = weightvar
 
     if (drop_singletons) {
         S.num_singletons = 0
         num_singletons_i = 0
         if (weighttype=="fweight") {
-            S.weight = st_data(S.sample, S.weightvar) // just to use it in F.drop_singletons()
+            S.weight = st_data(S.sample, weightvar) // just to use it in F.drop_singletons()
         }
     }
 
@@ -193,14 +189,14 @@ mata:
 
 
     // (3) load weight
-    S.has_weights = (S.weighttype !="" & S.weightvar!="")
+    S.has_weights = (weighttype !="" & weightvar!="")
     for (g=1; g<=S.G; g++) {
         asarray(S.factors[g].extra, "has_weights", S.has_weights)
     }
     if (S.has_weights) {
         if (S.verbose > 0) printf("\n{txt} ## Loading and sorting weights\n\n")
-        S.weight = st_data(S.sample, S.weightvar)
-        if (S.verbose > 0) printf("{txt}    - loading %s weight from variable %s)\n", S.weighttype, S.weightvar)
+        S.weight = st_data(S.sample, weightvar)
+        if (S.verbose > 0) printf("{txt}    - loading %s weight from variable %s)\n", weighttype, weightvar)
         
         for (g=1; g<=S.G; g++) {
             if (S.verbose > 0) printf("{txt}    - sorting weight for factor {res}%s{txt}\n", S.absvars[g])

@@ -186,7 +186,7 @@ class FE_Output
 
 	// Weights
 	if (options.weight_type != "") {
-		st_global("e(wexp)", "= " + options.weight_var)		
+		st_global("e(wexp)", "= " + options.weight_var)
 		st_global("e(wtype)", options.weight_type)
 	}
 

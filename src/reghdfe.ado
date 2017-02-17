@@ -138,8 +138,6 @@ end
 // --------------------------------------------------------------------------
 
 program Parse
-	loc OPT = "HDFE.options"
-	loc OUT = "HDFE.output"
 
 * Trim whitespace (caused by "///" line continuations; aesthetic only)
 	mata: st_local("0", stritrim(st_local("0")))
@@ -198,14 +196,13 @@ program Parse
 
 * Parse Varlist
 	ms_fvunab `anything'
-	// mata: HDFE.base_varlist = "`s(basevars)'"
 	ms_parse_varlist `s(varlist)'
+	loc base_varlist "`s(basevars)'"
 	foreach cat in depvar indepvars endogvars instruments {
 		loc `cat' "`s(`cat')'"
 	}
 	loc model = cond("`s(instruments)'" == "", "ols", "iv")
-	//mata: `OPT'.model = "`model'"
-	loc original_varlist = "`s(varlist)'" // no parens or equal // bugbug add to HDFE.options
+	loc original_varlist = "`s(varlist)'" // no parens or equal
 
 
 * Parse Weights
@@ -215,7 +212,7 @@ program Parse
 
 
 * Parse VCE
-	ms_parse_vce, vce(`vce') weighttype(`weight_type')
+	ms_parse_vce, vce(`vce') weighttype(`weight')
 	loc vcetype = "`s(vcetype)'"
 	loc num_clusters = `s(num_clusters)'
 	loc clustervars = "`s(clustervars)'"
@@ -243,15 +240,29 @@ program Parse
 	// SYNTAX: fixed_effects(absvars | , touse, weighttype, weightvar, dropsing, verbose)
 	mata: st_local("comma", strpos(`"`absorb'"', ",") ? "" : ",")
 	mata: HDFE = fixed_effects(`"`absorb' `comma' `options'"', "`touse'", "`weight'", "`exp'", `drop_singletons', `verbose')
-	mata: `OUT'.cmdline = "reghdfe " + st_local("0")
+	mata: HDFE.output.cmdline = "reghdfe " + st_local("0")
 	loc options `s(options)'
 
 	mata: st_local("N", strofreal(HDFE.N))
 	if (`N' == 0) error 2000
 
 * Fill out HDFE object
-	mata: `OPT'.clustervars = tokens("`clustervars'")
-	...
+	mata: HDFE.options.clustervars = tokens("`clustervars'")
+	mata: HDFE.timeit = `timeit'
+	
+	mata: HDFE.options.varlist = "`base_varlist'"
+	mata: HDFE.options.depvar = "`depvar'"
+	mata: HDFE.options.indepvars = "`indepvars'"
+	mata: HDFE.options.endogvars = "`endogvars'"
+	mata: HDFE.options.instruments = "`instruments'"
+	mata: HDFE.options.original_varlist = "`original_varlist'"
+	mata: HDFE.options.model = "`model'"
+
+	mata: HDFE.options.vcetype = "`vcetype'"
+	mata: HDFE.options.num_clusters = `num_clusters'
+	mata: HDFE.options.clustervars = tokens("`clustervars'")
+	mata: HDFE.options.base_clustervars = tokens("`base_clustervars'")
+	mata: HDFE.options.vceextra = "`vceextra'"
 
 
 * Parse summarize
@@ -260,8 +271,8 @@ program Parse
 		loc summarize2 mean min max  // default values
 	}
 	ParseSummarize `summarize2'
-	mata: `OPT'.summarize_stats = "`s(stats)'"
-	mata: `OPT'.summarize_quietly = `s(quietly)'
+	mata: HDFE.options.summarize_stats = "`s(stats)'"
+	mata: HDFE.options.summarize_quietly = `s(quietly)'
 
 
 * Parse residuals
@@ -273,12 +284,11 @@ program Parse
 	else if ("`residuals'"!="") {
 		conf new var `residuals'
 	}
-	mata: `OPT'.residuals = "`residuals'"
+	mata: HDFE.options.residuals = "`residuals'"
 
 
 * Parse misc options
-	mata: `OUT'.notes = `"`notes'"'
-	mata: `OPT'.suboptions = `"`suboptions'"'
+	mata: HDFE.output.notes = `"`notes'"'
 
 
 * Parse Coef Table Options (do this last!)
@@ -286,7 +296,7 @@ program Parse
 	_assert (`"`options'"'==""), msg(`"invalid options: `options'"')
 	if ("`hascons'"!="") di in ye "(option ignored: `hascons')"
 	if ("`tsscons'"!="") di in ye "(option ignored: `tsscons')"
-	mata: `OPT'.diopts = `"`diopts'"'
+	mata: HDFE.options.diopts = `"`diopts'"'
 
 
 * Inject back locals
@@ -314,39 +324,37 @@ program Estimate, eclass
 
 * Parse and fill out HDFE object
 	Parse `0'
-	loc OPT HDFE.options
-	loc OUT HDFE.output
-
 
 * Compute degrees-of-freedom
 	mata: HDFE.estimate_dof()
 
 * Save updated e(sample) (singletons reduce sample);
 * required to parse factor variables to partial out
-	mata: HDFE.save_touse("`touse'", 1)
+	tempvar touse
+	mata: HDFE.save_touse("`touse'")
 
 * Expand varlists
 	foreach cat in varlist depvar indepvars endogvars instruments {
-		mata: st_local("vars", `OPT'.original_`cat')
+		mata: st_local("vars", HDFE.options.original_`cat')
 		if ("`vars'" == "") continue
 		// HACK: addbn replaces 0.foreign with 0bn.foreign , to prevent st_data() from loading a bunch of zeros
 		ms_fvstrip `vars' if `touse', expand dropomit addbn onebyone
 		// If we don't use onebyone, then 1.x 2.x ends up as 2.x
 		loc vars "`r(varlist)'"
-		mata: `OPT'.`cat' = "`vars'"
+		mata: HDFE.options.`cat' = "`vars'"
 	}
 
 * Stats
-	mata: st_local("stats", `OPT'.summarize_stats)
+	mata: st_local("stats", HDFE.options.summarize_stats)
 	if ("`stats'" != "") Stats
 
 * Partial out; and save TSS of depvar
-	mata: hdfe_variables = HDFE.partial_out(`OPT'.varlist, 1) // 1=Save TSS of first var if HDFE.output.tss is missing
+	mata: hdfe_variables = HDFE.partial_out(HDFE.options.varlist, 1) // 1=Save TSS of first var if HDFE.output.tss is missing
 
 * Regress
-	mata: assert(`OPT'.model=="ols")
+	mata: assert(HDFE.options.model=="ols")
 	Regress `touse'
-	mata: st_local("diopts", `OPT'.diopts)
+	mata: st_local("diopts", HDFE.options.diopts)
 	Replay, `diopts'
 
 
@@ -427,7 +435,7 @@ end
 // -----------------------------------------------------------------------------
 program Stats
 	* Optional weights
-	mata: st_local("weight", sprintf("[%s=%s]", HDFE.weighttype, HDFE.weightvar))
+	mata: st_local("weight", sprintf("[%s=%s]", HDFE.options.weight_type, HDFE.options.weight_var))
 	assert "`weight'" != ""
 	if ("`weight'" == "[=]") loc weight
 	loc weight : subinstr local weight "[pweight" "[aweight"
