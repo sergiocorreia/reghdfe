@@ -7,16 +7,16 @@
 	- basic demo
 	- allow passthrough of optimization options through `absorb(, ...)` (just set the absorb parser to return a `r(rest)`)
 	- stages
+- Cleanup
+	- Remove code vestiges (ivsuite, vcesuite, method, etc.)
 
 ## High priority:
 
-- Cleanup
-	- Remove code vestiges (ivsuite, vcesuite, method, etc.)
+- Compute alphas
 - Docs
 	- Update help file
 	- Fix html help builder
 	- update website
-- Compute alphas
 - Optimization
 	- enable prune code for G=2 *and* G>2 (carefully)
 	- (?) allow weights with cg+sd, in their scalar adjustements (does hestenes has weights now?)

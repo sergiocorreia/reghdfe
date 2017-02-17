@@ -23,7 +23,7 @@ program define reghdfe_p
 
 	if ("`xb'" != "" | "`stdp'" != "") {
 		* xb: normal treatment
-		_predict double `varlist' `if' `in', `xb' `stdp'
+		PredictXB `varlist' `if' `in', `xb' `stdp'
 	}
 	else if ("`residuals'" != "") {
 		* resid: just return the preexisting variable
@@ -32,7 +32,7 @@ program define reghdfe_p
 	else if ("`d'" != "") {
 		* d: y - xb - resid
 		tempvar xb
-		_predict double `xb' `if' `in', xb
+		PredictXB `xb' `if' `in', xb
 		gen double `varlist' = `e(depvar)' -  `xb' - `e(resid)' `if' `in'
 	}
 	else if ("`xbd'" != "") {
@@ -42,10 +42,21 @@ program define reghdfe_p
 	else if ("`dresiduals'" != "") {
 		* dresid:	y - xb
 		tempvar xb
-		_predict double `xb' `if' `in', xb
+		PredictXB `xb' `if' `in', xb
 		gen double `varlist' = `e(depvar)' -  `xb' `if' `in'
 	}
 	else {
 		error 100
+	}
+end
+
+program PredictXB
+	syntax newvarname [if] [in], [*]
+	cap matrix list e(b) // if there are no regressors, _predict fails
+	if (c(rc)) {
+		gen double `varlist' = 0 `if' `in'
+	}
+	else {
+		_predict double `varlist' `if' `in', `options'
 	}
 end
