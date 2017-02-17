@@ -578,7 +578,6 @@ class FixedEffects
     assert(!missing(G))
     st_numscalar("e(N_hdfe)", G)
     st_numscalar("e(N_hdfe_extended)", G_extended)
-    st_numscalar("e(df_m)", df_m)
     st_numscalar("e(df_a)", df_a)
     st_numscalar("e(df_a_initial)", df_a_initial)
     st_numscalar("e(df_a_redundant)", df_a_redundant)
@@ -618,6 +617,7 @@ class FixedEffects
     st_global("e(estat_cmd)", "reghdfe_estat")
     st_global("e(footnote)", "reghdfe_footnote")
     st_global("e(marginsok)", "")
+    st_numscalar("e(df_m)", df_m)
 
 
     assert(title != "")
