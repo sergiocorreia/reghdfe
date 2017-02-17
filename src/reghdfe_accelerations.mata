@@ -188,11 +188,11 @@ mata:
 		exit(error(100))
 	}
 
-	S.output.converged = (update_error <= S.tolerance)
+	S.converged = (update_error <= S.tolerance)
 	is_last_iter = iter==S.maxiter
 	
-	if (S.output.converged) {
-		S.output.iteration_count = iter
+	if (S.converged) {
+		S.iteration_count = iter
 		if (S.verbose==1) printf("{txt}    converged in %g iterations (last error =%3.1e)\n", iter, update_error)
 		if (S.verbose>1) printf("\n{txt}    - Converged in %g iterations (last error =%3.1e)\n", iter, update_error)
 	}
@@ -220,7 +220,7 @@ mata:
 			y_new
 		}
 	}
-	return(S.output.converged)
+	return(S.converged)
 }
 
 // --------------------------------------------------------------------------

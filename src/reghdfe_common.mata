@@ -122,16 +122,16 @@ mata:
 	st_matrix(bname, b')
 	eps = sqrt(epsilon(1))
 	for (i=1; i<=rows(b); i++) {
-		if (abs(b[i])<eps) printf("{txt}note: %s omitted because of collinearity\n", tokens(S.options.indepvars)[i])
+		if (abs(b[i])<eps) printf("{txt}note: %s omitted because of collinearity\n", tokens(S.indepvars)[i])
 	}
 	st_matrix(Vname, V)
 	st_numscalar(nname, N)
 	st_numscalar(rname, rank)
 	st_numscalar(dfrname, df_r)
 
-	if (S.options.residuals != "") {
-		if (S.verbose > 0) printf("\n{txt} ## Storing residuals in the dataset variable %s\n\n", S.options.residuals)
-		S.save_variable(S.options.residuals, resid, "Residuals")
+	if (S.residuals != "") {
+		if (S.verbose > 0) printf("\n{txt} ## Storing residuals in the dataset variable %s\n\n", S.residuals)
+		S.save_variable(S.residuals, resid, "Residuals")
 	}
 }
 
@@ -152,7 +152,7 @@ mata:
 	`Integer'				used_df_r
 	`RowVector'				kept
 
-	if (S.options.vcetype == "unadjusted" & S.options.weight_type=="pweight") S.options.vcetype = "robust"
+	if (S.vcetype == "unadjusted" & S.weight_type=="pweight") S.vcetype = "robust"
 	if (S.verbose > 0) printf("\n{txt} ## Solving least-squares regression of partialled-out variables\n\n")
 
 	// Weight FAQ:
@@ -166,37 +166,37 @@ mata:
 	// We need to pick N and w
 	N = rows(y) // Default; will change with fweights
 	w = 1
-	if (S.options.weight_type=="fweight") {
+	if (S.weight_type=="fweight") {
 		N = sum(S.weight)
 		w = S.weight
 	}
-	else if (S.options.weight_type=="aweight" | S.options.weight_type=="pweight") {
+	else if (S.weight_type=="aweight" | S.weight_type=="pweight") {
 		w = S.weight * (N / sum(S.weight))
 	}
 
 	// Build core matrices
 	xx = quadcross(X, w, X)
 	xy = quadcross(X, w, y)
-	S.output.tss_within = quadcross(y, w, y)
+	S.tss_within = quadcross(y, w, y)
 	b = reghdfe_cholqrsolve(xx, xy, 1) // qr or chol?
 	resid = y - X * b
-	S.output.rss = quadcross(resid, w, resid) // do before reghdfe_robust() modifies w
+	S.rss = quadcross(resid, w, resid) // do before reghdfe_robust() modifies w
 
 	// Bread of the robust VCV matrix
-	inv_xx = reghdfe_rmcoll(tokens(S.options.indepvars), xx, kept=.) // invsym(xx, 1..K)
-	S.output.df_m = rank = cols(X) - diag0cnt(inv_xx)
-	K = rank + S.output.df_a
-	S.output.df_r = N - K // replaced when clustering
+	inv_xx = reghdfe_rmcoll(tokens(S.indepvars), xx, kept=.) // invsym(xx, 1..K)
+	S.df_m = rank = cols(X) - diag0cnt(inv_xx)
+	K = rank + S.df_a
+	S.df_r = N - K // replaced when clustering
 
 	// Compute full VCE
-	assert_msg(anyof( ("unadjusted", "robust", "cluster") , S.options.vcetype), S.options.vcetype)
-	if (S.options.vcetype == "unadjusted") {
+	assert_msg(anyof( ("unadjusted", "robust", "cluster") , S.vcetype), S.vcetype)
+	if (S.vcetype == "unadjusted") {
 		if (S.verbose > 0) {
-			printf("{txt}    - Small-sample-adjustment: q = N / (N-df_m-df_a) = %g / (%g - %g - %g) = %g\n", N, N, rank, S.output.df_a, N / (N-K) )
+			printf("{txt}    - Small-sample-adjustment: q = N / (N-df_m-df_a) = %g / (%g - %g - %g) = %g\n", N, N, rank, S.df_a, N / (N-K) )
 		}
 		V = quadcross(resid, w, resid) / (N - K)  * inv_xx
 	}
-	else if (S.options.vcetype == "robust") {
+	else if (S.vcetype == "robust") {
 		V = reghdfe_robust(S, X, inv_xx, resid, w, N, K)
 	}
 	else {
@@ -213,7 +213,7 @@ mata:
 		W = .
 	}
 	else {
-		W = b[kept]' * inv_V * b[kept] / S.output.df_m
+		W = b[kept]' * inv_V * b[kept] / S.df_m
 		if (missing(W) & S.verbose > -1) printf("{txt}(Warning: missing F statistic)\n")
 	}
 
@@ -224,24 +224,24 @@ mata:
 	}
 
 	// Results
-	S.output.title = "Linear regression"
-	S.output.model = "ols"
+	S.title = "Linear regression"
+	// S.model = "ols"
 	
-	if (S.options.weight_type!="") S.output.sumweights = quadsum(S.weight)
+	if (S.weight_type!="") S.sumweights = quadsum(S.weight)
 
-	used_df_r = N - K - S.output.M_due_to_nested
-	S.output.r2 = 1 - S.output.rss / S.output.tss
-	S.output.r2_a = 1 - (S.output.rss / used_df_r) / (S.output.tss / (N - S.has_intercept ) )
-	S.output.r2_within = 1 - S.output.rss / S.output.tss_within
-	S.output.r2_a_within = 1 - (S.output.rss / used_df_r) / (S.output.tss_within / (used_df_r + rank))
+	used_df_r = N - K - S.M_due_to_nested
+	S.r2 = 1 - S.rss / S.tss
+	S.r2_a = 1 - (S.rss / used_df_r) / (S.tss / (N - S.has_intercept ) )
+	S.r2_within = 1 - S.rss / S.tss_within
+	S.r2_a_within = 1 - (S.rss / used_df_r) / (S.tss_within / (used_df_r + rank))
 
-	S.output.ll = - 0.5 * N * (1 + ln(2 * pi()) + ln(S.output.rss / N))
-	S.output.ll_0 = - 0.5 * N * (1 + ln(2 * pi()) + ln(S.output.tss_within / N))
+	S.ll = - 0.5 * N * (1 + ln(2 * pi()) + ln(S.rss / N))
+	S.ll_0 = - 0.5 * N * (1 + ln(2 * pi()) + ln(S.tss_within / N))
 
-	S.output.rmse = sqrt(S.output.rss / used_df_r)
-	if (used_df_r==0) S.output.rmse = sqrt(S.output.rss)
-	S.output.F = W
-	df_r = S.output.df_r // reghdfe_cluster might have updated it
+	S.rmse = sqrt(S.rss / used_df_r)
+	if (used_df_r==0) S.rmse = sqrt(S.rss)
+	S.F = W
+	df_r = S.df_r // reghdfe_cluster might have updated it
 }
 
 
@@ -266,23 +266,23 @@ mata:
 	`Integer'				dof_adj
 
 	if (S.verbose > 0) printf("\n{txt} ## Estimating Robust Variance-Covariance Matrix of the Estimators (VCE)\n\n")
-	if (S.verbose > 0) printf("{txt}    - VCE type: {res}%s{txt}\n", S.options.vcetype)
-	if (S.verbose > 0) printf("{txt}    - Weight type: {res}%s{txt}\n", S.options.weight_type=="" ? "<none>" : S.options.weight_type)
+	if (S.verbose > 0) printf("{txt}    - VCE type: {res}%s{txt}\n", S.vcetype)
+	if (S.verbose > 0) printf("{txt}    - Weight type: {res}%s{txt}\n", S.weight_type=="" ? "<none>" : S.weight_type)
 
-	if (S.options.weight_type=="") {
+	if (S.weight_type=="") {
 		w = resid :^ 2
 	}
-	else if (S.options.weight_type=="fweight") {
+	else if (S.weight_type=="fweight") {
 		w = resid :^ 2 :* w
 	}
-	else if (S.options.weight_type=="aweight" | S.options.weight_type=="pweight") {
+	else if (S.weight_type=="aweight" | S.weight_type=="pweight") {
 		w = (resid :* w) :^ 2
 	}
 
 	dof_adj = N / (N - K)
 	M = quadcross(X, w, X)
 	if (S.verbose > 0) {
-		printf("{txt}    - Small-sample-adjustment: q = N / (N-df_m-df_a) = %g / (%g - %g - %g) = %g\n", N, N, K-S.output.df_a, S.output.df_a, N / (N-K) )
+		printf("{txt}    - Small-sample-adjustment: q = N / (N-df_m-df_a) = %g / (%g - %g - %g) = %g\n", N, N, K-S.df_a, S.df_a, N / (N-K) )
 	}
 	V = D * M * D * dof_adj
 	return(V)
@@ -310,22 +310,22 @@ mata:
 	`Matrix'				joined_levels
 
 	w = resid :* w
-	//if (S.options.weight_type=="") {
+	//if (S.weight_type=="") {
 	//	w = resid
 	//}
-	//else if (S.options.weight_type=="fweight") {
+	//else if (S.weight_type=="fweight") {
 	//	w = resid :* w
 	//}
-	//else if (S.options.weight_type=="aweight" | S.options.weight_type=="pweight") {
+	//else if (S.weight_type=="aweight" | S.weight_type=="pweight") {
 	//	w = resid :* w
 	//}
 
-	vars = S.options.clustervars
+	vars = S.clustervars
 	Q = cols(vars)
 	if (S.verbose > 0) printf("\n{txt} ## Estimating Cluster Robust Variance-Covariance Matrix of the Estimators (VCE)\n\n")
-	if (S.verbose > 0) printf("{txt}    - VCE type: {res}%s{txt} (%g-way clustering)\n", S.options.vcetype, Q)
+	if (S.verbose > 0) printf("{txt}    - VCE type: {res}%s{txt} (%g-way clustering)\n", S.vcetype, Q)
 	if (S.verbose > 0) printf("{txt}    - Cluster variables: {res}%s{txt}\n", invtokens(vars))
-	if (S.verbose > 0) printf("{txt}    - Weight type: {res}%s{txt}\n", S.options.weight_type=="" ? "<none>" : S.options.weight_type)
+	if (S.verbose > 0) printf("{txt}    - Weight type: {res}%s{txt}\n", S.weight_type=="" ? "<none>" : S.weight_type)
 	assert_msg(0 < Q & Q < 10)
 
 	// Get or build factors associated with the clustervars
@@ -378,7 +378,7 @@ mata:
 
 	// Build VCE
 	N_clust = min(N_clust_list)
-	nested_adj = (S.output.df_a==0) // minor adj. so we match xtreg when the absvar is nested within cluster
+	nested_adj = (S.df_a==0) // minor adj. so we match xtreg when the absvar is nested within cluster
 	// (when ..nested.., df_a is zero so we divide N-1 by something that can potentially be N (!))
 	// so we either add the 1 back, or change the numerator (and the N_clust-1 factor!)
 	dof_adj = (N - 1) / (N - nested_adj - K) * N_clust / (N_clust - 1) // adjust for more than 1 cluster
@@ -392,20 +392,20 @@ mata:
 	}
 
 	// Store e()
-	assert(!missing(S.output.df_r))
+	assert(!missing(S.df_r))
 	df_r = N_clust - 1
-	if (S.output.df_r > df_r) {
-		S.output.df_r = df_r
+	if (S.df_r > df_r) {
+		S.df_r = df_r
 	}
 	else if (S.verbose > 0) {
-		printf("{txt}    - Unclustered df_r (N - df_m - df_a = %g) are {it:lower} than clustered df_r (N_clust-1 = %g)\n", S.output.df_r, df_r)
+		printf("{txt}    - Unclustered df_r (N - df_m - df_a = %g) are {it:lower} than clustered df_r (N_clust-1 = %g)\n", S.df_r, df_r)
 		printf("{txt}      Thus, we set e(df_r) as the former.\n")
 		printf("{txt}      This breaks consistency with areg but ensures internal consistency\n")
 		printf("{txt}      between vce(robust) and vce(cluster _n)\n")
 	}
 	
-	S.output.N_clust = N_clust
-	S.output.N_clust_list = N_clust_list
+	S.N_clust = N_clust
+	S.N_clust_list = N_clust_list
 
 	return(V)
 }

@@ -4,7 +4,7 @@ program reghdfe_parse, sclass
 * Parse absorb
 	ms_parse_absvars `0'
 	loc extended_absvars `"`s(extended_absvars)'"'
-	loc 0 `s(options)'
+	loc 0, `s(options)'
 
 * Main syntax
 	#d;

@@ -42,8 +42,6 @@ f reghdfe_p.ado
 f reghdfe.sthlp
 
 f reghdfe.mata
-f reghdfe_options.mata
-f reghdfe_output.mata
 f reghdfe_bipartite.mata
 f reghdfe_class.mata
 f reghdfe_constructor.mata

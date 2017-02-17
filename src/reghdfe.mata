@@ -10,11 +10,8 @@
     include "`r(fn)'"
     local FixedEffects		class FixedEffects scalar
     local Factors           class Factor rowvector
-    local Options           class FE_Options scalar
-    local Output			class FE_Output scalar
     loc BipartiteGraph      class BipartiteGraph scalar
     loc FactorPointer       pointer(`Factor') scalar
-
 
     mata: mata clear
     mata: mata set matastrict on
@@ -31,7 +28,7 @@
 
 
 // Include ------------------------------------------------------------------
-    local includes options output bipartite class constructor ///
+    local includes bipartite class constructor ///
                    common projections transforms accelerations
     foreach include of local includes {
         findfile "reghdfe_`include'.mata"

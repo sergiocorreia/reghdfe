@@ -46,7 +46,6 @@ mata:
     S.has_intercept = strtoreal(st_global("s(has_intercept)"))
     S.save_any_fe = strtoreal(st_global("s(save_any_fe)"))
     S.save_all_fe = strtoreal(st_global("s(save_all_fe)"))
-    S.absvars = tokens(st_global("s(absvars)"))
     S.ivars = tokens(st_global("s(ivars)"))
     S.cvars = tokens(st_global("s(cvars)"))
     S.targets = tokens(st_global("s(targets)"))
@@ -58,17 +57,14 @@ mata:
     if (st_global("s(prune)") != "") S.prune = strtoreal(st_global("s(prune)"))
     if (st_global("s(transform)") != "") S.transform = st_global("s(transform)")
     if (st_global("s(acceleration)") != "") S.acceleration = st_global("s(acceleration)")
-    S.options.dofadjustments = tokens(st_global("s(dofadjustments)"))
-    S.options.groupvar = st_global("s(groupvar)")
+    S.dofadjustments = tokens(st_global("s(dofadjustments)"))
+    S.groupvar = st_global("s(groupvar)")
 
     if (S.verbose > -1 & !S.has_intercept) printf("{txt}(warning: no intercepts terms in absorb(); regression lacks constant term)\n")
 
-    // Store results (HDFE.output cannot access HDFE easily because its class is defined before the HDFE class)
-    S.output.G = S.G
-    S.output.absvars = S.absvars
-    S.output.extended_absvars = tokens(st_global("s(extended_absvars)"))
-    S.output.equation_d = st_global("s(equation_d)")
-    S.output.tss = .
+    S.extended_absvars = tokens(st_global("s(extended_absvars)"))
+    S.equation_d = st_global("s(equation_d)")
+    S.tss = .
 
     assert(1<=S.G & S.G<=10)
     assert(S.G == cols(S.ivars))
@@ -83,8 +79,8 @@ mata:
     S.factors = Factor(S.G)
 
     assert_msg(anyof(("", "fweight", "pweight", "aweight"), weighttype), "wrong weight type")
-    S.options.weight_type = weighttype
-    S.options.weight_var = weightvar
+    S.weight_type = weighttype
+    S.weight_var = weightvar
 
     if (drop_singletons) {
         S.num_singletons = 0

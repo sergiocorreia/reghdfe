@@ -7,28 +7,20 @@ mata:
 class FixedEffects
 {
     // Factors
-    `Integer'               G // number of FE levels (2 for two-way-fe, etc.)
-    `Integer'               N // number of obs
-    `Boolean'               has_intercept
-    `Boolean'               save_any_fe
-    `Boolean'               save_all_fe
+    `Integer'               G                   // Number of sets of FEs
+    `Integer'               N                   // number of obs
+    `Factors'               factors
+    `Vector'                sample
     `Varlist'               absvars
     `Varlist'               ivars
     `Varlist'               cvars
-    `Varlist'               targets
+    `Boolean'               has_intercept
     `RowVector'             intercepts
     `RowVector'             num_slopes
-    `Factors'               factors
-    `Vector'                sample
     `Integer'               num_singletons
-
-    // Weight-specific
-    `Boolean'               has_weights
-    `Variabe'               weight // unsorted weight
-
-    // Misc
-    `Integer'               verbose
-    `Boolean'               timeit
+    `Boolean'               save_any_fe
+    `Boolean'               save_all_fe
+    `Varlist'               targets
 
     // Optimization options
     `Real'                  tolerance
@@ -39,24 +31,93 @@ class FixedEffects
     `string'                slope_method
     `Boolean'               prune               // Whether to recursively prune degree-1 edges
     `Boolean'               abort               // Raise error if convergence failed?
+    `Integer'               accel_freq          // Specific to Aitken's acceleration
 
-    // Specific to Aitken's acceleration
-    `Integer'               accel_freq
-
-    // Used when pruning 1-core vertices
-    `BipartiteGraph'        bg
-
-
+    // Optimization objects
+    `BipartiteGraph'        bg                  // Used when pruning 1-core vertices
     `Vector'                pruned_weight       // temp. weight for the factors that were pruned
     `Integer'               prune_g1            // Factor 1/2 in the bipartite subgraph that gets pruned
     `Integer'               prune_g2            // Factor 2/2 in the bipartite subgraph that gets pruned
 
+    // Misc
+    `Integer'               verbose
+    `Boolean'               timeit
 
-    // Additional options not used here
-    `Options'               options
+    // Weight-specific
+    `Boolean'               has_weights
+    `Variabe'               weight              // unsorted weight
+    `String'                weight_var          // Weighting variable
+    `String'                weight_type         // Weight type (pw, fw, etc)
 
-    // Results object
-    `Output'                output
+    // Absorbed degrees-of-freedom computations
+    `Integer'               G_extended          // Number of intercepts plus slopes
+    `Integer'               df_a_redundant      // e(mobility)
+    `Integer'               df_a_initial
+    `Integer'               df_a                // df_a_inital - df_a_redundant
+    `Vector'                doflist_M
+    `Vector'                doflist_K
+    `Vector'                doflist_M_is_exact
+    `Vector'                doflist_M_is_nested
+    `Vector'                is_slope
+    `Integer'               M_due_to_nested     // Used for r2_a r2_a_within rmse
+
+    // VCE and cluster variables
+    `String'                vcetype
+    `Integer'               num_clusters
+    `Varlist'               clustervars
+    `Varlist'               base_clustervars
+    `String'                vceextra
+
+    // Regression-specific
+    `String'                original_varlist    // y x1 x2 (x3 x4 = z1 z2 z3)
+    `String'                varlist             // y x1 x2 x3 x4 z1 z2 z3
+    `String'                original_depvar
+    `String'                original_indepvars
+    `String'                original_endogvars
+    `String'                original_instruments
+    `String'                depvar              // y
+    `String'                indepvars           // x1 x2
+    `String'                endogvars           // x3 x4
+    `String'                instruments         // z1 z2 z3
+    
+    `Boolean'               drop_singletons
+    `String'                absorb              // contents of absorb()
+    `String'                select_if           // If condition
+    `String'                select_in           // In condition
+    `String'                model               // ols, iv
+    `String'                summarize_stats
+    `Boolean'               summarize_quietly
+    `StringRowVector'       dofadjustments // firstpair pairwise cluster continuous
+    `Varname'               groupvar
+    `String'                residuals
+    `String'                diopts
+
+    // Output
+    `String'                cmdline
+    `String'                subcmd
+    `String'                title
+    `Boolean'               converged
+    `Integer'               iteration_count // e(ic)
+    `Varlist'               extended_absvars
+    `Integer'               N_hdfe
+    `String'                notes
+    `String'                equation_d
+    `Integer'               df_r
+    `Integer'               df_m
+    `Integer'               N_clust
+    `Integer'               N_clust_list
+    `Real'                  rss
+    `Real'                  rmse
+    `Real'                  F
+    `Real'                  tss
+    `Real'                  tss_within
+    `Real'                  sumweights
+    `Real'                  r2
+    `Real'                  r2_within
+    `Real'                  r2_a
+    `Real'                  r2_a_within
+    `Real'                  ll
+    `Real'                  ll_0
 
     // Methods
     `Void'                  new()
@@ -68,6 +129,8 @@ class FixedEffects
     `Void'                  estimate_dof()
     `Void'                  save_touse()
     `Void'                  save_variable()
+    `Void'                  post_footnote()
+    `Void'                  post()
 }    
 
 
@@ -87,8 +150,9 @@ class FixedEffects
     transform = "symmetric_kaczmarz"
     acceleration = "conjugate_gradient"
     accel_start = 6
-    output.converged = 0
+    
     prune = 1
+    converged = 0
     abort = 1
 
     // Specific to Aitken:
@@ -136,7 +200,7 @@ class FixedEffects
         _partial_out(y=data, save_tss)
     }
     //if (verbose==0) printf("\n")
-    if (verbose==0) printf("{txt}(converged in %s iterations)\n", strofreal(output.iteration_count))
+    if (verbose==0) printf("{txt}(converged in %s iterations)\n", strofreal(iteration_count))
     return(y)
 }
 
@@ -172,15 +236,15 @@ class FixedEffects
     if (G==1) func_accel = &accelerate_none()
 
     // Compute TSS of depvar
-    if (save_tss & output.tss==.) {
+    if (save_tss & tss==.) {
         if (has_intercept) {
             y_mean = mean(y[., 1], weight)
-            output.tss = crossdev(y[., 1], y_mean, weight, y[., 1], y_mean) // Sum of w[i] * (y[i]-y_mean) ^ 2
+            tss = crossdev(y[., 1], y_mean, weight, y[., 1], y_mean) // Sum of w[i] * (y[i]-y_mean) ^ 2
         }
         else {
-            output.tss = cross(y[., 1], weight, y[., 1]) // Sum of w[i] * y[i] ^ 2
+            tss = cross(y[., 1], weight, y[., 1]) // Sum of w[i] * y[i] ^ 2
         }
-        if (options.weight_type=="aweight" | options.weight_type=="pweight") output.tss = output.tss * rows(y) / sum(weight)
+        if (weight_type=="aweight" | weight_type=="pweight") tss = tss * rows(y) / sum(weight)
     }
 
     // Standardize variables
@@ -191,10 +255,10 @@ class FixedEffects
     if (verbose>0) printf("{txt}    - Running solver (acceleration={res}%s{txt}, transform={res}%s{txt} tol={res}%-1.0e{txt})\n", acceleration, transform, tolerance)
     if (verbose==1) printf("{txt}    - Iterating:")
     if (verbose>1) printf("{txt}      ")
-    output.converged = 0
-    output.iteration_count = 0
+    converged = 0
+    iteration_count = 0
     y = (*func_accel)(this, y, funct_transform) :* stdevs
-    // output.converged gets updated by check_convergence()
+    // converged gets updated by check_convergence()
     
     if (prune) {
         _expand_1core(y)
@@ -239,16 +303,14 @@ class FixedEffects
 `Void' FixedEffects::estimate_dof()
 {
     `Boolean'               has_int
-    `Integer'               SuperG                      // Number of "extended absvars" (intercepts and slopes in the G absvars)
     `Integer'               g, h                        // index FEs (1..G)
     `Integer'               num_intercepts              // Number of absvars with an intercept term
     `Integer'               i_cluster, i_intercept, j_intercept
-    `Integer'               i                           // index 1..SuperG
+    `Integer'               i                           // index 1..G_extended
     `Integer'               j
     `Integer'               bg_verbose                  // verbose level when calling BipartiteGraph()
     `Integer'               m                           // Mobility groups between a specific pair of FEs
-    `Integer'               M_due_to_nested             // Used for r2_a r2_a_within rmse
-    `RowVector'             SubGs, M, M_is_exact, M_is_nested
+    `RowVector'             SubGs
     `RowVector'             offsets, idx, zeros, results
     `Matrix'                tmp
     `Variables'             data
@@ -262,31 +324,31 @@ class FixedEffects
 
     // Count all FE intercepts and slopes
     SubGs = intercepts + num_slopes
-    SuperG = sum(SubGs)
+    G_extended = sum(SubGs)
     num_intercepts = sum(intercepts)
     offsets = runningsum(SubGs) - SubGs :+ 1 // start of each FE within the extended list
     idx = `selectindex'(intercepts) // Select all FEs with intercepts
-    if (verbose > 0) printf("{txt}    - there are %f fixed intercepts and slopes in the %f absvars\n", SuperG, G)
+    if (verbose > 0) printf("{txt}    - there are %f fixed intercepts and slopes in the %f absvars\n", G_extended, G)
 
     // Initialize result vectors and scalars
-    M_is_exact = J(1, SuperG, 0)
-    M_is_nested = J(1, SuperG, 0)
+    doflist_M_is_exact = J(1, G_extended, 0)
+    doflist_M_is_nested = J(1, G_extended, 0)
     M_due_to_nested = 0
 
     // (1) M will hold the redundant coefs for each extended absvar (G_extended, not G)
-    M = J(1, SuperG, 0)
-    assert(0 <= options.num_clusters & options.num_clusters <= 10)
-    if (options.num_clusters > 0 & anyof(options.dofadjustments, "clusters")) {
+    doflist_M = J(1, G_extended, 0)
+    assert(0 <= num_clusters & num_clusters <= 10)
+    if (num_clusters > 0 & anyof(dofadjustments, "clusters")) {
         
         // (2) (Intercept-Only) Look for absvars that are clustervars
         for (i_intercept=1; i_intercept<=length(idx); i_intercept++) {
             g = idx[i_intercept]
             i = offsets[g]
             absvar = invtokens(tokens(ivars[g]), "#")
-            if (anyof(options.clustervars, absvar)) {
-                M[i] = factors[g].num_levels
-                M_due_to_nested = M_due_to_nested + M[i]
-                M_is_exact[i] = M_is_nested[i] = 1
+            if (anyof(clustervars, absvar)) {
+                doflist_M[i] = factors[g].num_levels
+                M_due_to_nested = M_due_to_nested + doflist_M[i]
+                doflist_M_is_exact[i] = doflist_M_is_nested[i] = 1
                 idx[i_intercept] = 0
                 if (verbose > 0) printf("{txt} - categorical variable {res}%s{txt} is also a cluster variable, so it doesn't reduce DoF\n", absvar)
             }
@@ -294,7 +356,7 @@ class FixedEffects
         idx = select(idx, idx)
 
         // (3) (Intercept-Only) Look for absvars that are nested within a clustervar
-        for (i_cluster=1; i_cluster<= options.num_clusters; i_cluster++) {
+        for (i_cluster=1; i_cluster<= num_clusters; i_cluster++) {
             cluster_data = .
             if (!length(idx)) break // no more absvars to process
             for (i_intercept=1; i_intercept<=length(idx); i_intercept++) {
@@ -302,12 +364,12 @@ class FixedEffects
                 g = idx[i_intercept]
                 i = offsets[g]
                 absvar = invtokens(tokens(ivars[g]), "#")
-                clustervar = options.clustervars[i_cluster]
-                if (M_is_exact[i]) continue // nothing to do
+                clustervar = clustervars[i_cluster]
+                if (doflist_M_is_exact[i]) continue // nothing to do
 
                 if (cluster_data == .) {
                     if (strpos(clustervar, "#")) {
-                        clustervar = options.base_clustervars[i_cluster]
+                        clustervar = base_clustervars[i_cluster]
                         F = factor(clustervar, sample, ., "", 0, 0, ., 0)
                         cluster_data = F.levels
                         F = Factor() // clear
@@ -318,9 +380,9 @@ class FixedEffects
                 }
 
                 if (factors[g].nested_within(cluster_data)) {
-                    M[i] = factors[g].num_levels
-                    M_is_exact[i] = M_is_nested[i] = 1
-                    M_due_to_nested = M_due_to_nested + M[i]
+                    doflist_M[i] = factors[g].num_levels
+                    doflist_M_is_exact[i] = doflist_M_is_nested[i] = 1
+                    M_due_to_nested = M_due_to_nested + doflist_M[i]
                     idx[i_intercept] = 0
                     if (verbose > 0) printf("{txt} - categorical variable {res}%s{txt} is nested within a cluster variable, so it doesn't reduce DoF\n", absvar)
                 }
@@ -334,20 +396,19 @@ class FixedEffects
     // (4) (Intercept-Only) Every intercept but the first has at least one redundant coef.
     if (length(idx) > 1) {
         if (verbose > 0) printf("{txt}    - there is at least one redundant coef. for every set of FE intercepts after the first one\n")
-        M[offsets[idx[2..num_intercepts]]] = J(1, num_intercepts-1, 1) // Set DoF loss of all intercepts but the first one to 1
+        doflist_M[offsets[idx[2..num_intercepts]]] = J(1, num_intercepts-1, 1) // Set DoF loss of all intercepts but the first one to 1
     }
-
 
     // (5) (Intercept-only) Mobility group algorithm
     // Excluding those already solved, the first absvar is exact
 
     if (length(idx)) {
         i = idx[1]
-        M_is_exact[i] = 1
+        doflist_M_is_exact[i] = 1
     }
 
     // Compute number of dijsoint subgraphs / mobility groups for each pair of remaining FEs
-    if (anyof(options.dofadjustments, "firstpair") | anyof(options.dofadjustments, "pairwise")) {
+    if (anyof(dofadjustments, "firstpair") | anyof(dofadjustments, "pairwise")) {
         BG = BipartiteGraph()
         bg_verbose = max(( verbose - 1 , 0 ))
         pair_count = 0
@@ -361,18 +422,18 @@ class FixedEffects
                 m = BG.init_zigzag()
                 ++pair_count
                 if (verbose > 0) printf("{txt}    - mobility groups between FE intercepts #%f and #%f: {res}%f\n", g, h, m)
-                M[i] = max(( M[i] , m ))
-                if (j_intercept==2) M_is_exact[i] = 1
-                if (pair_count & anyof(options.dofadjustments, "firstpair")) break
+                doflist_M[i] = max(( doflist_M[i] , m ))
+                if (j_intercept==2) doflist_M_is_exact[i] = 1
+                if (pair_count & anyof(dofadjustments, "firstpair")) break
             }
-            if (pair_count & anyof(options.dofadjustments, "firstpair")) break
+            if (pair_count & anyof(dofadjustments, "firstpair")) break
         }
         BG = BipartiteGraph() // clear
     }
     // TODO: add group3hdfe
 
     // (6) See if cvars are zero (w/out intercept) or just constant (w/intercept)
-    if (anyof(options.dofadjustments, "continuous")) {
+    if (anyof(dofadjustments, "continuous")) {
         for (i=g=1; g<=G; g++) {
             // If model has intercept, redundant cvars are those that are CONSTANT
             // Without intercept, a cvar has to be zero within a FE for it to be redundant
@@ -400,26 +461,22 @@ class FixedEffects
             if (sum(results)) {
                 if (has_int  & verbose) printf("{txt}    - the slopes in the FE #%f are constant for {res}%f{txt} levels, which don't reduce DoF\n", g, sum(results))
                 if (!has_int & verbose) printf("{txt}    - the slopes in the FE #%f are zero for {res}%f{txt} levels, which don't reduce DoF\n", g, sum(results))
-                M[i..i+num_slopes[g]-1] = results
+                doflist_M[i..i+num_slopes[g]-1] = results
             }
             i = i + num_slopes[g]
         }
     }
 
-    // Store results
-    output.G_extended = SuperG
-    output.doflist_M = M
-    output.doflist_M_is_exact = M_is_exact
-    output.doflist_M_is_nested = M_is_nested
-    output.doflist_K = J(1, SuperG, .)
+    // Store results (besides doflist_..., etc.)
+    doflist_K = J(1, G_extended, .)
     for (g=1; g<=G; g++) {
         i = offsets[g]
-        j = g==G ? SuperG : offsets[g+1]
-        output.doflist_K[i..j] = J(1, j-i+1, factors[g].num_levels)
+        j = g==G ? G_extended : offsets[g+1]
+        doflist_K[i..j] = J(1, j-i+1, factors[g].num_levels)
     }
-    output.dof_M = sum(M)
-    output.df_a = sum(output.doflist_K) - output.dof_M
-    output.M_due_to_nested = M_due_to_nested
+    df_a_initial = sum(doflist_K)
+    df_a_redundant = sum(doflist_M)
+    df_a = df_a_initial - df_a_redundant
 }
 
 
@@ -509,5 +566,149 @@ class FixedEffects
 
 }
 
+
+
+`Void' FixedEffects::post_footnote()
+{
+    `Matrix'                table
+    `StringVector'          rowstripe
+    `StringRowVector'       colstripe
+    `String'                text
+
+    assert(!missing(G))
+    st_numscalar("e(N_hdfe)", G)
+    st_numscalar("e(df_a_initial)", df_a_initial)
+    st_numscalar("e(df_a_redundant)", df_a_redundant)
+    st_numscalar("e(df_a)", df_a)
+    st_numscalar("e(M_due_to_nested)", M_due_to_nested)
+
+    st_global("e(absvars)", invtokens(absvars))
+    text = invtokens(extended_absvars)
+    text = subinstr(text, "1.", "")
+    st_global("e(extended_absvars)", text)
+
+    // Absorbed degrees-of-freedom table
+11
+"doflist_K"
+doflist_K
+"doflist_M"
+doflist_M
+"(doflist_K-doflist_M)"
+(doflist_K-doflist_M)
+"!doflist_M_is_exact"
+!doflist_M_is_exact
+"doflist_M_is_nested"
+doflist_M_is_nested
+    table = (doflist_K \ doflist_M \ (doflist_K-doflist_M) \ !doflist_M_is_exact \ doflist_M_is_nested)'
+22
+    rowstripe = extended_absvars'
+    rowstripe = J(rows(table), 1, "") , extended_absvars' // add equation col
+    colstripe = "Categories" \ "Redundant" \ "Num Coefs" \ "Exact?" \ "Nested?" // colstripe cannot have dots on Stata 12 or earlier
+    colstripe = J(cols(table), 1, "") , colstripe // add equation col
+    st_matrix("e(dof_table)", table)
+    st_matrixrowstripe("e(dof_table)", rowstripe)
+    st_matrixcolstripe("e(dof_table)", colstripe)
+
+    st_numscalar("e(ic)", iteration_count)
+}
+
+
+`Void' FixedEffects::post(`Options' options)
+{
+    `String'        text
+    `Integer'       i
+
+    post_footnote()
+
+    // ---- constants -------------------------------------------------------
+
+    st_global("e(predict)", "reghdfe_p")
+    st_global("e(estat_cmd)", "reghdfe_estat")
+    st_global("e(footnote)", "reghdfe_footnote")
+    st_global("e(marginsok)", "")
+
+
+    assert(title != "")
+    text = sprintf("HDFE %s", title)
+    st_global("e(title)", text)
+    
+    text = sprintf("Absorbing %g HDFE %s", G, plural(G, "group"))
+    st_global("e(title2)", text)
+    
+    st_global("e(model)", model)
+    st_global("e(cmdline)", cmdline)
+
+    st_numscalar("e(N_hdfe_extended)", G_extended)
+    st_numscalar("e(redundant)", df_a_redundant)
+    // st_numscalar("e(df_r)", df_r)
+    st_numscalar("e(df_m)", df_m)
+    //st_numscalar("e(rank)", df_m)
+    st_numscalar("e(rss)", rss)
+    st_numscalar("e(rmse)", rmse)
+    st_numscalar("e(tss)", tss)
+    st_numscalar("e(tss_within)", tss_within)
+    st_numscalar("e(mss)", tss - rss)
+    st_numscalar("e(F)", F)
+
+    st_numscalar("e(ll)", ll)
+    st_numscalar("e(ll_0)", ll_0)
+
+    st_numscalar("e(r2)", r2)
+    st_numscalar("e(r2_within)", r2_within)
+    st_numscalar("e(r2_a)", r2_a)
+    st_numscalar("e(r2_a_within)", r2_a_within)
+    
+    if (!missing(N_clust)) {
+        st_numscalar("e(N_clust)", N_clust)
+        for (i=1; i<=num_clusters; i++) {
+            text = sprintf("e(N_clust%g)", i)
+            st_numscalar(text, N_clust_list[i])
+        }
+        text = "Statistics robust to heteroskedasticity"
+        st_global("e(title3)", text)
+    }
+
+    if (!missing(sumweights)) st_numscalar("e(sumweights)", sumweights)     
+
+
+    // ---- .options properties ---------------------------------------------
+
+    st_global("e(depvar)", depvar)
+    st_global("e(indepvars)", indepvars)
+    st_global("e(endogvars)", endogvars)
+    st_global("e(instruments)", instruments)
+
+    if (!missing(N_clust)) {
+        st_numscalar("e(N_clustervars)", num_clusters)
+        st_global("e(clustvar)", invtokens(clustervars))
+        for (i=1; i<=num_clusters; i++) {
+            text = sprintf("e(clustvar%g)", i)
+            st_global(text, clustervars[i])
+        }
+    }
+
+    if (residuals != "") {
+        st_global("e(resid)", residuals)
+    }
+
+    // Stata uses e(vcetype) for the SE column headers
+    // In the default option, leave it empty.
+    // In the cluster and robust options, set it as "Robust"
+    text = strproper(vcetype)
+    if (text=="Cluster") text = "Robust"
+    if (text=="Unadjusted") text = ""
+    assert(anyof( ("", "Robust", "Jackknife", "Bootstrap") , text))
+    if (text!="") st_global("e(vcetype)", text)
+
+    text = vcetype
+    if (text=="unadjusted") text = "ols"
+    st_global("e(vce)", text)
+
+    // Weights
+    if (weight_type != "") {
+        st_global("e(wexp)", "= " + weight_var)
+        st_global("e(wtype)", weight_type)
+    }
+}
 
 end

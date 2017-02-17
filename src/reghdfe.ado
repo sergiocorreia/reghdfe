@@ -19,7 +19,7 @@ program reghdfe, eclass
 
 	* Aux. subcommands
 	cap syntax, [*]
-	if inlist("`options'", "check", "compile", "reload", "update", "version") {
+	if inlist("`options'", "check", "compile", "reload", "update", "version", "requirements") {
 		if ("`options'"=="compile") loc args force
 		if ("`options'"=="check") loc options compile
 		if ("`options'"=="update") {
@@ -40,14 +40,13 @@ program reghdfe, eclass
 	}
 end
 
-// --------------------------------------------------------------------------
 
 program Compile
 	args force
 	ftools, check // in case lftools.mlib does not exist or is outdated
 	ms_get_version reghdfe // from moresyntax package; save local package_version
 
-	loc list_objects "FixedEffects() fixed_effects() FE_Options() FE_Output() BipartiteGraph()"
+	loc list_objects "FixedEffects() fixed_effects() BipartiteGraph()"
 	loc list_functions "reghdfe_*() transform_*() accelerate_*() panelmean() panelsolve_*()"
 	loc list_misc "weighted_quadcolsum() safe_divide() check_convergence()"
 	// TODO: prefix everything with reghdfe_*
@@ -60,7 +59,6 @@ program Compile
 		`force'
 end
 
-// --------------------------------------------------------------------------
 
 program Reload
 	* Internal debugging tool.
@@ -104,28 +102,48 @@ program Reload
 	di as text _n "{bf:Note:} You need to run {stata program drop _all} now."
 end
 
-// --------------------------------------------------------------------------
 
 program Version
 	which reghdfe
-
-	di as text _n "Dependencies installed?"
-	local dependencies moresyntax ftools
-	// ivreg2 avar tuples group3hdfe boottest
-	foreach dependency of local dependencies {
-		loc fn `dependency'.ado
-		if ("`dependency'"=="moresyntax") loc fn ms_get_version.ado
-		cap findfile `fn'
-		if (_rc) {
-			di as text "{lalign 20:- `dependency'}" as error "not"
-		}
-		else {
-			di as text "{lalign 20:- `dependency'}" as result "yes"
-		}
-	}
+	Requirements
 end
 
-// --------------------------------------------------------------------------
+
+program Requirements
+	di as text _n "Required packages installed?"
+	loc reqs moresyntax ftools
+	// ivreg2 avar tuples group3hdfe
+	if (c(version)<13) loc reqs `reqs' boottest
+
+	loc ftools_github "https://github.com/sergiocorreia/ftools/raw/master/src/"
+	loc moresyntax_github ""https://github.com/sergiocorreia/moresyntax/raw/master/src/""
+
+	loc error 0
+
+	foreach req of local reqs {
+		loc fn `req'.ado
+		if ("`req'"=="moresyntax") loc fn ms_get_version.ado
+		cap findfile `fn'
+		if (_rc) {
+			loc error 1
+			di as text "{lalign 20:- `req'}" as error "not" _c
+			di as text "    {stata ssc install `req':install from SSC}" _c
+			if inlist("`req'", "ftools", "moresyntax") {
+				loc github ``req'_github'
+				di as text `"    {stata `"net install `req', from(`"`github'"')"':install from github}"'
+			}
+			else {
+				di as text // newline
+			}
+		}
+		else {
+			di as text "{lalign 20:- `req'}" as text "yes"
+		}
+	}
+
+	if (`error') exit 601
+end
+
 
 program Cleanup
 	args rc
@@ -135,14 +153,12 @@ program Cleanup
 	if (`rc') exit `rc'
 end
 
-// --------------------------------------------------------------------------
 
 program Parse
-
-* Trim whitespace (caused by "///" line continuations; aesthetic only)
+	* Trim whitespace (caused by "///" line continuations; aesthetic only)
 	mata: st_local("0", stritrim(st_local("0")))
 
-* Main syntax
+	* Main syntax
 	#d;
 	syntax anything(id=varlist equalok) [if] [in] [aw pw fw/] , [
 
@@ -167,34 +183,32 @@ program Parse
 		;
 	#d cr
 
-* Unused
-		/* Speedup and memory Tricks */
-*		SAVEcache
-*		USEcache
-*		CLEARcache
-*		COMPACT /* use as little memory as possible but is slower */
-*		NOSAMPle /* do not save e(sample) */
+	* Unused
+			/* Speedup and memory Tricks */
+	* SAVEcache
+	* USEcache
+	* CLEARcache
+	* COMPACT /* use as little memory as possible but is slower */
+	* NOSAMPle /* do not save e(sample) */
 
-
-* Convert options to boolean
+	* Convert options to boolean
 	if ("`verbose'" == "") loc verbose 0
 	loc timeit = ("`timeit'"!="")
 	loc drop_singletons = ("`keepsingletons'"=="")
 
+	* Sanity checks
 	if (`verbose'>-1 & "`keepsingletons'"!="") {
-		di as error `"WARNING: Singleton observations not dropped; statistical significance is biased {browse "http://scorreia.com/reghdfe/nested_within_cluster.pdf":(link)}"'
+		loc url "http://scorreia.com/reghdfe/nested_within_cluster.pdf"
+		loc msg "WARNING: Singleton observations not dropped; statistical significance is biased"
+		di as error `"`msg' {browse "`url'":(link)}"'
 	}
-
-
-* Sanity checks
 	if ("`cluster'"!="") {
 		_assert ("`vce'"==""), msg("cannot specify both cluster() and vce()")
 		loc vce cluster `cluster'
 		loc cluster // clear it to avoid bugs in subsequent lines
 	}
 
-
-* Parse Varlist
+	* Parse Varlist
 	ms_fvunab `anything'
 	ms_parse_varlist `s(varlist)'
 	loc base_varlist "`s(basevars)'"
@@ -204,14 +218,12 @@ program Parse
 	loc model = cond("`s(instruments)'" == "", "ols", "iv")
 	loc original_varlist = "`s(varlist)'" // no parens or equal
 
-
-* Parse Weights
+	* Parse Weights
 	if ("`weight'"!="") {
 		unab exp : `exp', min(1) max(1) // simple weights only
 	}
 
-
-* Parse VCE
+	* Parse VCE
 	ms_parse_vce, vce(`vce') weighttype(`weight')
 	loc vcetype = "`s(vcetype)'"
 	loc num_clusters = `s(num_clusters)'
@@ -219,14 +231,12 @@ program Parse
 	loc base_clustervars = "`s(base_clustervars)'"
 	loc vceextra = "`s(vceextra)'"
 
-
-* Select sample
+	* Select sample (except for absvars)
 	loc varlist `original_varlist' `base_clustervars'
 	tempvar touse
 	marksample touse, strok // based on varlist + cluster + if + in + weight
 
-
-* Parse noabsorb (only used for validation, run again from Mata!)
+	* Parse noabsorb
 	_assert  ("`absorb'`noabsorb'" != ""), msg("option {bf:absorb()} or {bf:noabsorb} required")
 	if ("`noabsorb'" != "") {
 		_assert ("`absorb'" == ""), msg("{bf:absorb()} and {bf:noabsorb} are mutually exclusive")
@@ -235,47 +245,47 @@ program Parse
 		loc absorb `c'
 	}
 
-
-* Construct HDFE object
-	// SYNTAX: fixed_effects(absvars | , touse, weighttype, weightvar, dropsing, verbose)
+	* Construct HDFE object
+	// SYNTAX: fixed_effects(absvars | , touse, wtype, wtvar, dropsing, verbose)
 	mata: st_local("comma", strpos(`"`absorb'"', ",") ? "" : ",")
 	mata: HDFE = fixed_effects(`"`absorb' `comma' `options'"', "`touse'", "`weight'", "`exp'", `drop_singletons', `verbose')
-	mata: HDFE.output.cmdline = "reghdfe " + st_local("0")
+	mata: HDFE.cmdline = "reghdfe " + st_local("0")
 	loc options `s(options)'
+	sreturn list  // BUGBUG
 
 	mata: st_local("N", strofreal(HDFE.N))
 	if (`N' == 0) error 2000
 
-* Fill out HDFE object
-	mata: HDFE.options.clustervars = tokens("`clustervars'")
+	* Fill out HDFE object
+	mata: HDFE.clustervars = tokens("`clustervars'")
 	mata: HDFE.timeit = `timeit'
 	
-	mata: HDFE.options.varlist = "`base_varlist'"
-	mata: HDFE.options.depvar = "`depvar'"
-	mata: HDFE.options.indepvars = "`indepvars'"
-	mata: HDFE.options.endogvars = "`endogvars'"
-	mata: HDFE.options.instruments = "`instruments'"
-	mata: HDFE.options.original_varlist = "`original_varlist'"
-	mata: HDFE.options.model = "`model'"
+	mata: HDFE.varlist = "`base_varlist'"
+	mata: HDFE.depvar = "`depvar'"
+	mata: HDFE.indepvars = "`indepvars'"
+	mata: HDFE.endogvars = "`endogvars'"
+	mata: HDFE.instruments = "`instruments'"
+	mata: HDFE.original_varlist = "`original_varlist'"
+	mata: HDFE.model = "`model'"
 
-	mata: HDFE.options.vcetype = "`vcetype'"
-	mata: HDFE.options.num_clusters = `num_clusters'
-	mata: HDFE.options.clustervars = tokens("`clustervars'")
-	mata: HDFE.options.base_clustervars = tokens("`base_clustervars'")
-	mata: HDFE.options.vceextra = "`vceextra'"
+	mata: HDFE.vcetype = "`vcetype'"
+	mata: HDFE.num_clusters = `num_clusters'
+	mata: HDFE.clustervars = tokens("`clustervars'")
+	mata: HDFE.base_clustervars = tokens("`base_clustervars'")
+	mata: HDFE.vceextra = "`vceextra'"
 
 
-* Parse summarize
+	* Parse summarize
 	if ("`summarize'" != "") {
 		_assert ("`summarize2'" == ""), msg("summarize() syntax error")
 		loc summarize2 mean min max  // default values
 	}
 	ParseSummarize `summarize2'
-	mata: HDFE.options.summarize_stats = "`s(stats)'"
-	mata: HDFE.options.summarize_quietly = `s(quietly)'
+	mata: HDFE.summarize_stats = "`s(stats)'"
+	mata: HDFE.summarize_quietly = `s(quietly)'
 
 
-* Parse residuals
+	* Parse residuals
 	if ("`residuals2'" != "") {
 		_assert ("`residuals'" == ""), msg("residuals() syntax error")
 		loc residuals _reghdfe_resid
@@ -284,30 +294,21 @@ program Parse
 	else if ("`residuals'"!="") {
 		conf new var `residuals'
 	}
-	mata: HDFE.options.residuals = "`residuals'"
+	mata: HDFE.residuals = "`residuals'"
 
 
-* Parse misc options
-	mata: HDFE.output.notes = `"`notes'"'
+	* Parse misc options
+	mata: HDFE.notes = `"`notes'"'
 
 
-* Parse Coef Table Options (do this last!)
+	* Parse Coef Table Options (do this last!)
 	_get_diopts diopts options, `options' // store in `diopts', and the rest back to `options'
 	_assert (`"`options'"'==""), msg(`"invalid options: `options'"')
 	if ("`hascons'"!="") di in ye "(option ignored: `hascons')"
 	if ("`tsscons'"!="") di in ye "(option ignored: `tsscons')"
-	mata: HDFE.options.diopts = `"`diopts'"'
-
-
-* Inject back locals
-	c_local varlist `"`depvar' `indepvars' `endogvars' `instruments' `extended_absvars' `base_clustervars'"'
-	c_local if `"`if'"'
-	c_local in `"`in'"'
-	c_local weight `"`weight'"'
-	c_local exp `"`exp'"'
+	mata: HDFE.diopts = `"`diopts'"'
 end
 
-// --------------------------------------------------------------------------
 
 program ParseSummarize, sclass
 	sreturn clear
@@ -335,30 +336,30 @@ program Estimate, eclass
 
 * Expand varlists
 	foreach cat in varlist depvar indepvars endogvars instruments {
-		mata: st_local("vars", HDFE.options.original_`cat')
+		mata: st_local("vars", HDFE.original_`cat')
 		if ("`vars'" == "") continue
 		// HACK: addbn replaces 0.foreign with 0bn.foreign , to prevent st_data() from loading a bunch of zeros
 		ms_fvstrip `vars' if `touse', expand dropomit addbn onebyone
 		// If we don't use onebyone, then 1.x 2.x ends up as 2.x
 		loc vars "`r(varlist)'"
-		mata: HDFE.options.`cat' = "`vars'"
+		mata: HDFE.`cat' = "`vars'"
 	}
 
 * Stats
-	mata: st_local("stats", HDFE.options.summarize_stats)
+	mata: st_local("stats", HDFE.summarize_stats)
 	if ("`stats'" != "") Stats
 
 * Partial out; and save TSS of depvar
-	mata: hdfe_variables = HDFE.partial_out(HDFE.options.varlist, 1) // 1=Save TSS of first var if HDFE.output.tss is missing
+	mata: hdfe_variables = HDFE.partial_out(HDFE.varlist, 1) // 1=Save TSS of first var if HDFE.tss is missing
 
 * Regress
-	mata: assert(HDFE.options.model=="ols")
-	Regress `touse'
-	mata: st_local("diopts", HDFE.options.diopts)
+	mata: assert(HDFE.model=="ols")
+	RegressOLS `touse'
+	mata: st_local("diopts", HDFE.diopts)
 	Replay, `diopts'
 
 
-// ~~ Preserve relevant dataset ~~
+	// ~~ Preserve relevant dataset ~~-
 	// 
 	// if (`compact') {
 	// 	preserve
@@ -372,10 +373,7 @@ program Estimate, eclass
 end
 
 
-// -------------------------------------------------------------
-// Run OLS regressions with partialled-out variables
-// -------------------------------------------------------------
-program Regress, eclass
+program RegressOLS, eclass
 	args touse
 
 	tempname b V N rank df_r
@@ -383,7 +381,7 @@ program Regress, eclass
 	mata: hdfe_y = hdfe_variables[., 1]
 	mata: hdfe_variables = cols(hdfe_variables)==1 ? J(rows(hdfe_variables), 0, .) : hdfe_variables[., 2..cols(hdfe_variables)]
 	mata: reghdfe_post_ols(HDFE, hdfe_y, hdfe_variables, "`b'", "`V'", "`N'", "`rank'", "`df_r'")
-	mata: st_local("indepvars", HDFE.options.indepvars)
+	mata: st_local("indepvars", HDFE.indepvars)
 	mata: hdfe_y = hdfe_variables = .
 	
 	if ("`indepvars'" != "") {
@@ -400,17 +398,16 @@ program Regress, eclass
 	ereturn scalar rank    = `rank'
 	ereturn scalar df_r    = `df_r'
 	ereturn local  cmd     "reghdfe"
-	mata: HDFE.output.post(HDFE.options)
+	mata: HDFE.post(HDFE)
 
 	* Post stats
 	cap conf matrix reghdfe_statsmatrix
 	if (!c(rc)) {
 		ereturn matrix summarize = reghdfe_statsmatrix
-		mata: st_local("summarize_quietly", strofreal(HDFE.options.summarize_quietly))
+		mata: st_local("summarize_quietly", strofreal(HDFE.summarize_quietly))
 		ereturn scalar summarize_quietly = `summarize_quietly'
 	}
 end
-
 
 
 program Replay
@@ -429,19 +426,15 @@ program Replay
 end
 
 
-
-// -----------------------------------------------------------------------------
-// Matrix of summary statistics
-// -----------------------------------------------------------------------------
 program Stats
 	* Optional weights
-	mata: st_local("weight", sprintf("[%s=%s]", HDFE.options.weight_type, HDFE.options.weight_var))
+	mata: st_local("weight", sprintf("[%s=%s]", HDFE.weight_type, HDFE.weight_var))
 	assert "`weight'" != ""
 	if ("`weight'" == "[=]") loc weight
 	loc weight : subinstr local weight "[pweight" "[aweight"
 
-	mata: st_local("stats", HDFE.options.summarize_stats)
-	mata: st_local("varlist", HDFE.options.varlist)
+	mata: st_local("stats", HDFE.summarize_stats)
+	mata: st_local("varlist", HDFE.varlist)
 	mata: st_local("cvars", invtokens(HDFE.cvars))
 	loc full_varlist `varlist' `cvars'
 
