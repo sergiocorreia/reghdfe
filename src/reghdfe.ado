@@ -322,18 +322,18 @@ end
 program Estimate, eclass
 	ereturn clear
 
-* Parse and fill out HDFE object
+	* Parse and fill out HDFE object
 	Parse `0'
 
-* Compute degrees-of-freedom
+	* Compute degrees-of-freedom
 	mata: HDFE.estimate_dof()
 
-* Save updated e(sample) (singletons reduce sample);
-* required to parse factor variables to partial out
+	* Save updated e(sample) (singletons reduce sample);
+	* required to parse factor variables to partial out
 	tempvar touse
 	mata: HDFE.save_touse("`touse'")
 
-* Expand varlists
+	* Expand varlists
 	foreach cat in varlist depvar indepvars endogvars instruments {
 		mata: st_local("vars", HDFE.original_`cat')
 		if ("`vars'" == "") continue
@@ -344,14 +344,14 @@ program Estimate, eclass
 		mata: HDFE.`cat' = "`vars'"
 	}
 
-* Stats
+	* Stats
 	mata: st_local("stats", HDFE.summarize_stats)
 	if ("`stats'" != "") Stats
 
-* Partial out; and save TSS of depvar
+	* Partial out; save TSS of depvar
 	mata: hdfe_variables = HDFE.partial_out(HDFE.varlist, 1) // 1=Save TSS of first var if HDFE.tss is missing
 
-* Regress
+	* Regress
 	mata: assert(HDFE.model=="ols")
 	RegressOLS `touse'
 	mata: st_local("diopts", HDFE.diopts)

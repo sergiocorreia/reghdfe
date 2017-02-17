@@ -65,7 +65,7 @@ noi cscript "reghdfe: bug in st_data" adofile reghdfe
 	storedresults drop benchmark
 
 * [Test] rhs collinear
-	reghdfe price 0.foreign#31.turn 1.foreign#32.turn, a(turn) keepsing
+	reghdfe price 0.foreign#31.turn 1.foreign#32.turn, a(turn) keepsing  v(-1)
 	matrix b = e(b)
 	mata: assert(st_matrix("b")==J(1, 2, 0))
 	matrix V = e(V)

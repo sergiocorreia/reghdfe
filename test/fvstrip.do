@@ -73,7 +73,7 @@ local included_e ///
 	storedresults save benchmark e()
 	
 	* 2) Reghdfe
-	reghdfe price i.x##c.gear, a(turn) keepsing
+	reghdfe price i.x##c.gear, a(turn) keepsing v(-1)
 	notrim
 	matrix list e(trim_V)
 	storedresults compare benchmark e(), tol(1e-10) include(`included_e')
@@ -95,7 +95,7 @@ local included_e ///
 	storedresults save benchmark e()
 	
 	* 2) Reghdfe
-	reghdfe price weight, a(foreign) keepsing
+	reghdfe price weight, a(foreign) keepsing v(-1)
 	notrim
 	storedresults compare benchmark e(), tol(1e-10) include(`included_e')
 	assert `bench_df_a'==e(df_a)-1
@@ -117,7 +117,7 @@ local included_e ///
 	storedresults save benchmark e()
 	
 	* 2) Reghdfe
-	reghdfe wage i.industry##c.age i.union##c.age, a(race) keepsing
+	reghdfe wage i.industry##c.age i.union##c.age, a(race) keepsing  v(-1)
 	notrim
 	storedresults compare benchmark e(), tol(1e-9) include(`included_e')
 	assert `bench_df_a'==e(df_a)-1
