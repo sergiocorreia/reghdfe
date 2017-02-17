@@ -99,7 +99,6 @@ class FixedEffects
     `Boolean'               converged
     `Integer'               iteration_count // e(ic)
     `Varlist'               extended_absvars
-    `Integer'               N_hdfe
     `String'                notes
     `String'                equation_d
     `Integer'               df_r

@@ -38,6 +38,8 @@ program reghdfe_parse, sclass
 	sreturn loc options `"`options'"'
 
 	assert "$reghdfe_touse" != ""
+	cap conf var $reghdfe_touse
+	if (c(rc)) gen byte $reghdfe_touse = 1
 	markout $reghdfe_touse `unquoted_absvars', strok
 
 * Optimization
