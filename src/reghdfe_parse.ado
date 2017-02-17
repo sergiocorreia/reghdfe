@@ -4,6 +4,7 @@ program reghdfe_parse, sclass
 * Parse absorb
 	ms_parse_absvars `0'
 	loc extended_absvars `"`s(extended_absvars)'"'
+	mata: st_local("unquoted_absvars", subinstr(st_global("s(absvars)"), `"""', ""))
 	loc 0, `s(options)'
 
 * Main syntax
@@ -37,9 +38,7 @@ program reghdfe_parse, sclass
 	sreturn loc options `"`options'"'
 
 	assert "$reghdfe_touse" != ""
-	mata: st_local("unquoted_absvars", subinstr(st_local("s(absvars)"), `"""', ""))
 	markout $reghdfe_touse `unquoted_absvars', strok
-
 
 * Optimization
 	loc maxiterations = int(`maxiterations')

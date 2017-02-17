@@ -20,6 +20,7 @@
 	run cluster-string
 	run cluster-mwc
 
+	run missing-absvar
 	run options
 	
 	cap run cluster-after-expand
