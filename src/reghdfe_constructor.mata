@@ -41,6 +41,11 @@ mata:
     S.sample = `selectindex'(st_data(., touse))
     st_global("reghdfe_touse", "")
 
+    if (st_global("s(verbose)")!="") S.verbose = verbose = strtoreal(st_global("s(verbose)"))
+    if (st_global("s(drop_singletons)")!="") S.drop_singletons = drop_singletons = strtoreal(st_global("s(drop_singletons)"))
+    assert(S.verbose < .)
+    assert(S.drop_singletons==0 | S.drop_singletons==1)
+
     if (S.verbose > 0) stata("sreturn list")
     S.G = strtoreal(st_global("s(G)"))
     S.absvars = tokens(st_global("s(absvars)"))

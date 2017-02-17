@@ -23,9 +23,16 @@ program reghdfe_parse, sclass
 		DOFadjustments(string)
 		GROUPVar(name) /* var with the first connected group between FEs */
 
+		/* Duplicated options */
+		KEEPSINgletons
+		Verbose(numlist min=1 max=1 >=-1 <=5 integer)
+
 		] [*] /* capture display options, etc. */
 		;
 	#d cr
+
+	if ("`keepsingletons'"!="") sreturn loc drop_singletons = 0
+	if ("`verbose'"!="") sreturn loc verbose = `verbose'
 
 	sreturn loc options `"`options'"'
 
