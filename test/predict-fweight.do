@@ -55,11 +55,11 @@ noi cscript "reghdfe postestimation: predict after pweight" adofile reghdfe
 	su d d_test xb xb_test xbd xbd_test resid resid_test dr dr_test stdp stdp_test, sep(2)
 	storedresults compare benchmark e(), tol(1e-11) include(`included_e')
 
-	_vassert xb xb_test, tol(1e-12)
-	_vassert d d_test, tol(1e-12)
-	_vassert xbd xbd_test, tol(1e-12)
-	_vassert resid resid_test, tol(1e-12)
-	_vassert dr dr_test, tol(1e-12)
+	_vassert xb xb_test, tol(1e-11)
+	_vassert d d_test, tol(1e-11)
+	_vassert xbd xbd_test, tol(1e-11)
+	_vassert resid resid_test, tol(1e-11)
+	_vassert dr dr_test, tol(1e-11)
 
 storedresults drop benchmark
 exit

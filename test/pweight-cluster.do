@@ -53,7 +53,7 @@ noi cscript "reghdfe postestimation: pweight with cluster" adofile reghdfe
 	reghdfe `lhs' `rhs' [`wtype'=`wvar'], absorb(`absvars') keepsingletons resid verbose(-1) vce(cluster turn)
 	notrim
 	assert e(df_a)==0
-	assert `bench_df_a'==e(df_a)+e(M_due_to_nested)-1
+	assert `bench_df_a'==e(df_a)+e(df_a_nested)-1
 	predict double xb_test, xb
 	predict double d_test, d
 	predict double xbd_test, xbd

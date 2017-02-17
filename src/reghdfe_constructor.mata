@@ -30,6 +30,7 @@ mata:
     
     S = FixedEffects()
     S.verbose = verbose
+    S.drop_singletons = drop_singletons
 
     // Parse absvars
     if (S.verbose > 0) printf("\n{txt} ## Parsing absvars and HDFE options\n")
@@ -82,8 +83,8 @@ mata:
     S.weight_type = weighttype
     S.weight_var = weightvar
 
+    S.num_singletons = 0
     if (drop_singletons) {
-        S.num_singletons = 0
         num_singletons_i = 0
         if (weighttype=="fweight") {
             S.weight = st_data(S.sample, weightvar) // just to use it in F.drop_singletons()

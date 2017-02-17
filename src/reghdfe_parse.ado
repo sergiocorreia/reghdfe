@@ -27,6 +27,8 @@ program reghdfe_parse, sclass
 		;
 	#d cr
 
+	sreturn loc options `"`options'"'
+
 	assert "$reghdfe_touse" != ""
 	mata: st_local("unquoted_absvars", subinstr(st_local("s(absvars)"), `"""', ""))
 	markout $reghdfe_touse `unquoted_absvars', strok

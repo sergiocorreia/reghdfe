@@ -229,7 +229,7 @@ mata:
 	
 	if (S.weight_type!="") S.sumweights = quadsum(S.weight)
 
-	used_df_r = N - K - S.M_due_to_nested
+	used_df_r = N - K - S.df_a_nested
 	S.r2 = 1 - S.rss / S.tss
 	S.r2_a = 1 - (S.rss / used_df_r) / (S.tss / (N - S.has_intercept ) )
 	S.r2_within = 1 - S.rss / S.tss_within

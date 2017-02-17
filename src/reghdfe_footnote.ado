@@ -3,7 +3,6 @@
 // -------------------------------------------------------------
 program reghdfe_footnote
 syntax [, width(int 13)]
-set trace off
 
 	tempname table
 	matrix `table' = e(dof_table)

@@ -59,7 +59,7 @@ class FixedEffects
     `Vector'                doflist_M_is_exact
     `Vector'                doflist_M_is_nested
     `Vector'                is_slope
-    `Integer'               M_due_to_nested     // Used for r2_a r2_a_within rmse
+    `Integer'               df_a_nested // Redundant due to bein nested; used for: r2_a r2_a_within rmse
 
     // VCE and cluster variables
     `String'                vcetype
@@ -333,7 +333,7 @@ class FixedEffects
     // Initialize result vectors and scalars
     doflist_M_is_exact = J(1, G_extended, 0)
     doflist_M_is_nested = J(1, G_extended, 0)
-    M_due_to_nested = 0
+    df_a_nested = 0
 
     // (1) M will hold the redundant coefs for each extended absvar (G_extended, not G)
     doflist_M = J(1, G_extended, 0)
@@ -347,7 +347,7 @@ class FixedEffects
             absvar = invtokens(tokens(ivars[g]), "#")
             if (anyof(clustervars, absvar)) {
                 doflist_M[i] = factors[g].num_levels
-                M_due_to_nested = M_due_to_nested + doflist_M[i]
+                df_a_nested = df_a_nested + doflist_M[i]
                 doflist_M_is_exact[i] = doflist_M_is_nested[i] = 1
                 idx[i_intercept] = 0
                 if (verbose > 0) printf("{txt} - categorical variable {res}%s{txt} is also a cluster variable, so it doesn't reduce DoF\n", absvar)
@@ -382,7 +382,7 @@ class FixedEffects
                 if (factors[g].nested_within(cluster_data)) {
                     doflist_M[i] = factors[g].num_levels
                     doflist_M_is_exact[i] = doflist_M_is_nested[i] = 1
-                    M_due_to_nested = M_due_to_nested + doflist_M[i]
+                    df_a_nested = df_a_nested + doflist_M[i]
                     idx[i_intercept] = 0
                     if (verbose > 0) printf("{txt} - categorical variable {res}%s{txt} is nested within a cluster variable, so it doesn't reduce DoF\n", absvar)
                 }
@@ -577,10 +577,12 @@ class FixedEffects
 
     assert(!missing(G))
     st_numscalar("e(N_hdfe)", G)
+    st_numscalar("e(N_hdfe_extended)", G_extended)
+    st_numscalar("e(df_m)", df_m)
+    st_numscalar("e(df_a)", df_a)
     st_numscalar("e(df_a_initial)", df_a_initial)
     st_numscalar("e(df_a_redundant)", df_a_redundant)
-    st_numscalar("e(df_a)", df_a)
-    st_numscalar("e(M_due_to_nested)", M_due_to_nested)
+    st_numscalar("e(df_a_nested)", df_a_nested)
 
     st_global("e(absvars)", invtokens(absvars))
     text = invtokens(extended_absvars)
@@ -588,19 +590,7 @@ class FixedEffects
     st_global("e(extended_absvars)", text)
 
     // Absorbed degrees-of-freedom table
-11
-"doflist_K"
-doflist_K
-"doflist_M"
-doflist_M
-"(doflist_K-doflist_M)"
-(doflist_K-doflist_M)
-"!doflist_M_is_exact"
-!doflist_M_is_exact
-"doflist_M_is_nested"
-doflist_M_is_nested
     table = (doflist_K \ doflist_M \ (doflist_K-doflist_M) \ !doflist_M_is_exact \ doflist_M_is_nested)'
-22
     rowstripe = extended_absvars'
     rowstripe = J(rows(table), 1, "") , extended_absvars' // add equation col
     colstripe = "Categories" \ "Redundant" \ "Num Coefs" \ "Exact?" \ "Nested?" // colstripe cannot have dots on Stata 12 or earlier
@@ -610,6 +600,8 @@ doflist_M_is_nested
     st_matrixcolstripe("e(dof_table)", colstripe)
 
     st_numscalar("e(ic)", iteration_count)
+    st_numscalar("e(drop_singletons)", drop_singletons)
+    st_numscalar("e(num_singletons)", num_singletons)
 }
 
 
@@ -638,16 +630,11 @@ doflist_M_is_nested
     st_global("e(model)", model)
     st_global("e(cmdline)", cmdline)
 
-    st_numscalar("e(N_hdfe_extended)", G_extended)
-    st_numscalar("e(redundant)", df_a_redundant)
-    // st_numscalar("e(df_r)", df_r)
-    st_numscalar("e(df_m)", df_m)
-    //st_numscalar("e(rank)", df_m)
-    st_numscalar("e(rss)", rss)
-    st_numscalar("e(rmse)", rmse)
     st_numscalar("e(tss)", tss)
     st_numscalar("e(tss_within)", tss_within)
+    st_numscalar("e(rss)", rss)
     st_numscalar("e(mss)", tss - rss)
+    st_numscalar("e(rmse)", rmse)
     st_numscalar("e(F)", F)
 
     st_numscalar("e(ll)", ll)

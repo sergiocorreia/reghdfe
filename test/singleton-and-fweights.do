@@ -10,7 +10,7 @@ noi cscript "reghdfe: consider fweights when removing singletons" adofile reghdf
 	storedresults save benchmark e()
 	
 	reghdfe price weight gear length [fw=w], a(turn) keepsingletons v(-1)
-	storedresults compare benchmark e(), exclude(macro: cmdline)
+	storedresults compare benchmark e(), exclude(macro: cmdline scalar: drop_singletons)
 	storedresults drop benchmark
 
 	reghdfe price weight gear length [aw=w], a(turn)

@@ -35,7 +35,7 @@ noi cscript "reghdfe: fixed effect nested in cluster" adofile reghdfe
 	* http://www.stata.com/statalist/archive/2010-03/msg00941.html	
 	* "So I think some explanation is necessary. I see no reason, conceptually, why xtreg,fe with small-sample statistics should not be exactly equivalent to areg"
 	
-	//loc adj1 = e(N) - e(rank) - e(df_a) //+ e(M_due_to_nested)
+	//loc adj1 = e(N) - e(rank) - e(df_a) //+ e(df_a_nested)
 	//local adjdof = `adj1' / (`adj1'-1)
 	//local adjdof 1
 	//notrim ?? `adjdof'
@@ -82,7 +82,7 @@ noi cscript "reghdfe: fixed effect nested in cluster" adofile reghdfe
 	* http://www.stata.com/statalist/archive/2010-03/msg00941.html	
 	* "So I think some explanation is necessary. I see no reason, conceptually, why xtreg,fe with small-sample statistics should not be exactly equivalent to areg"
 	
-	//loc adj1 = e(N) - e(rank) - e(df_a) //+ e(M_due_to_nested)
+	//loc adj1 = e(N) - e(rank) - e(df_a) //+ e(df_a_nested)
 	//local adjdof = `adj1' / (`adj1'-1)
 	//local adjdof 1
 	//notrim ?? `adjdof'

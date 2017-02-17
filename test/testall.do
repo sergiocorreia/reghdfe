@@ -20,6 +20,8 @@
 	run cluster-string
 	run cluster-mwc
 
+	run options
+	
 	cap run cluster-after-expand
 	if (c(rc)) di as error "TEST FAILED AS EXPECTED"
 	if (c(rc)) di as error "This is a variant of the problem raised by Cattaneo et al 2017"

@@ -213,7 +213,7 @@ program Parse
 	ms_parse_varlist `s(varlist)'
 	loc base_varlist "`s(basevars)'"
 	foreach cat in depvar indepvars endogvars instruments {
-		loc `cat' "`s(`cat')'"
+		loc original_`cat' "`s(`cat')'"
 	}
 	loc model = cond("`s(instruments)'" == "", "ols", "iv")
 	loc original_varlist = "`s(varlist)'" // no parens or equal
@@ -251,7 +251,6 @@ program Parse
 	mata: HDFE = fixed_effects(`"`absorb' `comma' `options'"', "`touse'", "`weight'", "`exp'", `drop_singletons', `verbose')
 	mata: HDFE.cmdline = "reghdfe " + st_local("0")
 	loc options `s(options)'
-	sreturn list  // BUGBUG
 
 	mata: st_local("N", strofreal(HDFE.N))
 	if (`N' == 0) error 2000
@@ -261,10 +260,10 @@ program Parse
 	mata: HDFE.timeit = `timeit'
 	
 	mata: HDFE.varlist = "`base_varlist'"
-	mata: HDFE.depvar = "`depvar'"
-	mata: HDFE.indepvars = "`indepvars'"
-	mata: HDFE.endogvars = "`endogvars'"
-	mata: HDFE.instruments = "`instruments'"
+	mata: HDFE.original_depvar = "`original_depvar'"
+	mata: HDFE.original_indepvars = "`original_indepvars'"
+	mata: HDFE.original_endogvars = "`original_endogvars'"
+	mata: HDFE.original_instruments = "`original_instruments'"
 	mata: HDFE.original_varlist = "`original_varlist'"
 	mata: HDFE.model = "`model'"
 
@@ -410,12 +409,13 @@ program RegressOLS, eclass
 end
 
 
-program Replay
+program Replay, rclass
 	syntax [, *]
 	_get_diopts options, `options'
 	reghdfe_header // _coef_table_header
 	di ""
 	_coef_table, `options' // ereturn display, `options'
+	return add // adds r(level), r(table), etc. to ereturn (before the footnote deletes them)
 	reghdfe_footnote
 
 	* Replay stats
