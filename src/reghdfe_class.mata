@@ -358,15 +358,10 @@ class FixedEffects
         if (store_these_alphas) {
             alphas = panelmean(f.sort(y), f)
             asarray(factors[g].extra, "tmp_alphas", alphas)
-            return(alphas[f.levels])
+            return(alphas[f.levels, .])
         }
         else {
-            if (cols(y)==1) {
-                return(panelmean(f.sort(y), f)[f.levels])
-            }
-            else {
-                return(panelmean(f.sort(y), f)[f.levels, .])
-            }
+            return(panelmean(f.sort(y), f)[f.levels, .])
         }
     }
     else {
