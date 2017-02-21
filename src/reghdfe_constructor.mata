@@ -227,7 +227,7 @@ mata:
                 if (S.verbose > 0) printf("{txt}    - cvars({res}%s{txt})\n", invtokens(cvars))
                 pf = &(S.factors[g])
                 cvar_data = (*pf).sort(st_data(S.sample, cvars))
-                (void) reghdfe_standardize(cvar_data)
+                asarray((*pf).extra, "x_stdevs", reghdfe_standardize(cvar_data))
                 asarray((*pf).extra, "x", cvar_data)
                 if (S.intercepts[g]) {
                     asarray((*pf).extra, "xmeans", panelmean(cvar_data, *pf))

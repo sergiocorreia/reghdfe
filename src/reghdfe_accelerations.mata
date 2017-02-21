@@ -70,7 +70,7 @@ mata:
 	// BUGBUG iterate the first 6? without acceleration??
 	`Integer'	iter, d, Q
 	`Variables'		r, u, v
-	real rowvector alpha, beta, ssr, ssr_old, improvement_potential
+	`RowVector' alpha, beta, ssr, ssr_old, improvement_potential
 	`Matrix' recent_ssr
 	pragma unset r
 	pragma unset v
@@ -108,9 +108,9 @@ mata:
 // --------------------------------------------------------------------------
 
 `Variables' function accelerate_sd(`FixedEffects' S, `Variables' y, `FunctionP' T) {
-	`Integer'	iter
+	`Integer'	iter, g
 	`Variables' proj
-	real rowvector t
+	`RowVector' t
 	pragma unset proj
 
 	for (iter=1; iter<=S.maxiter; iter++) {
@@ -118,7 +118,21 @@ mata:
 		if (check_convergence(S, iter, y-proj, y)) break
 		t = safe_divide( weighted_quadcolsum(S, y, proj) , weighted_quadcolsum(S, proj, proj) )
 		if (uniform(1,1)<0.1) t = 1 // BUGBUG: Does this REALLY help to randomly unstuck an iteration?
+
 		y = y - t :* proj
+		
+		if (S.storing_alphas) {
+			for (g=1; g<=S.G; g++) {
+				//g, ., ., t
+				//asarray(S.factors[g].extra, "alphas"), asarray(S.factors[g].extra, "tmp_alphas")
+				if (S.save_fe[g]) {
+					asarray(S.factors[g].extra, "alphas",
+					    asarray(S.factors[g].extra, "alphas") +
+					    t :* asarray(S.factors[g].extra, "tmp_alphas")
+					)
+				}
+			}
+		}
 	}
 	return(y-proj)
 }
@@ -134,7 +148,7 @@ mata:
 	`Integer'	iter
 	`Variables'		resid, y_old, delta_sq
 	`Boolean'	accelerate
-	real rowvector t
+	`RowVector' t
 	pragma unset resid
 
 	y_old = J(rows(y), cols(y), .)
@@ -171,7 +185,7 @@ mata:
 	// max() ensures that the result when bunching vars is at least as good as when not bunching
 	if (args()<5) method = "vectors" 
 
-	if (S.G==1) {
+	if (S.G==1 & !S.storing_alphas) {
 		// Shortcut for trivial case (1 FE)
 		update_error = 0
 	}
@@ -187,6 +201,8 @@ mata:
 	else {
 		exit(error(100))
 	}
+
+	assert_msg(!missing(update_error), "update error is missing")
 
 	S.converged = (update_error <= S.tolerance)
 	is_last_iter = iter==S.maxiter

@@ -149,6 +149,7 @@ program Cleanup
 	args rc
 	cap mata: mata drop HDFE
 	cap mata: mata drop hdfe_*
+	cap drop __temp_reghdfe_resid__
 	cap matrix drop reghdfe_statsmatrix
 	if (`rc') exit `rc'
 end
@@ -354,6 +355,30 @@ program Estimate, eclass
 	* Regress
 	mata: assert(HDFE.model=="ols")
 	RegressOLS `touse'
+
+
+	* (optional) Store FEs
+	mata: st_local("save_any_fe", strofreal(HDFE.save_any_fe))
+	assert inlist(`save_any_fe', 0, 1)
+	if (`save_any_fe') {
+		_assert e(depvar) != "", msg("e(depvar) is empty")
+		_assert e(resid) != "", msg("e(resid) is empty")
+		confirm numeric var `e(depvar)', exact
+		confirm numeric var `e(resid)', exact
+		tempvar d
+		if (e(rank)) {
+			qui _predict double `d' if e(sample), xb
+		}
+		else {
+			gen double `d' = 0
+		}
+		qui replace `d' = `e(depvar)' - `d' - `e(resid)' if e(sample)
+		mata: HDFE.store_alphas("`d'")
+		drop `d'
+		cap drop __temp_reghdfe_resid__ // in case we didn't intend to save resids
+	}
+
+	* View estimation tables
 	mata: st_local("diopts", HDFE.diopts)
 	Replay, `diopts'
 

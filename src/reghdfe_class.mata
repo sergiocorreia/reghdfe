@@ -33,6 +33,7 @@ class FixedEffects
     `Boolean'               prune               // Whether to recursively prune degree-1 edges
     `Boolean'               abort               // Raise error if convergence failed?
     `Integer'               accel_freq          // Specific to Aitken's acceleration
+    `Boolean'               storing_alphas      // 1 if we should compute the alphas/fes
 
     // Optimization objects
     `BipartiteGraph'        bg                  // Used when pruning 1-core vertices
@@ -155,6 +156,7 @@ class FixedEffects
     prune = 1
     converged = 0
     abort = 1
+    storing_alphas = 0
 
     // Specific to Aitken:
     accel_freq = 3
@@ -205,21 +207,39 @@ class FixedEffects
     return(y)
 }
 
-`Void' FixedEffects::store_alphas(`Variables' d)
+
+`Void' FixedEffects::store_alphas(`Varname' d_varname)
 {
     `Integer'               g, i, j
     `StringRowVector'       varlabel
+    `Variable'              d
+    `RowVector'             tmp_stdev
+
+    if (verbose > 0) printf("\n{txt} ## Storing estimated fixed effects\n\n")
+
+    // Load -d- variable
+    if (verbose > 0) printf("{txt}    - Loading d = e(depvar) - xb - e(resid)\n")
+    d = st_data(sample, d_varname)
+    assert(!missing(d))
 
     // Create empty alphas
+    if (verbose > 0) printf("{txt}    - Initializing alphas\n")
     for (g=j=1; g<=G; g++) {
         if (!save_fe[g]) continue
         asarray(factors[g].extra, "alphas", J(factors[g].num_levels, intercepts[g] + num_slopes[g], 0))
+        asarray(factors[g].extra, "tmp_alphas", J(factors[g].num_levels, intercepts[g] + num_slopes[g], 0))
     }
 
     // Fill out alphas
-    (void) accelerate_sd(this, d, &transform_kaczmarz())
+    if (verbose > 0) printf("{txt}    - Computing alphas\n")
+    storing_alphas = 1
+    d = accelerate_sd(this, d, &transform_kaczmarz())
+    storing_alphas = 0
+
+    if (verbose > 0) printf("{txt}    - SSR of d wrt FEs: %g\n", quadcross(d,d))
 
     // Store alphas in dataset
+    if (verbose > 0) printf("{txt}    - Creating varlabels\n")
     for (g=j=1; g<=G; g++) {
         if (!save_fe[g]) {
             j = j + intercepts[g] + num_slopes[g]
@@ -230,7 +250,22 @@ class FixedEffects
             varlabel[i] = sprintf("[FE] %s", extended_absvars[j])
             j++
         }
-        save_variable(targets[g], asarray(factors[g].extra, "alphas"), varlabel)
+
+        if (num_slopes[g]) {
+            if (verbose > 0) printf("{txt}    - Recovering unstandardized variables\n")
+            tmp_stdev = asarray(factors[g].extra, "x_stdevs")
+            if (intercepts[g]) tmp_stdev = 1, tmp_stdev
+
+            // We need to *divide* the coefs by the stdev, not multiply!
+            asarray(factors[g].extra, "alphas",
+                asarray(factors[g].extra, "alphas") :/ tmp_stdev
+            )
+        }
+
+        if (verbose > 0) printf("{txt}    - Storing alphas in dataset\n")
+        save_variable(targets[g], asarray(factors[g].extra, "alphas")[factors[g].levels, .], varlabel)
+        asarray(factors[g].extra, "alphas", .)
+        asarray(factors[g].extra, "tmp_alphas", .)
     }
 }
 
@@ -304,28 +339,47 @@ class FixedEffects
     if (cols(needs_zeroing)) {
         y[., needs_zeroing] = J(rows(y), cols(needs_zeroing), 0)
     }
-
-    if (weight==1) weight = J(rows(y), 1, .) // bugbug remove this!??!
 }
 
 
 `Variables' FixedEffects::project_one_fe(`Variables' y, `Integer' g)
 {
     `Factor'                f
+    `Boolean'               store_these_alphas
+    `Matrix'                alphas, proj_y
 
     // Cons+K+W, Cons+K, K+W, K, Cons+W, Cons = 6 variants
 
     f = factors[g]
+    store_these_alphas = storing_alphas & save_fe[g]
+    if (store_these_alphas) assert(cols(y)==1)
 
     if (num_slopes[g]==0) {
-        // bugbug see if we can remove the .]
-        return(panelmean(f.sort(y), f)[f.levels, .])
-    }
-    else if (intercepts[g]) {
-        return(panelsolve_invsym(f.sort(y), f, intercepts[g]))
+        if (store_these_alphas) {
+            alphas = panelmean(f.sort(y), f)
+            asarray(factors[g].extra, "tmp_alphas", alphas)
+            return(alphas[f.levels])
+        }
+        else {
+            if (cols(y)==1) {
+                return(panelmean(f.sort(y), f)[f.levels])
+            }
+            else {
+                return(panelmean(f.sort(y), f)[f.levels, .])
+            }
+        }
     }
     else {
-        return(panelsolve_invsym(f.sort(y), f, intercepts[g]))
+        // This includes both cases, with and w/out intercept (## and #)
+        if (store_these_alphas) {
+            alphas = J(f.num_levels, intercepts[g] + num_slopes[g], .)
+            proj_y = panelsolve_invsym(f.sort(y), f, intercepts[g], alphas)
+            asarray(factors[g].extra, "tmp_alphas", alphas)
+            return(proj_y)
+        }
+        else {
+            return(panelsolve_invsym(f.sort(y), f, intercepts[g]))
+        }
     }
 }
 
@@ -585,8 +639,8 @@ class FixedEffects
 
 
 `Void' FixedEffects::save_variable(`Varname' varname,
-                                   `Variable' data,
-                                 | `String' varlabel)
+                                   `Variables' data,
+                                 | `Varlist' varlabel)
 {
     `RowVector'               idx
     `Integer'               i

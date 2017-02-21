@@ -129,8 +129,13 @@ mata:
 	st_numscalar(rname, rank)
 	st_numscalar(dfrname, df_r)
 
+	// Need to save resids if saving FEs, even if temporarily
+	if (S.residuals == "" & S.save_any_fe) {
+		S.residuals = "__temp_reghdfe_resid__"
+	}
+
 	if (S.residuals != "") {
-		if (S.verbose > 0) printf("\n{txt} ## Storing residuals in the dataset variable %s\n\n", S.residuals)
+		if (S.verbose > 0) printf("\n{txt} ## Storing residuals in {res}%s{txt}\n\n", S.residuals)
 		S.save_variable(S.residuals, resid, "Residuals")
 	}
 }

@@ -22,6 +22,7 @@
 
 	run missing-absvar
 	run options
+	run alphas
 	
 	cap run cluster-after-expand
 	if (c(rc)) di as error "TEST FAILED AS EXPECTED"
