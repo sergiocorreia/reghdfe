@@ -175,6 +175,9 @@ program Parse
 		Verbose(numlist min=1 max=1 >=-1 <=5 integer)
 		TIMEit
 
+		/* Speedup and memory Tricks */
+		NOSAMPle /* do not save e(sample) */
+
 		/* Undocumented */
 		KEEPSINgletons
 		OLD /* use latest v3 */
@@ -185,12 +188,10 @@ program Parse
 	#d cr
 
 	* Unused
-			/* Speedup and memory Tricks */
 	* SAVEcache
 	* USEcache
 	* CLEARcache
 	* COMPACT /* use as little memory as possible but is slower */
-	* NOSAMPle /* do not save e(sample) */
 
 	* Convert options to boolean
 	if ("`verbose'" == "") loc verbose 0
@@ -299,6 +300,7 @@ program Parse
 
 	* Parse misc options
 	mata: HDFE.notes = `"`notes'"'
+	mata: HDFE.store_sample = ("`nosample'"=="")
 
 
 	* Parse Coef Table Options (do this last!)
@@ -407,15 +409,19 @@ program RegressOLS, eclass
 	mata: reghdfe_post_ols(HDFE, hdfe_y, hdfe_variables, "`b'", "`V'", "`N'", "`rank'", "`df_r'")
 	mata: st_local("indepvars", HDFE.indepvars)
 	mata: hdfe_y = hdfe_variables = .
+
+	loc esample
+	mata: st_local("store_sample", strofreal(HDFE.store_sample))
+	if (`store_sample') loc esample "esample(`touse')"
 	
 	if ("`indepvars'" != "") {
 		matrix colnames `b' = `indepvars'
 		matrix colnames `V' = `indepvars'
 		matrix rownames `V' = `indepvars'
-		ereturn post `b' `V', esample(`touse') buildfvinfo depname(`depvar') 
+		ereturn post `b' `V', `esample' buildfvinfo depname(`depvar') 
 	}
 	else {
-		ereturn post, esample(`touse') buildfvinfo depname(`depvar')
+		ereturn post, `esample' buildfvinfo depname(`depvar')
 	}
 
 	ereturn scalar N       = `N'
