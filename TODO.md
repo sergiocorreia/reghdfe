@@ -1,18 +1,8 @@
 # Pending tasks
 
-## Done or partly done:
-
-- Fix open issues
-- ivreg2 example
-	- basic demo
-	- allow passthrough of optimization options through `absorb(, ...)` (just set the absorb parser to return a `r(rest)`)
-	- stages
-- Cleanup
-	- Remove code vestiges (ivsuite, vcesuite, method, etc.)
-
 ## High priority:
 
-- Compute alphas
+- Save groupvar() in HDFE.estimate_dof()
 - Docs
 	- Update help file
 	- Fix html help builder

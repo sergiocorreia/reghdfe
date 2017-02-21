@@ -22,14 +22,14 @@
 {title:Title}
 
 {p2colset 5 18 20 2}{...}
-{p2col :{cmd:reghdfe} {hline 2}}Linear and instrumental-variable/GMM regression absorbing multiple levels of fixed effects{p_end}
+{p2col :{cmd:reghdfe} {hline 2}}Linear regression absorbing multiple levels of fixed effects{p_end}
 {p2colreset}{...}
 
 {marker syntax}{...}
 {title:Syntax}
 
 {p 8 15 2} {cmd:reghdfe}
-{depvar} [{indepvars}] [{cmd:(}{it:{help varlist:endogvars}} {cmd:=} {it:{help varlist:iv_vars}}{cmd:)}]
+{depvar} [{indepvars}]
 {ifin} {it:{weight}} {cmd:,} {opth a:bsorb(reghdfe##absvar:absvars)} [{help reghdfe##options:options}] {p_end}
 
 {marker opt_summary}{...}
@@ -37,26 +37,17 @@
 {synopthdr}
 {synoptline}
 {syntab:Model {help reghdfe##opt_model:[+]}}
-{p2coldent:* {opth a:bsorb(reghdfe##absvar:absvars)}}identifiers of the absorbed fixed effects; each {help reghdfe##absvar:absvar} represents one set of fixed effects{p_end}
-{synopt: {cmdab:a:bsorb(}{it:...}{cmd:,} {cmdab:save:fe)}}save all fixed effect estimates ({it:__hdfe*} prefix); useful for a subsequent {help reghdfe##postestimation:predict}.
-However, see also the {it:resid} option.{p_end}
-{synopt : {opth res:iduals(newvar)}}save residuals; more direct and much faster than saving the fixed effects and then running predict{p_end}
-{synopt :{opth su:mmarize(tabstat##statname:stats)}}equivalent to {help reghdfe##postestimation:estat summarize} after the regression,
-but more flexible, compatible with the {opt fast:} option, and saves results on {it:e(summarize)}{p_end}
-{synopt : {opt subopt:ions(...)}}additional options that will be passed to the regression command (either {help regress}, {help ivreg2}, or {help ivregress}){p_end}
+{p2coldent:* {opth a:bsorb(reghdfe##absvar:absvars)}}categorical variables that identify the fixed effects to be absorbed{p_end}
+{synopt: {cmdab:a:bsorb(}{it:...}{cmd:,} {cmdab:save:fe)}}save all fixed effect estimates with the {it:__hdfe*} prefix{p_end}
+{synopt: {cmdab:noa:bsorb}}only absorb the constant; alternative to 
+{cmd:regress} that supports for multi-way-clustering{p_end}
+{synopt : {opth res:iduals(newvar)}}save residuals; {it:predict, d} requires this option{p_end}
+{synopt :{opth su:mmarize(tabstat##statname:stats)}}equivalent to the postestimation command {help reghdfe##postestimation:estat summarize},
+but more flexible, faster, and saves results on {it:e(summarize)}{p_end}
 	
 {syntab:SE/Robust {help reghdfe##opt_vce:[+]}}
 {p2coldent:+ {opt vce}{cmd:(}{help reghdfe##opt_vce:vcetype} [{cmd:,}{it:opt}]{cmd:)}}{it:vcetype}
 may be {opt un:adjusted} (default), {opt r:obust} or {opt cl:uster} {help fvvarlist} (allowing two- and multi-way clustering){p_end}
-{synopt :}suboptions {opt bw(#)}, {opt ker:nel(str)}, {opt dkraay(#)} and {opt kiefer} allow for AC/HAC estimates; see the {help avar} package{p_end}
-
-{syntab:Instrumental-Variable/2SLS/GMM {help reghdfe##opt_iv:[+]}}
-{synopt :{opt est:imator(str)}}either {opt 2sls} (default), {opt gmm:2s} (two-stage GMM),
-{opt liml} (limited-information maximum likelihood) or {opt cue} (which gives approximate results, see discussion below){p_end}
-{synopt :{opt stage:s(list)}}estimate additional regressions; choose any of {opt first} {opt ols} {opt reduced} {opt acid} (or {opt all}){p_end}
-{synopt :{opt ff:irst}}compute first-stage diagnostic and identification statistics{p_end}
-{synopt :{opth iv:suite(subcmd)}}package used in the IV/GMM regressions;
-options are {opt ivreg2} (default; needs installing) and {opt ivregress}{p_end}
 
 {syntab:Diagnostic {help reghdfe##opt_diagnostic:[+]}}
 {synopt :{opt v:erbose(#)}}amount of debugging information to show (0=None, 1=Some, 2=More, 3=Parsing/convergence details, 4=Every iteration){p_end}
@@ -82,20 +73,24 @@ rarely used{p_end}
 {synopt: {opth groupv:ar(newvar)}}unique identifier for the first mobility group{p_end}
 
 {syntab:Reporting {help reghdfe##opt_reporting:[+]}}
-{synopt :{opt version:}}reports the version number and date of reghdfe, and saves it in e(version). standalone option{p_end}
+{synopt :{opt version:}}reports the version number and date of reghdfe, and the list of required packages. standalone option{p_end}
 {synopt :{opt l:evel(#)}}set confidence level; default is {cmd:level(95)}{p_end}
 {synopt :{it:{help reghdfe##display_options:display_options}}}control column formats, row spacing, line width, display of omitted variables and base and empty cells, and factor-variable labeling.{p_end}
 {synopt :}particularly useful are the {opt noomit:ted} and {opt noempty} options to hide regressors omitted due to collinearity{p_end}
 
 {syntab:Undocumented}
 {synopt :{opt keepsin:gletons}}do not drop singleton groups{p_end}
-{synopt :{opt old}}will call the latest 2.x version of reghdfe instead (see the {help reghdfe_old:old help file}){p_end}
+{synopt :{opt old}}will call the latest 3.x version of reghdfe instead (see the {help reghdfe_old:old help file}){p_end}
+{synopt :{opt check}}compile {it:lreghdfe.mlib} if it does not exist or if it needs to be updated;
+use {cmd:reghdfe,compile} to force an update{p_end}
+{synopt :{opt update}}update reghdfe and dependencies from the respective Github repositories;
+use {cmd:reghdfe,reload} to do so from {it:c:\git\*}{p_end}
 {synoptline}
 {p2colreset}{...}
-{p 4 6 2}* {opt absorb(absvars)} is required.{p_end}
+{p 4 6 2}* either {opt a:bsorb(absvars)} or {opt noa:bsorb} is required.{p_end}
 {p 4 6 2}+ indicates a recommended or important option.{p_end}
-{p 4 6 2}{it:indepvars}, {it:endogvars} and {it:iv_vars} may contain factor variables; see {help fvvarlist}.{p_end}
-{p 4 6 2}all the regression variables may contain time-series operators; see {help tsvarlist}.{p_end}
+{p 4 6 2}the regression variables may contain {help tsvarlist:time-series operators} and {help fvvarlist:factor variables};
+the dependent variable cannot be of the form {it:i.turn}, but {it:42.turn} is allowed{p_end}
 {p 4 6 2}{cmd:fweight}s, {cmd:aweight}s and {cmd:pweight}s are allowed; see {help weight}.{p_end}
 
 
@@ -160,10 +155,14 @@ This will delete all variables named {it:__hdfe*__} and create new ones as requi
 Example: {it:reghdfe price weight, absorb(turn trunk, savefe)}
 
 {phang}
-{opth res:iduals(newvar)} will save the regression residuals in a new variable.
+{opth res:iduals(newvar)} will save the regression residuals in a new variable. 
+
+{pmore} {opt res:iduals} (without parenthesis) saves the residuals
+in the variable {it:_reghdfe_resid}.
 
 {pmore}
-This is a superior alternative than running {cmd:predict, resid} afterwards as it's faster and doesn't require saving the fixed effects.
+This option does not require additional computations, and is required for
+subsequent calls to {cmd:predict, d}.
 
 {phang}
 {opth su:mmarize(tabstat##statname:stats)} will report and save a table of summary of statistics of the regression
