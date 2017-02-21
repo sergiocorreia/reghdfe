@@ -1,5 +1,44 @@
 # REGHDFE: Linear and IV/GMM Regressions With Many Fixed Effects
 
+
+## Read this first:
+
+This repo contains the alpha release of reghdfe 4.x; it's expected to be 5-10x faster than reghdfe 3.x, but is less stable and currently lacks some features:
+
+To install, you need the ftools and moresyntax packages, and the boottest package if you have Stata 12 or older:
+
+```stata
+cap ado uninstall moresyntax
+cap ado uninstall ftools
+cap ado uninstall reghdfe
+if (c(version)<13) cap ado uninstall boottest
+
+net install moresyntax, from("https://github.com/sergiocorreia/moresyntax/raw/master/src/")
+net install ftools, from("https://github.com/sergiocorreia/ftools/raw/master/src/")
+if (c(version)<13) ssc install boottest
+net install reghdfe, from("https://github.com/sergiocorreia/reghdfe/raw/master/src/")
+```
+
+If you want to run IV/GMM regressions, these have been moved out of reghdfe, into ivreg2hdfe (for now at least). To install it:
+
+```stata
+cap ado uninstall ivreg2hdfe
+cap ssc install ivreg2
+net install ivreg2hdfe, from("https://github.com/sergiocorreia/ivreg2_demo/raw/master/")
+```
+
+## Goal of the new version
+
+1. Get a 5x speedup by using the `ftools` package
+2. Allow for a more flexible estimator, that includes graph pruning and lsmr (2x-5x speedup on hard cases)
+3. Improve inference: through wild bootstrap and other consistent estimators of the VCE
+4. Allow reghdfe to be used as a building block for other packages. Everything is now written as a Mata object ([example](https://github.com/sergiocorreia/ivreg2_demo/blob/master/hdfe_example.do))
+
+
+
+
+**NOTE: the text below needs updating**
+
 `reghdfe` is a [Stata](http://www.stata.com/) package that estimates linear regressions with multiple levels of fixed effects. It works as a generalization of the built-in `areg`, `xtreg,fe` and `xtivreg,fe` regression commands. It's objectives are similar to the R package [lfe](http://cran.r-project.org/web/packages/lfe/index.html) by Simen Gaure and to the Julia package [FixedEffectModels](https://github.com/matthieugomez/FixedEffectModels.jl) by Matthieu Gomez (beta). It's features include:
 
 - A novel and robust algorithm that efficiently absorbs multiple fixed effects. It improves on the work by [Abowd *et al*, 2002](https://ideas.repec.org/p/cen/tpaper/2002-06.html), [Guimaraes and Portugal, 2010](https://ideas.repec.org/a/tsj/stataj/v10y2010i4p628-649.html) and [Simen Gaure, 2013](http://www.sciencedirect.com/science/article/pii/S0167947313001266). This algorithm works particularly well on "hard cases" that converge very slowly (or fail to converge) with the existing algorithms.

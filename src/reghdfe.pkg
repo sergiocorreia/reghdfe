@@ -1,0 +1,59 @@
+v 3
+
+d (THIS IS AN EXPERIMENTAL VERSION - USE CAREFULLY)
+d
+d reghdfe. Linear and instrumental-variable/GMM regression absorbing multiple levels of fixed effects (REGHDFE)
+d
+d Author: Sergio Correia. Board of Governors of the Federal Reserve System
+d Support: sergio.correia@gmail.com
+d
+d reghdfe fits a linear or instrumental-variable/GMM regression absorbing an arbitrary number of categorical factors and factorial interactions
+d Optionally, it saves the estimated fixed effects.
+d
+d The estimator employed is described in Correia (2016):
+d http://scorreia.com/research/hdfe.pdf
+d
+d For details (user guide, help, FAQ), see the website:
+d http://scorreia.com/reghdfe/
+d
+d KW: fixed effects
+d KW: hdfe
+d KW: areg
+d KW: xtreg
+d KW: instrumental variables
+d KW: GMM
+d
+d Requires: Stata version 11.2
+d
+d Required packages:
+d 	moresyntax
+d 	ftools
+d 	boottest (for Stata version 12 or earlier)
+d
+d Distribution-Date: 20170216
+d
+
+f reghdfe.ado
+f reghdfe_parse.ado
+f reghdfe_estat.ado
+f reghdfe_header.ado
+f reghdfe_footnote.ado
+f reghdfe_p.ado
+f reghdfe.sthlp
+
+f reghdfe.mata
+f reghdfe_bipartite.mata
+f reghdfe_class.mata
+f reghdfe_constructor.mata
+f reghdfe_common.mata
+f reghdfe_projections.mata
+f reghdfe_transforms.mata
+f reghdfe_accelerations.mata
+
+f estfe.ado
+
+f reghdfe_old.ado
+f reghdfe_old_estat.ado
+f reghdfe_old_footnote.ado
+f reghdfe_old_p.ado
+f reghdfe_old.sthlp
