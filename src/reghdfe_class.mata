@@ -361,7 +361,12 @@ class FixedEffects
             return(alphas[f.levels, .])
         }
         else {
-            return(panelmean(f.sort(y), f)[f.levels, .])
+            if (cols(y)==1 & f.num_levels > 1) {
+                return(panelmean(f.sort(y), f)[f.levels])
+            }
+            else {
+                return(panelmean(f.sort(y), f)[f.levels, .])
+            }
         }
     }
     else {
