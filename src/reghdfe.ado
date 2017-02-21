@@ -1,4 +1,4 @@
-*! version 4.0.5 dev - 16feb2017
+*! version 4.0.6 dev - 21feb2017
 
 program reghdfe, eclass
 	* Intercept old+version
@@ -116,7 +116,7 @@ program Requirements
 	if (c(version)<13) loc reqs `reqs' boottest
 
 	loc ftools_github "https://github.com/sergiocorreia/ftools/raw/master/src/"
-	loc moresyntax_github ""https://github.com/sergiocorreia/moresyntax/raw/master/src/""
+	loc moresyntax_github "https://github.com/sergiocorreia/moresyntax/raw/master/src/"
 
 	loc error 0
 
