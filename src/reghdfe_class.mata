@@ -44,6 +44,7 @@ class FixedEffects
     // Misc
     `Integer'               verbose
     `Boolean'               timeit
+    `Boolean'               store_sample
 
     // Weight-specific
     `Boolean'               has_weights
@@ -567,7 +568,7 @@ class FixedEffects
 
 `Void' FixedEffects::prune_1core()
 {
-    // Note that we can't prune degree-2 nodes, to keep the graph bipartite
+    // Note that we can't prune degree-2 nodes, or the graph stops being bipartite
     `Integer'               i, j, g
     `Vector'                subgraph_id
     
@@ -628,7 +629,7 @@ class FixedEffects
     
     if (args()<2 | replace==.) {
         // Generate
-        idx = st_addvar("byte", touse)
+        idx = st_addvar("byte", touse, 1)
         st_store(., idx, mask)
     }
     else {
