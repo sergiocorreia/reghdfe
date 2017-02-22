@@ -198,6 +198,8 @@ program Parse
 	loc timeit = ("`timeit'"!="")
 	loc drop_singletons = ("`keepsingletons'"=="")
 
+	if (`timeit') timer on 29
+
 	* Sanity checks
 	if (`verbose'>-1 & "`keepsingletons'"!="") {
 		loc url "http://scorreia.com/reghdfe/nested_within_cluster.pdf"
@@ -247,10 +249,14 @@ program Parse
 		loc absorb `c'
 	}
 
+	if (`timeit') timer off 29
+
 	* Construct HDFE object
 	// SYNTAX: fixed_effects(absvars | , touse, wtype, wtvar, dropsing, verbose)
 	mata: st_local("comma", strpos(`"`absorb'"', ",") ? "" : ",")
+	if (`timeit') timer on 20
 	mata: HDFE = fixed_effects(`"`absorb' `comma' `options'"', "`touse'", "`weight'", "`exp'", `drop_singletons', `verbose')
+	if (`timeit') timer off 20
 	mata: HDFE.cmdline = "reghdfe " + st_local("0")
 	loc options `s(options)'
 
@@ -258,9 +264,6 @@ program Parse
 	if (`N' == 0) error 2000
 
 	* Fill out HDFE object
-	mata: HDFE.clustervars = tokens("`clustervars'")
-	mata: HDFE.timeit = `timeit'
-	
 	mata: HDFE.varlist = "`base_varlist'"
 	mata: HDFE.original_depvar = "`original_depvar'"
 	mata: HDFE.original_indepvars = "`original_indepvars'"
@@ -301,6 +304,7 @@ program Parse
 	* Parse misc options
 	mata: HDFE.notes = `"`notes'"'
 	mata: HDFE.store_sample = ("`nosample'"=="")
+	mata: HDFE.timeit = `timeit'
 
 
 	* Parse Coef Table Options (do this last!)
@@ -327,16 +331,22 @@ program Estimate, eclass
 
 	* Parse and fill out HDFE object
 	Parse `0'
+	mata: st_local("timeit", strofreal(HDFE.timeit))
 
 	* Compute degrees-of-freedom
+	if (`timeit') timer on 21
 	mata: HDFE.estimate_dof()
+	if (`timeit') timer off 21
 
 	* Save updated e(sample) (singletons reduce sample);
 	* required to parse factor variables to partial out
+	if (`timeit') timer on 29
 	tempvar touse
 	mata: HDFE.save_touse("`touse'")
+	if (`timeit') timer off 29
 
 	* Expand varlists
+	if (`timeit') timer on 22
 	foreach cat in varlist depvar indepvars endogvars instruments {
 		mata: st_local("vars", HDFE.original_`cat')
 		if ("`vars'" == "") continue
@@ -346,20 +356,26 @@ program Estimate, eclass
 		loc vars "`r(varlist)'"
 		mata: HDFE.`cat' = "`vars'"
 	}
+	if (`timeit') timer off 22
 
 	* Stats
 	mata: st_local("stats", HDFE.summarize_stats)
 	if ("`stats'" != "") Stats
 
 	* Partial out; save TSS of depvar
+	if (`timeit') timer on 23
 	mata: hdfe_variables = HDFE.partial_out(HDFE.varlist, 1) // 1=Save TSS of first var if HDFE.tss is missing
+	if (`timeit') timer off 23
 
 	* Regress
 	mata: assert(HDFE.model=="ols")
+	if (`timeit') timer on 24
 	RegressOLS `touse'
+	if (`timeit') timer off 24
 
 
 	* (optional) Store FEs
+	if (`timeit') timer on 29
 	mata: st_local("save_any_fe", strofreal(HDFE.save_any_fe))
 	assert inlist(`save_any_fe', 0, 1)
 	if (`save_any_fe') {
@@ -379,11 +395,11 @@ program Estimate, eclass
 		drop `d'
 		cap drop __temp_reghdfe_resid__ // in case we didn't intend to save resids
 	}
+	if (`timeit') timer off 29
 
 	* View estimation tables
 	mata: st_local("diopts", HDFE.diopts)
 	Replay, `diopts'
-
 
 	// ~~ Preserve relevant dataset ~~-
 	// 
@@ -396,6 +412,13 @@ program Estimate, eclass
 	// 	qui cou if `touse'
 	// 	loc N = r(N)
 	// }
+
+	if (`timeit') {
+		di as text _n "{bf: Timer results:}"
+		timer list
+		di as text "Legend: 20: Create HDFE object; 21: Estimate DoF; 22: expand varlists; 23: partial out; 24: regress; 29: rest"
+		di
+	}
 end
 
 

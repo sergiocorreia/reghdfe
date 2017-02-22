@@ -176,7 +176,9 @@ class FixedEffects
         vars = tokens(invtokens(data))
         if (verbose > 0) printf("\n{txt} ## Partialling out %g variables: {res}%s{txt}\n\n", cols(vars), invtokens(vars))
         if (verbose > 0) printf("{txt}    - Loading variables into Mata\n")
+        if (timeit) timer_on(50)
         y = st_data(sample, invtokens(vars))
+        if (timeit) timer_off(50)
 
         if (cols(y) < cols(vars)) {
             printf("{err}(some columns were dropped due to a bug/quirk in st_data() (%g cols created instead of %g for %s); running slower workaround)\n", cols(y), cols(vars), invtokens(vars))
@@ -185,23 +187,31 @@ class FixedEffects
         else if (cols(y) > cols(vars)) {
             printf("{err}(some empty columns were added due to a bug/quirk in {bf:st_data()}; %g cols created instead of %g for {it:%s}; running slower workaround)\n", cols(y), cols(vars), invtokens(vars))
             y = J(rows(y), 0, .)
+            if (timeit) timer_on(51)
             for (i=1; i<=cols(vars); i++) {
                 y = y, st_data(sample, vars[i])
             }            
+            if (timeit) timer_off(51)
         }
 
         assert_msg(cols(y)==cols(vars), "st_data() constructed more columns than expected")
 
+        if (timeit) timer_on(52)
         idx = `selectindex'(colmax(abs(colminmax(y))) :== 0)
+        if (timeit) timer_off(52)
         if (cols(idx) & verbose>-1) {
             printf("{err}WARNING: after demeaning, some variables are just zeros: %s\n", invtokens(vars[idx]))
         }
 
+        if (timeit) timer_on(53)
         _partial_out(y, save_tss)
+        if (timeit) timer_off(53)
     }
     else {
         if (verbose > 0) printf("\n{txt} ## Partialling out %g variables\n\n", cols(data))
+        if (timeit) timer_on(54)
         _partial_out(y=data, save_tss)
+        if (timeit) timer_off(54)
     }
     //if (verbose==0) printf("\n")
     if (verbose==0) printf("{txt}(converged in %s iterations)\n", strofreal(iteration_count))
@@ -276,6 +286,7 @@ class FixedEffects
     `RowVector'             stdevs, needs_zeroing
     `FunctionP'             funct_transform, func_accel // transform
     `Real'                  y_mean
+    `Vector'                lhs
 
     if (args()<2 | save_tss==.) save_tss = 0
 
@@ -302,20 +313,26 @@ class FixedEffects
     if (G==1) func_accel = &accelerate_none()
 
     // Compute TSS of depvar
+    if (timeit) timer_on(60)
     if (save_tss & tss==.) {
+        lhs = y[., 1]
         if (has_intercept) {
-            y_mean = mean(y[., 1], weight)
-            tss = crossdev(y[., 1], y_mean, weight, y[., 1], y_mean) // Sum of w[i] * (y[i]-y_mean) ^ 2
+            y_mean = mean(lhs, weight)
+            tss = crossdev(lhs, y_mean, weight, lhs, y_mean) // Sum of w[i] * (y[i]-y_mean) ^ 2
         }
         else {
-            tss = cross(y[., 1], weight, y[., 1]) // Sum of w[i] * y[i] ^ 2
+            tss = cross(lhs, weight, lhs) // Sum of w[i] * y[i] ^ 2
         }
+        lhs = .
         if (weight_type=="aweight" | weight_type=="pweight") tss = tss * rows(y) / sum(weight)
     }
+    if (timeit) timer_off(60)
 
     // Standardize variables
     if (verbose > 0) printf("{txt}    - Standardizing variables\n")
+    if (timeit) timer_on(61)
     stdevs = reghdfe_standardize(y)
+    if (timeit) timer_off(61)
 
     // Solve
     if (verbose>0) printf("{txt}    - Running solver (acceleration={res}%s{txt}, transform={res}%s{txt} tol={res}%-1.0e{txt})\n", acceleration, transform, tolerance)
@@ -323,11 +340,16 @@ class FixedEffects
     if (verbose>1) printf("{txt}      ")
     converged = 0
     iteration_count = 0
+    if (timeit) timer_on(62)
     y = (*func_accel)(this, y, funct_transform) :* stdevs
+    if (timeit) timer_off(62)
     // converged gets updated by check_convergence()
     
     if (prune) {
+        assert(G>1)
+        if (timeit) timer_on(63)
         _expand_1core(y)
+        if (timeit) timer_off(63)
     }
 
     // Standardizing makes it hard to detect values that are perfectly collinear with the absvars
@@ -335,11 +357,13 @@ class FixedEffects
     // EG: reghdfe price ibn.foreign , absorb(foreign)
 
     // This will edit to zero entire columns where *ALL* values are very close to zero
+    if (timeit) timer_on(64)
     needs_zeroing = colmax(abs(colminmax(y))) :< 1e-8 // chose something relatively close to epsilon() ~ 1e-16
     needs_zeroing = `selectindex'(needs_zeroing)
     if (cols(needs_zeroing)) {
         y[., needs_zeroing] = J(rows(y), cols(needs_zeroing), 0)
     }
+    if (timeit) timer_off(64)
 }
 
 

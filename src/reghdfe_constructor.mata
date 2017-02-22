@@ -119,10 +119,15 @@ mata:
             printf("{txt}  {%s}%1.0f{txt}  |    %1.0f    |", S.intercepts[g] ? "txt" : "err", S.intercepts[g], S.num_slopes[g])
             displayflush()
         }
+
         if (i<=S.G) {
-            assert_msg(rows(S.sample), "empty sample")
+            if (rows(S.sample) < 2) {
+                if (S.verbose > 0) printf("\n")
+                exit(error(2001))
+            }
             S.factors[g] = factor(S.ivars[g], S.sample)
         }
+
         if (S.verbose > 0) {
             printf("{res}%10.0g{txt} | {res}%10.0g{txt} | %7.0f |", S.factors[g].num_obs, S.factors[g].num_levels, S.factors[g].is_sorted)
             displayflush()
@@ -169,17 +174,17 @@ mata:
     }
     if (S.verbose > 0) printf("\n")
 
-    if (S.factors[1].num_obs == 0) {
-        if (S.verbose > -1) printf("{err}(no observations remaining after dropping singletons!)\n")
-        return(S)
+    if ( drop_singletons & S.num_singletons>0 & S.verbose>-1 | S.factors[1].num_obs<2) {
+        printf("{txt}(dropped %s singleton observations)\n", strofreal(S.num_singletons))
     }
 
-    if ( drop_singletons & (S.num_singletons > 0) & (S.verbose > -1) ) {
-        printf("{txt}(dropped %s singleton observations)\n", strofreal(S.num_singletons))
+    if (S.factors[1].num_obs < 2) {
+        exit(error(2001))
     }
 
     S.N = S.factors[1].num_obs // store number of obs.
     assert(S.N = S.factors[S.G].num_obs)
+    assert(S.N > 1)
 
 
     // (2) run *.panelsetup() after the sample is defined

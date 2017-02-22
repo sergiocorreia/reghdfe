@@ -21,17 +21,33 @@ mata:
 // --------------------------------------------------------------------------
 `RowVector' function reghdfe_standardize(`Matrix' A)
 {
-	`RowVector'				stdevs
-	`Integer'				i, K
+	`RowVector'				stdevs, means
+	`Integer'				i, K, N
+
+	// We don't need to good accuracy for the stdevs, so we have a few alternatives:
+	// Note: cross(1,A) is the same as colsum(A), but faster
+	// Note: cross(A, A) is very fast, but we only need the main diagonals
+	// [A: 1sec] stdevs = sqrt( (colsum(A:*A) - (cross(1, A) :^ 2 / N)) / (N-1) )
+	// [B: .61s] stdevs = sqrt( (diagonal(cross(A, A))' - (cross(1, A) :^ 2 / N)) / (N-1) )
+	// [C: .80s] stdevs = diagonal(sqrt(variance(A)))'
+	// [D: .67s] means = cross(1, A) / N; stdevs =  sqrt(diagonal(crossdev(A, means, A, means))' / (N-1))
 
 	assert(!isfleeting(A))
+	N = rows(A)
 	K = cols(A)
+
 	stdevs = J(1, K, .)
-	for (i=1; i<=K; i++) {
-		stdevs[i] = sqrt(quadvariance(A[., i]))
-	}
-	// stdevs = editvalue(stdevs, 0, 1)
-	//stdevs = colmax(( stdevs \ J(1, K, sqrt(epsilon(1))) ))
+
+	// (A) Very precise
+
+	// (B) Precise
+	//means = cross(1, A) / N
+	//stdevs =  sqrt(diagonal(crossdev(A, means, A, means))' / (N-1))
+
+	// (C) 20% faster; don't use it if you care about accuracy
+	stdevs = sqrt( (diagonal(cross(A, A))' - (cross(1, A) :^ 2 / N)) / (N-1) )
+	assert(!missing(stdevs)) // Shouldn't happen as we don't expect N==1
+
 	stdevs = colmax(( stdevs \ J(1, K, 1e-3) ))
 	A = A :/ stdevs
 	return(stdevs)
@@ -118,7 +134,10 @@ mata:
 	`Real'					eps
 	`Integer'				i
 
+	if (S.timeit) timer_on(90)
 	reghdfe_solve_ols(S, y, X, b=., V=., N=., rank=., df_r=., resid=.)
+	if (S.timeit) timer_off(90)
+
 	st_matrix(bname, b')
 	eps = sqrt(epsilon(1))
 	for (i=1; i<=rows(b); i++) {
@@ -180,20 +199,31 @@ mata:
 	}
 
 	// Build core matrices
+	if (S.timeit) timer_on(91)
 	xx = quadcross(X, w, X)
 	xy = quadcross(X, w, y)
 	S.tss_within = quadcross(y, w, y)
+	if (S.timeit) timer_off(91)
+	
 	b = reghdfe_cholqrsolve(xx, xy, 1) // qr or chol?
+	
+	if (S.timeit) timer_on(92)
 	resid = y - X * b
+	if (S.timeit) timer_off(92)
+	if (S.timeit) timer_on(93)
 	S.rss = quadcross(resid, w, resid) // do before reghdfe_robust() modifies w
+	if (S.timeit) timer_off(93)
 
 	// Bread of the robust VCV matrix
+	if (S.timeit) timer_on(94)
 	inv_xx = reghdfe_rmcoll(tokens(S.indepvars), xx, kept=.) // invsym(xx, 1..K)
 	S.df_m = rank = cols(X) - diag0cnt(inv_xx)
 	K = rank + S.df_a
 	S.df_r = N - K // replaced when clustering
+	if (S.timeit) timer_off(94)
 
 	// Compute full VCE
+	if (S.timeit) timer_on(95)
 	assert_msg(anyof( ("unadjusted", "robust", "cluster") , S.vcetype), S.vcetype)
 	if (S.vcetype == "unadjusted") {
 		if (S.verbose > 0) {
@@ -207,8 +237,10 @@ mata:
 	else {
 		V = reghdfe_cluster(S, X, inv_xx, resid, w, N, K)
 	}
+	if (S.timeit) timer_off(95)
 
 	// Wald test: joint significance
+	if (S.timeit) timer_on(96)
 	inv_V = invsym(V[kept, kept]) // this might not be of full rank but numerical inaccuracies hide it
 	if (diag0cnt(inv_V)) {
 		if (S.verbose > -1) printf("{txt}(Warning: missing F statistic; dropped variables due to collinearity or too few clusters)\n")
@@ -221,6 +253,7 @@ mata:
 		W = b[kept]' * inv_V * b[kept] / S.df_m
 		if (missing(W) & S.verbose > -1) printf("{txt}(Warning: missing F statistic)\n")
 	}
+	if (S.timeit) timer_off(96)
 
 	// V can be missing if b is completely absorbed by the FEs
 	if (missing(V)) {
