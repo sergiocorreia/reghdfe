@@ -214,7 +214,7 @@ class FixedEffects
         if (timeit) timer_off(54)
     }
     //if (verbose==0) printf("\n")
-    if (verbose==0) printf("{txt}(converged in %s iterations)\n", strofreal(iteration_count))
+    if (verbose==0) printf("{txt}(converged in %s iteration%s)\n", strofreal(iteration_count), iteration_count > 1 ? "s" : "s")
     return(y)
 }
 

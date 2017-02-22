@@ -49,7 +49,7 @@ noi cscript "reghdfe postestimation: predict with slope FEs and intercept (c id#
 	su xbd xbd_test resid resid_test, sep(2)
 	storedresults compare benchmark e(), tol(1e-11) include(`included_e')
 	_vassert xbd xbd_test, tol(1e-12)
-	_vassert resid resid_test, tol(1e-10) // Decreased tolerance!!
+	_vassert resid resid_test, tol(1e-9) // Decreased tolerance!!!!!!!!!
 	drop *_test
 
 

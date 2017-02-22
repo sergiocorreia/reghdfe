@@ -65,7 +65,8 @@ may be {opt un:adjusted} (default), {opt r:obust} or {opt cl:uster} {help fvvarl
 {synopt :}suboption {opth keep(varlist)} adds additional untransformed variables to the resulting dataset{p_end}
 {synopt :{cmd: cache(use)}}run regressions on cached data; {it:vce()} must be the same as with {cmd: cache(save)}.{p_end}
 {synopt :{cmd: cache(clear)}}delete Mata objects to clear up memory; no more regressions can be run after this{p_end}
-{synopt :{opt fast}}will not create {it:e(sample)}; disabled when saving fixed effects, residuals or mobility groups{p_end}
+{synopt :{opt nosamp:le}}will not create {it:e(sample)},
+saving some space and speed{p_end}
 
 {syntab:Degrees-of-Freedom Adjustments {help reghdfe##opt_dof:[+]}}
 {synopt :{opt dof:adjustments(list)}}allows selecting the desired adjustments for degrees of freedom;

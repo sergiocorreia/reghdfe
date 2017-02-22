@@ -347,15 +347,19 @@ program Estimate, eclass
 
 	* Expand varlists
 	if (`timeit') timer on 22
-	foreach cat in varlist depvar indepvars endogvars instruments {
+	// BUGBUG: do we really need HDFE.varlist ? or can we create it by concatenating the others?
+	loc varlist
+	foreach cat in /*varlist*/ depvar indepvars endogvars instruments {
 		mata: st_local("vars", HDFE.original_`cat')
 		if ("`vars'" == "") continue
 		// HACK: addbn replaces 0.foreign with 0bn.foreign , to prevent st_data() from loading a bunch of zeros
 		ms_fvstrip `vars' if `touse', expand dropomit addbn onebyone
 		// If we don't use onebyone, then 1.x 2.x ends up as 2.x
 		loc vars "`r(varlist)'"
+		loc varlist `varlist' `vars'
 		mata: HDFE.`cat' = "`vars'"
 	}
+	mata: HDFE.varlist = "`varlist'"
 	if (`timeit') timer off 22
 
 	* Stats
@@ -426,12 +430,9 @@ program RegressOLS, eclass
 	args touse
 
 	tempname b V N rank df_r
-	// Carefully split y from X, without duplicating the memory used
-	mata: hdfe_y = hdfe_variables[., 1]
-	mata: hdfe_variables = cols(hdfe_variables)==1 ? J(rows(hdfe_variables), 0, .) : hdfe_variables[., 2..cols(hdfe_variables)]
-	mata: reghdfe_post_ols(HDFE, hdfe_y, hdfe_variables, "`b'", "`V'", "`N'", "`rank'", "`df_r'")
+	mata: reghdfe_post_ols(HDFE, hdfe_variables, "`b'", "`V'", "`N'", "`rank'", "`df_r'")
 	mata: st_local("indepvars", HDFE.indepvars)
-	mata: hdfe_y = hdfe_variables = .
+	mata: hdfe_variables = .
 
 	loc esample
 	mata: st_local("store_sample", strofreal(HDFE.store_sample))

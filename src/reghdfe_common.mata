@@ -117,7 +117,6 @@ mata:
 // OLS Regression
 // --------------------------------------------------------------------------
 `Void' function reghdfe_post_ols(`FixedEffects' S,
-                                 `Variable' y,
                                  `Variables' X,
                                  `String' bname,
                                  `String' Vname,
@@ -135,7 +134,7 @@ mata:
 	`Integer'				i
 
 	if (S.timeit) timer_on(90)
-	reghdfe_solve_ols(S, y, X, b=., V=., N=., rank=., df_r=., resid=.)
+	reghdfe_solve_ols(S, X, b=., V=., N=., rank=., df_r=., resid=.)
 	if (S.timeit) timer_off(90)
 
 	st_matrix(bname, b')
@@ -161,7 +160,6 @@ mata:
 
 
 `Void' function reghdfe_solve_ols(`FixedEffects' S,
-                                  `Variable' y,
                                   `Variables' X,
                                   `Vector' b,
                                   `Matrix' V,
@@ -170,7 +168,8 @@ mata:
                                   `Integer' df_r,
                                   `Vector' resid)
 {
-	`Integer'				K
+	// Hack: the first col of X is actually y
+	`Integer'				K, KK
 	`Matrix'				xx, inv_xx, W, inv_V
 	`Vector' 				xy, w
 	`Integer'				used_df_r
@@ -188,7 +187,7 @@ mata:
 	//            then without weighting we would be over-representing men, which leads to a loss of efficiency +-+-
 	// 			  it is the same as aweight + robust
 	// We need to pick N and w
-	N = rows(y) // Default; will change with fweights
+	N = rows(X) // Default; will change with fweights
 	w = 1
 	if (S.weight_type=="fweight") {
 		N = sum(S.weight)
@@ -200,47 +199,60 @@ mata:
 
 	// Build core matrices
 	if (S.timeit) timer_on(91)
+	K = cols(X) - 1
 	xx = quadcross(X, w, X)
-	xy = quadcross(X, w, y)
-	S.tss_within = quadcross(y, w, y)
+	S.tss_within = xx[1,1]
+	xy = K ? xx[| 2 , 1 \ K+1 , 1 |] : J(0, 1, .)
+	xx = K ? xx[| 2 , 2 \ K+1 , K+1 |] : J(0, 0, .)
 	if (S.timeit) timer_off(91)
 	
 	b = reghdfe_cholqrsolve(xx, xy, 1) // qr or chol?
-	
+
 	if (S.timeit) timer_on(92)
-	resid = y - X * b
+	resid = X * (1 \ -b) // y - X * b
 	if (S.timeit) timer_off(92)
+
 	if (S.timeit) timer_on(93)
-	S.rss = quadcross(resid, w, resid) // do before reghdfe_robust() modifies w
+	// From here on, X is only used for robust VCE
+	if (S.vcetype == "unadjusted") {
+		X = .
+	}
+	else {
+		X = K ? X[., 2..K+1] : J(N, 0, .)
+	}
 	if (S.timeit) timer_off(93)
 
-	// Bread of the robust VCV matrix
 	if (S.timeit) timer_on(94)
-	inv_xx = reghdfe_rmcoll(tokens(S.indepvars), xx, kept=.) // invsym(xx, 1..K)
-	S.df_m = rank = cols(X) - diag0cnt(inv_xx)
-	K = rank + S.df_a
-	S.df_r = N - K // replaced when clustering
+	S.rss = quadcross(resid, w, resid) // do before reghdfe_robust() modifies w
 	if (S.timeit) timer_off(94)
 
-	// Compute full VCE
+	// Bread of the robust VCV matrix
 	if (S.timeit) timer_on(95)
+	inv_xx = reghdfe_rmcoll(tokens(S.indepvars), xx, kept=.) // invsym(xx, 1..K)
+	S.df_m = rank = K - diag0cnt(inv_xx)
+	KK = rank + S.df_a
+	S.df_r = N - KK // replaced when clustering
+	if (S.timeit) timer_off(95)
+
+	// Compute full VCE
+	if (S.timeit) timer_on(96)
 	assert_msg(anyof( ("unadjusted", "robust", "cluster") , S.vcetype), S.vcetype)
 	if (S.vcetype == "unadjusted") {
 		if (S.verbose > 0) {
-			printf("{txt}    - Small-sample-adjustment: q = N / (N-df_m-df_a) = %g / (%g - %g - %g) = %g\n", N, N, rank, S.df_a, N / (N-K) )
+			printf("{txt}    - Small-sample-adjustment: q = N / (N-df_m-df_a) = %g / (%g - %g - %g) = %g\n", N, N, rank, S.df_a, N / S.df_r )
 		}
-		V = quadcross(resid, w, resid) / (N - K)  * inv_xx
+		V = S.rss / S.df_r * inv_xx
 	}
 	else if (S.vcetype == "robust") {
-		V = reghdfe_robust(S, X, inv_xx, resid, w, N, K)
+		V = reghdfe_robust(S, X, inv_xx, resid, w, N, KK)
 	}
 	else {
-		V = reghdfe_cluster(S, X, inv_xx, resid, w, N, K)
+		V = reghdfe_cluster(S, X, inv_xx, resid, w, N, KK)
 	}
-	if (S.timeit) timer_off(95)
+	if (S.timeit) timer_off(96)
 
 	// Wald test: joint significance
-	if (S.timeit) timer_on(96)
+	if (S.timeit) timer_on(97)
 	inv_V = invsym(V[kept, kept]) // this might not be of full rank but numerical inaccuracies hide it
 	if (diag0cnt(inv_V)) {
 		if (S.verbose > -1) printf("{txt}(Warning: missing F statistic; dropped variables due to collinearity or too few clusters)\n")
@@ -253,7 +265,7 @@ mata:
 		W = b[kept]' * inv_V * b[kept] / S.df_m
 		if (missing(W) & S.verbose > -1) printf("{txt}(Warning: missing F statistic)\n")
 	}
-	if (S.timeit) timer_off(96)
+	if (S.timeit) timer_off(97)
 
 	// V can be missing if b is completely absorbed by the FEs
 	if (missing(V)) {
@@ -267,7 +279,7 @@ mata:
 	
 	if (S.weight_type!="") S.sumweights = quadsum(S.weight)
 
-	used_df_r = N - K - S.df_a_nested
+	used_df_r = N - KK - S.df_a_nested
 	S.r2 = 1 - S.rss / S.tss
 	S.r2_a = 1 - (S.rss / used_df_r) / (S.tss / (N - S.has_intercept ) )
 	S.r2_within = 1 - S.rss / S.tss_within
@@ -279,7 +291,7 @@ mata:
 	S.rmse = sqrt(S.rss / used_df_r)
 	if (used_df_r==0) S.rmse = sqrt(S.rss)
 	S.F = W
-	df_r = S.df_r // reghdfe_cluster might have updated it
+	df_r = S.df_r // reghdfe_cluster might have updated it (this gets returned to the caller function)
 }
 
 
