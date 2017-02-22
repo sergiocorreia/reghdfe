@@ -52,6 +52,8 @@ mata:
 		y = resid
 	}
 
+	T = &transform_sym_kaczmarz() // Override
+
 	return(accelerate_cg(S, y, T))
 }
 

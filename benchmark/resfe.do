@@ -3,13 +3,24 @@
 * CODE: http://economics.mit.edu/files/8662
 *  - This is the Example.do file)
 *  - Note: Timers (tic/toc) from https://github.com/sergiocorreia/stata-misc
+clear all
+cls
 
-which tic.ado
 cap log close _all
 log using res2fe.log, replace
 version
 
+set matastrict off
 do twowayreg.ado
+
+// Warmup
+sysuse auto
+twowayset turn trunk
+projvar price weight, p(w_)
+reghdfe price, a(turn trunk)
+cls
+clear
+
 *** 0) Preliminaries
 
 forvalues lo = 3/3 {
@@ -64,34 +75,38 @@ forvalues var = 1/`vars' {
 	qui replace y= y + x`var'
 	}
 
+sort hid tid
+
+timer clear
+
 *** 2) Run Our procedure
-tic
+timer on 1
+qui {
 di "twowayset"
-twowayset hid tid
+twowayset hid tid // try both and pick the fastest permutation
 di "projvar"
 projvar y x*, p(w_)
 reg w_y w_x*, noc robust
 drop w_*
-toc, report
+}
+timer off 1
 
-* Old and Slow
-tic
-reghdfe y x*, vce(robust) absorb(tid hid) old
-toc, report
+* reghdfe
+timer on 2
+qui reghdfe y x*, vce(robust) absorb(hid tid) nosample dof(none) tol(1e-6) keepsingletons
+timer off 2
 
-* Slow
-tic
-reghdfe y x*, vce(robust) absorb(tid hid)
-toc, report
-
-* Fast
-tic
-reghdfe y x*, vce(robust) absorb(tid hid) fast dof(none) tol(1e-6) keepsingletons group(20) // v(3) timeit 
-toc, report
+timer list
+timer clear
 
 }
 }
 }
 }
+
+// results: for N=90k, |FE1|=1000, |FE2|=100, speed is .65 for reghdfe vs .86 for resfe
 
 log close _all
+
+!del last_*
+exit
