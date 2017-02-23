@@ -366,6 +366,9 @@ program Estimate, eclass
 	mata: st_local("stats", HDFE.summarize_stats)
 	if ("`stats'" != "") Stats
 
+	* Condition number
+	mata: HDFE.estimate_cond()
+
 	* Partial out; save TSS of depvar
 	if (`timeit') timer on 23
 	mata: hdfe_variables = HDFE.partial_out(HDFE.varlist, 1) // 1=Save TSS of first var if HDFE.tss is missing

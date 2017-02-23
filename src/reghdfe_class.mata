@@ -45,6 +45,7 @@ class FixedEffects
     `Integer'               verbose
     `Boolean'               timeit
     `Boolean'               store_sample
+    `Real'                  finite_condition
 
     // Weight-specific
     `Boolean'               has_weights
@@ -129,6 +130,7 @@ class FixedEffects
     `Void'                  prune_1core()
     `Void'                  _expand_1core()
     `Void'                  estimate_dof()
+    `Void'                  estimate_cond()
     `Void'                  save_touse()
     `Void'                  store_alphas()
     `Void'                  save_variable()
@@ -145,6 +147,7 @@ class FixedEffects
     weight = 1 // set to 1 so cross(x, S.weight, y)==cross(x, y)
 
     verbose = 0
+    finite_condition = .
 
     // Optimization defaults
     slope_method = "invsym"
@@ -715,6 +718,8 @@ class FixedEffects
     st_numscalar("e(ic)", iteration_count)
     st_numscalar("e(drop_singletons)", drop_singletons)
     st_numscalar("e(num_singletons)", num_singletons)
+
+    if (!missing(finite_condition)) st_numscalar("e(finite_condition)", finite_condition)
 }
 
 
@@ -810,6 +815,52 @@ class FixedEffects
         st_global("e(wexp)", "= " + weight_var)
         st_global("e(wtype)", weight_type)
     }
+}
+
+
+// --------------------------------------------------------------------------
+// Estimate finite condition number of the graph Laplacian
+// --------------------------------------------------------------------------
+`Void' FixedEffects::estimate_cond()
+{
+    `Vector'                levels1
+    `Vector'                levels2
+    `Matrix'                D1, D2, L
+    `Vector'                lambda
+    `RowVector'             tmp
+
+    if (finite_condition!=-1) return
+
+    if (verbose > 0) printf("\n{txt} ## Computing finite condition number of the Laplacian\n\n")
+
+    if (verbose > 0) printf("{txt}    - Constructing vectors of levels\n")
+    levels1 = factors[1].levels
+    levels2 = factors[2].levels
+
+    assert(rows(levels1)==rows(levels2))
+    assert(max(levels1)<=rows(levels1))
+    assert(max(levels2)<=rows(levels2))
+    
+    // Non-sparse (lots of memory usage!)
+    if (verbose > 0) printf("{txt}    - Constructing design matrices\n")
+    D1 = designmatrix(levels1)
+    D2 = designmatrix(levels2)
+
+    if (verbose > 0) printf("{txt}    - Constructing graph Laplacian\n")
+    L =   D1' * D1 , - D1' * D2 \
+        - D2' * D1 ,   D2' * D2
+        
+    if (verbose > 0) printf("{txt}    - Computing eigenvalues\n")
+    eigensystem(L, ., lambda=.)
+    lambda = Re(lambda')
+
+    if (verbose > 0) printf("{txt}    - Selecting positive eigenvalues\n")
+    lambda = edittozerotol(lambda, 1e-8)
+    tmp = select(lambda,  edittozero(lambda, 1))
+    tmp = minmax(tmp)
+    finite_condition = tmp[2] / tmp[1]
+
+    if (verbose > 0) printf("{txt}    - Finite condition number: {res}%s{txt}\n", strofreal(finite_condition))
 }
 
 end

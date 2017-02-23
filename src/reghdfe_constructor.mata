@@ -66,6 +66,7 @@ mata:
     if (st_global("s(acceleration)") != "") S.acceleration = st_global("s(acceleration)")
     S.dofadjustments = tokens(st_global("s(dofadjustments)"))
     S.groupvar = st_global("s(groupvar)")
+    if (st_global("s(finite_condition)")=="1") S.finite_condition = -1 // signal to compute it
 
     if (S.verbose > -1 & !S.has_intercept) printf("{txt}(warning: no intercepts terms in absorb(); regression lacks constant term)\n")
 
@@ -120,16 +121,22 @@ mata:
             displayflush()
         }
 
+        if (S.verbose > 0) {
+            printf("{res}%10.0g{txt} |", rows(S.sample))
+            displayflush()
+        }
+
+        if (rows(S.sample) < 2) {
+            if (S.verbose > 0) printf("\n")
+            exit(error(2001))
+        }
+
         if (i<=S.G) {
-            if (rows(S.sample) < 2) {
-                if (S.verbose > 0) printf("\n")
-                exit(error(2001))
-            }
             S.factors[g] = factor(S.ivars[g], S.sample)
         }
 
         if (S.verbose > 0) {
-            printf("{res}%10.0g{txt} | {res}%10.0g{txt} | %7.0f |", S.factors[g].num_obs, S.factors[g].num_levels, S.factors[g].is_sorted)
+            printf(" {res}%10.0g{txt} | %7.0f |", S.factors[g].num_levels, S.factors[g].is_sorted)
             displayflush()
         }
  

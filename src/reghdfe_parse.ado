@@ -7,6 +7,7 @@ program reghdfe_parse, sclass
 	loc extended_absvars `"`s(extended_absvars)'"'
 	mata: st_local("unquoted_absvars", subinstr(st_global("s(absvars)"), `"""', ""))
 	loc 0, `s(options)'
+	loc G = `s(G)'
 
 * Main syntax
 	#d;
@@ -24,6 +25,8 @@ program reghdfe_parse, sclass
 		/* Degrees-of-freedom Adjustments */
 		DOFadjustments(string)
 		GROUPVar(name) /* var with the first connected group between FEs */
+
+		CONDition // Report finite condition number; SLOW!
 
 		/* Duplicated options */
 		KEEPSINgletons
@@ -96,4 +99,10 @@ program reghdfe_parse, sclass
 	if ("`groupvar'"!="") conf new var `groupvar'
 	sreturn local dofadjustments "`opts'"
 	sreturn loc groupvar "`s(groupvar)'"
+
+* Misc
+	if ("`condition'"!="") {
+		_assert `G'==2, msg("Computing finite condition number requires two FEs")
+		sreturn loc finite_condition 1
+	}
 end
