@@ -823,34 +823,32 @@ class FixedEffects
 // --------------------------------------------------------------------------
 `Void' FixedEffects::estimate_cond()
 {
-    `Vector'                levels1
-    `Vector'                levels2
     `Matrix'                D1, D2, L
     `Vector'                lambda
     `RowVector'             tmp
+    `Factor'                F12
 
     if (finite_condition!=-1) return
 
     if (verbose > 0) printf("\n{txt} ## Computing finite condition number of the Laplacian\n\n")
 
     if (verbose > 0) printf("{txt}    - Constructing vectors of levels\n")
-    levels1 = factors[1].levels
-    levels2 = factors[2].levels
-
-    assert(rows(levels1)==rows(levels2))
-    assert(max(levels1)<=rows(levels1))
-    assert(max(levels2)<=rows(levels2))
+    F12 = join_factors(factors[1], factors[2], ., ., 1)
     
     // Non-sparse (lots of memory usage!)
     if (verbose > 0) printf("{txt}    - Constructing design matrices\n")
-    D1 = designmatrix(levels1)
-    D2 = designmatrix(levels2)
+    D1 = designmatrix(F12.keys[., 1])
+    D2 = designmatrix(F12.keys[., 2])
+    assert_msg(rows(D1)<=2000, "System is too big!")
+    assert_msg(rows(D2)<=2000, "System is too big!")
 
     if (verbose > 0) printf("{txt}    - Constructing graph Laplacian\n")
     L =   D1' * D1 , - D1' * D2 \
         - D2' * D1 ,   D2' * D2
+    if (verbose > 0) printf("{txt}    - L is %g x %g \n", rows(L), rows(L))
         
     if (verbose > 0) printf("{txt}    - Computing eigenvalues\n")
+    assert_msg(rows(L)<=2000, "System is too big!")
     eigensystem(L, ., lambda=.)
     lambda = Re(lambda')
 
