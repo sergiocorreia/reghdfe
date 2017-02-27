@@ -9,6 +9,7 @@ class FixedEffects
     // Factors
     `Integer'               G                   // Number of sets of FEs
     `Integer'               N                   // number of obs
+    `Integer'               M                   // Sum of all possible FE coefs
     `Factors'               factors
     `Vector'                sample
     `Varlist'               absvars
@@ -34,6 +35,7 @@ class FixedEffects
     `Boolean'               abort               // Raise error if convergence failed?
     `Integer'               accel_freq          // Specific to Aitken's acceleration
     `Boolean'               storing_alphas      // 1 if we should compute the alphas/fes
+    `Real'                  conlim              // specific to LSMR
 
     // Optimization objects
     `BipartiteGraph'        bg                  // Used when pruning 1-core vertices
@@ -136,6 +138,11 @@ class FixedEffects
     `Void'                  save_variable()
     `Void'                  post_footnote()
     `Void'                  post()
+
+    //LSMR-Specific Methods
+    `Real'                  lsmr_norm()
+    `Vector'                lsmr_A_mult()
+    `Vector'                lsmr_At_mult()
 }    
 
 
@@ -156,8 +163,9 @@ class FixedEffects
     transform = "symmetric_kaczmarz"
     acceleration = "conjugate_gradient"
     accel_start = 6
+    conlim = 1e+8
     
-    prune = 1
+    prune = 0
     converged = 0
     abort = 1
     storing_alphas = 0
@@ -290,6 +298,8 @@ class FixedEffects
     `FunctionP'             funct_transform, func_accel // transform
     `Real'                  y_mean
     `Vector'                lhs
+    `Vector'                alphas
+    `Integer'               i
 
     if (args()<2 | save_tss==.) save_tss = 0
 
@@ -331,6 +341,22 @@ class FixedEffects
     }
     if (timeit) timer_off(60)
 
+    // Intercept LSMR case
+    if (acceleration=="lsmr") {
+        iteration_count = .
+        if (cols(y)==1) {
+            y = lsmr(this, y, alphas=.)
+            alphas = . // or return them!
+        }
+        else {
+            for (i=1; i<=cols(y); i++) {
+                y[., i] = lsmr(this, y[., i], alphas=.)
+            }
+            alphas = .
+        }
+        return
+    }
+
     // Standardize variables
     if (verbose > 0) printf("{txt}    - Standardizing variables\n")
     if (timeit) timer_on(61)
@@ -344,12 +370,12 @@ class FixedEffects
     converged = 0
     iteration_count = 0
     if (timeit) timer_on(62)
-    y = (*func_accel)(this, y, funct_transform) :* stdevs
+    y = (*func_accel)(this, y, funct_transform) :* stdevs // this is like python's self
     if (timeit) timer_off(62)
     // converged gets updated by check_convergence()
     
     if (prune) {
-        assert(G>1)
+        assert(G==2)
         if (timeit) timer_on(63)
         _expand_1core(y)
         if (timeit) timer_off(63)
@@ -602,7 +628,9 @@ class FixedEffects
     `Vector'                idx
     `RowVector'             i_prune
 
-    assert(G==2) // bugbug remove?
+    // For now; too costly to use prune for G=3 and higher
+    // (unless there are *a lot* of degree-1 vertices)
+    if (G!=2) return //assert_msg(G==2, "G==2") // bugbug remove?
 
     // Abort if the user set HDFE.prune = 0
     if (!prune) return
@@ -859,6 +887,87 @@ class FixedEffects
     finite_condition = tmp[2] / tmp[1]
 
     if (verbose > 0) printf("{txt}    - Finite condition number: {res}%s{txt}\n", strofreal(finite_condition))
+}
+
+
+`Real' FixedEffects::lsmr_norm(`Matrix' x)
+{
+    assert(cols(x)==1 | rows(x)==1)
+    // BUGBUG should we include weights? in which ones?
+
+    if (cols(x)==1) {
+        return(sqrt(quadcross(x, x)))
+    }
+    else {
+        return(sqrt(quadcross(x', x')))
+    }
+}
+
+
+// Ax: given the coefs 'x', return the projection 'Ax'
+`Vector' FixedEffects::lsmr_A_mult(`Vector' x)
+{
+    `Integer' g, k, idx_start, idx_end, i
+    `Matrix' cvars
+    `Vector' ans
+
+    ans = J(N, 1, 0)
+    idx_start = 1
+    for (g=1; g<=G; g++) {
+        k = factors[g].num_levels
+
+        if (intercepts[g]) {
+            idx_end = idx_start + k - 1
+            ans = ans + x[|idx_start, 1 \ idx_end , 1 |][factors[g].levels]
+            idx_start = idx_end + 1
+        }
+
+        if (num_slopes[g]) {
+            cvars = asarray(factors[g].extra, "unsorted_x")
+            for (i=1; i<=num_slopes[g]; i++) {
+                idx_end = idx_start + k - 1
+                ans = ans + x[|idx_start, 1 \ idx_end , 1 |][factors[g].levels] * cvars[., i]
+                idx_start = idx_end + 1
+            }
+        }
+
+    }
+    return(ans)
+}
+
+
+// A'x: Compute the FEs and store them in a big stacked vector
+`Vector' FixedEffects::lsmr_At_mult(`Vector' x)
+{
+    `Integer' m, g, i, idx_start, idx_end, k
+    `Vector' ans
+    `Factor' f
+    `Vector' alphas
+    `Matrix' tmp_alphas
+
+    alphas = J(M, 1, .)
+    idx_start = 1
+
+    for (g=1; g<=G; g++) {
+        f = factors[g]
+        k = f.num_levels
+
+        if (intercepts[g]) {
+            idx_end = idx_start + k - 1
+            // TODO: use weights correctly: asarray((*pf).extra, "weights", w) // sorted!
+            alphas[| idx_start , 1 \ idx_end , 1 |] = panelsum(f.sort(x), f.info) // panelmean(f.sort(x), f)
+            idx_start = idx_end + 1
+        }
+
+        if (num_slopes[g]) {
+            // TODO: weights!
+            tmp_alphas = panelsum(f.sort(x :* asarray(f.extra, "x")), f.info)
+            idx_end = idx_start + k * num_slopes[g] - 1
+            alphas[| idx_start , 1 \ idx_end , 1 |] = vec(tmp_alphas)
+            idx_start = idx_end + 1
+        }
+    }
+    return(alphas)
 }
 
 end

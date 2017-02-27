@@ -47,7 +47,7 @@ program Compile
 	ms_get_version reghdfe // from moresyntax package; save local package_version
 
 	loc list_objects "FixedEffects() fixed_effects() BipartiteGraph()"
-	loc list_functions "reghdfe_*() transform_*() accelerate_*() panelmean() panelsolve_*()"
+	loc list_functions "reghdfe_*() transform_*() accelerate_*() panelmean() panelsolve_*() lsmr()"
 	loc list_misc "weighted_quadcolsum() safe_divide() check_convergence()"
 	// TODO: prefix everything with reghdfe_*
 

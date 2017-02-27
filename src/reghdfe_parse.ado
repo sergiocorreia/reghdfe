@@ -20,7 +20,7 @@ program reghdfe_parse, sclass
 		TRAnsform(string)
 		ACCELeration(string)
 		SLOPEmethod(string)
-		noPRUNE
+		PRUNE
 
 		/* Degrees-of-freedom Adjustments */
 		DOFadjustments(string)
@@ -68,7 +68,7 @@ program reghdfe_parse, sclass
 		if ("`acceleration'"=="cg") loc acceleration conjugate_gradient
 		if ("`acceleration'"=="sd") loc acceleration steepest_descent
 		if ("`acceleration'"=="off") loc acceleration none
-		loc valid_accelerations conjugate_gradient steepest_descent aitken none hybrid
+		loc valid_accelerations conjugate_gradient steepest_descent aitken none hybrid lsmr
 		foreach x of local valid_accelerations {
 			if (strpos("`x'", "`acceleration'")==1) loc acceleration `x'
 		}
@@ -77,7 +77,7 @@ program reghdfe_parse, sclass
 	}
 
 	* Disable prune of degree-1 edges
-	if ("`prune'" == "noprune") sreturn loc prune = 0
+	if ("`prune'" == "prune") sreturn loc prune = 1
 
 * Parse DoF Adjustments
 	if ("`dofadjustments'"=="") local dofadjustments all

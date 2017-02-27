@@ -64,6 +64,10 @@ mata:
     if (st_global("s(prune)") != "") S.prune = strtoreal(st_global("s(prune)"))
     if (st_global("s(transform)") != "") S.transform = st_global("s(transform)")
     if (st_global("s(acceleration)") != "") S.acceleration = st_global("s(acceleration)")
+
+    // Override LSMR if G=1
+    if (S.G==1 & S.acceleration=="lsmr") S.acceleration = "conjugate_gradient"
+
     S.dofadjustments = tokens(st_global("s(dofadjustments)"))
     S.groupvar = st_global("s(groupvar)")
     if (st_global("s(finite_condition)")=="1") S.finite_condition = -1 // signal to compute it
@@ -225,7 +229,7 @@ mata:
 
 
     // (4) prune edges of degree-1
-    S.prune = 0 // bugbug
+    // S.prune = 0 // bugbug
     if (S.prune) S.prune_1core()
 
 
@@ -248,6 +252,15 @@ mata:
         }
         cvar_data = .
     }
+
+    if (S.acceleration=="lsmr") {
+        // Compute M
+        S.M = 0
+        for (g=1; g<=S.G; g++) {
+            S.M = S.M + S.factors[g].num_levels * (S.intercepts[g] + S.num_slopes[g])
+        }
+    }
+    
 
     return(S)
 }

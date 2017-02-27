@@ -29,7 +29,7 @@
 
 // Include ------------------------------------------------------------------
     local includes bipartite class constructor ///
-                   common projections transforms accelerations
+                   common projections transforms accelerations lsmr
     foreach include of local includes {
         findfile "reghdfe_`include'.mata"
         include "`r(fn)'"

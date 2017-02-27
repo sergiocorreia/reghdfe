@@ -246,6 +246,7 @@ mata:
 `Matrix' weighted_quadcolsum(`FixedEffects' S, `Matrix' x, `Matrix' y) {
 	// BUGBUG: colsum or quadcolsum??
 	// BUGBUG: override S.has_weights with pruning
+	// BUGBUG: speed up with cross() if only one column
 	return( quadcolsum(S.has_weights ? (x :* y :* S.weight) : (x :* y) ) )
 }
 end
