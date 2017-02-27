@@ -372,11 +372,11 @@ class BipartiteGraph
 	`Vector'                drop1, drop2
 	`Vector'                tmp_mask
 	`Vector'                proj1, proj2
-	`Variable'              w
+	`Variable'              w, tmp_weight
 
-	has_weights = (args()>0 & rows(weight) > 1) // weight != . & weight != 1)
+	has_weights = (args()>0 & rows(weight) > 1)
 	if (has_weights) sorted_true_weight = (*PF1).sort(weight)
-	if (!has_weights) weight = J(N, 1, 1)
+	tmp_weight = has_weights ? weight : J(N, 1, 1)
 
 	N_drop = sum(cores :== 1)
 	if (!N_drop) {
@@ -431,18 +431,21 @@ class BipartiteGraph
 	// To undo pruning, I need (*PF1).info[drop1, .] & drop2info & drop2idx
 
 	// Set weights of pruned obs. to zero
-	weight[`selectindex'(mask)] = J(sum(mask), 1, 0)
+	tmp_weight[`selectindex'(mask)] = J(sum(mask), 1, 0)
 
 	// Update sorted weights for g=1,2
-	w = (*PF1).sort(weight)
+	w = (*PF1).sort(tmp_weight)
 	asarray((*PF1).extra, "has_weights", 1)
 	asarray((*PF1).extra, "weights", w)
 	asarray((*PF1).extra, "weighted_counts", `panelsum'(w, (*PF1).info))
+	w = .
 
-	w = (*PF2).sort(weight)
+	w = (*PF2).sort(tmp_weight)
+	tmp_weight = . // cleanup
 	asarray((*PF2).extra, "has_weights", 1)
 	asarray((*PF2).extra, "weights", w)
 	asarray((*PF2).extra, "weighted_counts", `panelsum'(w, (*PF2).info))
+	w = .
 	
 	// Select obs where both FEs are degree-1 (and thus omitted)
 	sorted_w = J(N, 1, 1)
