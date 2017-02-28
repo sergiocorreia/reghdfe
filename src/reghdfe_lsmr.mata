@@ -214,6 +214,10 @@ mata:
             ">>>"
         }
         
+        if (S.compute_rre & !S.prune) {
+            reghdfe_rre_benchmark(b - S.lsmr_A_mult(x), S.rre_true_residual, S.rre_depvar_norm)
+        }
+        
         if (S.converged) break
     }
 

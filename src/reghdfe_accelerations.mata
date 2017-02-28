@@ -96,7 +96,7 @@ mata:
 		recent_ssr[1 + mod(iter-1, d), .] = alpha :* ssr
 		improvement_potential = improvement_potential - alpha :* ssr
 		y = y - alpha :* u
-		if (S.compute_rre) reghdfe_rre_benchmark(y[., 1], S.rre_true_residual, S.rre_depvar_norm)
+		if (S.compute_rre & !S.prune) reghdfe_rre_benchmark(y[., 1], S.rre_true_residual, S.rre_depvar_norm)
 		r = r - alpha :* v
 		ssr_old = ssr
 		ssr = weighted_quadcolsum(S, r, r)
@@ -123,6 +123,7 @@ mata:
 		if (uniform(1,1)<0.1) t = 1 // BUGBUG: Does this REALLY help to randomly unstuck an iteration?
 
 		y = y - t :* proj
+		if (S.compute_rre & !S.prune) reghdfe_rre_benchmark(y[., 1], S.rre_true_residual, S.rre_depvar_norm)
 		
 		if (S.storing_alphas) {
 			for (g=1; g<=S.G; g++) {
@@ -169,9 +170,11 @@ mata:
 			resid = resid - t :*  (resid - y)
 		}
 
+
 		// Only check converge on non-accelerated iterations
 		// BUGBUG: Do we need to disable the check when accelerating?
 		// if (check_convergence(S, iter, accelerate? resid :* .  : resid, y)) break
+		if (S.compute_rre & !S.prune) reghdfe_rre_benchmark(resid[., 1], S.rre_true_residual, S.rre_depvar_norm)
 		if (check_convergence(S, iter, resid, y)) break
 		y_old = y // y_old is resid[iter-2]
 		y = resid // y is resid[iter-1]

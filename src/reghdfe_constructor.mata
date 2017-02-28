@@ -276,7 +276,6 @@ mata:
                 cvars = tokens(S.cvars[g])
                 precond = st_data(S.sample, cvars)
                 precond = reghdfe_panel_precondition(precond, (*pf))
-                precond = precond // REMOVE
                 asarray((*pf).extra, "precond_slopes", precond)
             }
 
