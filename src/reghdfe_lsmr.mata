@@ -13,7 +13,7 @@ mata:
 
 `Vector' lsmr(`FixedEffects' S, `Vector' b, `Vector' x) {
     `Real' eps
-    `Integer' m, n, iter, btol
+    `Integer' iter // m, n
     `Real' beta, zetabar, alphabar, rho, rhobar, cbar, sbar
     `Real' betadd, betad, rhodold, tautildeold, thetatilde, zeta, d
     `Real' normA2, maxrbar, minrbar
@@ -22,25 +22,24 @@ mata:
     `Vector' u, v, h, hbar
 
     `Real' alpha, alphahat, lambda, chat, shat, rhoold, c, s, thetanew, rhobarold, zetaold, stildeold
-    `Real' thetabar, rhotemp, betaacute, betacheck, betahat, thetatildeold, rhotildeold, ctildeold, tildeold, taud
-    `Real' normA, normAr, condA, normx, t1, rtol
+    `Real' thetabar, rhotemp, betaacute, betacheck, betahat, thetatildeold, rhotildeold, ctildeold, taud
+    `Real' normA, normAr, condA, normx, rtol
 
     assert(cols(b)==1)
     if (S.verbose > 0) printf("\n{txt} ## Computing LSMR\n\n")
 
     // Constants
     eps = epsilon(1)
-    btol = 1e-10 // S.tolerance is Atol
+    
     lambda = 0 // not used
-
     S.converged = 0
 
     beta = S.lsmr_norm(b)
     assert_msg(beta < . , "beta is missing")
     u = (beta > eps) ? (b / beta) : b
     v = S.lsmr_At_mult(u) // v = (*A)(u, 2)
-    m = rows(v) // A is m*n
-    n = rows(u)
+    // m = rows(v) // A is m*n
+    // n = rows(u)
 
     alpha = S.lsmr_norm(v)
     assert_msg(alpha < . , "alpha is missing")
@@ -53,7 +52,7 @@ mata:
     sbar = 0
 
     h = v
-    //hbar = J(rows(h), 1, 0)
+    hbar = J(rows(h), 1, 0) // remove this
     //x = J(rows(h), 1, 0)
 
     // Initialize variables for estimation of ||r||
@@ -72,6 +71,7 @@ mata:
 
     // Items for use in stopping rules.
     normb = beta
+    normr = beta
 
     // Exit if b=0 or A'b = 0.
     normAr = alpha * beta
@@ -95,6 +95,10 @@ mata:
 
         // Update (1) βu = Av - αu (2) αv = A'u - βv
         u = S.lsmr_A_mult(v) - alpha * u // u = (*A)(v, 1) - alpha * u
+
+        //"hash of u"
+        //hash1(round(u*1e5))
+        //u[1..5]
 
         beta = S.lsmr_norm(u)
         if (beta > eps) u = u / beta
@@ -185,8 +189,7 @@ mata:
         test1   = normr  / normb
         test2   = normAr / (normA*normr)
         test3   =      1 / condA
-        t1      =  test1 / (1 + normA*normx / normb)
-        rtol    = btol + S.tolerance *normA*normx / normb
+        rtol    = S.btol + S.tolerance *normA*normx / normb
     
         // The following tests guard against extremely small values of
         // atol, btol or ctol.  (The user may have set any or all of
@@ -220,8 +223,8 @@ mata:
     }
 
     S.iteration_count = min((iter, S.iteration_count))
-    x
-    u = S.lsmr_A_mult(v) - alpha * u // u = (*A)(v, 1) - alpha * u
+
+    u = b - S.lsmr_A_mult(x)
     return(u)
 }
 end

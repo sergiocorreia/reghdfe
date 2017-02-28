@@ -20,6 +20,7 @@ mata:
     `Variables'             cvar_data
     `Variable'              w
     `FactorPointer'         pf
+    `Matrix'                precond // used for lsmr
 
     // Set default value of arguments
     if (args()<2) touse = ""
@@ -258,6 +259,23 @@ mata:
         S.M = 0
         for (g=1; g<=S.G; g++) {
             S.M = S.M + S.factors[g].num_levels * (S.intercepts[g] + S.num_slopes[g])
+        }
+
+        // Preconditioner
+        for (g=1; g<=S.G; g++) {
+            pf = &(S.factors[g])
+            if (S.intercepts[g]) {
+                precond = S.has_weights ? asarray((*pf).extra, "weighted_counts") : (*pf).counts
+                asarray((*pf).extra, "precond_intercept", sqrt(1 :/ precond))
+            }
+
+            if (S.num_slopes[g]) {
+                precond = asarray((*pf).extra, "x")
+                precond = precond :/ sqrt(diagonal(quadcross(precond, precond)))
+                asarray((*pf).extra, "precond_slopes", precond)
+            }
+
+            precond = .
         }
     }
     

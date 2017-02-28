@@ -36,6 +36,7 @@ class FixedEffects
     `Integer'               accel_freq          // Specific to Aitken's acceleration
     `Boolean'               storing_alphas      // 1 if we should compute the alphas/fes
     `Real'                  conlim              // specific to LSMR
+    `Real'                  btol                // specific to LSMR
 
     // Optimization objects
     `BipartiteGraph'        bg                  // Used when pruning 1-core vertices
@@ -163,7 +164,8 @@ class FixedEffects
     transform = "symmetric_kaczmarz"
     acceleration = "conjugate_gradient"
     accel_start = 6
-    conlim = 1e+8
+    conlim = 1e+8 // lsmr only
+    btol = 1e-8 // lsmr only (note: atol is just tolerance)
     
     prune = 0
     converged = 0
@@ -908,25 +910,25 @@ class FixedEffects
 `Vector' FixedEffects::lsmr_A_mult(`Vector' x)
 {
     `Integer' g, k, idx_start, idx_end, i
-    `Matrix' cvars
     `Vector' ans
 
     ans = J(N, 1, 0)
     idx_start = 1
+
     for (g=1; g<=G; g++) {
         k = factors[g].num_levels
 
         if (intercepts[g]) {
             idx_end = idx_start + k - 1
-            ans = ans + x[|idx_start, 1 \ idx_end , 1 |][factors[g].levels]
+            ans = ans + (x[|idx_start, 1 \ idx_end , 1 |] :* asarray(factors[g].extra, "precond_intercept") )[factors[g].levels] // bugbug /G is wrong
             idx_start = idx_end + 1
         }
 
         if (num_slopes[g]) {
-            cvars = asarray(factors[g].extra, "unsorted_x")
+            assert(0)
             for (i=1; i<=num_slopes[g]; i++) {
                 idx_end = idx_start + k - 1
-                ans = ans + x[|idx_start, 1 \ idx_end , 1 |][factors[g].levels] * cvars[., i]
+                ans = ans + x[|idx_start, 1 \ idx_end , 1 |][factors[g].levels] :* asarray(factors[g].extra, "precond_slopes")
                 idx_start = idx_end + 1
             }
         }
@@ -954,15 +956,13 @@ class FixedEffects
 
         if (intercepts[g]) {
             idx_end = idx_start + k - 1
-            // TODO: use weights correctly: asarray((*pf).extra, "weights", w) // sorted!
-            alphas[| idx_start , 1 \ idx_end , 1 |] = panelsum(f.sort(x), f.info) // panelmean(f.sort(x), f)
+            alphas[| idx_start , 1 \ idx_end , 1 |] = `panelsum'(f.sort(x), f.info) :* asarray(f.extra, "precond_intercept")
             idx_start = idx_end + 1
         }
 
         if (num_slopes[g]) {
-            // TODO: weights!
-            tmp_alphas = panelsum(f.sort(x :* asarray(f.extra, "x")), f.info)
             idx_end = idx_start + k * num_slopes[g] - 1
+            tmp_alphas = panelsum(f.sort(x) :* asarray(f.extra, "precond_slopes"), f.info)
             alphas[| idx_start , 1 \ idx_end , 1 |] = vec(tmp_alphas)
             idx_start = idx_end + 1
         }
