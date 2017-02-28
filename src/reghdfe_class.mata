@@ -43,6 +43,7 @@ class FixedEffects
     `Vector'                pruned_weight       // temp. weight for the factors that were pruned
     `Integer'               prune_g1            // Factor 1/2 in the bipartite subgraph that gets pruned
     `Integer'               prune_g2            // Factor 2/2 in the bipartite subgraph that gets pruned
+    `Integer'               num_pruned          // Number of vertices (levels) that were pruned
 
     // Misc
     `Integer'               verbose
@@ -636,7 +637,7 @@ class FixedEffects
 
     // Abort if the user set HDFE.prune = 0
     if (!prune) return
-    
+
     // Pick two factors, and check if we really benefit from pruning
     prune = 0
     i_prune = J(1, 2, 0)
@@ -665,6 +666,7 @@ class FixedEffects
     bg.init_zigzag(1) // 1 => save subgraphs into bg.subgraph_id
     bg.compute_cores()
     bg.prune_1core(weight)
+    num_pruned = bg.N_drop
 }
 
 // bugbug fix or remove this fn altogether
@@ -748,6 +750,12 @@ class FixedEffects
     st_numscalar("e(ic)", iteration_count)
     st_numscalar("e(drop_singletons)", drop_singletons)
     st_numscalar("e(num_singletons)", num_singletons)
+
+    // Prune specific
+    if (prune==1) {
+        st_numscalar("e(pruned)", 1)
+        st_numscalar("e(num_pruned)", num_pruned)
+    }
 
     if (!missing(finite_condition)) st_numscalar("e(finite_condition)", finite_condition)
 }
@@ -895,9 +903,11 @@ class FixedEffects
 `Real' FixedEffects::lsmr_norm(`Matrix' x)
 {
     assert(cols(x)==1 | rows(x)==1)
-    // BUGBUG should we include weights? in which ones?
-
-    if (cols(x)==1) {
+    // BUGBUG: what if we have a corner case where there are as many obs as params?
+    if (has_weights & cols(x)==1 & rows(x)==rows(weight)) {
+        return(sqrt(quadcross(x, weight, x)))
+    }
+    else if (cols(x)==1) {
         return(sqrt(quadcross(x, x)))
     }
     else {
@@ -911,24 +921,25 @@ class FixedEffects
 {
     `Integer' g, k, idx_start, idx_end, i
     `Vector' ans
+    `FactorPointer'         pf
 
     ans = J(N, 1, 0)
     idx_start = 1
 
     for (g=1; g<=G; g++) {
-        k = factors[g].num_levels
+        pf = &(factors[g])
+        k = (*pf).num_levels
 
         if (intercepts[g]) {
             idx_end = idx_start + k - 1
-            ans = ans + (x[|idx_start, 1 \ idx_end , 1 |] :* asarray(factors[g].extra, "precond_intercept") )[factors[g].levels] // bugbug /G is wrong
+            ans = ans + (x[|idx_start, 1 \ idx_end , 1 |] :* asarray((*pf).extra, "precond_intercept") )[(*pf).levels]
             idx_start = idx_end + 1
         }
 
         if (num_slopes[g]) {
-            assert(0)
             for (i=1; i<=num_slopes[g]; i++) {
                 idx_end = idx_start + k - 1
-                ans = ans + x[|idx_start, 1 \ idx_end , 1 |][factors[g].levels] :* asarray(factors[g].extra, "precond_slopes")
+                ans = ans + x[|idx_start, 1 \ idx_end , 1 |][(*pf).levels] :* asarray((*pf).extra, "precond_slopes")
                 idx_start = idx_end + 1
             }
         }
@@ -943,7 +954,7 @@ class FixedEffects
 {
     `Integer' m, g, i, idx_start, idx_end, k
     `Vector' ans
-    `Factor' f
+    `FactorPointer'         pf
     `Vector' alphas
     `Matrix' tmp_alphas
 
@@ -951,18 +962,28 @@ class FixedEffects
     idx_start = 1
 
     for (g=1; g<=G; g++) {
-        f = factors[g]
-        k = f.num_levels
+        pf = &(factors[g])
+        k = (*pf).num_levels
 
         if (intercepts[g]) {
             idx_end = idx_start + k - 1
-            alphas[| idx_start , 1 \ idx_end , 1 |] = `panelsum'(f.sort(x), f.info) :* asarray(f.extra, "precond_intercept")
+            if (has_weights) {
+                alphas[| idx_start , 1 \ idx_end , 1 |] = `panelsum'((*pf).sort(x :* weight), (*pf).info) :* asarray((*pf).extra, "precond_intercept")
+            }
+            else {
+                alphas[| idx_start , 1 \ idx_end , 1 |] = `panelsum'((*pf).sort(x), (*pf).info) :* asarray((*pf).extra, "precond_intercept")
+            }
             idx_start = idx_end + 1
         }
 
         if (num_slopes[g]) {
             idx_end = idx_start + k * num_slopes[g] - 1
-            tmp_alphas = panelsum(f.sort(x) :* asarray(f.extra, "precond_slopes"), f.info)
+            if (has_weights) {
+                tmp_alphas = panelsum((*pf).sort(x :* weight :* asarray((*pf).extra, "precond_slopes")), (*pf).info)
+            }
+            else {
+                tmp_alphas = panelsum((*pf).sort(x :* asarray((*pf).extra, "precond_slopes")), (*pf).info)
+            }
             alphas[| idx_start , 1 \ idx_end , 1 |] = vec(tmp_alphas)
             idx_start = idx_end + 1
         }

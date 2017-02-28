@@ -105,5 +105,25 @@ mata:
 }
 
 */
+
+// used with lsmr if we have fixed slopes
+`Variables' reghdfe_panel_precondition(`Variables' y, `Factor' f)
+{
+    `Vector' ans
+    pointer(`Variable')              Pw
+    `Boolean' has_weights
+
+    has_weights = asarray(f.extra, "has_weights")
+    if (has_weights) {
+        Pw = &asarray(f.extra, "weights")
+        ans = `panelsum'(y:^2, *Pw, f.info)
+    }
+    else {
+        ans = `panelsum'(y, f.info)
+    }
+
+    ans = y :/ sqrt(ans)[f.levels]
+    return(ans)
+}
 end
 

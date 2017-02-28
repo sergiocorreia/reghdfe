@@ -197,7 +197,7 @@ mata:
 	else if (method=="hestenes") {
 		// If the regressor is perfectly explained by the absvars, we can have SSR very close to zero but negative
 		// (so sqrt is missing)
-		// todo: add weights to hestenes (S.weight , as in vectors)
+		// todo: add weights to hestenes (S.weight , as in "vectors" method)
 		update_error = max(safe_divide( sqrt(y_new) , editmissing(sqrt(y_old), sqrt(epsilon(1)) ) , sqrt(epsilon(1)) ))
 	}
 	else {

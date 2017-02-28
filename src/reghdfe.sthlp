@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 4.0.6 21feb2017}{...}
+{* *! version 4.1.0 28feb2017}{...}
 {vieweralsosee "[R] areg" "help areg"}{...}
 {vieweralsosee "[R] xtreg" "help xtreg"}{...}
 {vieweralsosee "[R] ivregress" "help ivregress"}{...}
@@ -57,8 +57,16 @@ may be {opt un:adjusted} (default), {opt r:obust} or {opt cl:uster} {help fvvarl
 {p2coldent:+ {opth tol:erance(#)}}criterion for convergence (default=1e-8){p_end}
 {synopt :{opth maxit:erations(#)}}maximum number of iterations (default=10,000); if set to missing ({cmd:.}) it will run for as long as it takes.{p_end}
 {synopt :{opth pool:size(#)}}apply the within algorithm in groups of {it:#} variables (default 10). a large poolsize is usually faster but uses more memory{p_end}
-{synopt :{opt accel:eration(str)}}acceleration method; options are conjugate_gradient (cg), steep_descent (sd), aitken (a), and none (no){p_end}
-{synopt :{opt transf:orm(str)}}transform operation that defines the type of alternating projection; options are Kaczmarz (kac), Cimmino (cim), Symmetric Kaczmarz (sym){p_end}
+{synopt :{opt accel:eration(str)}}acceleration method; options are conjugate_gradient (cg), steep_descent (sd), aitken (a),
+{browse "http://web.stanford.edu/group/SOL/software/lsmr/":lsmr}, and none (no){p_end}
+{synopt :{opt transf:orm(str)}}transform operation that defines the type of alternating projection; options are Kaczmarz (kac), Cimmino (cim), Symmetric Kaczmarz (sym).
+This is ignored with LSMR acceleration{p_end}
+{synopt :{opt prune}}prune vertices of degree-1; acts as a preconditioner
+that is useful if the underlying network is very sparse{p_end}
+{synopt :{opt cond}}compute the finite condition number;
+will only run successfully with few fixed effects
+(because it computes the eigenvalues of the graph Laplacian){p_end}
+
 
 {syntab:Speedup Tricks {help reghdfe##opt_speedup:[+]}}
 {synopt :{cmd: cache(save} [,opt]{cmd:)}}absorb all variables without regressing (destructive; combine it with {help preserve:preserve/restore}){p_end}

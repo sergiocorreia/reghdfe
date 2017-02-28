@@ -239,7 +239,7 @@ mata:
         if (S.verbose > 0) printf("\n{txt} ## Loading slope variables\n\n")
         for (g=1; g<=S.G; g++) {
             cvars = tokens(S.cvars[g])
-            if (cols(cvars) > 0) {
+            if (S.num_slopes[g]) {
                 // Load, standardize, sort by factor, precompute (TODO), and store
                 if (S.verbose > 0) printf("{txt}    - cvars({res}%s{txt})\n", invtokens(cvars))
                 pf = &(S.factors[g])
@@ -270,8 +270,10 @@ mata:
             }
 
             if (S.num_slopes[g]) {
-                precond = asarray((*pf).extra, "x")
-                precond = precond :/ sqrt(diagonal(quadcross(precond, precond)))
+                cvars = tokens(S.cvars[g])
+                precond = st_data(S.sample, cvars)
+                precond = reghdfe_panel_precondition(precond, (*pf))
+                precond = precond // REMOVE
                 asarray((*pf).extra, "precond_slopes", precond)
             }
 
