@@ -96,6 +96,7 @@ mata:
 		recent_ssr[1 + mod(iter-1, d), .] = alpha :* ssr
 		improvement_potential = improvement_potential - alpha :* ssr
 		y = y - alpha :* u
+		if (S.compute_rre) reghdfe_rre_benchmark(y[., 1], S.rre_true_residual, S.rre_depvar_norm)
 		r = r - alpha :* v
 		ssr_old = ssr
 		ssr = weighted_quadcolsum(S, r, r)
@@ -185,7 +186,7 @@ mata:
 	`Real'		update_error
 
 	// max() ensures that the result when bunching vars is at least as good as when not bunching
-	if (args()<5) method = "vectors" 
+	if (args()<5) method = "vectors"
 
 	if (S.G==1 & !S.storing_alphas) {
 		// Shortcut for trivial case (1 FE)
@@ -249,4 +250,16 @@ mata:
 	// BUGBUG: speed up with cross() if only one column
 	return( quadcolsum(S.has_weights ? (x :* y :* S.weight) : (x :* y) ) )
 }
+
+
+// RRE benchmarking
+//	|| yk - y || / || y || === || ek - e || / || y ||
+`Real' reghdfe_rre_benchmark(`Vector' resid, `Vector' true_resid, `Real' norm_y) {
+	`Real' ans
+	ans = norm(resid - true_resid) / norm_y
+	return(ans)
+}
+
 end
+
+

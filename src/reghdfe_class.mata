@@ -50,6 +50,10 @@ class FixedEffects
     `Boolean'               timeit
     `Boolean'               store_sample
     `Real'                  finite_condition
+    `Real'                  compute_rre         // Relative residual error: || e_k - e || / || e ||
+    `Real'                  rre_depvar_norm
+    `Vector'                rre_varname
+    `Vector'                rre_true_residual
 
     // Weight-specific
     `Boolean'               has_weights
@@ -344,8 +348,11 @@ class FixedEffects
     }
     if (timeit) timer_off(60)
 
+
     // Intercept LSMR case
     if (acceleration=="lsmr") {
+        // RRE benchmarking
+        if (compute_rre) rre_depvar_norm = norm(y[., 1])
         iteration_count = .
         if (cols(y)==1) {
             y = lsmr(this, y, alphas=.)
@@ -365,6 +372,10 @@ class FixedEffects
     if (timeit) timer_on(61)
     stdevs = reghdfe_standardize(y)
     if (timeit) timer_off(61)
+
+    // RRE benchmarking
+    rre_true_residual = rre_true_residual / stdevs[1]
+    if (compute_rre) rre_depvar_norm = norm(y[., 1])
 
     // Solve
     if (verbose>0) printf("{txt}    - Running solver (acceleration={res}%s{txt}, transform={res}%s{txt} tol={res}%-1.0e{txt})\n", acceleration, transform, tolerance)
@@ -663,7 +674,7 @@ class FixedEffects
 
     bg = BipartiteGraph()
     bg.init(&factors[prune_g1], &factors[prune_g2], verbose)
-    bg.init_zigzag(1) // 1 => save subgraphs into bg.subgraph_id
+    (void) bg.init_zigzag(1) // 1 => save subgraphs into bg.subgraph_id
     bg.compute_cores()
     bg.prune_1core(weight)
     num_pruned = bg.N_drop

@@ -58,7 +58,7 @@ may be {opt un:adjusted} (default), {opt r:obust} or {opt cl:uster} {help fvvarl
 {synopt :{opth maxit:erations(#)}}maximum number of iterations (default=10,000); if set to missing ({cmd:.}) it will run for as long as it takes.{p_end}
 {synopt :{opth pool:size(#)}}apply the within algorithm in groups of {it:#} variables (default 10). a large poolsize is usually faster but uses more memory{p_end}
 {synopt :{opt accel:eration(str)}}acceleration method; options are conjugate_gradient (cg), steep_descent (sd), aitken (a),
-{browse "http://web.stanford.edu/group/SOL/software/lsmr/":lsmr}, and none (no){p_end}
+{browse "http://web.stanford.edu/group/SOL/software/lsmr/":lsmr} (with diagonal preconditioner), and none (no){p_end}
 {synopt :{opt transf:orm(str)}}transform operation that defines the type of alternating projection; options are Kaczmarz (kac), Cimmino (cim), Symmetric Kaczmarz (sym).
 This is ignored with LSMR acceleration{p_end}
 {synopt :{opt prune}}prune vertices of degree-1; acts as a preconditioner
@@ -90,6 +90,7 @@ rarely used{p_end}
 {syntab:Undocumented}
 {synopt :{opt keepsin:gletons}}do not drop singleton groups{p_end}
 {synopt :{opt old}}will call the latest 3.x version of reghdfe instead (see the {help reghdfe_old:old help file}){p_end}
+{synopt :{opth rre(varname)}}where varname is the residual of a proven prev. regression of y against only the FEs{p_end}
 {synopt :{opt check}}compile {it:lreghdfe.mlib} if it does not exist or if it needs to be updated;
 use {cmd:reghdfe,compile} to force an update{p_end}
 {synopt :{opt update}}update reghdfe and dependencies from the respective Github repositories;

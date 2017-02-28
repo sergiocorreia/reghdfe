@@ -27,6 +27,7 @@ program reghdfe_parse, sclass
 		GROUPVar(name) /* var with the first connected group between FEs */
 
 		CONDition // Report finite condition number; SLOW!
+		RRE(varname) // Report relative residual error
 
 		/* Duplicated options */
 		KEEPSINgletons
@@ -104,5 +105,10 @@ program reghdfe_parse, sclass
 	if ("`condition'"!="") {
 		_assert `G'==2, msg("Computing finite condition number requires two FEs")
 		sreturn loc finite_condition 1
+	}
+
+	sreturn loc compute_rre = ("`rre'" != "")
+	if ("`rre'" != "") {
+		sreturn loc rre `rre'
 	}
 end

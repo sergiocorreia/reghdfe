@@ -72,6 +72,8 @@ mata:
     S.dofadjustments = tokens(st_global("s(dofadjustments)"))
     S.groupvar = st_global("s(groupvar)")
     if (st_global("s(finite_condition)")=="1") S.finite_condition = -1 // signal to compute it
+    S.compute_rre = (st_global("s(compute_rre)")=="1")
+    if (S.compute_rre) S.rre_varname = st_global("s(rre)")
 
     if (S.verbose > -1 & !S.has_intercept) printf("{txt}(warning: no intercepts terms in absorb(); regression lacks constant term)\n")
 
@@ -254,6 +256,7 @@ mata:
         cvar_data = .
     }
 
+    // Preconditioners for LSMR
     if (S.acceleration=="lsmr") {
         // Compute M
         S.M = 0
@@ -280,7 +283,12 @@ mata:
             precond = .
         }
     }
-    
+
+    // Save "true" residuals for RRE
+    if (S.compute_rre) {
+        assert_msg(S.rre_varname != "")
+        S.rre_true_residual = st_data(S.sample, S.rre_varname)
+    }
 
     return(S)
 }
