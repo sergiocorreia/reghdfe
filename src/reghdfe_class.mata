@@ -491,7 +491,7 @@ class FixedEffects
     doflist_M = J(1, G_extended, 0)
     assert(0 <= num_clusters & num_clusters <= 10)
     if (num_clusters > 0 & anyof(dofadjustments, "clusters")) {
-        
+
         // (2) (Intercept-Only) Look for absvars that are clustervars
         for (i_intercept=1; i_intercept<=length(idx); i_intercept++) {
             g = idx[i_intercept]
@@ -548,7 +548,7 @@ class FixedEffects
     // (4) (Intercept-Only) Every intercept but the first has at least one redundant coef.
     if (length(idx) > 1) {
         if (verbose > 0) printf("{txt}    - there is at least one redundant coef. for every set of FE intercepts after the first one\n")
-        doflist_M[offsets[idx[2..num_intercepts]]] = J(1, num_intercepts-1, 1) // Set DoF loss of all intercepts but the first one to 1
+        doflist_M[offsets[idx[2..length(idx)]]] = J(1, length(idx)-1, 1) // Set DoF loss of all intercepts but the first one to 1
     }
 
     // (5) (Intercept-only) Mobility group algorithm
