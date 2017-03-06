@@ -1,8 +1,6 @@
 v 3
 
-d (THIS IS AN EXPERIMENTAL VERSION - USE CAREFULLY)
-d
-d reghdfe. Linear and instrumental-variable/GMM regression absorbing multiple levels of fixed effects (REGHDFE)
+d REGHDFE: Linear models with multi-way fixed effects and multi-way clustering
 d
 d Author: Sergio Correia. Board of Governors of the Federal Reserve System
 d Support: sergio.correia@gmail.com
@@ -17,11 +15,13 @@ d For details (user guide, help, FAQ), see the website:
 d http://scorreia.com/reghdfe/
 d
 d KW: fixed effects
+d KW: panel data
 d KW: hdfe
 d KW: areg
 d KW: xtreg
-d KW: instrumental variables
-d KW: GMM
+d KW: MWFE
+d KW: MWC
+d KW: cluster
 d
 d Requires: Stata version 11.2
 d

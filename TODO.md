@@ -26,9 +26,17 @@
 	- The second, as adding more independent or poorly connected countries to a dataset
 - hdfe.ado
 - Improve degrees-of-freedom with group3hdfe (or Mata implem of it)
-- demo of how poi2hdfe could work
 - `savecache` and `usecache` (or `hold`) options?
 
+## Inference
+
+If the dim of the 2nd FE is not that high, can I compute M and M:^2?
+Mata works up to 20k
+
+We now have three fixes for rob/clus: CJN, V, WildB
+vce(wild) vce(m2) vce(overlap|subgraphs) (pick a good name)
+
+Do this afterwards..!
 
 
 
