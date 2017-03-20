@@ -400,7 +400,10 @@ program Estimate, eclass
 		qui replace `d' = `e(depvar)' - `d' - `e(resid)' if e(sample)
 		mata: HDFE.store_alphas("`d'")
 		drop `d'
-		cap drop __temp_reghdfe_resid__ // in case we didn't intend to save resids
+
+		// Drop resid if we don't want to save it; and update e(resid)
+		cap drop __temp_reghdfe_resid__
+		if (!c(rc)) ereturn local resid
 	}
 	if (`timeit') timer off 29
 
