@@ -30,7 +30,7 @@ d 	moresyntax
 d 	ftools
 d 	boottest (for Stata version 12 or earlier)
 d
-d Distribution-Date: 20170216
+d Distribution-Date: 20170320
 d
 
 f reghdfe.ado
