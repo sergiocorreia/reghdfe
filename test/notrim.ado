@@ -1,4 +1,4 @@
-* Convenience function used b/c triM_cons renames e(b) into e(b_trim)
+* Convenience function used b/c trim_cons renames e(b) into e(b_trim)
 
 cap pr drop notrim
 pr notrim, eclass

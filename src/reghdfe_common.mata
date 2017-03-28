@@ -473,6 +473,8 @@ mata:
 	`RowVector'				Xe_tmp
 	`Matrix'				M
 
+	if (cols(X)==0) return(J(0,0,0))
+
 	N_clust = (*FP).num_levels
 	(*FP).panelsetup()
 	X_sorted = (*FP).sort(X)

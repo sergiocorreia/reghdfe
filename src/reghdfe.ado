@@ -213,14 +213,13 @@ program Parse
 	}
 
 	* Parse Varlist
-	ms_fvunab `anything'
-	ms_parse_varlist `s(varlist)'
-	loc base_varlist "`s(basevars)'"
+	ms_parse_varlist `anything'
+	loc base_varlist "`r(basevars)'"
 	foreach cat in depvar indepvars endogvars instruments {
-		loc original_`cat' "`s(`cat')'"
+		loc original_`cat' "`r(`cat')'"
 	}
-	loc model = cond("`s(instruments)'" == "", "ols", "iv")
-	loc original_varlist = "`s(varlist)'" // no parens or equal
+	loc model = cond("`r(instruments)'" == "", "ols", "iv")
+	loc original_varlist = "`r(varlist)'" // no parens or equal sign
 
 	* Parse Weights
 	if ("`weight'"!="") {
@@ -472,6 +471,11 @@ end
 
 program Replay, rclass
 	syntax [, *]
+
+	if `"`e(cmd)'"' != "reghdfe"  {
+	        error 301
+	}
+
 	_get_diopts options, `options'
 	reghdfe_header // _coef_table_header
 	di ""

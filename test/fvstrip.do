@@ -42,6 +42,30 @@ local included_e ///
 	macros: wexp wtype
 
 
+* [TEST] https://github.com/sergiocorreia/reghdfe/issues/88
+
+	* Setup
+	sysuse auto, clear
+	bys turn: gen t = _n
+	xtset turn t
+
+	* 1) Benchmark
+	areg price L.(weight gear), a(turn)
+	trim_cons
+	storedresults save benchmark e()
+	local bench_df_a = e(df_a)
+
+	* 2) Compare w/reghdfe
+	reghdfe price L.(weight gear), a(turn) keepsing
+	notrim
+	matrix list e(trim_V)
+	storedresults compare benchmark e(), tol(1e-10) include(`included_e')
+	assert `bench_df_a'==e(df_a)-1
+
+	* 3) Cleanup
+	storedresults drop benchmark
+
+
 * [TEST] https://github.com/sergiocorreia/reghdfe/issues/28
 
 	sysuse auto, clear
