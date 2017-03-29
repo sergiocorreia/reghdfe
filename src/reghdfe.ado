@@ -44,7 +44,7 @@ end
 program Compile
 	args force
 	ftools, check // in case lftools.mlib does not exist or is outdated
-	ms_get_version reghdfe // from moresyntax package; save local package_version
+	ms_get_version reghdfe // save local package_version
 
 	loc list_objects "FixedEffects() fixed_effects() BipartiteGraph()"
 	loc list_functions "reghdfe_*() transform_*() accelerate_*() panelmean() panelsolve_*() lsmr()"
@@ -73,18 +73,12 @@ program Reload
 	di as text _n "{bf:reghdfe: updating required packages}"
 	di as text "{hline 64}"
 
-	* -moresyntax- https://github.com/sergiocorreia/moresyntax/
-	cap ado uninstall moresyntax
-	if (`online') net install moresyntax, from("https://github.com/sergiocorreia/moresyntax/raw/master/src/")
-	if (!`online') net install moresyntax, from("c:\git\moresyntax\src")
-	di as text "{hline 64}"
-
 	* -ftools- https://github.com/sergiocorreia/ftools/
 	cap ado uninstall ftools
 	if (`online') net install ftools, from("https://github.com/sergiocorreia/ftools/raw/master/src/")
 	if (!`online') net install ftools, from("c:\git\ftools\src")
 	di as text "{hline 64}"
-	ftools, compile // requires moresyntax
+	ftools, compile
 	di as text "{hline 64}"
 
 	* Update -reghdfe-
@@ -111,24 +105,22 @@ end
 
 program Requirements
 	di as text _n "Required packages installed?"
-	loc reqs moresyntax ftools
+	loc reqs ftools
 	// ivreg2 avar tuples group3hdfe
 	if (c(version)<13) loc reqs `reqs' boottest
 
 	loc ftools_github "https://github.com/sergiocorreia/ftools/raw/master/src/"
-	loc moresyntax_github "https://github.com/sergiocorreia/moresyntax/raw/master/src/"
 
 	loc error 0
 
 	foreach req of local reqs {
 		loc fn `req'.ado
-		if ("`req'"=="moresyntax") loc fn ms_get_version.ado
 		cap findfile `fn'
 		if (_rc) {
 			loc error 1
 			di as text "{lalign 20:- `req'}" as error "not" _c
 			di as text "    {stata ssc install `req':install from SSC}" _c
-			if inlist("`req'", "ftools", "moresyntax") {
+			if inlist("`req'", "ftools") {
 				loc github ``req'_github'
 				di as text `"    {stata `"net install `req', from(`"`github'"')"':install from github}"'
 			}

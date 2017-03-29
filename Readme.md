@@ -13,7 +13,7 @@
 
 ####  Things to be aware of:
 
-- `reghdfe` now depends on the `ftools` and `moresyntax` packages (and `boottest` for Stata 12 and older)
+- `reghdfe` now depends on the `ftools` package (and `boottest` for Stata 12 and older)
 - IV/GMM is not done directly with `reghdfe` but with `ivreg`. See [this port](https://github.com/sergiocorreia/ivreg2_demo/), which adds an `absorb()` option to `ivreg2`.
 - If you use commands that depend on reghdfe (`regife`, `poi2hdfe`, `ppml_panel_sg`, etc.), check that they have been updated before using the new version of reghdfe.
 - Some options are not yet fully supported. They include `cache` and `groupvar`.
@@ -27,12 +27,9 @@
 
 #### Install:
 
-`reghdfe` 4.x is not yet in SSC. TO install, copy/paste and run the following lines:
+`reghdfe` 4.x is not yet in SSC. To quickly install it and all its dependencies, copy/paste and run the following lines:
 
 ```stata
-cap ado uninstall moresyntax
-net install moresyntax, from("https://github.com/sergiocorreia/moresyntax/raw/master/src/")
-
 cap ado uninstall ftools
 net install ftools, from("https://github.com/sergiocorreia/ftools/raw/master/src/")
 
@@ -41,6 +38,8 @@ net install reghdfe, from("https://github.com/sergiocorreia/reghdfe/raw/master/s
 
 if (c(version)<13) cap ado uninstall boottest
 if (c(version)<13) ssc install boottest
+
+cap ssc install moremata
 ```
 
 To run IV/GMM regressions, run these lines:
@@ -148,7 +147,7 @@ To find out which version you have installed, type `reghdfe, version`.
 
 ## Recent Updates
 
-* 4.1 Major rewrite in Mata using `ftoosls`. Changes include: several bugfixes, 3-10x speed up, new LSMR and PRUNE options.
+* 4.1 Major rewrite in Mata using `ftools`. Changes include: several bugfixes, 3-10x speed up, new LSMR and PRUNE options.
 * 3.2 Fixed [bug](../../issues/33) where a slopes-only model (i.e. no constant or intercepts) returned incorrect alphas (estimates for the fixed effects). Note that the estimates for the betas were unaffected. Thanks to [Matthieu Gomez](https://github.com/matthieugomez) for the bug report
 * 3.1 Improved syntax for the `cache()` and `stage()` options
 * 3.0 Three key changes: i) faster underlying algorithm (symmetric transforms and cg acceleration perform much better on "hard" cases); ii) slow parts rewritten in mata, iii) simpler syntax

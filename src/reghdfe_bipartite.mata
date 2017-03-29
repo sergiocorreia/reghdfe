@@ -109,7 +109,6 @@ class BipartiteGraph
 //   stack: for each firm/CEO, the list of nodes it connects to
 //          note: stacks are zero-separated
 //   
-//   If we only care about -num_subgraph_id-, call it with stack==queue==.
 // --------------------------------------------------------------------------
 //   As a byproduct, also computes the number of disjoint subgraphs.
 //   See the algorithm from on Abowd, Creecy and Kramarz (WP 2002) p4. Sketch:

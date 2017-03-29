@@ -26,7 +26,6 @@ d
 d Requires: Stata version 11.2
 d
 d Required packages:
-d 	moresyntax
 d 	ftools
 d 	boottest (for Stata version 12 or earlier)
 d

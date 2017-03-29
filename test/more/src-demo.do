@@ -4,9 +4,6 @@ discard
 set more off
 set trace on
 
-cap ado uninstall moresyntax
-net install moresyntax, from("C:/git/moresyntax/src")
-
 cap ado uninstall ftools
 net install ftools, from("C:/git/ftools/src")
 ftools, check
