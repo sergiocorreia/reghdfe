@@ -42,6 +42,39 @@ local included_e ///
 	macros: wexp wtype
 
 
+* [TEST] https://github.com/sergiocorreia/reghdfe/issues/86
+
+	sysuse auto, clear
+	gen byte turn43 = (turn==43)
+
+	* 1) Benchmark
+	reghdfe price weight, absorb(rep78) vce(cl foreign)
+	storedresults save benchmark e()
+	
+	* 2) Reghdfe
+	reghdfe price weight, absorb(rep78) vce(cl i.foreign)
+	storedresults compare benchmark e(), exclude(macro: depvar cmdline)
+
+	* 3) Cleanup
+	storedresults drop benchmark
+
+****
+
+	sysuse auto, clear
+	gen byte turn43 = (turn==43)
+
+	* 1) Benchmark
+	reghdfe price weight, absorb(rep78) vce(cl foreign#turn)
+	storedresults save benchmark e()
+	
+	* 2) Reghdfe
+	reghdfe price weight, absorb(rep78) vce(cl i.foreign#i.turn)
+	storedresults compare benchmark e(), exclude(macro: depvar cmdline)
+
+	* 3) Cleanup
+	storedresults drop benchmark
+
+
 * [TEST] https://github.com/sergiocorreia/reghdfe/issues/88
 
 	* Setup
