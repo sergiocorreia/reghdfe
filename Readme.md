@@ -30,6 +30,7 @@
 `reghdfe` 4.x is not yet in SSC. To quickly install it and all its dependencies, copy/paste and run the following lines:
 
 ```stata
+cap ado uninstall moresyntax
 cap ado uninstall ftools
 net install ftools, from("https://github.com/sergiocorreia/ftools/raw/master/src/")
 
