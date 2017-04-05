@@ -42,6 +42,36 @@ local included_e ///
 	macros: wexp wtype
 
 
+
+* [TEST] https://github.com/sergiocorreia/reghdfe/issues/91
+	clear
+	set obs 8
+	gen byte x = _n <= 4
+	gen byte y = mod(_n+1, 4) < 2
+	gen byte z = mod(_n+1, 2)
+	expand 2
+	gen w = runiform()
+	gen byte c = 1
+	li, sepby(x)
+
+	gen byte a1 = 1.x
+	gen byte a2 = 1.y
+	gen byte a3 = 1.z
+	gen byte a4 = 1.x#1.y
+	gen byte a5 = 1.x#1.z
+
+	* 1) Benchmark
+	reghdfe w a*, keepsing a(c)
+	storedresults save benchmark e()
+	
+	* 2) Reghdfe
+	reghdfe w i.x##i.(y z), keepsing a(c) v(1)
+	storedresults compare benchmark e(), exclude(macro: indepvars cmdline)
+
+	* 3) Cleanup
+	storedresults drop benchmark
+
+
 * [TEST] https://github.com/sergiocorreia/reghdfe/issues/86
 
 	sysuse auto, clear

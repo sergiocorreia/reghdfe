@@ -1,4 +1,4 @@
-*! version 4.1.1 20mar2017
+*! version 4.1.2 04apr2017
 
 program reghdfe, eclass
 	* Intercept old+version
@@ -338,19 +338,28 @@ program Estimate, eclass
 
 	* Expand varlists
 	if (`timeit') timer on 22
-	// BUGBUG: do we really need HDFE.varlist ? or can we create it by concatenating the others?
-	loc varlist
 	foreach cat in /*varlist*/ depvar indepvars endogvars instruments {
 		mata: st_local("vars", HDFE.original_`cat')
 		if ("`vars'" == "") continue
+
+		loc varlist
+		// Expand (need to do it after the dataset has been reduced in size)
+		loc 0 `vars' if `touse'
+		syntax varlist(ts fv numeric) if
+		//di as error "VAR1=<`vars'>"
+		//di as error "VAR2=<`varlist'>"
+
 		// HACK: addbn replaces 0.foreign with 0bn.foreign , to prevent st_data() from loading a bunch of zeros
-		ms_fvstrip `vars' if `touse', expand dropomit addbn onebyone
+		ms_fvstrip `varlist' if `touse', expand dropomit addbn  // onebyone
 		// If we don't use onebyone, then 1.x 2.x ends up as 2.x
-		loc vars "`r(varlist)'"
-		loc varlist `varlist' `vars'
-		mata: HDFE.`cat' = "`vars'"
+		loc varlist "`r(varlist)'"
+		//di as error "VAR3=<`varlist'>"
+		loc allvars `allvars' `varlist'
+		mata: HDFE.`cat' = "`varlist'"
+
+		loc varlist // (optional) clear it up to prevent bugs
 	}
-	mata: HDFE.varlist = "`varlist'"
+	mata: HDFE.varlist = "`allvars'"
 	if (`timeit') timer off 22
 
 	* Stats
