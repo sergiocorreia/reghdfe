@@ -1,4 +1,4 @@
-*! version 4.1.2 04apr2017
+*! version 4.1.3 06apr2017
 
 program reghdfe, eclass
 	* Intercept old+version
