@@ -527,7 +527,7 @@ class FixedEffects
                         F = Factor() // clear
                     }
                     else {
-                        cluster_data = __fload_data(clustervar, sample)
+                        cluster_data = __fload_data(clustervar, sample, 0)
                     }
                 }
 
