@@ -22,6 +22,7 @@
 
 	run missing-absvar
 	run options
+	run omitted
 	run alphas
 	
 	cap run cluster-after-expand

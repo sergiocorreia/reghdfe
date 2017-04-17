@@ -132,7 +132,6 @@ mata:
 	`Variable'				resid
 	`Real'					eps
 	`Integer'				i
-	`StringRowVector'		indepvars
 
 	if (S.timeit) timer_on(90)
 	reghdfe_solve_ols(S, X, b=., V=., N=., rank=., df_r=., resid=.)
@@ -142,15 +141,14 @@ mata:
 	
 	// Add "o." prefix to omitted regressors
 	eps = sqrt(epsilon(1))
-	indepvars = tokens(S.indepvars)
 	for (i=1; i<=rows(b); i++) {
-		if (abs(b[i])<eps) {
-			printf("{txt}note: %s omitted because of collinearity\n", indepvars[i])
-			stata(sprintf("_ms_put_omit %s", indepvars[i]))
-			indepvars[i] = st_global("s(ospec)")
+		if (b[i]==0 & S.verbose > -1) {
+			printf("{txt}note: %s omitted because of collinearity\n", tokens(S.indepvars)[i])
+			//stata(sprintf("_ms_put_omit %s", indepvars[i]))
+			//indepvars[i] = st_global("s(ospec)")
+			// This is now one in reghdfe.ado with -_ms_findomitted-
 		}
 	}
-	S.indepvars = invtokens(indepvars)
 
 	st_matrix(Vname, V)
 	st_numscalar(nname, N)
@@ -178,12 +176,11 @@ mata:
                                   `Integer' df_r,
                                   `Vector' resid)
 {
-	// Hack: the first col of X is actually y
+	// Hack: the first col of X is actually y!
 	`Integer'				K, KK
 	`Matrix'				xx, inv_xx, W, inv_V
 	`Vector' 				xy, w
 	`Integer'				used_df_r
-	`RowVector'				kept
 
 	if (S.vcetype == "unadjusted" & S.weight_type=="pweight") S.vcetype = "robust"
 	if (S.verbose > 0) printf("\n{txt} ## Solving least-squares regression of partialled-out variables\n\n")
@@ -215,8 +212,31 @@ mata:
 	xy = K ? xx[| 2 , 1 \ K+1 , 1 |] : J(0, 1, .)
 	xx = K ? xx[| 2 , 2 \ K+1 , K+1 |] : J(0, 0, .)
 	if (S.timeit) timer_off(91)
-	
-	b = reghdfe_cholqrsolve(xx, xy, 1) // qr or chol?
+
+	// This matrix indicates what regressors are not collinear
+	S.kept = K ? S.kept[2..K+1] : J(1, 0, .)
+
+	// Bread of the robust VCV matrix
+	// Compute this early so we can update the list of collinear regressors
+	if (S.timeit) timer_on(95)
+	inv_xx = reghdfe_rmcoll(tokens(S.indepvars), xx, S.kept)
+	S.df_m = rank = K - diag0cnt(inv_xx)
+	KK = rank + S.df_a
+	S.df_r = N - KK // replaced when clustering
+	if (S.timeit) timer_off(95)
+
+	// Compute betas
+	if (S.has_weights) {
+		b = reghdfe_cholqrsolve(xx, xy, 1) // qr or chol?
+	}
+	else {
+		// This is more numerically accurate but doesn't handle weights
+		// See: http://www.stata.com/statalist/archive/2012-02/msg00956.html
+		b = J(K, 1, 0)
+		if (cols(S.kept)) {
+			b[S.kept] = qrsolve(X[., 1:+S.kept], X[., 1])
+		}
+	}
 
 	if (S.timeit) timer_on(92)
 	resid = X * (1 \ -b) // y - X * b
@@ -236,13 +256,6 @@ mata:
 	S.rss = quadcross(resid, w, resid) // do before reghdfe_robust() modifies w
 	if (S.timeit) timer_off(94)
 
-	// Bread of the robust VCV matrix
-	if (S.timeit) timer_on(95)
-	inv_xx = reghdfe_rmcoll(tokens(S.indepvars), xx, kept=.) // invsym(xx, 1..K)
-	S.df_m = rank = K - diag0cnt(inv_xx)
-	KK = rank + S.df_a
-	S.df_r = N - KK // replaced when clustering
-	if (S.timeit) timer_off(95)
 
 	// Compute full VCE
 	if (S.timeit) timer_on(96)
@@ -263,16 +276,16 @@ mata:
 
 	// Wald test: joint significance
 	if (S.timeit) timer_on(97)
-	inv_V = invsym(V[kept, kept]) // this might not be of full rank but numerical inaccuracies hide it
+	inv_V = invsym(V[S.kept, S.kept]) // this might not be of full rank but numerical inaccuracies hide it
 	if (diag0cnt(inv_V)) {
 		if (S.verbose > -1) printf("{txt}(Warning: missing F statistic; dropped variables due to collinearity or too few clusters)\n")
 		W = .
 	}
-	else if (length(b[kept])==0) {
+	else if (length(b[S.kept])==0) {
 		W = .
 	}
 	else {
-		W = b[kept]' * inv_V * b[kept] / S.df_m
+		W = b[S.kept]' * inv_V * b[S.kept] / S.df_m
 		if (missing(W) & S.verbose > -1) printf("{txt}(Warning: missing F statistic)\n")
 	}
 	if (S.timeit) timer_off(97)

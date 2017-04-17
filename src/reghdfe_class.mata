@@ -102,6 +102,7 @@ class FixedEffects
     `StringRowVector'       dofadjustments // firstpair pairwise cluster continuous
     `Varname'               groupvar
     `String'                residuals
+    `RowVector'             kept // 1 if the regressors are not deemed as omitted (by partial_out+cholsolve+invsym)
     `String'                diopts
 
     // Output
@@ -187,7 +188,6 @@ class FixedEffects
     // -data- is either a varlist or a matrix
     `Variables'             y
     `Varlist'               vars
-    `RowVector'             idx
     `Integer'               i
 
     if (eltype(data) == "string") {
@@ -213,13 +213,6 @@ class FixedEffects
         }
 
         assert_msg(cols(y)==cols(vars), "st_data() constructed more columns than expected")
-
-        if (timeit) timer_on(52)
-        idx = `selectindex'(colmax(abs(colminmax(y))) :== 0)
-        if (timeit) timer_off(52)
-        if (cols(idx) & verbose>-1) {
-            printf("{err}WARNING: after demeaning, some variables are just zeros: %s\n", invtokens(vars[idx]))
-        }
 
         if (timeit) timer_on(53)
         _partial_out(y, save_tss)
@@ -306,6 +299,7 @@ class FixedEffects
     `Real'                  y_mean
     `Vector'                lhs
     `Vector'                alphas
+    `StringRowVector'       vars
     `Integer'               i
 
     if (args()<2 | save_tss==.) save_tss = 0
@@ -349,6 +343,9 @@ class FixedEffects
     if (timeit) timer_off(60)
 
 
+    // Compute 2-norm of each var, to see if we need to drop as regressors
+    kept = diagonal(cross(y, y))'
+
     // Intercept LSMR case
     if (acceleration=="lsmr") {
         // RRE benchmarking
@@ -366,45 +363,54 @@ class FixedEffects
         }
         return
     }
+    else {
+        // Standardize variables
+        if (verbose > 0) printf("{txt}    - Standardizing variables\n")
+        if (timeit) timer_on(61)
+        stdevs = reghdfe_standardize(y)
+        if (timeit) timer_off(61)
 
-    // Standardize variables
-    if (verbose > 0) printf("{txt}    - Standardizing variables\n")
-    if (timeit) timer_on(61)
-    stdevs = reghdfe_standardize(y)
-    if (timeit) timer_off(61)
+        // RRE benchmarking
+        if (compute_rre) {
+            rre_true_residual = rre_true_residual / stdevs[1]
+            rre_depvar_norm = norm(y[., 1])
+        }
 
-    // RRE benchmarking
-    rre_true_residual = rre_true_residual / stdevs[1]
-    if (compute_rre) rre_depvar_norm = norm(y[., 1])
-
-    // Solve
-    if (verbose>0) printf("{txt}    - Running solver (acceleration={res}%s{txt}, transform={res}%s{txt} tol={res}%-1.0e{txt})\n", acceleration, transform, tolerance)
-    if (verbose==1) printf("{txt}    - Iterating:")
-    if (verbose>1) printf("{txt}      ")
-    converged = 0
-    iteration_count = 0
-    if (timeit) timer_on(62)
-    y = (*func_accel)(this, y, funct_transform) :* stdevs // this is like python's self
-    if (timeit) timer_off(62)
-    // converged gets updated by check_convergence()
-    
-    if (prune) {
-        assert(G==2)
-        if (timeit) timer_on(63)
-        _expand_1core(y)
-        if (timeit) timer_off(63)
+        // Solve
+        if (verbose>0) printf("{txt}    - Running solver (acceleration={res}%s{txt}, transform={res}%s{txt} tol={res}%-1.0e{txt})\n", acceleration, transform, tolerance)
+        if (verbose==1) printf("{txt}    - Iterating:")
+        if (verbose>1) printf("{txt}      ")
+        converged = 0 // converged will get updated by check_convergence()
+        iteration_count = 0
+        if (timeit) timer_on(62)
+        y = (*func_accel)(this, y, funct_transform) :* stdevs // 'this' is like python's self
+        if (timeit) timer_off(62)
+        
+        if (prune) {
+            assert(G==2)
+            if (timeit) timer_on(63)
+            _expand_1core(y)
+            if (timeit) timer_off(63)
+        }
     }
 
     // Standardizing makes it hard to detect values that are perfectly collinear with the absvars
-    // in which case they should be 0.00 but they end up as 1e-16
+    // in which case they should be 0.00 but they end up as e.g. 1e-16
     // EG: reghdfe price ibn.foreign , absorb(foreign)
 
     // This will edit to zero entire columns where *ALL* values are very close to zero
     if (timeit) timer_on(64)
-    needs_zeroing = colmax(abs(colminmax(y))) :< 1e-8 // chose something relatively close to epsilon() ~ 1e-16
-    needs_zeroing = `selectindex'(needs_zeroing)
+    kept = (diagonal(cross(y, y))' :/ kept) :> (tolerance*1e-1)
+    needs_zeroing = `selectindex'(!kept)
     if (cols(needs_zeroing)) {
         y[., needs_zeroing] = J(rows(y), cols(needs_zeroing), 0)
+        vars = tokens(varlist)
+        assert_msg(cols(vars)==cols(y), "cols(vars)!=cols(y)")
+        for (i=1; i<=cols(vars); i++) {
+            if (!kept[i] & verbose>-1) {
+                printf("{txt}note: omitted %s; close to zero after partialling-out (tol =%3.1e)\n", vars[i], tolerance*1e-1)
+            }
+        }
     }
     if (timeit) timer_off(64)
 }

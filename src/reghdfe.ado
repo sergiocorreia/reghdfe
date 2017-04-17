@@ -1,4 +1,4 @@
-*! version 4.1.4 17apr2017
+*! version 4.2.0 17apr2017
 
 program reghdfe, eclass
 	* Intercept old+version
@@ -448,6 +448,7 @@ program RegressOLS, eclass
 		matrix colnames `b' = `indepvars'
 		matrix colnames `V' = `indepvars'
 		matrix rownames `V' = `indepvars'
+		_ms_findomitted `b' `V'
 		ereturn post `b' `V', `esample' buildfvinfo depname(`depvar') 
 	}
 	else {
