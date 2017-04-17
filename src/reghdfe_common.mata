@@ -132,16 +132,26 @@ mata:
 	`Variable'				resid
 	`Real'					eps
 	`Integer'				i
+	`StringRowVector'		indepvars
 
 	if (S.timeit) timer_on(90)
 	reghdfe_solve_ols(S, X, b=., V=., N=., rank=., df_r=., resid=.)
 	if (S.timeit) timer_off(90)
 
 	st_matrix(bname, b')
+	
+	// Add "o." prefix to omitted regressors
 	eps = sqrt(epsilon(1))
+	indepvars = tokens(S.indepvars)
 	for (i=1; i<=rows(b); i++) {
-		if (abs(b[i])<eps) printf("{txt}note: %s omitted because of collinearity\n", tokens(S.indepvars)[i])
+		if (abs(b[i])<eps) {
+			printf("{txt}note: %s omitted because of collinearity\n", indepvars[i])
+			stata(sprintf("_ms_put_omit %s", indepvars[i]))
+			indepvars[i] = st_global("s(ospec)")
+		}
 	}
+	S.indepvars = invtokens(indepvars)
+
 	st_matrix(Vname, V)
 	st_numscalar(nname, N)
 	st_numscalar(rname, rank)
