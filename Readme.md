@@ -1,19 +1,19 @@
-# REGHDFE: Linear and IV/GMM Regressions With Many Fixed Effects
+# REGHDFE: Linear Regressions With Multiple Fixed Effects
 
 ## Recent Updates
 
-* version 4.1 28feb2017: rewriten in Mata with the `ftools` package
-    - 3-10x faster thanks to [`ftools`](https://github.com/sergiocorreia/ftools/) command (use it if you have large datasets)
-    - Several minor bugs have been fixed, in particular some that did not allow complex factor variables in the regression.
+* *version 4.1 28feb2017*: entirely rewriten in Mata
+    - 3-10x faster thanks to [`ftools`](https://github.com/sergiocorreia/ftools/) package (use it if you have large datasets!)
+    - Several minor bugs have been fixed, in particular some that did not allow complex factor variable expressions.
     - `reghdfe` is now written entirely as a Mata object. For an example of how to use it to write other programs, see [here](https://github.com/sergiocorreia/ivreg2_demo/blob/master/hdfe_example.do)
     - Additional estimation options are now supported, including [LSMR](http://web.stanford.edu/group/SOL/software/lsmr/) and [pruning of degree-1 vertices](https://arxiv.org/abs/1301.6628).
-- version 4.2 06apr2017: solve some numerical accuracy issues ([bugfixes](https://github.com/sergiocorreia/reghdfe/commit/79a8c0134ea089f93811be404a5405c38b5a596a))
-- version 4.3 07jun2017: speed up estimation with fixed slopes (precompute `inv(xx)`)
+- *version 4.2 06apr2017*: fix numerical accuracy issues ([bugfixes](https://github.com/sergiocorreia/reghdfe/commit/79a8c0134ea089f93811be404a5405c38b5a596a))
+- *version 4.3 07jun2017*: speed up fixed slopes (precompute `inv(xx)`)
 
 ####  Things to be aware of:
 
 - `reghdfe` now depends on the `ftools` package (and `boottest` for Stata 12 and older)
-- IV/GMM is not done directly with `reghdfe` but with `ivreg`. See [this port](https://github.com/sergiocorreia/ivreg2_demo/), which adds an `absorb()` option to `ivreg2`.
+- IV/GMM is not done directly with `reghdfe` but through `ivreg2`. See [this port](https://github.com/sergiocorreia/ivreg2_demo/), which adds an `absorb()` option to `ivreg2`.
 - If you use commands that depend on reghdfe (`regife`, `poi2hdfe`, `ppml_panel_sg`, etc.), check that they have been updated before using the new version of reghdfe.
 - Some options are not yet fully supported. They include `cache` and `groupvar`.
 - The previous stable release (3.2.9 21feb2016) can be accessed with the `old` option
