@@ -225,7 +225,7 @@ class FixedEffects
         if (timeit) timer_off(54)
     }
     //if (verbose==0) printf("\n")
-    if (verbose==0) printf("{txt}(converged in %s iteration%s)\n", strofreal(iteration_count), iteration_count > 1 ? "s" : "s")
+    if (verbose==0) printf(`"{txt}({browse "http://scorreia.com/research/hdfe.pdf":MWFE estimator} converged in %s iteration%s)\n"', strofreal(iteration_count), iteration_count > 1 ? "s" : "s")
     return(y)
 }
 

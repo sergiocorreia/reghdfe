@@ -189,7 +189,7 @@ mata:
     if (S.verbose > 0) printf("\n")
 
     if ( drop_singletons & S.num_singletons>0 & S.verbose>-1 | S.factors[1].num_obs<2) {
-        printf("{txt}(dropped %s singleton observations)\n", strofreal(S.num_singletons))
+        printf(`"{txt}(dropped %s {browse "http://scorreia.com/research/singletons.pdf":singleton observations})\n"', strofreal(S.num_singletons))
     }
 
     if (S.factors[1].num_obs < 2) {
@@ -251,6 +251,7 @@ mata:
                 if (S.intercepts[g]) {
                     asarray((*pf).extra, "xmeans", panelmean(cvar_data, *pf))
                 }
+                asarray((*pf).extra, "inv_xx", precompute_inv_xx(*pf, S.intercepts[g]))
             }
         }
         cvar_data = .

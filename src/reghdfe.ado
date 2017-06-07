@@ -1,4 +1,4 @@
-*! version 4.2.0 17apr2017
+*! version 4.3.0 07jun2017
 
 program reghdfe, eclass
 	* Intercept old+version
@@ -48,7 +48,7 @@ program Compile
 
 	loc list_objects "FixedEffects() fixed_effects() BipartiteGraph()"
 	loc list_functions "reghdfe_*() transform_*() accelerate_*() panelmean() panelsolve_*() lsmr()"
-	loc list_misc "weighted_quadcolsum() safe_divide() check_convergence()"
+	loc list_misc "weighted_quadcolsum() safe_divide() check_convergence() precompute_inv_xx()"
 	// TODO: prefix everything with reghdfe_*
 
 	ms_compile_mata, ///
