@@ -85,7 +85,7 @@ program Reload
 	di as text _n  _n "{bf:reghdfe: updating self}"
 	di as text "{hline 64}"
 	qui ado uninstall reghdfe
-	if (`online') net install reghdfe, from("https://github.com/sergiocorreia/reghdfe/raw/version-4/src/")
+	if (`online') net install reghdfe, from("https://github.com/sergiocorreia/reghdfe/raw/master/src/")
 	if (!`online') net install reghdfe, from("c:\git\reghdfe\src")
 	qui which reghdfe
 	di as text "{hline 64}"
