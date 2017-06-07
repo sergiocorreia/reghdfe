@@ -2,13 +2,13 @@
 
 ## Recent Updates
 
-* *version 4.1 28feb2017*: entirely rewriten in Mata
+* **version 4.1 28feb2017**: entirely rewriten in Mata
     - 3-10x faster thanks to [`ftools`](https://github.com/sergiocorreia/ftools/) package (use it if you have large datasets!)
     - Several minor bugs have been fixed, in particular some that did not allow complex factor variable expressions.
     - `reghdfe` is now written entirely as a Mata object. For an example of how to use it to write other programs, see [here](https://github.com/sergiocorreia/ivreg2_demo/blob/master/hdfe_example.do)
     - Additional estimation options are now supported, including [LSMR](http://web.stanford.edu/group/SOL/software/lsmr/) and [pruning of degree-1 vertices](https://arxiv.org/abs/1301.6628).
-- *version 4.2 06apr2017*: fix numerical accuracy issues ([bugfixes](https://github.com/sergiocorreia/reghdfe/commit/79a8c0134ea089f93811be404a5405c38b5a596a))
-- *version 4.3 07jun2017*: speed up fixed slopes (precompute `inv(xx)`)
+- **version 4.2 06apr2017**: fix numerical accuracy issues ([bugfixes](https://github.com/sergiocorreia/reghdfe/commit/79a8c0134ea089f93811be404a5405c38b5a596a))
+- **version 4.3 07jun2017**: speed up fixed slopes (precompute `inv(xx)`)
 
 ####  Things to be aware of:
 
