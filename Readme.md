@@ -1,15 +1,14 @@
 # REGHDFE: Linear and IV/GMM Regressions With Many Fixed Effects
 
-## News:
+## Recent Updates
 
-### (28feb2017) `reghdfe 4.1` has been released. It is a *major* update and some options have changed.
-
-#### Changelog:
-
-- Several minor bugs have been fixed, in particular some that did not allow complex factor variables in the regression.
-- `reghdfe` is now written entirely as a Mata object. For an example of how to use it to write other programs, see [here](https://github.com/sergiocorreia/ivreg2_demo/blob/master/hdfe_example.do)
-- The new version is 3-10x faster than the latest release
-- Additional estimation options are now supported, including [LSMR](http://web.stanford.edu/group/SOL/software/lsmr/) and [pruning of degree-1 vertices](https://arxiv.org/abs/1301.6628).
+* version 4.1 28feb2017: rewriten in Mata with the `ftools` package
+    - 3-10x faster thanks to [`ftools`](https://github.com/sergiocorreia/ftools/) command (use it if you have large datasets)
+    - Several minor bugs have been fixed, in particular some that did not allow complex factor variables in the regression.
+    - `reghdfe` is now written entirely as a Mata object. For an example of how to use it to write other programs, see [here](https://github.com/sergiocorreia/ivreg2_demo/blob/master/hdfe_example.do)
+    - Additional estimation options are now supported, including [LSMR](http://web.stanford.edu/group/SOL/software/lsmr/) and [pruning of degree-1 vertices](https://arxiv.org/abs/1301.6628).
+- version 4.2 06apr2017: solve some numerical accuracy issues ([bugfixes](https://github.com/sergiocorreia/reghdfe/commit/79a8c0134ea089f93811be404a5405c38b5a596a))
+- version 4.3 07jun2017: speed up estimation with fixed slopes (precompute `inv(xx)`)
 
 ####  Things to be aware of:
 
@@ -19,15 +18,39 @@
 - Some options are not yet fully supported. They include `cache` and `groupvar`.
 - The previous stable release (3.2.9 21feb2016) can be accessed with the `old` option
 
-#### Backlog:
+#### Future/possible updates
 
-- Speeding up continuous interactions in the fixed effects. Currently we are not precomputing the inverses/decompositions.
-- Using less memory. This is done by loading and processing the data by parts into Mata.
-- Improve inference with robust VCE
+- Reduce memory usage. This is done by loading and processing the data by parts into Mata.
+- Improve inference with more robust VCE options (`avar` package)
+- Add back group3hdfe option
 
-#### Install:
+## Citation
 
-`reghdfe` 4.x is not yet in SSC. To quickly install it and all its dependencies, copy/paste and run the following lines:
+`reghdfe` implements the estimator described in [Correia (2017)](http://scorreia.com/research/hdfe.pdf).
+If you use it, please cite either the paper and/or the command's RePEc citation:
+
+```bibtex
+@TechReport {Correia2017:HDFE,
+  Author = {Correia, Sergio},
+  Title = {Linear Models with High-Dimensional Fixed Effects: An Efficient and Feasible Estimator},
+  Note = {Working Paper},
+  Year = {2016},
+}
+```
+
+> Correia, Sergio. 2017. "Linear Models with High-Dimensional Fixed Effects: An Efficient and Feasible Estimator"
+> Working Paper.
+> http://scorreia.com/research/hdfe.pdf
+
+> Sergio Correia, 2017. *reghdfe: Stata module for linear and instrumental-variable/GMM regression absorbing multiple levels of fixed effects.*
+> https://ideas.repec.org/c/boc/bocode/s457874.html
+
+
+## Install:
+
+To find out which version you have installed, type `reghdfe, version`.
+
+`reghdfe` 4.x is not yet in SSC. To quickly install it and all its dependencies, copy/paste these lines and run them:
 
 ```stata
 cap ado uninstall moresyntax
@@ -50,6 +73,14 @@ cap ado uninstall ivreg2hdfe
 cap ssc install ivreg2
 net install ivreg2hdfe, from("https://github.com/sergiocorreia/ivreg2_demo/raw/master/")
 ```
+
+To install the stable version from SSC (3.x):
+
+```stata
+cap ado uninstall reghdfe
+ssc install reghdfe
+```
+
 
 ------------------------------------------
 
@@ -79,87 +110,13 @@ net install ivreg2hdfe, from("https://github.com/sergiocorreia/ivreg2_demo/raw/m
 <br>Board of Governors of the Federal Reserve
 <br>Email: sergio.correia@gmail.com
 
+
 ## Acknowledgments
 
 This package wouldn't have existed without the invaluable feedback and contributions of Paulo Guimaraes,
-Amine Ouazad, Mark Schaffer, Kit Baum and Matthieu Gomez.
+Amine Ouazad, Mark E. Schaffer, Kit Baum and Matthieu Gomez.
 Also invaluable are the great bug-spotting abilities of many users.
 
-## Citation
-
-`reghdfe` implements the estimator described in [Correia (2017)](http://scorreia.com/research/hdfe.pdf).
-If you use it, please cite either the paper and/or the command's RePEc citation:
-
-```bibtex
-@TechReport {Correia2017:HDFE,
-  Author = {Correia, Sergio},
-  Title = {Linear Models with High-Dimensional Fixed Effects: An Efficient and Feasible Estimator},
-  Note = {Working Paper},
-  Year = {2016},
-}
-```
-
-> Correia, Sergio. 2017. "Linear Models with High-Dimensional Fixed Effects: An Efficient and Feasible Estimator"
-> Working Paper.
-> http://scorreia.com/research/hdfe.pdf
-
-> Sergio Correia, 2017. *reghdfe: Stata module for linear and instrumental-variable/GMM regression absorbing multiple levels of fixed effects.*
-> https://ideas.repec.org/c/boc/bocode/s457874.html
-
-
-## Installing REGHDFE
-
-The stable release (version 3.2.1) can be downloaded from SSC with
-
-```stata
-cap ado uninstall reghdfe
-ssc install reghdfe
-```
-
-The last 3.x version can be installed with:
-
-```stata
-cap ado uninstall reghdfe
-net install reghdfe, from(http://scorreia.com/software/reghdfe/3)
-```
-
-
-The latest 4.x version can be installed with
-
-```stata
-cap ado uninstall reghdfe
-net install reghdfe, from(http://scorreia.com/software/reghdfe)
-```
-*(note: see updated instructions at the top)*
-
-It can also be installed manually:
-
-1. Press the [Download Zip](../../archive/master.zip) button on the right
-2. Navigate to the "src" folder and extract it into a folder on your computer (e.g. C:\SOMEFOLDER)
-3. Run: (changing *SOMEFOLDER* with whatever you picked)
-
-```stata
-cap ado uninstall reghdfe
-net install reghdfe, from("C:\SOMEFOLDER")
-```
-
-To find out which version you have installed, type `reghdfe, version`.
-
-
-## Recent Updates
-
-* 4.1 Major rewrite in Mata using `ftools`. Changes include: several bugfixes, 3-10x speed up, new LSMR and PRUNE options.
-* 3.2 Fixed [bug](../../issues/33) where a slopes-only model (i.e. no constant or intercepts) returned incorrect alphas (estimates for the fixed effects). Note that the estimates for the betas were unaffected. Thanks to [Matthieu Gomez](https://github.com/matthieugomez) for the bug report
-* 3.1 Improved syntax for the `cache()` and `stage()` options
-* 3.0 Three key changes: i) faster underlying algorithm (symmetric transforms and cg acceleration perform much better on "hard" cases); ii) slow parts rewritten in mata, iii) simpler syntax
-* 2.2 [internal] murphy-topel (unadjusted, robust, cluster), double-or-nothing IV/control function
-* 2.1 removed `_cons`. If you really want to see the constant, run *summarize* on the first fixed effect. The last version that supported constants is available with `net from https://raw.githubusercontent.com/sergiocorreia/reghdfe/866f85551b77fe7fda2af0aafccbbf87f8a01987/package/`
-
-## Future/possible updates
-
-* 4.2 Faster continuous interactions; add back `groupvar()` option
-* 4.3 Add back group3hdfe option
-* 5.x Inference update.
 
 ## Contributing
 
