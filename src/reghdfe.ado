@@ -1,4 +1,4 @@
-*! version 4.3.0 07jun2017
+*! version 4.3.1 23jun2017
 
 program reghdfe, eclass
 	* Intercept old+version
@@ -375,7 +375,7 @@ program Estimate, eclass
 	if (`timeit') timer off 23
 
 	* Regress
-	mata: assert(HDFE.model=="ols")
+	mata: assert_msg(HDFE.model=="ols", "You can only run OLS with reghdfe; for IV see https://github.com/sergiocorreia/ivreg2_demo")
 	if (`timeit') timer on 24
 	RegressOLS `touse'
 	if (`timeit') timer off 24

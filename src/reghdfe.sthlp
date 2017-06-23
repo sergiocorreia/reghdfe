@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 4.3.0 07jun2017}{...}
+{* *! version 4.3.1 23jun2017}{...}
 {vieweralsosee "[R] areg" "help areg"}{...}
 {vieweralsosee "[R] xtreg" "help xtreg"}{...}
 {vieweralsosee "[R] ivregress" "help ivregress"}{...}
