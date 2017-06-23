@@ -42,6 +42,7 @@ mata:
     S.sample = `selectindex'(st_data(., touse))
     st_global("reghdfe_touse", "")
 
+    if (st_global("s(residuals)") != "") S.residuals = st_global("s(residuals)")
     if (st_global("s(verbose)")!="") S.verbose = verbose = strtoreal(st_global("s(verbose)"))
     if (st_global("s(drop_singletons)")!="") S.drop_singletons = drop_singletons = strtoreal(st_global("s(drop_singletons)"))
     assert(S.verbose < .)
@@ -65,6 +66,7 @@ mata:
     if (st_global("s(prune)") != "") S.prune = strtoreal(st_global("s(prune)"))
     if (st_global("s(transform)") != "") S.transform = st_global("s(transform)")
     if (st_global("s(acceleration)") != "") S.acceleration = st_global("s(acceleration)")
+
 
     // Override LSMR if G=1
     if (S.G==1 & S.acceleration=="lsmr") S.acceleration = "conjugate_gradient"

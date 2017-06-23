@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 4.3.1 23jun2017}{...}
+{* *! version 4.3.2 23jun2017}{...}
 {vieweralsosee "[R] areg" "help areg"}{...}
 {vieweralsosee "[R] xtreg" "help xtreg"}{...}
 {vieweralsosee "[R] ivregress" "help ivregress"}{...}
@@ -67,12 +67,7 @@ that is useful if the underlying network is very sparse{p_end}
 will only run successfully with few fixed effects
 (because it computes the eigenvalues of the graph Laplacian){p_end}
 
-
 {syntab:Speedup Tricks {help reghdfe##opt_speedup:[+]}}
-{synopt :{cmd: cache(save} [,opt]{cmd:)}}absorb all variables without regressing (destructive; combine it with {help preserve:preserve/restore}){p_end}
-{synopt :}suboption {opth keep(varlist)} adds additional untransformed variables to the resulting dataset{p_end}
-{synopt :{cmd: cache(use)}}run regressions on cached data; {it:vce()} must be the same as with {cmd: cache(save)}.{p_end}
-{synopt :{cmd: cache(clear)}}delete Mata objects to clear up memory; no more regressions can be run after this{p_end}
 {synopt :{opt nosamp:le}}will not create {it:e(sample)},
 saving some space and speed{p_end}
 
@@ -419,49 +414,15 @@ Requires {opt pair:wise}, {opt first:pair}, or the default {opt all}.
 {dlgtab:Speeding Up Estimation}
 
 {phang}
-{cmd:reghdfe} {varlist} {ifin}{cmd:,} {opt a:bsorb(absvars)} {cmd:save(cache)} [{it:options}]
-
-{pmore}
-This will transform {it:varlist}, absorbing the fixed effects indicated by {it:absvars}.
-It is useful when running a series of alternative specifications with common variables, as the variables will only be transformed once instead of every time a regression is run.
-
-{pmore}
-It replaces the current dataset, so it is a good idea to precede it with a {help preserve} command
-
-{pmore}
-To keep additional (untransformed) variables in the new dataset, use the {opth keep(varlist)} suboption.
-
-{phang}
-{cmd:cache(use)} is used when running reghdfe after a {it:save(cache)} operation. Both the {it:absorb()} and {it:vce()} options must be the same as when the cache was created (the latter because the degrees of freedom were computed at that point).
-
-{phang}
-{cmd:cache(clear)} will delete the Mata objects created by {it:reghdfe} and kept in memory after the {it:save(cache)} operation. These objects may consume a lot of memory, so it is a good idea to clean up the cache. Additionally, if you previously specified {it:preserve}, it may be a good time to {it:restore}.
-
-{pmore}Example:{p_end}
-{phang2}{cmd:. sysuse auto}{p_end}
-{phang2}{cmd:. preserve}{p_end}
-{phang2}{cmd:.}{p_end}
-{phang2}{cmd:. * Save the cache}{p_end}
-{phang2}{cmd:. reghdfe price weight length, a(turn rep) vce(turn) cache(save, keep(foreign))}{p_end}
-{phang2}{cmd:.}{p_end}
-{phang2}{cmd:. * Run regressions}{p_end}
-{phang2}{cmd:. reghdfe price weight, a(turn rep) cache(use)}{p_end}
-{phang2}{cmd:. reghdfe price length, a(turn rep) cache(use)}{p_end}
-{phang2}{cmd:.}{p_end}
-{phang2}{cmd:. * Clean up}{p_end}
-{phang2}{cmd:. reghdfe, cache(clear)}{p_end}
-{phang2}{cmd:. restore}{p_end}
-
-{phang}
-{opt fast} avoids saving {it:e(sample)} into the regression.
+{opt nosample} avoids saving {it:e(sample)} into the regression.
 Since saving the variable only involves copying a Mata vector, the speedup is currently quite small.
 Future versions of reghdfe may change this as features are added.
 
 {pmore}
-Note that {opt fast} will be disabled when adding variables to the dataset (i.e. when saving residuals, fixed effects, or mobility groups), and is incompatible with most postestimation commands.
+Note that {opt nosample} will be disabled when adding variables to the dataset (i.e. when saving residuals, fixed effects, or mobility groups), and is incompatible with most postestimation commands.
 
 {pmore}
-If you wish to use {opt fast} while reporting {cmd:estat summarize}, see the {opt summarize} option.
+If you wish to use {opt nosample} while reporting {cmd:estat summarize}, see the {opt summarize} option.
 
 {marker opt_optimization}{...}
 {dlgtab:Optimization}

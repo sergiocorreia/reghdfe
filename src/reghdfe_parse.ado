@@ -13,6 +13,9 @@ program reghdfe_parse, sclass
 	#d;
 	syntax, [
 
+		/* Model */
+		RESiduals(name) RESiduals2 /* use _reghdfe_resid */
+
 		/* Optimization (defaults are handled within Mata) */
 		TOLerance(real -1)
 		MAXITerations(real -1)
@@ -100,6 +103,17 @@ program reghdfe_parse, sclass
 	if ("`groupvar'"!="") conf new var `groupvar'
 	sreturn local dofadjustments "`opts'"
 	sreturn loc groupvar "`s(groupvar)'"
+
+* Residuals
+	if ("`residuals2'" != "") {
+		_assert ("`residuals'" == ""), msg("residuals() syntax error")
+		sreturn loc residuals _reghdfe_resid
+		cap drop `residuals' // destructive!
+	}
+	else if ("`residuals'"!="") {
+		conf new var `residuals'
+		sreturn loc residuals `residuals'
+	}
 
 * Misc
 	if ("`condition'"!="") {

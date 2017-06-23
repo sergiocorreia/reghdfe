@@ -37,6 +37,7 @@ f reghdfe_parse.ado
 f reghdfe_estat.ado
 f reghdfe_header.ado
 f reghdfe_footnote.ado
+f reghdfe_store_alphas.ado
 f reghdfe_p.ado
 f reghdfe.sthlp
 
