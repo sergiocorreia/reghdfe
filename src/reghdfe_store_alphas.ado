@@ -1,4 +1,4 @@
-program define reghdfe_store_alphas
+program define reghdfe_store_alphas, eclass
 	mata: st_local("save_any_fe", strofreal(HDFE.save_any_fe))
 	assert inlist(`save_any_fe', 0, 1)
 	if (`save_any_fe') {
