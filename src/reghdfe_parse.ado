@@ -107,8 +107,8 @@ program reghdfe_parse, sclass
 * Residuals
 	if ("`residuals2'" != "") {
 		_assert ("`residuals'" == ""), msg("residuals() syntax error")
+		cap drop _reghdfe_resid // destructive!
 		sreturn loc residuals _reghdfe_resid
-		cap drop `residuals' // destructive!
 	}
 	else if ("`residuals'"!="") {
 		conf new var `residuals'

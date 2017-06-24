@@ -184,13 +184,14 @@ class FixedEffects
 }
 
 
-`Variables' FixedEffects::update_sorted_weights(`Variable')
+`Void' FixedEffects::update_sorted_weights(`Variable' weight)
 {
     `Integer'               g
     `Variable'              w
     `FactorPointer'         pf
 
-    weight = st_data(sample, weight_var)
+    this.weight = weight
+    assert(rows(weight)==rows(sample))
     if (verbose > 0) printf("{txt}    - loading %s weight from variable %s)\n", weight_type, weight_var)
     for (g=1; g<=G; g++) {
         if (verbose > 0) printf("{txt}    - sorting weight for factor {res}%s{txt}\n", absvars[g])
