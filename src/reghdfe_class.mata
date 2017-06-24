@@ -57,7 +57,7 @@ class FixedEffects
 
     // Weight-specific
     `Boolean'               has_weights
-    `Variabe'               weight              // unsorted weight
+    `Variable'              weight              // unsorted weight
     `String'                weight_var          // Weighting variable
     `String'                weight_type         // Weight type (pw, fw, etc)
 
@@ -133,6 +133,7 @@ class FixedEffects
 
     // Methods
     `Void'                  new()
+    `Void'                  update_sorted_weights()
     `Matrix'                partial_out()
     `Void'                  _partial_out()
     `Variables'             project_one_fe()
@@ -180,6 +181,24 @@ class FixedEffects
 
     // Specific to Aitken:
     accel_freq = 3
+}
+
+
+`Variables' FixedEffects::update_sorted_weights(`Variable')
+{
+    `Integer'               g
+    `Variable'              w
+    `FactorPointer'         pf
+
+    weight = st_data(sample, weight_var)
+    if (verbose > 0) printf("{txt}    - loading %s weight from variable %s)\n", weight_type, weight_var)
+    for (g=1; g<=G; g++) {
+        if (verbose > 0) printf("{txt}    - sorting weight for factor {res}%s{txt}\n", absvars[g])
+        pf = &(factors[g])
+        w = (*pf).sort(weight)
+        asarray((*pf).extra, "weights", w)
+        asarray((*pf).extra, "weighted_counts", `panelsum'(w, (*pf).info))
+    }
 }
 
 

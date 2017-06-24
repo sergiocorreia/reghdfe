@@ -18,7 +18,6 @@ mata:
     `Integer'               spaces
     `Integer'               num_singletons_i
     `Variables'             cvar_data
-    `Variable'              w
     `FactorPointer'         pf
     `Matrix'                precond // used for lsmr
 
@@ -219,17 +218,7 @@ mata:
     }
     if (S.has_weights) {
         if (S.verbose > 0) printf("\n{txt} ## Loading and sorting weights\n\n")
-        S.weight = st_data(S.sample, weightvar)
-        if (S.verbose > 0) printf("{txt}    - loading %s weight from variable %s)\n", weighttype, weightvar)
-        
-        for (g=1; g<=S.G; g++) {
-            if (S.verbose > 0) printf("{txt}    - sorting weight for factor {res}%s{txt}\n", S.absvars[g])
-            pf = &(S.factors[g])
-            w = (*pf).sort(S.weight)
-            asarray((*pf).extra, "weights", w)
-            asarray((*pf).extra, "weighted_counts", `panelsum'(w, (*pf).info))
-        }
-        w = .
+        S.update_sorted_weights(st_data(S.sample, weightvar))
     }
 
 
