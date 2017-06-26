@@ -1,5 +1,5 @@
 *! reghdfe 3.2.9 21feb2016
-*! Sergio Correia (sergio.correia@duke.edu)
+*! Sergio Correia (sergio.correia@gmail.com)
 
 
 // Mata code is first, then main reghdfe.ado, then auxiliary .ado files
