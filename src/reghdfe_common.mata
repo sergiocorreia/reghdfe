@@ -32,7 +32,7 @@ mata:
 	// [C: .80s] stdevs = diagonal(sqrt(variance(A)))'
 	// [D: .67s] means = cross(1, A) / N; stdevs =  sqrt(diagonal(crossdev(A, means, A, means))' / (N-1))
 
-	assert(!isfleeting(A))
+	assert_msg(!isfleeting(A), "input cannot be fleeting")
 	N = rows(A)
 	K = cols(A)
 
@@ -46,7 +46,7 @@ mata:
 
 	// (C) 20% faster; don't use it if you care about accuracy
 	stdevs = sqrt( (diagonal(cross(A, A))' - (cross(1, A) :^ 2 / N)) / (N-1) )
-	assert(!missing(stdevs)) // Shouldn't happen as we don't expect N==1
+	assert_msg(!missing(stdevs), "stdevs are missing; is N==1?") // Shouldn't happen as we don't expect N==1
 
 	stdevs = colmax(( stdevs \ J(1, K, 1e-3) ))
 	A = A :/ stdevs
@@ -178,9 +178,10 @@ mata:
 {
 	// Hack: the first col of X is actually y!
 	`Integer'				K, KK
-	`Matrix'				xx, inv_xx, W, inv_V
+	`Matrix'				xx, inv_xx, W, inv_V, just_X
 	`Vector' 				xy, w
 	`Integer'				used_df_r
+	`RowVector'             kept
 
 	if (S.vcetype == "unadjusted" & S.weight_type=="pweight") S.vcetype = "robust"
 	if (S.verbose > 0) printf("\n{txt} ## Solving least-squares regression of partialled-out variables\n\n")
@@ -215,12 +216,12 @@ mata:
 
 	// This matrix indicates what regressors are not collinear
 	assert_msg(cols(S.kept)==K+1, "partial_out() was run with a different set of vars")
-	S.kept = K ? S.kept[2..K+1] : J(1, 0, .)
+	kept = K ? S.kept[2..K+1] : J(1, 0, .)
 
 	// Bread of the robust VCV matrix
 	// Compute this early so we can update the list of collinear regressors
 	if (S.timeit) timer_on(95)
-	inv_xx = reghdfe_rmcoll(tokens(S.indepvars), xx, S.kept)
+	inv_xx = reghdfe_rmcoll(tokens(S.indepvars), xx, kept)
 	S.df_m = rank = K - diag0cnt(inv_xx)
 	KK = rank + S.df_a
 	S.df_r = N - KK // replaced when clustering
@@ -234,8 +235,8 @@ mata:
 		// This is more numerically accurate but doesn't handle weights
 		// See: http://www.stata.com/statalist/archive/2012-02/msg00956.html
 		b = J(K, 1, 0)
-		if (cols(S.kept)) {
-			b[S.kept] = qrsolve(X[., 1:+S.kept], X[., 1])
+		if (cols(kept)) {
+			b[kept] = qrsolve(X[., 1:+kept], X[., 1])
 		}
 	}
 
@@ -244,12 +245,8 @@ mata:
 	if (S.timeit) timer_off(92)
 
 	if (S.timeit) timer_on(93)
-	// From here on, X is only used for robust VCE
-	if (S.vcetype == "unadjusted") {
-		X = .
-	}
-	else {
-		X = K ? X[., 2..K+1] : J(N, 0, .)
+	if (S.vcetype != "unadjusted") {
+		just_X = K ? X[., 2..K+1] : J(N, 0, .)
 	}
 	if (S.timeit) timer_off(93)
 
@@ -268,25 +265,25 @@ mata:
 		V = S.rss / S.df_r * inv_xx
 	}
 	else if (S.vcetype == "robust") {
-		V = reghdfe_robust(S, X, inv_xx, resid, w, N, KK)
+		V = reghdfe_robust(S, just_X, inv_xx, resid, w, N, KK)
 	}
 	else {
-		V = reghdfe_cluster(S, X, inv_xx, resid, w, N, KK)
+		V = reghdfe_cluster(S, just_X, inv_xx, resid, w, N, KK)
 	}
 	if (S.timeit) timer_off(96)
 
 	// Wald test: joint significance
 	if (S.timeit) timer_on(97)
-	inv_V = invsym(V[S.kept, S.kept]) // this might not be of full rank but numerical inaccuracies hide it
+	inv_V = invsym(V[kept, kept]) // this might not be of full rank but numerical inaccuracies hide it
 	if (diag0cnt(inv_V)) {
 		if (S.verbose > -1) printf("{txt}(Warning: missing F statistic; dropped variables due to collinearity or too few clusters)\n")
 		W = .
 	}
-	else if (length(b[S.kept])==0) {
+	else if (length(b[kept])==0) {
 		W = .
 	}
 	else {
-		W = b[S.kept]' * inv_V * b[S.kept] / S.df_m
+		W = b[kept]' * inv_V * b[kept] / S.df_m
 		if (missing(W) & S.verbose > -1) printf("{txt}(Warning: missing F statistic)\n")
 	}
 	if (S.timeit) timer_off(97)
