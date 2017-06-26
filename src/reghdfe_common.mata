@@ -214,6 +214,7 @@ mata:
 	if (S.timeit) timer_off(91)
 
 	// This matrix indicates what regressors are not collinear
+	assert_msg(cols(S.kept)==K+1, "partial_out() was run with a different set of vars")
 	S.kept = K ? S.kept[2..K+1] : J(1, 0, .)
 
 	// Bread of the robust VCV matrix
