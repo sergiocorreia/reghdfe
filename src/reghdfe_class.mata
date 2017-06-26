@@ -798,7 +798,7 @@ class FixedEffects
 }
 
 
-`Void' FixedEffects::post(`Options' options)
+`Void' FixedEffects::post()
 {
     `String'        text
     `Integer'       i

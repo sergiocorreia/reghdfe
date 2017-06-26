@@ -424,7 +424,7 @@ program RegressOLS, eclass
 	ereturn scalar rank    = `rank'
 	ereturn scalar df_r    = `df_r'
 	ereturn local  cmd     "reghdfe"
-	mata: HDFE.post(HDFE)
+	mata: HDFE.post()
 
 	* Post stats
 	cap conf matrix reghdfe_statsmatrix
