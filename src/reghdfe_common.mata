@@ -134,11 +134,11 @@ mata:
 	`Integer'				i
 
 	if (S.timeit) timer_on(90)
-	reghdfe_solve_ols(S, X, b=., V=., N=., rank=., df_r=., resid=.)
+	reghdfe_solve_ols(S, X, b=., V=., N=., rank=., df_r=., resid=., "vce_small")
 	if (S.timeit) timer_off(90)
 
 	st_matrix(bname, b')
-	
+
 	// Add "o." prefix to omitted regressors
 	eps = sqrt(epsilon(1))
 	for (i=1; i<=rows(b); i++) {
@@ -174,7 +174,8 @@ mata:
                                   `Integer' N,
                                   `Integer' rank,
                                   `Integer' df_r,
-                                  `Vector' resid)
+                                  `Vector' resid,
+                                  `String' vce_mode)
 {
 	// Hack: the first col of X is actually y!
 	`Integer'				K, KK
@@ -182,9 +183,11 @@ mata:
 	`Vector' 				xy, w
 	`Integer'				used_df_r
 	`RowVector'             kept
+	`Integer'				dof_adj
 
 	if (S.vcetype == "unadjusted" & S.weight_type=="pweight") S.vcetype = "robust"
 	if (S.verbose > 0) printf("\n{txt} ## Solving least-squares regression of partialled-out variables\n\n")
+	assert(anyof( ("vce_none", "vce_small", "vce_asymptotic") , vce_mode))
 
 	// Weight FAQ:
 	// - fweight: obs. i represents w[i] duplicate obs. (there is no loss of info wrt to having the "full" dataset)
@@ -244,6 +247,9 @@ mata:
 	resid = X * (1 \ -b) // y - X * b
 	if (S.timeit) timer_off(92)
 
+	// Stop if no VCE/R2/RSS needed
+	if (vce_mode == "vce_none") return
+
 	if (S.timeit) timer_on(93)
 	if (S.vcetype != "unadjusted") {
 		just_X = K ? X[., 2..K+1] : J(N, 0, .)
@@ -262,13 +268,15 @@ mata:
 		if (S.verbose > 0) {
 			printf("{txt}    - Small-sample-adjustment: q = N / (N-df_m-df_a) = %g / (%g - %g - %g) = %g\n", N, N, rank, S.df_a, N / S.df_r )
 		}
-		V = S.rss / S.df_r * inv_xx
+		dof_adj = N / S.df_r
+		if (vce_mode == "vce_asymptotic") dof_adj = N / (N-1) // 1.0
+		V = (S.rss / N) * dof_adj * inv_xx
 	}
 	else if (S.vcetype == "robust") {
-		V = reghdfe_robust(S, just_X, inv_xx, resid, w, N, KK)
+		V = reghdfe_robust(S, just_X, inv_xx, resid, w, N, KK, vce_mode)
 	}
 	else {
-		V = reghdfe_cluster(S, just_X, inv_xx, resid, w, N, KK)
+		V = reghdfe_cluster(S, just_X, inv_xx, resid, w, N, KK, vce_mode)
 	}
 	if (S.timeit) timer_off(96)
 
@@ -331,7 +339,8 @@ mata:
 						`Variable' resid,
 						`Variable' w,
 						`Integer' N,
-						`Integer' K)
+						`Integer' K,
+						`String' vce_mode)
 {
 	`Matrix'				M, V
 	`Integer'				dof_adj
@@ -351,6 +360,7 @@ mata:
 	}
 
 	dof_adj = N / (N - K)
+	if (vce_mode == "vce_asymptotic") dof_adj = N / (N-1) // 1.0
 	M = quadcross(X, w, X)
 	if (S.verbose > 0) {
 		printf("{txt}    - Small-sample-adjustment: q = N / (N-df_m-df_a) = %g / (%g - %g - %g) = %g\n", N, N, K-S.df_a, S.df_a, N / (N-K) )
@@ -365,7 +375,8 @@ mata:
 						`Variable' resid,
 						`Variable' w,
 						`Integer' N,
-						`Integer' K)
+						`Integer' K,
+						`String' vce_mode)
 {
 	`Matrix' 				M, V
 	`Integer'				dof_adj, N_clust, df_r, nested_adj
@@ -453,6 +464,7 @@ mata:
 	// (when ..nested.., df_a is zero so we divide N-1 by something that can potentially be N (!))
 	// so we either add the 1 back, or change the numerator (and the N_clust-1 factor!)
 	dof_adj = (N - 1) / (N - nested_adj - K) * N_clust / (N_clust - 1) // adjust for more than 1 cluster
+	if (vce_mode == "vce_asymptotic") dof_adj = N_clust / (N_clust - 1)  // 1.0
 	if (S.verbose > 0) {
 		printf("{txt}    - Small-sample-adjustment: q = (%g - 1) / (%g - %g) * %g / (%g - 1) = %g\n", N, N, K+nested_adj, N_clust, N_clust, dof_adj)
 	}

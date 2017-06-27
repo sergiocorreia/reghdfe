@@ -162,6 +162,7 @@ class FixedEffects
     weight = 1 // set to 1 so cross(x, S.weight, y)==cross(x, y)
 
     verbose = 0
+    timeit = 0
     finite_condition = .
 
     // Optimization defaults
