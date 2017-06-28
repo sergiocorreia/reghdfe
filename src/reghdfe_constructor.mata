@@ -94,14 +94,14 @@ mata:
     S.G = cols(S.absvars)
     S.factors = Factor(S.G)
 
-    assert_msg(anyof(("", "fweight", "pweight", "aweight"), weighttype), "wrong weight type")
+    assert_msg(anyof(("", "fweight", "pweight", "aweight", "iweight"), weighttype), "wrong weight type")
     S.weight_type = weighttype
     S.weight_var = weightvar
 
     S.num_singletons = 0
     if (drop_singletons) {
         num_singletons_i = 0
-        if (weighttype=="fweight") {
+        if (weighttype=="fweight" | weighttype=="iweight") {
             S.weight = st_data(S.sample, weightvar) // just to use it in F.drop_singletons()
         }
     }
@@ -152,6 +152,9 @@ mata:
             
             if (weighttype=="fweight") {
                 idx = S.factors[g].drop_singletons(S.weight)
+            }
+            else if (weighttype=="iweight") {
+                idx = S.factors[g].drop_singletons(S.weight, 1) // zero_threshold==1
             }
             else {
                 idx = S.factors[g].drop_singletons()
