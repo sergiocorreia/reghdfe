@@ -82,7 +82,8 @@ mata:
     S.equation_d = st_global("s(equation_d)")
     S.tss = .
 
-    assert(1<=S.G & S.G<=10)
+    assert(1<=S.G)
+    if (S.G>10) printf("{txt}(warning: absorbing %2.0f dimensions of fixed effects; check that you really want that)\n", S.G)
     assert(S.G == cols(S.ivars))
     assert(S.G == cols(S.cvars))
     assert(S.G == cols(S.targets))
