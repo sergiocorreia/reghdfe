@@ -4,7 +4,8 @@ program define reghdfe_store_alphas, eclass
 	if (`save_any_fe') {
 		_assert e(depvar) != "", msg("e(depvar) is empty")
 		_assert e(resid) != "", msg("e(resid) is empty")
-		confirm numeric var `e(depvar)', exact
+		// we can't use -confirm var- because it might have TS operators
+		fvrevar `e(depvar)', list
 		confirm numeric var `e(resid)', exact
 		tempvar d
 		if (e(rank)) {
