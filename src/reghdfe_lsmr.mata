@@ -80,7 +80,7 @@ mata:
         return
     }
 
-    if (S.verbose > 0) {
+    if (S.verbose > 1) {
         "< < < <"
         test1 = 1
         test2 = alpha / beta
@@ -203,7 +203,7 @@ mata:
         if  (test2 <= S.tolerance) S.converged = 2
         if  (test1 <= rtol) S.converged = 1
 
-        if (S.verbose > 0) {
+        if (S.verbose > 1) {
             printf(" - Convergence: %g\n", S.converged)
             "iter normr normAr"
             iter, normr, normAr

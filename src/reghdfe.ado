@@ -107,7 +107,7 @@ program Requirements
 	di as text _n "Required packages installed?"
 	loc reqs ftools
 	// ivreg2 avar tuples group3hdfe
-	if (c(version)<13) loc reqs `reqs' boottest
+	if (c(stata_version)<13) loc reqs `reqs' boottest
 
 	loc ftools_github "https://github.com/sergiocorreia/ftools/raw/master/src/"
 
