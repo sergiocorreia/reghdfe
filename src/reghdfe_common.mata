@@ -232,7 +232,11 @@ mata:
 
 	// Compute betas
 	if (S.has_weights) {
-		b = reghdfe_cholqrsolve(xx, xy, 1) // qr or chol?
+		// b = reghdfe_cholqrsolve(xx, xy, 1) // This is less numerically accurate (but should be faster)
+		b = J(K, 1, 0)
+		if (cols(kept)) {
+			b[kept] = qrsolve(X[., 1:+kept] :* sqrt(S.weight), X[., 1] :* sqrt(S.weight))
+		}
 	}
 	else {
 		// This is more numerically accurate but doesn't handle weights
