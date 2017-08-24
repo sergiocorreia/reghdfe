@@ -132,9 +132,10 @@ mata:
 	`Variable'				resid
 	`Real'					eps
 	`Integer'				i
+	`RowVector'				kept
 
 	if (S.timeit) timer_on(90)
-	reghdfe_solve_ols(S, X, b=., V=., N=., rank=., df_r=., resid=., "vce_small")
+	reghdfe_solve_ols(S, X, b=., V=., N=., rank=., df_r=., resid=., kept=., "vce_small")
 	if (S.timeit) timer_off(90)
 
 	st_matrix(bname, b')
@@ -175,6 +176,7 @@ mata:
                                   `Integer' rank,
                                   `Integer' df_r,
                                   `Vector' resid,
+                                  `RowVector' kept,
                                   `String' vce_mode)
 {
 	// Hack: the first col of X is actually y!
@@ -182,7 +184,6 @@ mata:
 	`Matrix'				xx, inv_xx, W, inv_V, just_X
 	`Vector' 				xy, w
 	`Integer'				used_df_r
-	`RowVector'             kept
 	`Integer'				dof_adj
 
 	if (S.vcetype == "unadjusted" & S.weight_type=="pweight") S.vcetype = "robust"
