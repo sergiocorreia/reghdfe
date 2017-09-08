@@ -313,7 +313,7 @@ class FixedEffects
 }
 
 
-`Void' FixedEffects::_partial_out(`Variables' y, | `Boolean' save_tss)
+`Void' FixedEffects::_partial_out(`Variables' y, | `Boolean' save_tss, `Boolean' standardize_data)
 {
     `RowVector'             stdevs, needs_zeroing
     `FunctionP'             funct_transform, func_accel // transform
@@ -324,6 +324,7 @@ class FixedEffects
     `Integer'               i
 
     if (args()<2 | save_tss==.) save_tss = 0
+    if (args()<3 | standardize_data==.) standardize_data = 1
 
     // Solver Warnings
     if (transform=="kaczmarz" & acceleration=="conjugate_gradient") {
@@ -388,7 +389,7 @@ class FixedEffects
         // Standardize variables
         if (verbose > 0) printf("{txt}    - Standardizing variables\n")
         if (timeit) timer_on(61)
-        stdevs = reghdfe_standardize(y)
+        stdevs = standardize_data ? reghdfe_standardize(y) : J(1, cols(y), 1)
         if (timeit) timer_off(61)
 
         // RRE benchmarking
