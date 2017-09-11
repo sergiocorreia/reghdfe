@@ -204,12 +204,19 @@ class FixedEffects
 }
 
 
-`Variables' FixedEffects::partial_out(`Anything' data, | `Boolean' save_tss)
+`Variables' FixedEffects::partial_out(`Anything' data,
+                                    | `Boolean' save_tss,
+                                      `Boolean' standardize_data,
+                                      `Boolean' first_is_depvar)
 {
     // -data- is either a varlist or a matrix
     `Variables'             y
     `Varlist'               vars
     `Integer'               i
+
+    if (args()<2 | save_tss==.) save_tss = 0
+    if (args()<3 | standardize_data==.) standardize_data = 1
+    if (args()<4 | first_is_depvar==.) first_is_depvar = 1
 
     if (eltype(data) == "string") {
         vars = tokens(invtokens(data))
@@ -236,13 +243,13 @@ class FixedEffects
         assert_msg(cols(y)==cols(vars), "st_data() constructed more columns than expected")
 
         if (timeit) timer_on(53)
-        _partial_out(y, save_tss)
+        _partial_out(y, save_tss, standardize_data, first_is_depvar)
         if (timeit) timer_off(53)
     }
     else {
         if (verbose > 0) printf("\n{txt} ## Partialling out %g variables\n\n", cols(data))
         if (timeit) timer_on(54)
-        _partial_out(y=data, save_tss)
+        _partial_out(y=data, save_tss, standardize_data, first_is_depvar)
         if (timeit) timer_off(54)
     }
     //if (verbose==0) printf("\n")
@@ -313,7 +320,10 @@ class FixedEffects
 }
 
 
-`Void' FixedEffects::_partial_out(`Variables' y, | `Boolean' save_tss, `Boolean' standardize_data)
+`Void' FixedEffects::_partial_out(`Variables' y,
+                                | `Boolean' save_tss,
+                                  `Boolean' standardize_data,
+                                  `Boolean' first_is_depvar)
 {
     `RowVector'             stdevs, needs_zeroing
     `FunctionP'             funct_transform, func_accel // transform
@@ -325,6 +335,7 @@ class FixedEffects
 
     if (args()<2 | save_tss==.) save_tss = 0
     if (args()<3 | standardize_data==.) standardize_data = 1
+    if (args()<4 | first_is_depvar==.) first_is_depvar = 1
 
     // Solver Warnings
     if (transform=="kaczmarz" & acceleration=="conjugate_gradient") {
@@ -422,15 +433,19 @@ class FixedEffects
 
     // This will edit to zero entire columns where *ALL* values are very close to zero
     if (timeit) timer_on(64)
+    vars = tokens(varlist)
+    if (cols(vars)!=cols(y)) vars ="variable #" :+ strofreal(1..cols(y))
     kept = (diagonal(cross(y, y))' :/ kept) :> (tolerance*1e-1)
+    if (first_is_depvar & kept[1]==0) {
+        kept[1] = 1
+        if (verbose > -1) printf("{txt}warning: %s might be perfectly explained by fixed effects (tol =%3.1e)\n", vars[1], tolerance*1e-1)
+    }
     needs_zeroing = `selectindex'(!kept)
     if (cols(needs_zeroing)) {
         y[., needs_zeroing] = J(rows(y), cols(needs_zeroing), 0)
-        vars = tokens(varlist)
-        assert_msg(cols(vars)==cols(y), "cols(vars)!=cols(y)")
         for (i=1; i<=cols(vars); i++) {
-            if (!kept[i] & verbose>-1) {
-                printf("{txt}note: omitted %s; close to zero after partialling-out (tol =%3.1e)\n", vars[i], tolerance*1e-1)
+            if (!kept[i] & verbose>-1 & (i > 1 | !first_is_depvar)) {
+                printf("{txt}note: %s omitted because of collinearity with fixed effects (close to zero after partialling-out; tol =%3.1e)\n", vars[i], tolerance*1e-1)
             }
         }
     }

@@ -289,7 +289,7 @@ mata:
 	if (S.timeit) timer_on(97)
 	inv_V = invsym(V[kept, kept]) // this might not be of full rank but numerical inaccuracies hide it
 	if (diag0cnt(inv_V)) {
-		if (S.verbose > -1) printf("{txt}(Warning: missing F statistic; dropped variables due to collinearity or too few clusters)\n")
+		if (S.verbose > -1) printf("{txt}warning: missing F statistic; dropped variables due to collinearity or too few clusters\n")
 		W = .
 	}
 	else if (length(b[kept])==0) {
@@ -297,7 +297,7 @@ mata:
 	}
 	else {
 		W = b[kept]' * inv_V * b[kept] / S.df_m
-		if (missing(W) & S.verbose > -1) printf("{txt}(Warning: missing F statistic)\n")
+		if (missing(W) & S.verbose > -1) printf("{txt}warning: missing F statistic\n")
 	}
 	if (S.timeit) timer_off(97)
 

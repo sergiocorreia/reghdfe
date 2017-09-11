@@ -29,7 +29,7 @@ d Required packages:
 d 	ftools
 d 	boottest (for Stata version 12 or earlier)
 d
-d Distribution-Date: 20170824
+d Distribution-Date: 20170911
 d
 
 f reghdfe.ado
@@ -39,7 +39,6 @@ f reghdfe_header.ado
 f reghdfe_footnote.ado
 f reghdfe_store_alphas.ado
 f reghdfe_p.ado
-f reghdfe.sthlp
 
 f reghdfe.mata
 f reghdfe_bipartite.mata
@@ -50,6 +49,9 @@ f reghdfe_projections.mata
 f reghdfe_transforms.mata
 f reghdfe_accelerations.mata
 f reghdfe_lsmr.mata
+
+f reghdfe.sthlp
+f reghdfe_mata.sthlp
 
 f estfe.ado
 

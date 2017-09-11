@@ -1,9 +1,10 @@
 {smcl}
-{* *! version 4.3.11 08sep2017}{...}
+{* *! version 4.4.0 11sep2017}{...}
 {vieweralsosee "[R] areg" "help areg"}{...}
 {vieweralsosee "[R] xtreg" "help xtreg"}{...}
 {vieweralsosee "[R] ivregress" "help ivregress"}{...}
 {vieweralsosee "" "--"}{...}
+{vieweralsosee "reghdfe_mata" "help reghdfe_mata"}{...}
 {vieweralsosee "ivreg2" "help ivreg2"}{...}
 {vieweralsosee "ivregress" "help ivregress"}{...}
 {vieweralsosee "reg2hdfe" "help reg2hdfe"}{...}
@@ -138,6 +139,9 @@ convergence will still be {it:much} faster.{p_end}
 {p2col 8 12 12 2: d)}Calculates the degrees-of-freedom lost due to the fixed effects
 (note: beyond two levels of fixed effects, this is still an open problem, but we provide a conservative approximation).{p_end}
 {p2col 8 12 12 2: e)}Iteratively removes singleton groups by default, to avoid biasing the standard errors (see ancillary document).{p_end}
+
+{pstd}
+For a description of its internal Mata API, see {help reghdfe_mata}.
 
 {marker options}{...}
 {title:Options}
