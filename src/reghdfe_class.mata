@@ -91,6 +91,7 @@ class FixedEffects
     `String'                indepvars           // x1 x2
     `String'                endogvars           // x3 x4
     `String'                instruments         // z1 z2 z3
+    `String'                tousevar
     
     `Boolean'               drop_singletons
     `String'                absorb              // contents of absorb()

@@ -225,6 +225,7 @@ mata:
 	// Bread of the robust VCV matrix
 	// Compute this early so we can update the list of collinear regressors
 	if (S.timeit) timer_on(95)
+	assert_msg( cols(tokens(S.indepvars))==cols(xx) , "HDFE.indepvars is missing or has the wrong number of columns")
 	inv_xx = reghdfe_rmcoll(tokens(S.indepvars), xx, kept)
 	S.df_m = rank = K - diag0cnt(inv_xx)
 	KK = rank + S.df_a
@@ -268,7 +269,7 @@ mata:
 
 	// Compute full VCE
 	if (S.timeit) timer_on(96)
-	assert_msg(anyof( ("unadjusted", "robust", "cluster") , S.vcetype), S.vcetype)
+	assert_msg(anyof( ("unadjusted", "robust", "cluster") , S.vcetype), "invalid vcetype" + S.vcetype)
 	if (S.vcetype == "unadjusted") {
 		if (S.verbose > 0) {
 			printf("{txt}    - Small-sample-adjustment: q = N / (N-df_m-df_a) = %g / (%g - %g - %g) = %g\n", N, N, rank, S.df_a, N / S.df_r )

@@ -39,6 +39,7 @@ mata:
     st_global("reghdfe_touse", touse)
     stata(`"reghdfe_parse "' + absvars)
     S.sample = `selectindex'(st_data(., touse))
+    S.tousevar = touse // useful if later on we want to clone the HDFE object
     st_global("reghdfe_touse", "")
 
     if (st_global("s(residuals)") != "") S.residuals = st_global("s(residuals)")
@@ -49,6 +50,7 @@ mata:
 
     if (S.verbose > 0) stata("sreturn list")
     S.G = strtoreal(st_global("s(G)"))
+    S.absorb = absvars // useful if later on we want to clone the HDFE object
     S.absvars = tokens(st_global("s(absvars)"))
     S.has_intercept = strtoreal(st_global("s(has_intercept)"))
     S.save_any_fe = strtoreal(st_global("s(save_any_fe)"))
@@ -194,7 +196,13 @@ mata:
     if (S.verbose > 0) printf("\n")
 
     if ( drop_singletons & S.num_singletons>0 & S.verbose>-1 | S.factors[1].num_obs<2) {
-        printf(`"{txt}(dropped %s {browse "http://scorreia.com/research/singletons.pdf":singleton observations})\n"', strofreal(S.num_singletons))
+        if (weighttype=="iweight") {
+            // PPML-specific
+            printf(`"{txt}(dropped %s singleton or separating observations)\n\n"', strofreal(S.num_singletons))
+        }
+        else {
+            printf(`"{txt}(dropped %s {browse "http://scorreia.com/research/singletons.pdf":singleton observations})\n"', strofreal(S.num_singletons))
+        }
     }
 
     if (S.factors[1].num_obs < 2) {

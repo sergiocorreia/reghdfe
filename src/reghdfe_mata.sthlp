@@ -67,10 +67,9 @@
 {pstd}
 Then you can modify the object and add important properties:
 
-{p 8 8 2}
-{it:HDFE.varlist }{cmd:=}{bind: }{it:varlist} // used to report messages about all demeaned variables
-{it:HDFE.indepvars }{cmd:=}{bind: }{it:indepvars}} // used to report messages about demeaned regressors
-{it:HDFE.num_clusters }{cmd:=}{bind: }{it:#} // Number of clusters
+{p 8 8 2}{it:HDFE.varlist }{cmd:=}{bind: }{it:varlist} // used to report messages about all demeaned variables{p_end}
+{p 8 8 2}{it:HDFE.indepvars }{cmd:=}{bind: }{it:indepvars} // used to report messages about demeaned regressors{p_end}
+{p 8 8 2}{it:HDFE.num_clusters }{cmd:=}{bind: }{it:#} // Number of clusters{p_end}
 
 {p 8 8 2}
 {it: ... see reghdfe.ado for more options and how to combine them}
@@ -250,6 +249,24 @@ Then you can modify the object and add important properties:
 {synopt:{it:Vector} {cmd:lsmr_At_mult}()}{p_end}
 
 
+{marker functions}{...}
+{title:Additional functions}
+
+{pstd}
+Several useful Mata functions are included. For instance,
+
+{p 8 16 2}
+{it:void}
+{cmd:reghdfe_solve_ols(}{it:HDFE}
+{cmd:,}
+{it:X}{cmd:,}
+{it:...}
+{cmd:)}
+
+{pstd}
+See {stata "mata: mata desc using lreghdfe"} for full list of functions and classes.
+
+
 {marker description}{...}
 {title:Description}
 
@@ -262,6 +279,21 @@ TBD
 
 {pstd}
 TBD
+
+
+{inp}
+    {hline 60}
+	sysuse auto, clear
+	local depvar price
+	local indepvars weight gear
+	mata: HDFE = fixed_effects("turn", "", "fweight", "trunk", 0, 2)
+	mata: HDFE.varlist = "`depvar' `indepvars'"
+	mata: HDFE.indepvars = "`indepvars'"
+	mata: data = HDFE.partial_out("`depvar' `indepvars'")
+	mata: reghdfe_solve_ols(HDFE, data, b=., V=., N=., rank=., df_r=., resid=., kept=., "vce_none")
+	mata: b
+    {hline 60}
+{text}
 
 
 {marker remarks}{...}
