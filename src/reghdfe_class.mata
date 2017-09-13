@@ -134,6 +134,7 @@ class FixedEffects
 
     // Methods
     `Void'                  new()
+    `Void'                  load_weights() // calls update_sorted_weights, etc.
     `Void'                  update_sorted_weights()
     `Matrix'                partial_out()
     `Void'                  _partial_out()
@@ -187,6 +188,43 @@ class FixedEffects
 }
 
 
+// This adds/removes weights or changes their type
+`Void' FixedEffects::load_weights(`String' weighttype, `String' weightvar, `Variable' weight, `Boolean' verbose)
+{
+    `Integer' g
+   
+    // Update main properties
+    this.weight_var = weightvar
+    this.weight_type = weighttype
+
+    // Update boolean
+    this.has_weights = (weighttype !="" & weightvar!="")
+    for (g=1; g<=this.G; g++) {
+        asarray(this.factors[g].extra, "has_weights", this.has_weights)
+    }
+
+    // Optionally load weight from dataset
+    if (this.has_weights & weight==J(0,1,.)) {
+        weight = st_data(this.sample, this.weight_var)
+    }
+
+    // Update weight vectors
+    if (this.has_weights) {
+        if (this.verbose > 0 & verbose > 0) printf("\n{txt} ## Loading and sorting weights\n\n")
+        this.update_sorted_weights(weight)
+    }
+    else {
+        // If no weights, clear this up
+        this.weight = 1 // same as defined by new()
+        for (g=1; g<=this.G; g++) {
+            asarray(this.factors[g].extra, "weights", .)
+            asarray(this.factors[g].extra, "weighted_counts", .)
+        }
+    }
+}
+
+
+// This just updates the weight but doesn't change the type or variable of the weight
 `Void' FixedEffects::update_sorted_weights(`Variable' weight)
 {
     `Integer'               g

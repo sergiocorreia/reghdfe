@@ -8,7 +8,7 @@ noi cscript "reghdfe: saving alphas (FEs)" adofile reghdfe
 * [TEST] Non-missing alphas
 	gen double turn2 = turn
 	reghdfe turn2, a(TURN=turn) keepsing v(-1)
-	assert TURN==turn
+	assert abs(TURN - turn) < 1e-12
 	drop turn2 TURN
 
 * [TEST] One FE

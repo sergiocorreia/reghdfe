@@ -224,14 +224,7 @@ mata:
 
 
     // (3) load weight
-    S.has_weights = (weighttype !="" & weightvar!="")
-    for (g=1; g<=S.G; g++) {
-        asarray(S.factors[g].extra, "has_weights", S.has_weights)
-    }
-    if (S.has_weights) {
-        if (S.verbose > 0) printf("\n{txt} ## Loading and sorting weights\n\n")
-        S.update_sorted_weights(st_data(S.sample, weightvar))
-    }
+    S.load_weights(weighttype, weightvar, J(0,1,.), 1) // update S.has_weights, S.factors, etc.
 
 
     // (4) prune edges of degree-1
