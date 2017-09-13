@@ -147,6 +147,7 @@ class FixedEffects
     `Void'                  save_variable()
     `Void'                  post_footnote()
     `Void'                  post()
+    `FixedEffects'          reload() // create new instance of object
 
     //LSMR-Specific Methods
     `Real'                  lsmr_norm()
@@ -908,6 +909,56 @@ class FixedEffects
         st_global("e(wexp)", "= " + weight_var)
         st_global("e(wtype)", weight_type)
     }
+}
+
+
+// --------------------------------------------------------------------------
+// Recreate HDFE object
+// --------------------------------------------------------------------------
+`FixedEffects' FixedEffects::reload(`Boolean' copy)
+{
+    `FixedEffects' ans
+    assert(copy==0 | copy==1)
+    
+    // Trim down current object as much as possible
+    // this. is optional but useful for clarity
+    if (copy==0) {
+        this.factors = Factor()
+        this.sample = .
+        this.bg = BipartiteGraph()
+        this.pruned_weight = .
+        this.rre_varname = .
+        this.rre_true_residual = .
+    }
+
+    // Initialize new object
+    ans = fixed_effects(this.absorb, this.tousevar, this.weight_type, this.weight_var, this.drop_singletons, this.verbose)
+
+    // Fill out new object with values of current one
+    ans.depvar = this.depvar
+    ans.indepvars = this.indepvars
+    ans.endogvars = this.endogvars
+    ans.instruments = this.instruments
+    ans.varlist = this.varlist
+    ans.original_depvar = this.original_depvar
+    ans.original_indepvars = this.original_indepvars
+    ans.original_endogvars = this.original_endogvars
+    ans.original_instruments = this.original_instruments
+    ans.original_varlist = this.original_varlist
+    ans.model = this.model
+    ans.vcetype = this.vcetype
+    ans.num_clusters = this.num_clusters
+    ans.clustervars = this.clustervars
+    ans.base_clustervars = this.base_clustervars
+    ans.vceextra = this.vceextra
+    ans.summarize_stats = this.summarize_stats
+    ans.summarize_quietly = this.summarize_quietly
+    ans.notes = this.notes
+    ans.store_sample = this.store_sample
+    ans.timeit = this.timeit
+    ans.diopts = this.diopts
+
+    return(ans)
 }
 
 

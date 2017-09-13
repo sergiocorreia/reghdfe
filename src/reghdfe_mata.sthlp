@@ -240,6 +240,7 @@ Then you can modify the object and add important properties:
 {synopt:{it:Void} {cmd:save_variable}()}{p_end}
 {synopt:{it:Void} {cmd:post_footnote}()}{p_end}
 {synopt:{it:Void} {cmd:post}()}{p_end}
+{synopt:{it:Void} {cmd:reload}(copy=0)}{p_end} (run this if e.g. touse changes)
 
 {synopthdr:methods (LSMR-specific)}
 {synoptline}
