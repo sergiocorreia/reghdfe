@@ -439,9 +439,14 @@ class FixedEffects
     }
     else {
         // Standardize variables
-        if (verbose > 0) printf("{txt}    - Standardizing variables\n")
         if (timeit) timer_on(61)
-        stdevs = standardize_data ? reghdfe_standardize(y) : J(1, cols(y), 1)
+        if (standardize_data) {
+            if (verbose > 0) printf("{txt}    - Standardizing variables\n")
+            stdevs = reghdfe_standardize(y)
+        }
+        else {
+            stdevs = J(1, cols(y), 1)
+        }
         if (timeit) timer_off(61)
 
         // RRE benchmarking
@@ -771,24 +776,33 @@ class FixedEffects
 }
 
 
-`Void' FixedEffects::save_touse(`Varname' touse, | `Boolean' replace)
+`Void' FixedEffects::save_touse(| `Varname' touse, `Boolean' replace)
 {
     `Integer'               idx
     `Vector'                mask
 
+    // Set default arguments
+    if (args()<1 | touse=="") {
+        assert(tousevar != "")
+        touse = tousevar
+    }
+    // Note that args()==0 implies replace==1 (else how would you find the name)
+    if (args()==0) replace = 1
+    if (args()==1 | replace==.) replace = 0
 
     if (verbose > 0) printf("\n{txt} ## Saving e(sample)\n")
+
+    // Compute dummy vector
     mask = J(st_nobs(), 1, 0)
     mask[sample] = J(rows(sample), 1, 1)
-    
-    if (args()<2 | replace==.) {
-        // Generate
-        idx = st_addvar("byte", touse, 1)
-        st_store(., idx, mask)
+
+    // Save vector as variable
+    if (replace) {
+        st_store(., touse, mask)
     }
     else {
-        // Replace
-        st_store(., touse, mask)
+        idx = st_addvar("byte", touse, 1)
+        st_store(., idx, mask)
     }
 }
 
