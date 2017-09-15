@@ -191,6 +191,7 @@ class FixedEffects
 // This adds/removes weights or changes their type
 `Void' FixedEffects::load_weights(`String' weighttype, `String' weightvar, `Variable' weight, `Boolean' verbose)
 {
+    if (this.verbose > 0 & verbose > 0) printf("{txt} ## Loading weights [%s=%s]\n", weighttype, weightvar)
     `Integer' g
    
     // Update main properties
@@ -210,7 +211,7 @@ class FixedEffects
 
     // Update weight vectors
     if (this.has_weights) {
-        if (this.verbose > 0 & verbose > 0) printf("\n{txt} ## Loading and sorting weights\n\n")
+        if (this.verbose > 0 & verbose > 0) printf("{txt} ## Sorting weights for each absvar\n")
         this.update_sorted_weights(weight)
     }
     else {
@@ -233,7 +234,7 @@ class FixedEffects
 
     this.weight = weight
     assert(rows(weight)==rows(sample))
-    if (verbose > 0) printf("{txt}    - loading %s weight from variable %s)\n", weight_type, weight_var)
+    if (verbose > 0) printf("{txt}    - loading %s weight from variable %s\n", weight_type, weight_var)
     for (g=1; g<=G; g++) {
         if (verbose > 0) printf("{txt}    - sorting weight for factor {res}%s{txt}\n", absvars[g])
         pf = &(factors[g])
@@ -267,7 +268,7 @@ class FixedEffects
         if (timeit) timer_off(50)
 
         if (cols(y) < cols(vars)) {
-            printf("{err}(some columns were dropped due to a bug/quirk in st_data() (%g cols created instead of %g for %s); running slower workaround)\n", cols(y), cols(vars), invtokens(vars))
+            if (verbose) printf("{err}(some columns were dropped due to a bug/quirk in st_data() (%g cols created instead of %g for %s); running slower workaround)\n", cols(y), cols(vars), invtokens(vars))
             assert(0) // when does this happen?
         }
         else if (cols(y) > cols(vars)) {
