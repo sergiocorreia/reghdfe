@@ -1,5 +1,13 @@
 **** PREPARE
 
+* Reload
+	cap ado uninstall reghdfe
+	loc dir `c(pwd)'
+	loc dir : subinstr loc dir "test" "src"
+	di as text "DIR: `dir'"
+	net install reghdfe, from("`dir'")
+
+
 * Clean slate
 	set more off
 	set trace off

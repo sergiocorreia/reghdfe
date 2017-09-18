@@ -143,7 +143,8 @@ mata:
         }
 
         if (i<=S.G) {
-            S.factors[g] = factor(S.ivars[g], S.sample)
+            // We don't need to save keys (or sort levels but that might change estimates of FEs)
+            S.factors[g] = factor(S.ivars[g], S.sample, ., "", ., 1, ., 0)
         }
 
         if (S.verbose > 0) {

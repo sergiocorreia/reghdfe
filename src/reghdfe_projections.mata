@@ -6,8 +6,8 @@ mata:
 {
     pointer(`Variable')              Pw, Pcounts
     `Boolean' has_weights
-    has_weights = asarray(f.extra, "has_weights")
-    // assert(has_weights==0 | has_weights==1)
+    has_weights = asarray(f.extra, "has_weights") == J(0,0,.) ? 0 : asarray(f.extra, "has_weights")
+    assert(has_weights==0 | has_weights==1)
 
     if (has_weights) {
         Pw = &asarray(f.extra, "weights")
