@@ -91,7 +91,9 @@ mata:
 	u = r
 
 	for (iter=1; iter<=S.maxiter; iter++) {
+		if (S.timeit) timer_on(71)
 		(*T)(S, u, v, 1) // This is the hottest loop in the entire program
+		if (S.timeit) timer_off(71)
 		alpha = safe_divide( ssr , weighted_quadcolsum(S, u, v) )
 		recent_ssr[1 + mod(iter-1, d), .] = alpha :* ssr
 		improvement_potential = improvement_potential - alpha :* ssr
