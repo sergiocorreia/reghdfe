@@ -182,7 +182,7 @@ mata:
 	// Hack: the first col of X is actually y!
 	`Integer'				K, KK
 	`Matrix'				xx, inv_xx, W, inv_V, just_X
-	`Vector' 				xy, w
+	`Vector' 				w // , xy
 	`Integer'				used_df_r
 	`Integer'				dof_adj
 
@@ -214,7 +214,7 @@ mata:
 	K = cols(X) - 1
 	xx = quadcross(X, w, X)
 	S.tss_within = xx[1,1]
-	xy = K ? xx[| 2 , 1 \ K+1 , 1 |] : J(0, 1, .)
+	//xy = K ? xx[| 2 , 1 \ K+1 , 1 |] : J(0, 1, .)
 	xx = K ? xx[| 2 , 2 \ K+1 , K+1 |] : J(0, 0, .)
 	if (S.timeit) timer_off(91)
 
