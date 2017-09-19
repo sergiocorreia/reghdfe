@@ -77,6 +77,7 @@ mata:
 	pragma unset r
 	pragma unset v
 
+	if (S.timeit) timer_on(79)
 	Q = cols(y)
 	
 	d = 1 // BUGBUG Set it to 2/3 // Number of recent SSR values to use for convergence criteria (lower=faster & riskier)
@@ -109,6 +110,7 @@ mata:
 		// Convergence if sum(recent_ssr) > tol^2 * improvement_potential
 		if ( check_convergence(S, iter, colsum(recent_ssr), improvement_potential, "hestenes") ) break
 	}
+	if (S.timeit) timer_off(79)
 	return(y)
 }
 
