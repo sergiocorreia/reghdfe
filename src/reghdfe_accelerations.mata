@@ -77,40 +77,54 @@ mata:
 	pragma unset r
 	pragma unset v
 
-	if (S.timeit) timer_on(79)
+	if (S.timeit) timer_on(70)
 	Q = cols(y)
 	
 	d = 1 // BUGBUG Set it to 2/3 // Number of recent SSR values to use for convergence criteria (lower=faster & riskier)
 	// A discussion on the stopping criteria used is described in
 	// http://scicomp.stackexchange.com/questions/582/stopping-criteria-for-iterative-linear-solvers-applied-to-nearly-singular-system/585#585
 
+	if (S.timeit) timer_on(73)
 	improvement_potential = weighted_quadcolsum(S, y, y)
 	recent_ssr = J(d, Q, .)
+	if (S.timeit) timer_off(73)
 	
 	if (S.timeit) timer_on(71)
 	(*T)(S, y, r, 1)
 	if (S.timeit) timer_off(71)
+	if (S.timeit) timer_on(73)
 	ssr = weighted_quadcolsum(S, r, r) // cross(r,r) when cols(y)==1 // BUGBUG maybe diag(quadcross()) is faster?
 	u = r
+	if (S.timeit) timer_off(73)
 
 	for (iter=1; iter<=S.maxiter; iter++) {
 		if (S.timeit) timer_on(71)
 		(*T)(S, u, v, 1) // This is the hottest loop in the entire program
 		if (S.timeit) timer_off(71)
+		if (S.timeit) timer_on(73)
 		alpha = safe_divide( ssr , weighted_quadcolsum(S, u, v) )
+		if (S.timeit) timer_off(73)
+		if (S.timeit) timer_on(74)
 		recent_ssr[1 + mod(iter-1, d), .] = alpha :* ssr
 		improvement_potential = improvement_potential - alpha :* ssr
+		if (S.timeit) timer_off(74)
+		if (S.timeit) timer_on(75)
 		y = y - alpha :* u
 		if (S.compute_rre & !S.prune) reghdfe_rre_benchmark(y[., 1], S.rre_true_residual, S.rre_depvar_norm)
 		r = r - alpha :* v
 		ssr_old = ssr
+		if (S.timeit) timer_off(75)
+		if (S.timeit) timer_on(73)
 		ssr = weighted_quadcolsum(S, r, r)
 		beta = safe_divide( ssr , ssr_old) // Fletcher-Reeves formula, but it shouldn't matter in our problem
+		if (S.timeit) timer_off(73)
 		u = r + beta :* u
 		// Convergence if sum(recent_ssr) > tol^2 * improvement_potential
+		if (S.timeit) timer_on(76)
 		if ( check_convergence(S, iter, colsum(recent_ssr), improvement_potential, "hestenes") ) break
+		if (S.timeit) timer_off(76)
 	}
-	if (S.timeit) timer_off(79)
+	if (S.timeit) timer_off(70)
 	return(y)
 }
 
