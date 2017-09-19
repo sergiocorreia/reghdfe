@@ -86,7 +86,9 @@ mata:
 	improvement_potential = weighted_quadcolsum(S, y, y)
 	recent_ssr = J(d, Q, .)
 	
+	if (S.timeit) timer_on(71)
 	(*T)(S, y, r, 1)
+	if (S.timeit) timer_off(71)
 	ssr = weighted_quadcolsum(S, r, r) // cross(r,r) when cols(y)==1 // BUGBUG maybe diag(quadcross()) is faster?
 	u = r
 
