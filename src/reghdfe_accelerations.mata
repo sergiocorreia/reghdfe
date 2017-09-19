@@ -107,9 +107,9 @@ mata:
 		if (S.timeit) timer_on(74)
 		recent_ssr[1 + mod(iter-1, d), .] = alpha :* ssr
 		improvement_potential = improvement_potential - alpha :* ssr
+		y = y - alpha :* u
 		if (S.timeit) timer_off(74)
 		if (S.timeit) timer_on(75)
-		y = y - alpha :* u
 		if (S.compute_rre & !S.prune) reghdfe_rre_benchmark(y[., 1], S.rre_true_residual, S.rre_depvar_norm)
 		r = r - alpha :* v
 		ssr_old = ssr
@@ -121,7 +121,10 @@ mata:
 		u = r + beta :* u
 		// Convergence if sum(recent_ssr) > tol^2 * improvement_potential
 		if (S.timeit) timer_on(76)
-		if ( check_convergence(S, iter, colsum(recent_ssr), improvement_potential, "hestenes") ) break
+		if ( check_convergence(S, iter, colsum(recent_ssr), improvement_potential, "hestenes") ) {
+			break
+			if (S.timeit) timer_off(76)
+		}
 		if (S.timeit) timer_off(76)
 	}
 	if (S.timeit) timer_off(70)
@@ -268,10 +271,25 @@ mata:
 // --------------------------------------------------------------------------
 
 `Matrix' weighted_quadcolsum(`FixedEffects' S, `Matrix' x, `Matrix' y) {
-	// BUGBUG: colsum or quadcolsum??
 	// BUGBUG: override S.has_weights with pruning
-	// BUGBUG: speed up with cross() if only one column
-	return( quadcolsum(S.has_weights ? (x :* y :* S.weight) : (x :* y) ) )
+	// One approach is faster for thin matrices
+	// We are using cross instead of quadcross but it should not matter for this use
+	if (S.has_weights) {
+		if (cols(x) < 14) {
+			return(cross(x :* y, S.weight)')
+		}
+		else {
+			return(diagonal(cross(x, S.weight, y))')
+		}
+	}
+	else {
+		if (cols(x) < 25) {
+			return(diagonal(cross(x, y))')
+		}
+		else {
+			return(colsum(x :* y))
+		}
+	}
 }
 
 
@@ -284,5 +302,3 @@ mata:
 }
 
 end
-
-
