@@ -610,7 +610,7 @@ class FixedEffects
 
                 if (cluster_data == .) {
                     if (strpos(clustervar, "#")) {
-                        clustervar = base_clustervars[i_cluster]
+                        clustervar = subinstr(clustervars[i_cluster], "#", " ", .)
                         F = factor(clustervar, sample, ., "", 0, 0, ., 0)
                         cluster_data = F.levels
                         F = Factor() // clear

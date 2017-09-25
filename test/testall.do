@@ -54,6 +54,8 @@
 	run inconsistent-r2
 	run singleton-and-fweights
 
+	run bug_cluster
+
 	* -prune- corner cases
 	* run prune
 
