@@ -61,6 +61,7 @@ mata:
     S.intercepts = strtoreal(tokens(st_global("s(intercepts)")))
     S.num_slopes = strtoreal(tokens(st_global("s(num_slopes)")))
     S.save_fe = S.targets :!= ""
+    S.report_constant = strtoreal(st_global("s(report_constant)"))
 
     if (st_global("s(tolerance)") != "") S.tolerance = strtoreal(st_global("s(tolerance)"))
     if (st_global("s(maxiter)") != "") S.maxiter = strtoreal(st_global("s(maxiter)"))

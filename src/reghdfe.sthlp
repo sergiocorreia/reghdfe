@@ -85,6 +85,7 @@ rarely used{p_end}
 
 {syntab:Undocumented}
 {synopt :{opt keepsin:gletons}}do not drop singleton groups{p_end}
+{synopt :{opt con:stant}}report {it:_cons} row of the regression (experimental; might not work correctly with the prune or lsmr options){p_end}
 {synopt :{opt old}}will call the latest 3.x version of reghdfe instead (see the {help reghdfe_old:old help file}){p_end}
 {synopt :{opth rre(varname)}}where varname is the residual of a proven prev. regression of y against only the FEs{p_end}
 {synopt :{opt check}}compile {it:lreghdfe.mlib} if it does not exist or if it needs to be updated;

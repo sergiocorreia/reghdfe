@@ -49,6 +49,7 @@ class FixedEffects
     `Integer'               verbose
     `Boolean'               timeit
     `Boolean'               store_sample
+    `Boolean'               report_constant
     `Real'                  finite_condition
     `Real'                  compute_rre         // Relative residual error: || e_k - e || / || e ||
     `Real'                  rre_depvar_norm
@@ -182,6 +183,7 @@ class FixedEffects
     converged = 0
     abort = 1
     storing_alphas = 0
+    report_constant = 0
 
     // Specific to Aitken:
     accel_freq = 3
@@ -366,7 +368,7 @@ class FixedEffects
                                   `Boolean' standardize_data,
                                   `Boolean' first_is_depvar)
 {
-    `RowVector'             stdevs, needs_zeroing
+    `RowVector'             stdevs, needs_zeroing, means
     `FunctionP'             funct_transform, func_accel // transform
     `Real'                  y_mean
     `Vector'                lhs
@@ -420,6 +422,9 @@ class FixedEffects
     // Compute 2-norm of each var, to see if we need to drop as regressors
     kept = diagonal(cross(y, y))'
 
+    // Compute means of each var
+    means = report_constant & has_intercept ? mean(y, weight) : J(1,cols(y),1)
+
     // Intercept LSMR case
     if (acceleration=="lsmr") {
         // RRE benchmarking
@@ -435,6 +440,7 @@ class FixedEffects
             }
             alphas = .
         }
+        if (report_constant & has_intercept) y = y :+ means
         return
     }
     else {
@@ -463,6 +469,8 @@ class FixedEffects
         iteration_count = 0
         if (timeit) timer_on(62)
         y = (*func_accel)(this, y, funct_transform) :* stdevs // 'this' is like python's self
+        if (report_constant & has_intercept) y = y :+ means
+        if (report_constant & has_intercept & verbose > 0) printf("{txt} - Adding back means so we can report _cons\n")
         if (timeit) timer_off(62)
         
         if (prune) {

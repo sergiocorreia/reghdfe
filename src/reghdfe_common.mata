@@ -211,6 +211,11 @@ mata:
 
 	// Build core matrices
 	if (S.timeit) timer_on(91)
+	if (S.report_constant) {
+		S.kept = S.kept , cols(X)
+		S.indepvars = S.indepvars + " _cons"
+		X = X, J(N,1,1)
+	}
 	K = cols(X) - 1
 	xx = quadcross(X, w, X)
 	S.tss_within = xx[1,1]
@@ -228,7 +233,7 @@ mata:
 	assert_msg( cols(tokens(S.indepvars))==cols(xx) , "HDFE.indepvars is missing or has the wrong number of columns")
 	inv_xx = reghdfe_rmcoll(tokens(S.indepvars), xx, kept)
 	S.df_m = rank = K - diag0cnt(inv_xx)
-	KK = rank + S.df_a
+	KK = rank + S.df_a - (S.report_constant==1)
 	S.df_r = N - KK // replaced when clustering
 	if (S.timeit) timer_off(95)
 
