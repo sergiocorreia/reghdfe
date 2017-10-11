@@ -119,7 +119,9 @@ local included_e ///
 	local bench_df_a = e(df_a)
 
 	* 2) Compare w/reghdfe
-	reghdfe price L.(weight gear), a(turn) keepsing
+	qui reghdfe price L.weight, noa keepsing v(1)
+	qui reghdfe price L.(weight), noa keepsing v(1)
+	reghdfe price L.(weight gear), a(turn) keepsing v(1)
 	notrim
 	matrix list e(trim_V)
 	storedresults compare benchmark e(), tol(1e-10) include(`included_e')
@@ -211,6 +213,15 @@ local included_e ///
 
 	* 3) Cleanup
 	storedresults drop benchmark
+
+* [TEST] Bug in ms_fvstrip reported by Gabriel C-R
+	
+	sysuse auto
+	bys turn: gen t = _n
+	xtset turn t
+	gen F = 1
+	gen L = 1
+	reghdfe F.price L.weight, noa
 
 
 
