@@ -1,4 +1,4 @@
-*! version 4.4.10 10oct2017
+*! version 4.4.11 26oct2017
 
 program reghdfe, eclass
 	* Intercept old+version
@@ -351,7 +351,7 @@ program Estimate, eclass
 
 	* Stats
 	mata: st_local("stats", HDFE.summarize_stats)
-	if ("`stats'" != "") Stats
+	if ("`stats'" != "") Stats `touse'
 
 	* Condition number
 	mata: HDFE.estimate_cond()
@@ -459,6 +459,7 @@ end
 
 
 program Stats
+	args touse
 	* Optional weights
 	mata: st_local("weight", sprintf("[%s=%s]", HDFE.weight_type, HDFE.weight_var))
 	assert "`weight'" != ""
@@ -470,6 +471,6 @@ program Stats
 	mata: st_local("cvars", invtokens(HDFE.cvars))
 	loc full_varlist `varlist' `cvars'
 
-	qui tabstat `full_varlist' `weight' , stat(`stats') col(stat) save
+	qui tabstat `full_varlist' if `touse' `weight' , stat(`stats') col(stat) save
 	matrix reghdfe_statsmatrix = r(StatTotal)
 end
