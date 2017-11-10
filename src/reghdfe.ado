@@ -1,4 +1,4 @@
-*! version 4.4.11 26oct2017
+*! version 4.4.12 10nov2017
 
 program reghdfe, eclass
 	* Intercept old+version
@@ -470,6 +470,10 @@ program Stats
 	mata: st_local("varlist", HDFE.varlist)
 	mata: st_local("cvars", invtokens(HDFE.cvars))
 	loc full_varlist `varlist' `cvars'
+
+	* quick workaround b/c -tabstat- does not support factor variables
+	fvrevar `full_varlist', list
+	loc full_varlist `r(varlist)'
 
 	qui tabstat `full_varlist' if `touse' `weight' , stat(`stats') col(stat) save
 	matrix reghdfe_statsmatrix = r(StatTotal)
