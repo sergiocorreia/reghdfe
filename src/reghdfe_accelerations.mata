@@ -210,6 +210,7 @@ mata:
 `Boolean' check_convergence(`FixedEffects' S, `Integer' iter, `Variables' y_new, `Variables' y_old,| `String' method) {
 	`Boolean'	is_last_iter
 	`Real'		update_error
+	`Real'		eps_threshold
 
 	// max() ensures that the result when bunching vars is at least as good as when not bunching
 	if (args()<5) method = "vectors"
@@ -224,8 +225,15 @@ mata:
 	else if (method=="hestenes") {
 		// If the regressor is perfectly explained by the absvars, we can have SSR very close to zero but negative
 		// (so sqrt is missing)
-		// todo: add weights to hestenes (S.weight , as in "vectors" method)
-		update_error = max(safe_divide( sqrt(y_new) , editmissing(sqrt(y_old), sqrt(epsilon(1)) ) , sqrt(epsilon(1)) ))
+
+		eps_threshold = 1e-13 // 100 * epsilon(1)
+		if (S.verbose > 0 & any(y_new :< eps_threshold)) {
+			printf("{txt} note: eps. is very close to zero (%g), so hestenes assumed convergence to avoid numerical precision errors\n", min(y_new))
+		}
+		update_error = safe_divide(edittozerotol(y_new, eps_threshold ),
+		                           editmissing(y_old, epsilon(1)),
+		                           epsilon(1) )
+		update_error = sqrt(max(update_error))
 	}
 	else {
 		exit(error(100))
@@ -276,15 +284,15 @@ mata:
 	// We are using cross instead of quadcross but it should not matter for this use
 	if (S.has_weights) {
 		if (cols(x) < 14) {
-			return(cross(x :* y, S.weight)')
+			return(quadcross(x :* y, S.weight)')
 		}
 		else {
-			return(diagonal(cross(x, S.weight, y))')
+			return(diagonal(quadcross(x, S.weight, y))')
 		}
 	}
 	else {
 		if (cols(x) < 25) {
-			return(diagonal(cross(x, y))')
+			return(diagonal(quadcross(x, y))')
 		}
 		else {
 			return(colsum(x :* y))

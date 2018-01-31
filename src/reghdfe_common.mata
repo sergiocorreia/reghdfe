@@ -58,6 +58,7 @@ mata:
 // Divide two row vectors but adjust the denominator if it's too small
 // --------------------------------------------------------------------------
 `RowVector' safe_divide(`RowVector' numerator, `RowVector' denominator, | `Real' epsi) {
+	 // If the numerator goes below machine precision, we lose accuracy
 	 // If the denominator goes below machine precision, the division explodes
 	 if (args()<3 | epsi==.) epsi = epsilon(1)
 	return( numerator :/ colmax(denominator \ J(1,cols(denominator),epsi)) )

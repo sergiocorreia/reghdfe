@@ -151,7 +151,7 @@ class FixedEffects
     `Void'                  post()
     `FixedEffects'          reload() // create new instance of object
 
-    //LSMR-Specific Methods
+    // LSMR-Specific Methods
     `Real'                  lsmr_norm()
     `Vector'                lsmr_A_mult()
     `Vector'                lsmr_At_mult()
@@ -231,6 +231,7 @@ class FixedEffects
 `Void' FixedEffects::update_sorted_weights(`Variable' weight)
 {
     `Integer'               g
+    `Real'                  min_w
     `Variable'              w
     `FactorPointer'         pf
 
@@ -241,6 +242,17 @@ class FixedEffects
         if (verbose > 0) printf("{txt}    - sorting weight for factor {res}%s{txt}\n", absvars[g])
         pf = &(factors[g])
         w = (*pf).sort(weight)
+
+        // Rescale weights so there are no weights below 1
+        if (weight_type != "fweight") {
+            min_w = colmin(w)
+            //assert_msg(min_w > 0, "weights must be positive")
+            //if (min_w <= 0) printf("{err} not all weights are positive\n")
+            if (0 < min_w & min_w < 1) {
+                w = w :/ min_w
+            }
+        }
+
         asarray((*pf).extra, "weights", w)
         asarray((*pf).extra, "weighted_counts", `panelsum'(w, (*pf).info))
     }
@@ -474,7 +486,7 @@ class FixedEffects
         if (timeit) timer_off(62)
         
         if (prune) {
-            assert(G==2)
+            assert_msg(G==2, "prune option requires only two FEs")
             if (timeit) timer_on(63)
             _expand_1core(y)
             if (timeit) timer_off(63)
