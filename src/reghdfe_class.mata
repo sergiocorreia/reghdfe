@@ -235,6 +235,7 @@ class FixedEffects
     `Variable'              w
     `FactorPointer'         pf
 
+    assert_msg(!hasmissing(weight), "weights can't be missing")
     this.weight = weight
     assert(rows(weight)==rows(sample))
     if (verbose > 0) printf("{txt}    - loading %s weight from variable %s\n", weight_type, weight_var)
