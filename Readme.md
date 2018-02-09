@@ -9,6 +9,12 @@
     - Additional estimation options are now supported, including [LSMR](http://web.stanford.edu/group/SOL/software/lsmr/) and [pruning of degree-1 vertices](https://arxiv.org/abs/1301.6628).
 - **version 4.2 06apr2017**: fix numerical accuracy issues ([bugfixes](https://github.com/sergiocorreia/reghdfe/commit/79a8c0134ea089f93811be404a5405c38b5a596a))
 - **version 4.3 07jun2017**: speed up fixed slopes (precompute `inv(xx)`)
+- **version 4.4.x (11sep2017-)**, major changes include:
+    - Performance: speedup when [using weights](https://github.com/sergiocorreia/reghdfe/commit/027f31aaafd78074e14826ae5292d8149835bac9), [reduced memory usage](https://github.com/sergiocorreia/reghdfe/commit/0074319f2197841e3436254290c06b63218525cb), [improve convergence detection](https://github.com/sergiocorreia/reghdfe/commit/e86ebdd20bcb0d3878f789194abd5a6aaa7ffd5a)
+    - Added experimental [`constant` option](https://github.com/sergiocorreia/reghdfe/commit/2ce9da9feae585fe99478f53058980e3cb162a76) that gives the coefficient for `_cons`, as with areg/xtreg.
+    - Bugfixes: [`summarize` option](https://github.com/sergiocorreia/reghdfe/commit/ee2ee1743da3d05cb74a2e69092dc7fc811c8df4) was using full sample instead of regression sample, [fixed](https://github.com/sergiocorreia/reghdfe/commit/44fc64645aca8446a96206f5ca876efb92590e9c) a recent bug that failed to detect when FEs were  nested within clusters
+    - Mata: refactor Mata internals and add their description to `help reghdfe_mata`; clean up warning messages
+    - Poisson/PPML HDFE: extend Mata internals so we can e.g. change weights without creating an entirely new object. This is mostly to speed up the `ppmlhdfe` package.
 
 ####  Things to be aware of:
 
