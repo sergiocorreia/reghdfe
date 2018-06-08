@@ -56,6 +56,9 @@ class FixedEffects
     `Vector'                rre_varname
     `Vector'                rre_true_residual
 
+    `Vector'                not_basevar         // Boolean vector indicating whether each regressor is or not a basevar
+    `String'                fullindepvars       // indepvars including basevars
+
     // Weight-specific
     `Boolean'               has_weights
     `Variable'              weight              // unsorted weight
@@ -187,6 +190,8 @@ class FixedEffects
 
     // Specific to Aitken:
     accel_freq = 3
+
+    not_basevar = J(0, 1, .)
 }
 
 
@@ -1031,6 +1036,9 @@ class FixedEffects
     ans.store_sample = this.store_sample
     ans.timeit = this.timeit
     ans.diopts = this.diopts
+
+    ans.fullindepvars = this.indepvars
+    ans.not_basevar = this.not_basevar
 
     return(ans)
 }

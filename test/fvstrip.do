@@ -1,43 +1,8 @@
 noi cscript "reghdfe: complex factor variables that fvstrip handles" adofile reghdfe
 
-cap pr drop TrimBoth
-pr TrimBoth, eclass
-	matrix trim_b = e(b)
-	matrix trim_V = e(V)
-	loc size = colsof(trim_b) - 1
-
-	mata: idx = 2, 3, 5
-	mata: b = st_matrix("trim_b")[idx]
-	mata: st_matrix("trim_b", b)
-	mata: V = st_matrix("trim_V")[idx, idx]
-	mata: st_matrix("trim_V", V)
-
-	ereturn matrix trim_b = trim_b
-	ereturn matrix trim_V = trim_V
-end
-
-cap pr drop TrimBoth2
-pr TrimBoth2, eclass
-	matrix trim_b = e(b)
-	matrix trim_V = e(V)
-	loc size = colsof(trim_b) - 1
-
-	// mata: idx = 2..13 , 15..25 , 27 , 30
-	mata: idx = 2..13 , 15..25 , 27 , 29, 30
-	mata: b = st_matrix("trim_b")[idx]
-	mata: st_matrix("trim_b", b)
-	mata: V = st_matrix("trim_V")[idx, idx]
-	mata: st_matrix("trim_V", V)
-
-	ereturn matrix trim_b = trim_b
-	ereturn matrix trim_V = trim_V
-end
-
-
-
 
 local included_e ///
-	scalar: N rmse tss rss mss r2 r2_a F df_r df_m ll ll_0 ///
+	scalar: N rmse rss mss r2 r2_a F df_r df_m ll ll_0 /// tss
 	matrix: trim_b trim_V ///
 	macros: wexp wtype
 
@@ -54,19 +19,39 @@ local included_e ///
 	gen byte c = 1
 	li, sepby(x)
 
-	gen byte a1 = 1.x
-	gen byte a2 = 1.y
-	gen byte a3 = 1.z
-	gen byte a4 = 1.x#1.y
-	gen byte a5 = 1.x#1.z
+	*gen byte a1 = 1.x
+	*gen byte a2 = 1.y
+	*gen byte a3 = 1.z
+	*gen byte a4 = 1.x#1.y
+	*gen byte a5 = 1.x#1.z
+
+	gen byte a1 = 0.x
+	gen byte a2 = 1.x
+	gen byte a3 = 0.y
+	gen byte a4 = 1.y
+	gen byte a5 = 0.z
+	gen byte a6 = 1.z
+	
+	gen byte a11 = 0.x#0.y
+	gen byte a12 = 0.x#1.y
+	gen byte a13 = 1.x#0.y
+	gen byte a14 = 1.x#1.y
+
+	gen byte a21 = 0.x#0.z
+	gen byte a22 = 0.x#1.z
+	gen byte a23 = 1.x#0.z
+	gen byte a24 = 1.x#1.z
 
 	* 1) Benchmark
-	reghdfe w a*, keepsing a(c)
+	*reghdfe w a*, keepsing a(c)
+	reg w i.x##i.(y z)
+	trim_cons
 	storedresults save benchmark e()
 	
 	* 2) Reghdfe
-	reghdfe w i.x##i.(y z), keepsing a(c) v(1)
-	storedresults compare benchmark e(), exclude(macro: indepvars cmdline)
+	reghdfe w i.x##i.(y z), keepsing a(c) // v(1)
+	notrim
+	storedresults compare benchmark e(), include(`included_e') tol(1e-10) // exclude(macro: indepvars cmdline)
 
 	* 3) Cleanup
 	storedresults drop benchmark
@@ -155,9 +140,7 @@ local included_e ///
 
 	* 1) Benchmark
 	areg price i.x##c.gear, a(turn)
-	matrix list e(V)
-	TrimBoth
-	matrix list e(trim_V)
+	trim_cons
 	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 	
@@ -200,8 +183,7 @@ local included_e ///
 	* 1) Benchmark
 	areg wage i.industry##c.age i.union##c.age, a(race)
 	matrix list e(b)
-	TrimBoth2
-	matrix list e(trim_b)
+	trim_cons
 	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 	

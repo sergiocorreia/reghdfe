@@ -134,18 +134,41 @@ mata:
 	`Real'					eps
 	`Integer'				i
 	`RowVector'				kept
+	`Vector'				not_basevar
+
+	`Vector'				idx
+	`Vector'				temp_b
+	`Matrix'				temp_V
+	`Integer'				k
 
 	if (S.timeit) timer_on(90)
 	reghdfe_solve_ols(S, X, b=., V=., N=., rank=., df_r=., resid=., kept=., "vce_small")
 	if (S.timeit) timer_off(90)
+
+	// Add base vars
+	if (S.not_basevar != J(0, 1, .)) {
+		if (S.report_constant) {
+			S.not_basevar = S.not_basevar, 1
+			S.fullindepvars = S.fullindepvars + " _cons"
+		}
+
+		k = cols(S.not_basevar)
+		idx = selectindex(S.not_basevar)
+		swap(b, temp_b)
+		swap(V, temp_V)
+		b = J(k, 1, 0)
+		V = J(k, k, 0)
+		b[idx, 1] = temp_b
+		V[idx, idx] = temp_V
+	}
 
 	st_matrix(bname, b')
 
 	// Add "o." prefix to omitted regressors
 	eps = sqrt(epsilon(1))
 	for (i=1; i<=rows(b); i++) {
-		if (b[i]==0 & S.verbose > -1) {
-			printf("{txt}note: %s omitted because of collinearity\n", tokens(S.indepvars)[i])
+		if (b[i]==0 & S.not_basevar[i] & S.verbose > -1) {
+			printf("{txt}note: %s omitted because of collinearity\n", tokens(S.fullindepvars)[i])
 			//stata(sprintf("_ms_put_omit %s", indepvars[i]))
 			//indepvars[i] = st_global("s(ospec)")
 			// This is now one in reghdfe.ado with -_ms_findomitted-

@@ -96,8 +96,7 @@ noi cscript "reghdfe: ols with absorb(_n)" adofile reghdfe
 	* 2. Run reghdfe
 	reghdfe `lhs' `rhs', absorb(`absvars') keepsingletons verbose(-1)
 	assert e(df_m)==1
-	cap assert _b[32.turn]==0
-	assert c(rc)==111 // not found; excluded before st_data()
+	assert _b[32.turn]==0
 	assert _b[51.turn]==0
 	assert reldif(`b', _b[gear_ratio]) < 1e-8
 	assert reldif(`se',  _se[gear_ratio]) < 1e-8

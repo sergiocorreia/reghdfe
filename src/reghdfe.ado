@@ -1,4 +1,4 @@
-*! version 4.4.13 31jan2018
+*! version 4.5.0 07jun2018
 
 program reghdfe, eclass
 	* Intercept old+version
@@ -344,6 +344,11 @@ program Estimate, eclass
 		loc allvars `allvars' `varlist'
 		mata: HDFE.`cat' = "`varlist'"
 
+		if ("`cat'" == "indepvars") {
+			mata: HDFE.fullindepvars = "`r(fullvarlist)'"
+			mata: HDFE.not_basevar = strtoreal(tokens("`r(nobase)'"))
+		}
+
 		loc varlist // (optional) clear it up to prevent bugs
 	}
 	mata: HDFE.varlist = "`allvars'"
@@ -402,7 +407,7 @@ program RegressOLS, eclass
 
 	tempname b V N rank df_r
 	mata: reghdfe_post_ols(HDFE, hdfe_variables, "`b'", "`V'", "`N'", "`rank'", "`df_r'")
-	mata: st_local("indepvars", HDFE.indepvars)
+	mata: st_local("indepvars", HDFE.fullindepvars)
 	mata: hdfe_variables = .
 
 	loc esample

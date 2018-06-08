@@ -109,12 +109,7 @@ end
 	reghdfe `lhs' `rhs', absorb(`absvars') keepsingletons verbose(-1)
 	matrix list e(b)
 	notrim
-	matrix b = e(b)
-	matrix V = e(V)
-	assert abs(SR__benchmark_trim_b[1,2] - b[1,1]) < 1e-8
-	assert abs(SR__benchmark_trim_b[1,6] - b[1,4]) < 1e-8
-	assert abs(SR__benchmark_trim_V[2,2] - V[1,1]) < 1e-8
-	assert abs(SR__benchmark_trim_V[6,6] - V[4,4]) < 1e-8
+	storedresults compare benchmark e(), tol(1e-12) include(`included_e')
 
 	* Done!
 
