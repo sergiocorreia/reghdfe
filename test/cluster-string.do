@@ -12,7 +12,7 @@ noi cscript "reghdfe: ols with a string cluster" adofile reghdfe
 	
 	local included_e ///
 		scalar: N rmse tss rss r2 r2_a F df_r df_m ll ll_0 /// mss is not reported by areg if clustervar!=absvar
-		matrix: trim_b trim_V ///
+		matrix: b V ///
 		macros: wexp wtype
 
 * [TEST] Cluster
@@ -26,7 +26,6 @@ noi cscript "reghdfe: ols with a string cluster" adofile reghdfe
 	
 	* 1. Run benchmark
 	areg `lhs' `rhs', absorb(`absvars') cluster(`clustervar')
-	trim_cons
 	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 	
@@ -35,7 +34,6 @@ noi cscript "reghdfe: ols with a string cluster" adofile reghdfe
 	//su `lhs' `rhs' `absvars'
 	//tab `clustervar'
 	reghdfe `lhs' `rhs', absorb(`absvars') keepsingletons verbose(-1) vce(cluster `clustervar')
-	notrim
 	storedresults compare benchmark e(), tol(1e-11) include(`included_e')
 	assert `bench_df_a'==e(df_a)-1
 

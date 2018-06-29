@@ -15,7 +15,7 @@ noi cscript "reghdfe: saving alphas (FEs)" adofile reghdfe
 	areg price weight gear, absorb(turn)
 	loc c = _b[_cons]
 	predict double bench_d if e(sample), d
-	replace bench_d = bench_d + `c' if e(sample)
+	*replace bench_d = bench_d + `c' if e(sample) // Now both areg and reghdfe save demeaned FEs
 
 	reghdfe price weight gear, absorb(FE=turn) keepsing v(-1)
 	gen double d1 = FE
@@ -35,7 +35,7 @@ noi cscript "reghdfe: saving alphas (FEs)" adofile reghdfe
 	areg price weight gear, absorb(rep)
 	loc c = _b[_cons]
 	predict double bench_d if e(sample), d
-	replace bench_d = bench_d + `c' if e(sample)
+	*replace bench_d = bench_d + `c' if e(sample)
 
 	reghdfe price weight gear, absorb(FE=rep) keepsing v(-1)
 	gen double d1 = FE

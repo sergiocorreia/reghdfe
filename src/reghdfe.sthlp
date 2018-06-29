@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 4.5.0 07jun2018}{...}
+{* *! version 5.0.0 29jun2018}{...}
 {vieweralsosee "[R] areg" "help areg"}{...}
 {vieweralsosee "[R] xtreg" "help xtreg"}{...}
 {vieweralsosee "[R] ivregress" "help ivregress"}{...}
@@ -85,7 +85,7 @@ rarely used{p_end}
 
 {syntab:Undocumented}
 {synopt :{opt keepsin:gletons}}do not drop singleton groups{p_end}
-{synopt :{opt con:stant}}report {it:_cons} row of the regression (experimental; might not work correctly with the prune or lsmr options){p_end}
+{synopt :{opt nocon:stant}}Do not report estimates for {it:_cons}{p_end}
 {synopt :{opt old}}will call the latest 3.x version of reghdfe instead (see the {help reghdfe_old:old help file}){p_end}
 {synopt :{opth rre(varname)}}where varname is the residual of a proven prev. regression of y against only the FEs{p_end}
 {synopt :{opt check}}compile {it:lreghdfe.mlib} if it does not exist or if it needs to be updated;
@@ -549,8 +549,8 @@ or tests on different groups, you can replicate it manually, as described
 
 {title:Possible Pitfalls and Common Mistakes}
 
-{p2col 8 12 12 2: 1.}(note: as of version 2.1, the constant is no longer reported) Ignore the constant; it doesn't tell you much. If you want to use descriptive stats, that's what the {opt sum:marize()} and {cmd:estat summ} commands are for.
-Even better, use {opt noconstant} to drop it (although it's not really dropped as it never existed on the first place!){p_end}
+{p2col 8 12 12 2: 1.}Ignore the constant; it doesn't tell you much. If you want to use descriptive stats, that's what the {opt sum:marize()} and {cmd:estat summ} commands are for.
+Even better, use {opt noconstant} to hide it{p_end}
 {p2col 8 12 12 2: 2.}Think twice before saving the fixed effects. They are probably inconsistent / not identified and you will likely be using them wrong.{p_end}
 {p2col 8 12 12 2: 3.}(note: as of version 3.0 singletons are dropped by default) It's good practice to drop singletons. {opt dropsi:ngleton} is your friend.{p_end}
 {p2col 8 12 12 2: 4.}If you use {opt vce(robust)}, be sure that your {it:other} dimension is not "fixed" but grows with N, or your SEs will be wrong.{p_end}

@@ -10,7 +10,7 @@ noi cscript "reghdfe postestimation: predict after pweight" adofile reghdfe
 	
 	local included_e ///
 		scalar: N rmse tss rss `mss' r2 r2_a F df_r df_m ll ll_0 ///
-		matrix: trim_b trim_V ///
+		matrix: b V ///
 		macros: wexp wtype
 
 * [TEST] predict after reghdfe
@@ -26,7 +26,6 @@ noi cscript "reghdfe postestimation: predict after pweight" adofile reghdfe
 	* 1. Run benchmark
 	areg `lhs' `rhs' [`wtype'=`wvar'], absorb(`absvars')
 	di e(df_a)
-	trim_cons
 	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 	predict double xb, xb
@@ -36,17 +35,8 @@ noi cscript "reghdfe postestimation: predict after pweight" adofile reghdfe
 	predict double dr, dr
 	predict double stdp, stdp
 
-	* AREG and REGHDFE disagree because AREG includes _cons in XB instead of D
-	replace xb = xb - _b[_cons]
-	replace d = d + _b[_cons]
-	replace dr = dr + _b[_cons]
-	replace stdp = stdp
-	su resid, mean
-
 	* 2. Run reghdfe and compare
-	
 	reghdfe `lhs' `rhs' [`wtype'=`wvar'], absorb(`absvars') keepsingletons resid verbose(-1)
-	notrim
 	assert `bench_df_a'==e(df_a)-1
 	predict double xb_test, xb
 	predict double d_test, d

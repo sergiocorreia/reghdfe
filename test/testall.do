@@ -17,6 +17,8 @@
 
 **** RUN CERTIFICATION SCRIPTS
 
+	run report_constant // reghdfe,constant VS reghdfe,noconstant
+
 	run unadjusted
 	run unadjusted-if
 	run unadjusted-singular
@@ -55,6 +57,8 @@
 	run singleton-and-fweights
 
 	run bug_cluster
+
+	do margins // not yet cscript
 
 	* -prune- corner cases
 	* run prune

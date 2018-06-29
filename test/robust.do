@@ -10,7 +10,7 @@ noi cscript "reghdfe: ols with robust VCE" adofile reghdfe
 	
 	local included_e ///
 		scalar: N rmse tss rss `mss' r2 r2_a F df_r df_m ll ll_0 ///
-		matrix: trim_b trim_V ///
+		matrix: b V ///
 		macros: wexp wtype
 
 * [TEST] Robust
@@ -23,13 +23,11 @@ noi cscript "reghdfe: ols with robust VCE" adofile reghdfe
 	
 	* 1. Run benchmark
 	areg `lhs' `rhs', absorb(`absvars') robust
-	trim_cons
 	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe
 	reghdfe `lhs' `rhs', absorb(`absvars') keepsingletons verbose(-1) vce(robust)
-	notrim
 	storedresults compare benchmark e(), tol(1e-12) include(`included_e')
 	assert `bench_df_a'==e(df_a)-1
 

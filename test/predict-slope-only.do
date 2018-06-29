@@ -29,7 +29,7 @@ noi cscript "reghdfe postestimation: predict with slope FEs and intercept (c id#
 
 	* 2. Run reghdfe and compare
 	reghdfe `lhs' `rhs', absorb(c `absvars'#c.mpg) keepsingletons resid verbose(-1)
-	notrim
+	trim_cons
 	predict double xbd_test, xbd
 	predict double resid_test, resid
 
@@ -42,7 +42,7 @@ noi cscript "reghdfe postestimation: predict with slope FEs and intercept (c id#
 
 	* 2. Invert absvar order
 	reghdfe `lhs' `rhs', absorb(`absvars'#c.mpg c) keepsingletons resid verbose(-1)
-	notrim
+	trim_cons
 	predict double xbd_test, xbd
 	predict double resid_test, resid
 

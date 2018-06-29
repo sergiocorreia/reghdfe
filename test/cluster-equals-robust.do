@@ -10,7 +10,7 @@ noi cscript "reghdfe: cluster(_n) should equal robust" adofile reghdfe
 	
 	local included_e ///
 		macros: wexp wtype ///
-		matrix: trim_b trim_V ///
+		matrix: b V ///
 		scalar: N rmse tss rss r2 r2_a F df_m ll ll_0 // mss is not reported by areg if clustervar!=absvar
 
 * [TEST] Cluster is absvar (areg,robust vs reghdfe,cluster)
@@ -24,13 +24,11 @@ noi cscript "reghdfe: cluster(_n) should equal robust" adofile reghdfe
 	
 	* 1. Run benchmark
 	areg `lhs' `rhs', absorb(`absvars') robust
-	trim_cons
 	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe
 	reghdfe `lhs' `rhs', absorb(`absvars') keepsingletons verbose(-1) vce(cluster `clustervar')
-	notrim
 	storedresults compare benchmark e(), tol(1e-12) include(`included_e' df_r)
 	assert `bench_df_a'==e(df_a)-1
 
@@ -48,14 +46,12 @@ noi cscript "reghdfe: cluster(_n) should equal robust" adofile reghdfe
 	
 	* 1. Run benchmark
 	areg `lhs' `rhs', absorb(`absvars') cluster(`clustervar')
-	trim_cons
 	local bench_df_a = e(df_a)
 	loc bench_df_r = e(df_r)
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe
 	reghdfe `lhs' `rhs', absorb(`absvars') keepsingletons verbose(-1) vce(cluster `clustervar')
-	notrim
 	storedresults compare benchmark e(), tol(1e-12) include(`included_e')
 	assert `bench_df_r'==e(N_clust) - 1
 	assert `bench_df_a'==e(df_a)-1

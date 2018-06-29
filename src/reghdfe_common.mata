@@ -21,8 +21,8 @@ mata:
 // --------------------------------------------------------------------------
 `RowVector' function reghdfe_standardize(`Matrix' A)
 {
-	`RowVector'				stdevs, means
-	`Integer'				i, K, N
+	`RowVector'				stdevs // , means
+	`Integer'				K, N // i, 
 
 	// We don't need to good accuracy for the stdevs, so we have a few alternatives:
 	// Note: cross(1,A) is the same as colsum(A), but faster
@@ -143,15 +143,16 @@ mata:
 
 	if (S.timeit) timer_on(90)
 	reghdfe_solve_ols(S, X, b=., V=., N=., rank=., df_r=., resid=., kept=., "vce_small")
+	assert(cols(X) - 1 == rows(b) - S.compute_constant) // The 1st column of X is actually Y
+	assert((rows(b) == rows(V)) & (rows(b) == cols(V)))
 	if (S.timeit) timer_off(90)
 
 	// Add base vars
+	if (S.compute_constant) {
+		S.not_basevar = S.not_basevar, 1
+		S.fullindepvars = S.fullindepvars + " _cons"
+	}
 	if (S.not_basevar != J(0, 1, .)) {
-		if (S.report_constant) {
-			S.not_basevar = S.not_basevar, 1
-			S.fullindepvars = S.fullindepvars + " _cons"
-		}
-
 		k = cols(S.not_basevar)
 		idx = selectindex(S.not_basevar)
 		swap(b, temp_b)
@@ -206,9 +207,11 @@ mata:
 	// Hack: the first col of X is actually y!
 	`Integer'				K, KK
 	`Matrix'				xx, inv_xx, W, inv_V, just_X
-	`Vector' 				w // , xy
+	`Vector' 				w
 	`Integer'				used_df_r
 	`Integer'				dof_adj
+	`RowVector'				means_x, side
+	`Real'					corner
 
 	if (S.vcetype == "unadjusted" & S.weight_type=="pweight") S.vcetype = "robust"
 	if (S.verbose > 0) printf("\n{txt} ## Solving least-squares regression of partialled-out variables\n\n")
@@ -224,56 +227,61 @@ mata:
 	// 			  it is the same as aweight + robust
 	// We need to pick N and w
 	N = rows(X) // Default; will change with fweights
+	S.sumweights = S.weight_type != "" ? quadsum(S.weight) : N
+	assert(rows(S.means) == 1)
+	assert(cols(S.means) == cols(X))
+
 	w = 1
 	if (S.weight_type=="fweight") {
-		N = sum(S.weight)
+		N = S.sumweights
 		w = S.weight
 	}
 	else if (S.weight_type=="aweight" | S.weight_type=="pweight") {
-		w = S.weight * (N / sum(S.weight))
+		w = S.weight * (N / S.sumweights)
 	}
 
 	// Build core matrices
 	if (S.timeit) timer_on(91)
-	if (S.report_constant) {
-		S.kept = S.kept , cols(X)
-		S.indepvars = S.indepvars + " _cons"
-		X = X, J(N,1,1)
-	}
+
+	//if (S.report_constant) {
+	//	S.kept = S.kept , cols(X)
+	//	S.indepvars = S.indepvars + " _cons"
+	//	X = X, J(N,1,1)
+	//}
 	K = cols(X) - 1
 	xx = quadcross(X, w, X)
-	S.tss_within = S.report_constant ? xx[1,1] - xx[1,cols(X)] ^ 2 / xx[cols(X),cols(X)] : xx[1,1]
+	S.tss_within = xx[1,1]
 	//xy = K ? xx[| 2 , 1 \ K+1 , 1 |] : J(0, 1, .)
 	xx = K ? xx[| 2 , 2 \ K+1 , K+1 |] : J(0, 0, .)
 	if (S.timeit) timer_off(91)
 
 	// This matrix indicates what regressors are not collinear
 	assert_msg(cols(S.kept)==K+1, "partial_out() was run with a different set of vars")
-	kept = K ? S.kept[2..K+1] : J(1, 0, .)
+	// USELESS??? kept = K ? S.kept[2..K+1] : J(1, 0, .)
 
 	// Bread of the robust VCV matrix
 	// Compute this early so we can update the list of collinear regressors
 	if (S.timeit) timer_on(95)
 	assert_msg( cols(tokens(S.indepvars))==cols(xx) , "HDFE.indepvars is missing or has the wrong number of columns")
-	inv_xx = reghdfe_rmcoll(tokens(S.indepvars), xx, kept)
+	inv_xx = reghdfe_rmcoll(tokens(S.indepvars), xx, kept) // this modifies -kept-
+	if (S.compute_constant) S.indepvars = S.indepvars + " _cons"
 	S.df_m = rank = K - diag0cnt(inv_xx)
-	KK = rank + S.df_a - (S.report_constant==1)
+	KK = S.df_a + S.df_m
 	S.df_r = N - KK // replaced when clustering
 	if (S.timeit) timer_off(95)
 
 	// Compute betas
-	if (S.has_weights) {
-		// b = reghdfe_cholqrsolve(xx, xy, 1) // This is less numerically accurate (but should be faster)
-		b = J(K, 1, 0)
-		if (cols(kept)) {
+	// - There are two main options
+	//	 a) Use cholqrsolve on xx and xy. Faster but numerically inaccurate
+	//      See: http://www.stata.com/statalist/archive/2012-02/msg00956.html
+	//   b) Use qrsolve. More accurate but doesn't handle weights easily
+	// - Ended up doing (b) with a hack for weights
+	b = J(K, 1, 0)
+	if (cols(kept)) {
+		if (S.has_weights) {
 			b[kept] = qrsolve(X[., 1:+kept] :* sqrt(S.weight), X[., 1] :* sqrt(S.weight))
 		}
-	}
-	else {
-		// This is more numerically accurate but doesn't handle weights
-		// See: http://www.stata.com/statalist/archive/2012-02/msg00956.html
-		b = J(K, 1, 0)
-		if (cols(kept)) {
+		else {
 			b[kept] = qrsolve(X[., 1:+kept], X[., 1])
 		}
 	}
@@ -282,19 +290,54 @@ mata:
 	resid = X * (1 \ -b) // y - X * b
 	if (S.timeit) timer_off(92)
 
+	// How to add back _cons:
+	// 1) To recover coefficient, apply "regression through means formula":
+	//	  b0 = mean(y) - mean(x) * b1
+
+	// 2) To recover variance ("full_inv_xx")
+	//	  apply formula for inverse of partitioned symmetric matrix
+	//    http://fourier.eng.hmc.edu/e161/lectures/gaussianprocess/node6.html
+	//
+	//    Given A = [X'X X'1]		B = [B11 B21']		B = inv(A)
+	//              [1'X 1'1]			[B21 B22 ]
+	//
+	//	  B11 is just inv(xx)
+	//	  B21 ("side") = means * B11
+	//	  B22 ("corner") = 1 / sumweights * (1 - side * means')
+	//
+	//	- Note that means is NOT A12, but A12/N or A12 / (sum_weights)
+
+	if (S.compute_constant) {
+		means_x = cols(S.means) > 1 ? S.means[2..cols(S.means)] : J(1, 0, .)
+		b = b \ S.means[1] - means_x * b // S.means * (1 \ -b)
+		side = - means_x * inv_xx
+		if (S.weight_type=="aweight" | S.weight_type=="pweight") {
+			// aw and pw (and unweighted) just use normal weights
+			corner = 1 / N - side * means_x'
+		}
+		else {
+			corner = 1 / S.sumweights - side * means_x'
+		}
+		inv_xx = (inv_xx , side' \ side , corner)
+	}
+
 	// Stop if no VCE/R2/RSS needed
 	if (vce_mode == "vce_none") return
 
 	if (S.timeit) timer_on(93)
 	if (S.vcetype != "unadjusted") {
-		just_X = K ? X[., 2..K+1] : J(N, 0, .)
+		if (S.compute_constant) {
+			just_X = K ? X[., 2..K+1] :+ S.means[2..cols(S.means)] : J(N, 0, .)
+		}
+		else {
+			just_X = K ? X[., 2..K+1] : J(N, 0, .)
+		}
 	}
 	if (S.timeit) timer_off(93)
 
 	if (S.timeit) timer_on(94)
 	S.rss = quadcross(resid, w, resid) // do before reghdfe_robust() modifies w
 	if (S.timeit) timer_off(94)
-
 
 	// Compute full VCE
 	if (S.timeit) timer_on(96)
@@ -326,6 +369,7 @@ mata:
 		W = .
 	}
 	else {
+		// We could probably do this with the simpler formula instead of Wald
 		W = b[kept]' * inv_V * b[kept] / S.df_m
 		if (missing(W) & S.verbose > -1) printf("{txt}warning: missing F statistic\n")
 	}
@@ -340,9 +384,6 @@ mata:
 	// Results
 	S.title = "Linear regression"
 	// S.model = "ols"
-	
-	if (S.weight_type!="") S.sumweights = quadsum(S.weight)
-
 	used_df_r = N - KK - S.df_a_nested
 	S.r2 = 1 - S.rss / S.tss
 	S.r2_a = 1 - (S.rss / used_df_r) / (S.tss / (N - S.has_intercept ) )
@@ -396,7 +437,7 @@ mata:
 
 	dof_adj = N / (N - K)
 	if (vce_mode == "vce_asymptotic") dof_adj = N / (N-1) // 1.0
-	M = quadcross(X, w, X)
+	M = S.compute_constant ? quadcross(X, 1, w, X, 1) : quadcross(X, w, X)
 	if (S.verbose > 0) {
 		printf("{txt}    - Small-sample-adjustment: q = N / (N-df_m-df_a) = %g / (%g - %g - %g) = %g\n", N, N, K-S.df_a, S.df_a, N / (N-K) )
 	}
@@ -425,6 +466,7 @@ mata:
 	`RowVector'				tuple
 	`RowVector'				N_clust_list
 	`Matrix'				joined_levels
+	`Integer'				Msize
 
 	w = resid :* w
 	//if (S.weight_type=="") {
@@ -436,6 +478,8 @@ mata:
 	//else if (S.weight_type=="aweight" | S.weight_type=="pweight") {
 	//	w = resid :* w
 	//}
+
+	Msize = cols(X) + S.compute_constant
 
 	vars = S.clustervars
 	Q = cols(vars)
@@ -467,7 +511,7 @@ mata:
 
 	// Build the meat part of the V matrix
 	if (S.verbose > 0) printf("{txt}    - Computing the 'meat' of the VCE\n")
-	M = J(cols(X), cols(X), 0)
+	M = J(Msize, Msize, 0)
 	tuples = .
 	for (q=1; q<=Q; q++) {
 		tuples = reghdfe_choose_n_k(Q, q, tuples)
@@ -489,7 +533,7 @@ mata:
 				}
 				FP = &_factor(joined_levels, ., ., "", ., ., ., 0)
 			}
-			M = M + sign * reghdfe_vce_cluster_meat(FP, X, w)
+			M = M + sign * reghdfe_vce_cluster_meat(FP, X, w, Msize, S.compute_constant)
 		}
 	}
 
@@ -531,7 +575,9 @@ mata:
 
 `Matrix' reghdfe_vce_cluster_meat(`FactorPointer' FP,
                                   `Variables' X,
-                                  `Variable' resid)
+                                  `Variable' resid,
+                                  `Integer' Msize,
+                                  `Boolean' compute_constant)
 {
 	`Integer'				i, N_clust
 	`Variables'				X_sorted
@@ -541,19 +587,29 @@ mata:
 	`RowVector'				Xe_tmp
 	`Matrix'				M
 
-	if (cols(X)==0) return(J(0,0,0))
+	if (cols(X)==0 & !compute_constant) return(J(0,0,0))
 
 	N_clust = (*FP).num_levels
 	(*FP).panelsetup()
 	X_sorted = (*FP).sort(X)
 	resid_sorted = (*FP).sort(resid)
-	M = J(cols(X), cols(X), 0)
+	M = J(Msize, Msize, 0)
 
-	for (i=1; i<=N_clust; i++) {
-		X_tmp = panelsubmatrix(X_sorted, i, (*FP).info)
-		resid_tmp = panelsubmatrix(resid_sorted, i, (*FP).info)
-		Xe_tmp = quadcross(1, resid_tmp, X_tmp) // Faster than colsum(e_tmp :* X_tmp)
-		M = M + quadcross(Xe_tmp, Xe_tmp)
+	if (cols(X)) {
+		for (i=1; i<=N_clust; i++) {
+			X_tmp = panelsubmatrix(X_sorted, i, (*FP).info)
+			resid_tmp = panelsubmatrix(resid_sorted, i, (*FP).info)
+			Xe_tmp = quadcross(1, 0, resid_tmp, X_tmp, compute_constant) // Faster than colsum(e_tmp :* X_tmp)
+			M = M + quadcross(Xe_tmp, Xe_tmp)
+		}		
+	}
+	else {
+		// Workaround for when there are no Xs except for _cons
+		assert(compute_constant)
+		for (i=1; i<=N_clust; i++) {
+			resid_tmp = panelsubmatrix(resid_sorted, i, (*FP).info)
+			M = M + quadsum(resid_tmp) ^ 2
+		}
 	}
 
 	return(M)

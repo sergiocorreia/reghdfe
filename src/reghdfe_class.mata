@@ -24,6 +24,10 @@ class FixedEffects
     `Varlist'               targets
     `RowVector'             save_fe
 
+    // Constant-related (also see -has_intercept-)
+    `Boolean'               report_constant
+    `Boolean'               compute_constant
+
     // Optimization options
     `Real'                  tolerance
     `Integer'               maxiter
@@ -49,14 +53,13 @@ class FixedEffects
     `Integer'               verbose
     `Boolean'               timeit
     `Boolean'               store_sample
-    `Boolean'               report_constant
     `Real'                  finite_condition
     `Real'                  compute_rre         // Relative residual error: || e_k - e || / || e ||
     `Real'                  rre_depvar_norm
     `Vector'                rre_varname
     `Vector'                rre_true_residual
 
-    `Vector'                not_basevar         // Boolean vector indicating whether each regressor is or not a basevar
+    `RowVector'             not_basevar         // Boolean vector indicating whether each regressor is or not a basevar
     `String'                fullindepvars       // indepvars including basevars
 
     // Weight-specific
@@ -135,6 +138,7 @@ class FixedEffects
     `Real'                  r2_a_within
     `Real'                  ll
     `Real'                  ll_0
+    `RowVector'             means
 
     // Methods
     `Void'                  new()
@@ -186,12 +190,12 @@ class FixedEffects
     converged = 0
     abort = 1
     storing_alphas = 0
-    report_constant = 0
+    report_constant = compute_constant = 1
 
     // Specific to Aitken:
     accel_freq = 3
 
-    not_basevar = J(0, 1, .)
+    not_basevar = J(1, 0, .)
 }
 
 
@@ -386,7 +390,7 @@ class FixedEffects
                                   `Boolean' standardize_data,
                                   `Boolean' first_is_depvar)
 {
-    `RowVector'             stdevs, needs_zeroing, means
+    `RowVector'             stdevs, needs_zeroing
     `FunctionP'             funct_transform, func_accel // transform
     `Real'                  y_mean
     `Vector'                lhs
@@ -440,8 +444,8 @@ class FixedEffects
     // Compute 2-norm of each var, to see if we need to drop as regressors
     kept = diagonal(cross(y, y))'
 
-    // Compute means of each var
-    means = report_constant & has_intercept ? mean(y, weight) : J(1,cols(y),1)
+    // Compute and save means of each var
+    means = compute_constant ? mean(y, weight) : J(1, cols(y), 1)
 
     // Intercept LSMR case
     if (acceleration=="lsmr") {
@@ -458,7 +462,6 @@ class FixedEffects
             }
             alphas = .
         }
-        if (report_constant & has_intercept) y = y :+ means
         return
     }
     else {
@@ -487,8 +490,6 @@ class FixedEffects
         iteration_count = 0
         if (timeit) timer_on(62)
         y = (*func_accel)(this, y, funct_transform) :* stdevs // 'this' is like python's self
-        if (report_constant & has_intercept) y = y :+ means
-        if (report_constant & has_intercept & verbose > 0) printf("{txt} - Adding back means so we can report _cons\n")
         if (timeit) timer_off(62)
         
         if (prune) {
@@ -517,7 +518,7 @@ class FixedEffects
         y[., needs_zeroing] = J(rows(y), cols(needs_zeroing), 0)
         for (i=1; i<=cols(vars); i++) {
             if (!kept[i] & verbose>-1 & (i > 1 | !first_is_depvar)) {
-                printf("{txt}note: %s omitted because of collinearity with fixed effects (close to zero after partialling-out; tol =%3.1e)\n", vars[i], tolerance*1e-1)
+                printf("{txt}note: %s is probably collinear with the fixed effects (all values close to zero after partialling-out; tol =%3.1e)\n", vars[i], tolerance*1e-1)
             }
         }
     }
@@ -908,7 +909,8 @@ class FixedEffects
     st_global("e(predict)", "reghdfe_p")
     st_global("e(estat_cmd)", "reghdfe_estat")
     st_global("e(footnote)", "reghdfe_footnote")
-    st_global("e(marginsok)", "")
+    //st_global("e(marginsok)", "")
+    st_global("e(marginsnotok)", "Residuals SCore")
     st_numscalar("e(df_m)", df_m)
 
 

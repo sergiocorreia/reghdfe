@@ -8,7 +8,7 @@ noi cscript "reghdfe postestimation: predict" adofile reghdfe
 	
 	local included_e ///
 		scalar: N rmse tss rss mss r2 r2_a F df_r df_m ll ll_0 ///
-		matrix: trim_b trim_V ///
+		matrix: b V ///
 		macros: wexp wtype
 
 * [TEST] predict after reghdfe
@@ -22,7 +22,6 @@ noi cscript "reghdfe postestimation: predict" adofile reghdfe
 	* 1. Run benchmark
 	areg `lhs' `rhs', absorb(`absvars')
 	di e(df_a)
-	trim_cons
 	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 	predict double xb, xb
@@ -33,16 +32,16 @@ noi cscript "reghdfe postestimation: predict" adofile reghdfe
 	predict double stdp, stdp
 
 	* AREG and REGHDFE disagree because AREG includes _cons in XB instead of D
-	replace xb = xb - _b[_cons]
-	replace d = d + _b[_cons]
-	replace dr = dr + _b[_cons]
-	replace stdp = stdp
-	su resid, mean
+	* VERSION 5 UPDATE: REGHDFE NOW WORKS AS AREG
+	*replace xb = xb - _b[_cons]
+	*replace d = d + _b[_cons]
+	*replace dr = dr + _b[_cons]
+	*replace stdp = stdp
+	*su resid, mean
 
 	* 2. Run reghdfe and compare
 	
-	reghdfe `lhs' `rhs', absorb(`absvars') keepsingletons resid verbose(-1)
-	notrim
+	reghdfe `lhs' `rhs', absorb(`absvars') keepsingletons resid verbose(-1) tol(1e-10)
 	assert `bench_df_a'==e(df_a)-1
 	predict double xb_test, xb
 	predict double d_test, d
@@ -51,13 +50,13 @@ noi cscript "reghdfe postestimation: predict" adofile reghdfe
 	predict double dr_test, dr
 	predict double stdp_test, stdp
 	su d d_test xb xb_test xbd xbd_test resid resid_test dr dr_test stdp stdp_test, sep(2)
-	storedresults compare benchmark e(), tol(1e-12) include(`included_e')
+	storedresults compare benchmark e(), tol(1e-10) include(`included_e')
 
-	_vassert xb xb_test, tol(1e-12)
-	_vassert d d_test, tol(1e-12)
-	_vassert xbd xbd_test, tol(1e-12)
-	_vassert resid resid_test, tol(1e-12)
-	_vassert dr dr_test, tol(1e-12)
+	_vassert xb xb_test, tol(1e-10)
+	_vassert d d_test, tol(1e-10)
+	_vassert xbd xbd_test, tol(1e-10)
+	_vassert resid resid_test, tol(1e-10)
+	_vassert dr dr_test, tol(1e-10)
 
 	// It's hard to make stdp match easily
 	// stdp = sqrt(x_i * V * x_i')

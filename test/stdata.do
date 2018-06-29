@@ -8,7 +8,7 @@ noi cscript "reghdfe: bug in st_data" adofile reghdfe
 	
 	local included_e ///
 		scalar: N rmse tss rss mss r2 r2_a F df_r df_m ll ll_0 ///
-		matrix: trim_b trim_V ///
+		matrix: b V ///
 		macros: wexp wtype
 
 * [TEST] 1.x 2.x sometimes selects less variables
@@ -22,14 +22,12 @@ noi cscript "reghdfe: bug in st_data" adofile reghdfe
 	* 1. Run benchmark
 	areg `lhs' `rhs', absorb(`absvars')
 	matrix list e(b)
-	trim_cons
 	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe
 	reghdfe `lhs' `rhs', absorb(`absvars') keepsingletons verbose(-1)
 	matrix list e(b)
-	notrim
 	storedresults compare benchmark e(), tol(1e-12) include(`included_e')
 	assert `bench_df_a'==e(df_a)-1
 
@@ -47,14 +45,12 @@ noi cscript "reghdfe: bug in st_data" adofile reghdfe
 	* 1. Run benchmark
 	areg `lhs' 32.turn 43.turn 51.turn, absorb(`absvars')
 	matrix list e(b)
-	trim_cons
 	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe
 	reghdfe `lhs' `rhs', absorb(`absvars') keepsingletons verbose(-1)
 	matrix list e(b)
-	notrim
 	storedresults compare benchmark e(), tol(1e-12) include(`included_e')
 	assert `bench_df_a'==e(df_a)-1
 
@@ -75,14 +71,12 @@ noi cscript "reghdfe: bug in st_data" adofile reghdfe
 	//gen double X2 = (foreign==1)*(turn==32)
 	areg `lhs' `rhs', absorb(`absvars')
 	matrix list e(b)
-	trim_cons
 	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe
 	reghdfe `lhs' `rhs', absorb(`absvars') keepsingletons verbose(-1)
 	matrix list e(b)
-	notrim
 	storedresults compare benchmark e(), tol(1e-12) include(`included_e')
 	assert `bench_df_a'==e(df_a)-1
 
@@ -90,7 +84,7 @@ noi cscript "reghdfe: bug in st_data" adofile reghdfe
 	storedresults drop benchmark
 
 * [Test] rhs collinear
-	reghdfe price 0.foreign#31.turn 1.foreign#32.turn, a(turn) keepsing  v(-1)
+	reghdfe price 0.foreign#31.turn 1.foreign#32.turn, a(turn) keepsing  v(-1) noconstant
 	matrix b = e(b)
 	matrix list b
 	mata: assert(st_matrix("b")==J(1, 4, 0))
@@ -99,7 +93,7 @@ noi cscript "reghdfe: bug in st_data" adofile reghdfe
 
 * [Test] rhs collinear and singletons dropped
 * after the singletons, both rhs vars are all zero, so they will be omitted
-	reghdfe price 0.foreign#31.turn 1.foreign#32.turn, a(turn)
+	reghdfe price 0.foreign#31.turn 1.foreign#32.turn, a(turn) noconstant
 	matrix b = e(b)
 	mata: assert(st_matrix("b")==J(1, 3, 0))
 	matrix V = e(V)

@@ -2,19 +2,25 @@
 
 ## Recent Updates
 
-* **version 4.1 28feb2017**: entirely rewriten in Mata
-    - 3-10x faster thanks to [`ftools`](https://github.com/sergiocorreia/ftools/) package (use it if you have large datasets!)
-    - Several minor bugs have been fixed, in particular some that did not allow complex factor variable expressions.
-    - `reghdfe` is now written entirely as a Mata object. For an example of how to use it to write other programs, see [here](https://github.com/sergiocorreia/ivreg2_demo/blob/master/hdfe_example.do)
-    - Additional estimation options are now supported, including [LSMR](http://web.stanford.edu/group/SOL/software/lsmr/) and [pruning of degree-1 vertices](https://arxiv.org/abs/1301.6628).
-- **version 4.2 06apr2017**: fix numerical accuracy issues ([bugfixes](https://github.com/sergiocorreia/reghdfe/commit/79a8c0134ea089f93811be404a5405c38b5a596a))
-- **version 4.3 07jun2017**: speed up fixed slopes (precompute `inv(xx)`)
+* **version 5.0 29jun2018**: three major changes:
+    - Added support for `margins`
+    - Estimates for `_cons` are now reported by default (noconstant disables them, but shouldn't not be used followed by`margins`).
+    - `predict, xb` now includes `_cons`, which before was included in `predict, d`
+    - Added support for `basevar`. This is not very useful by itself but makes some postestimation packages (`coefplot`) easier to use
+
 - **version 4.4.x (11sep2017-)**, major changes include:
     - Performance: speedup when [using weights](https://github.com/sergiocorreia/reghdfe/commit/027f31aaafd78074e14826ae5292d8149835bac9), [reduced memory usage](https://github.com/sergiocorreia/reghdfe/commit/0074319f2197841e3436254290c06b63218525cb), [improve convergence detection](https://github.com/sergiocorreia/reghdfe/commit/e86ebdd20bcb0d3878f789194abd5a6aaa7ffd5a)
     - Added experimental [`constant` option](https://github.com/sergiocorreia/reghdfe/commit/2ce9da9feae585fe99478f53058980e3cb162a76) that gives the coefficient for `_cons`, as with areg/xtreg.
     - Bugfixes: [`summarize` option](https://github.com/sergiocorreia/reghdfe/commit/ee2ee1743da3d05cb74a2e69092dc7fc811c8df4) was using full sample instead of regression sample, [fixed](https://github.com/sergiocorreia/reghdfe/commit/44fc64645aca8446a96206f5ca876efb92590e9c) a recent bug that failed to detect when FEs were  nested within clusters
     - Mata: refactor Mata internals and add their description to `help reghdfe_mata`; clean up warning messages
     - Poisson/PPML HDFE: extend Mata internals so we can e.g. change weights without creating an entirely new object. This is mostly to speed up the `ppmlhdfe` package.
+- **version 4.3 07jun2017**: speed up fixed slopes (precompute `inv(xx)`)
+- **version 4.2 06apr2017**: fix numerical accuracy issues ([bugfixes](https://github.com/sergiocorreia/reghdfe/commit/79a8c0134ea089f93811be404a5405c38b5a596a))
+* **version 4.1 28feb2017**: entirely rewriten in Mata
+    - 3-10x faster thanks to [`ftools`](https://github.com/sergiocorreia/ftools/) package (use it if you have large datasets!)
+    - Several minor bugs have been fixed, in particular some that did not allow complex factor variable expressions.
+    - `reghdfe` is now written entirely as a Mata object. For an example of how to use it to write other programs, see [here](https://github.com/sergiocorreia/ivreg2_demo/blob/master/hdfe_example.do)
+    - Additional estimation options are now supported, including [LSMR](http://web.stanford.edu/group/SOL/software/lsmr/) and [pruning of degree-1 vertices](https://arxiv.org/abs/1301.6628).
 
 ####  Things to be aware of:
 
@@ -40,7 +46,7 @@ If you use it, please cite either the paper and/or the command's RePEc citation:
   Author = {Correia, Sergio},
   Title = {Linear Models with High-Dimensional Fixed Effects: An Efficient and Feasible Estimator},
   Note = {Working Paper},
-  Year = {2016},
+  Year = {2017},
 }
 ```
 

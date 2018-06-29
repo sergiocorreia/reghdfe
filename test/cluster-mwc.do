@@ -57,7 +57,7 @@ noi cscript "reghdfe: ols with multi-way clustering" adofile reghdfe
 	* 3. Run and test reghdfe-mwc
 	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervars') keepsing
 	matrix list e(V)
-	notrim
+	trim_cons
 
 	* NOTE: This has a lower tolerance; perhaps -cgmreg- uses only single precision somewhere??
 
@@ -92,7 +92,7 @@ noi cscript "reghdfe: ols with multi-way clustering" adofile reghdfe
 	
 	* 2. Run and test reghdfe
 	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervars') keepsing
-	notrim `K'
+	trim_cons
 	assert e(N_clust)<.
 	assert e(N_clust1)<.
 	assert e(N_clust2)<.

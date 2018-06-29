@@ -28,7 +28,7 @@ noi cscript "reghdfe postestimation: predict with slope FEs (id##c.var)" adofile
 
 	* 2. Run reghdfe and compare
 	reghdfe `lhs' `rhs', absorb(`absvars'##c.mpg) keepsingletons resid verbose(-1)
-	notrim
+	trim_cons
 	predict double xbd_test, xbd
 	predict double resid_test, resid
 	su xbd xbd_test resid resid_test, sep(2)

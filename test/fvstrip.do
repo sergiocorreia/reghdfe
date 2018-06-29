@@ -3,7 +3,7 @@ noi cscript "reghdfe: complex factor variables that fvstrip handles" adofile reg
 
 local included_e ///
 	scalar: N rmse rss mss r2 r2_a F df_r df_m ll ll_0 /// tss
-	matrix: trim_b trim_V ///
+	matrix: b V ///
 	macros: wexp wtype
 
 
@@ -45,12 +45,10 @@ local included_e ///
 	* 1) Benchmark
 	*reghdfe w a*, keepsing a(c)
 	reg w i.x##i.(y z)
-	trim_cons
 	storedresults save benchmark e()
 	
 	* 2) Reghdfe
 	reghdfe w i.x##i.(y z), keepsing a(c) // v(1)
-	notrim
 	storedresults compare benchmark e(), include(`included_e') tol(1e-10) // exclude(macro: indepvars cmdline)
 
 	* 3) Cleanup
@@ -99,7 +97,6 @@ local included_e ///
 
 	* 1) Benchmark
 	areg price L.(weight gear), a(turn)
-	trim_cons
 	storedresults save benchmark e()
 	local bench_df_a = e(df_a)
 
@@ -107,8 +104,6 @@ local included_e ///
 	qui reghdfe price L.weight, noa keepsing v(1)
 	qui reghdfe price L.(weight), noa keepsing v(1)
 	reghdfe price L.(weight gear), a(turn) keepsing v(1)
-	notrim
-	matrix list e(trim_V)
 	storedresults compare benchmark e(), tol(1e-10) include(`included_e')
 	assert `bench_df_a'==e(df_a)-1
 
@@ -140,14 +135,11 @@ local included_e ///
 
 	* 1) Benchmark
 	areg price i.x##c.gear, a(turn)
-	trim_cons
 	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 	
 	* 2) Reghdfe
 	reghdfe price i.x##c.gear, a(turn) keepsing v(-1)
-	notrim
-	matrix list e(trim_V)
 	storedresults compare benchmark e(), tol(1e-10) include(`included_e')
 	assert `bench_df_a'==e(df_a)-1
 
@@ -162,13 +154,11 @@ local included_e ///
 
 	* 1) Benchmark
 	areg price weight, a(foreign)
-	trim_cons
 	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 	
 	* 2) Reghdfe
 	reghdfe price weight, a(foreign) keepsing v(-1)
-	notrim
 	storedresults compare benchmark e(), tol(1e-10) include(`included_e')
 	assert `bench_df_a'==e(df_a)-1
 
@@ -183,13 +173,11 @@ local included_e ///
 	* 1) Benchmark
 	areg wage i.industry##c.age i.union##c.age, a(race)
 	matrix list e(b)
-	trim_cons
 	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 	
 	* 2) Reghdfe
 	reghdfe wage i.industry##c.age i.union##c.age, a(race) keepsing  v(-1)
-	notrim
 	storedresults compare benchmark e(), tol(1e-9) include(`included_e')
 	assert `bench_df_a'==e(df_a)-1
 

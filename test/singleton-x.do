@@ -13,7 +13,7 @@ noi cscript "reghdfe: singleton dummy as regressor" adofile reghdfe
 	
 	local included_e ///
 		scalar: N tss rss r2 r2_a ll ll_0 /// F mss df_r rmse df_m
-		matrix: trim_b trim_V ///
+		matrix: b V ///
 		macros: wexp wtype
 
 * areg reports F missing if there are singleton regressors
@@ -37,14 +37,12 @@ noi cscript "reghdfe: singleton dummy as regressor" adofile reghdfe
 	
 	* 1. Run benchmark
 	areg `lhs' `rhs', absorb(`absvars') vce(cluster `clustervars')
-	trim_cons
 	local bench_df_a = e(df_a)
 	local bench_F = e(F)
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe
 	reghdfe `lhs' `rhs', absorb(`absvars') vce(cluster `clustervars') // verbose(-1) keepsingletons
-	notrim
 	storedresults compare benchmark e(), tol(1e-12) include(`included_e')
 	assert `bench_df_a'==e(df_a)-1
 	assert `bench_F'==. & e(F)==.

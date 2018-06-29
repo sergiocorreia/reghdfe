@@ -1,15 +1,26 @@
-program define reghdfe_p
+program define reghdfe_p, rclass
 	* Note: we IGNORE typlist and generate the newvar as double
 	* Note: e(resid) is missing outside of e(sample), so we don't need to condition on e(sample)
 
-	loc opt_list XB STDP Residuals D XBD DResiduals
+	* HACK: Intersect -score- and replace with -residuals-
+	cap syntax anything [if] [in], SCore
+	loc was_score = !c(rc)
+	if (`was_score') {
+		* Call _score_spec to get newvarname; discard type
+		* - This resolves wildcards that -margins- sends to predict (e.g. var* -> var1)
+		* - Do we really need to pass it `if' and `in' ?
+		_score_spec `anything', score
+		loc 0 `s(varlist)' `if' `in' , residuals
+	}
+
+
 	syntax newvarname [if] [in] [, XB STDP Residuals D XBD DResiduals]
 
 	* Ensure there is only one option
 	opts_exclusive "`xb' `stdp' `residuals' `d' `xbd' `dresiduals'"
 
 	* Default option is xb
-	cap opts_exclusive "`xb' `stdp' `residuals' `d' `xbd' `dresiduals' foobar"
+	cap opts_exclusive "`xb' `stdp' `residuals' `d' `xbd' `dresiduals' placeholder"
 	if (!c(rc)) {
 		di as text "(option xb assumed; fitted values)"
 		loc xb "xb"
@@ -28,6 +39,8 @@ program define reghdfe_p
 	else if ("`residuals'" != "") {
 		* resid: just return the preexisting variable
 		gen double `varlist' = `e(resid)' `if' `in'
+		la var `varlist' "Residuals"
+		if (`was_score') return local scorevars `varlist'
 	}
 	else if ("`d'" != "") {
 		* d: y - xb - resid

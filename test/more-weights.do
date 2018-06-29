@@ -7,7 +7,7 @@ cscript "reghdfe with weights (corner cases)" adofile reghdfe
 	
 	local included_e ///
 		scalar: N rmse tss rss mss r2 r2_a F df_r df_m ll ll_0 ///
-		matrix: trim_b trim_V ///
+		matrix: b V ///
 		macros: wexp wtype
 
 
@@ -25,12 +25,10 @@ cscript "reghdfe with weights (corner cases)" adofile reghdfe
 	* 1. Run benchmark
 	areg `lhs' `rhs' [`wtype'=`wvar'], absorb(`absvars')
 	di e(df_a)
-	trim_cons
 	storedresults save benchmark e()
 
 
 	reghdfe `lhs' `rhs' [`wtype'=`wvar'], absorb(`absvars') keepsingletons resid verbose(-1)
-	notrim
 	storedresults compare benchmark e(), tol(1e-11) include(`included_e')
 	storedresults drop benchmark
 

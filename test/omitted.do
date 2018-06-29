@@ -3,7 +3,7 @@ noi cscript "reghdfe: ensure we omit the correct variables" adofile reghdfe
 * Setup
 	local included_e ///
 		scalar: N rmse tss rss r2 r2_a df_r df_m ll ll_0 /// mss F
-		matrix: trim_b trim_V ///
+		matrix: b V ///
 		macros: wexp wtype
 
 * [TEST] Simplest case
@@ -30,14 +30,12 @@ noi cscript "reghdfe: ensure we omit the correct variables" adofile reghdfe
 	areg `lhs' `rhs', absorb(`absvars')
 	matrix list e(b)
 
-	trim_cons
 	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe
 	reghdfe `lhs' `rhs', absorb(`absvars') keepsingletons verbose(-1)
 	matrix list e(b)
-	notrim
 	storedresults compare benchmark e(), tol(1e-12) include(`included_e')
 	assert `bench_df_a'==e(df_a)-1
 
@@ -57,14 +55,12 @@ noi cscript "reghdfe: ensure we omit the correct variables" adofile reghdfe
 	areg `lhs' `rhs', absorb(`absvars')
 	matrix list e(b)
 
-	trim_cons
 	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe
 	reghdfe `lhs' `rhs', absorb(`absvars') keepsingletons verbose(-1)
 	matrix list e(b)
-	notrim
 	storedresults compare benchmark e(), tol(1e-12) include(`included_e')
 	assert `bench_df_a'==e(df_a)-1
 
@@ -101,14 +97,12 @@ end
 	areg `lhs' `rhs', absorb(`absvars')
 	matrix list e(b)
 
-	trim_cons
 	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe
 	reghdfe `lhs' `rhs', absorb(`absvars') keepsingletons verbose(-1)
 	matrix list e(b)
-	notrim
 	storedresults compare benchmark e(), tol(1e-12) include(`included_e')
 
 	* Done!

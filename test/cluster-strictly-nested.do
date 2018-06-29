@@ -8,7 +8,7 @@ noi cscript "reghdfe: fixed effect strictly nested within cluster" adofile reghd
 	
 	local included_e ///
 		scalar: N tss rss F df_r ll ll_0 /// rmse r2 r2_a df_m 
-		matrix: trim_b trim_V ///
+		matrix: b V ///
 		macros: wexp wtype
 
 * [TEST] Cluster is absvar
@@ -22,7 +22,6 @@ noi cscript "reghdfe: fixed effect strictly nested within cluster" adofile reghd
 
 	* 1. Run benchmark
 	xtreg `lhs' `rhs', fe cluster(`clustervar')
-	trim_cons
 	local bench_df_m = e(df_m)
 	local bench_df_a = e(df_a)
 	local bench_within = e(r2_w)
@@ -39,7 +38,6 @@ noi cscript "reghdfe: fixed effect strictly nested within cluster" adofile reghd
 	//local adjdof = `adj1' / (`adj1'-1)
 	//local adjdof 1
 	//notrim ?? `adjdof'
-	notrim
 
 	assert e(df_a)==0
 	assert `bench_df_m'==e(df_m)-1

@@ -63,6 +63,11 @@ mata:
     S.save_fe = S.targets :!= ""
     S.report_constant = strtoreal(st_global("s(report_constant)"))
 
+    // Ensure that S.report_constant and S.has_intercept are 0/1
+    assert(anyof((0,1), S.has_intercept))
+    assert(anyof((0,1), S.report_constant))
+    S.compute_constant = S.has_intercept & S.report_constant
+
     if (st_global("s(tolerance)") != "") S.tolerance = strtoreal(st_global("s(tolerance)"))
     if (st_global("s(maxiter)") != "") S.maxiter = strtoreal(st_global("s(maxiter)"))
     if (st_global("s(prune)") != "") S.prune = strtoreal(st_global("s(prune)"))

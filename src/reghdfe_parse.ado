@@ -31,7 +31,7 @@ program reghdfe_parse, sclass
 
 		CONDition // Report finite condition number; SLOW!
 		RRE(varname) // Report relative residual error
-		CONstant // Report constant
+		noCONstant // Report constant; enabled by default as otherwise -margins- fails
 
 		/* Duplicated options */
 		KEEPSINgletons
@@ -43,7 +43,7 @@ program reghdfe_parse, sclass
 
 	if ("`keepsingletons'"!="") sreturn loc drop_singletons = 0
 	if ("`verbose'"!="") sreturn loc verbose = `verbose'
-	sreturn loc report_constant = "`constant'" != ""
+	sreturn loc report_constant = "`constant'" != "noconstant"
 
 	sreturn loc options `"`options'"'
 

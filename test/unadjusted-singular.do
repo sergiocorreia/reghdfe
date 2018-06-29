@@ -7,7 +7,7 @@ noi cscript "reghdfe: ols with absorb(_n)" adofile reghdfe
 
 	local included_e ///
 		scalar: N rmse tss rss mss r2 df_r df_m /// r2_a F ll ll_0
-		matrix: trim_b trim_V ///
+		matrix: b V ///
 		macros: wexp wtype
 
 	local included_e2 ///
@@ -29,13 +29,11 @@ noi cscript "reghdfe: ols with absorb(_n)" adofile reghdfe
 	
 	* 1. Run benchmark
 	areg `lhs' `rhs', absorb(`absvars')
-	trim_cons
 	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe
-	reghdfe `lhs' `rhs', absorb(`absvars') keepsingletons verbose(-1)
-	notrim
+	reghdfe `lhs' `rhs', absorb(`absvars') keepsingletons // verbose(-1)
 	storedresults compare benchmark e(), tol(1e-12) include(`included_e')
 	assert `bench_df_a'==e(df_a)-1
 	assert e(r2_a)==.
@@ -60,13 +58,11 @@ noi cscript "reghdfe: ols with absorb(_n)" adofile reghdfe
 	areg `lhs' `rhs', absorb(`absvars')
 	matrix list e(b)
 	matrix list e(V)
-	trim_cons
 	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe
 	reghdfe `lhs' `rhs', absorb(`absvars') keepsingletons verbose(-1)
-	notrim
 	storedresults compare benchmark e(), tol(1e-12) include(`included_e2')
 	assert e(df_m)==0
 	assert `bench_df_a'==e(df_a)-1

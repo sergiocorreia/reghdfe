@@ -8,7 +8,7 @@ noi cscript "reghdfe: ols with if/in" adofile reghdfe
 	
 	local included_e ///
 		scalar: N rmse tss rss mss r2 r2_a F df_r df_m ll ll_0 ///
-		matrix: trim_b trim_V ///
+		matrix: b V ///
 		macros: wexp wtype
 
 * [TEST] Undjusted
@@ -22,14 +22,12 @@ noi cscript "reghdfe: ols with if/in" adofile reghdfe
 	
 	* 1. Run benchmark
 	areg `lhs' `rhs' `cond', absorb(`absvars')
-	trim_cons
 	local bench_df_a = e(df_a)
 	gen byte bench_sample = e(sample)
 	storedresults save benchmark e()
 	
 	* 2. Run reghdfe
 	reghdfe `lhs' `rhs' `cond', absorb(`absvars') keepsingletons verbose(-1)
-	notrim
 	storedresults compare benchmark e(), tol(1e-12) include(`included_e')
 	gen byte sample = e(sample)
 	assert `bench_df_a'==e(df_a)-1
