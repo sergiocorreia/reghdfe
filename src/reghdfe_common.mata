@@ -151,6 +151,7 @@ mata:
 	if (S.compute_constant) {
 		S.not_basevar = S.not_basevar, 1
 		S.fullindepvars = S.fullindepvars + " _cons"
+		S.indepvars = S.indepvars + " _cons"
 	}
 	if (S.not_basevar != J(0, 1, .)) {
 		k = cols(S.not_basevar)
@@ -264,7 +265,6 @@ mata:
 	if (S.timeit) timer_on(95)
 	assert_msg( cols(tokens(S.indepvars))==cols(xx) , "HDFE.indepvars is missing or has the wrong number of columns")
 	inv_xx = reghdfe_rmcoll(tokens(S.indepvars), xx, kept) // this modifies -kept-
-	if (S.compute_constant) S.indepvars = S.indepvars + " _cons"
 	S.df_m = rank = K - diag0cnt(inv_xx)
 	KK = S.df_a + S.df_m
 	S.df_r = N - KK // replaced when clustering
