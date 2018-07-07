@@ -175,6 +175,7 @@ class FixedEffects
     verbose = 0
     timeit = 0
     finite_condition = .
+    residuals = ""
 
     // Optimization defaults
     slope_method = "invsym"

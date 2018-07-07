@@ -732,7 +732,7 @@ on the other hand, there may be alternatives:
 {title:Author}
 
 {pstd}Sergio Correia{break}
-Fuqua School of Business, Duke University{break}
+Board of Governors of the Federal Reserve{break}
 Email: {browse "mailto:sergio.correia@gmail.com":sergio.correia@gmail.com}
 {p_end}
 
