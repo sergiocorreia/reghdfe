@@ -39,6 +39,17 @@
 	if (c(rc)) di as error "TEST FAILED AS EXPECTED"
 	if (c(rc)) di as error "This is a variant of the problem raised by Cattaneo et al 2017"
 	
+	run noabsorb
+	run more-weights
+	run fvstrip // Test cases with complex factor variable 
+	run stdata
+	run singleton-x
+	run inconsistent-r2
+	run singleton-and-fweights
+	run prune
+	run memory // test -compact- and -pool(#)- options
+
+	* Postestimation
 	run predict
 	run predict-pweight
 	run predict-fweight
@@ -46,34 +57,25 @@
 	run predict-slope
 	run predict-slope-only
 	run predict-slope-only-nocons
+	run pweight-cluster // also tests predict
+	run estat-ic
 	
-	run noabsorb
-	run more-weights
-	run pweight-cluster
-	run fvstrip // Test cases with complex factor variable 
-	run stdata
-	run singleton-x
-	run inconsistent-r2
-	run singleton-and-fweights
-
+	* Prevent specific bugs
 	run bug_cluster
 
+	* Extra
 	do margins // not yet cscript
 
-	* -prune- corner cases
-	* run prune
+	* do lsmr // TODO
 
-
-	* run hdfe
-
-
+set linesize 120
 exit
 	
 
 
 
 
-
+/*
 * OLD OR NOT-YET-REVIEWED TESTS:
 	run test-fvvarlist
 	run test-robust
@@ -96,7 +98,6 @@ exit
 	// run test-singletons
 	run test-iv
 	run test-slope
-
 	run test-rank
 	
 	run test-postestimation-predict-pweight // predict after pweight
@@ -107,13 +108,11 @@ exit
 	run test-cache
 
 	run test-stages
-
-	run test-estat-ic
-	
 	run test-hdfe // just tests that the syntax works, not for correctness
 
 	* Don't run by default this as it's mostly a test about quipu.ado and not reghdfe.ado
 	*run test-quipu
+*/
 
 * Success
 	di as text "No errors found!"

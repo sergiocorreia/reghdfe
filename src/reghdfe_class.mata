@@ -186,6 +186,7 @@ class FixedEffects
     residuals = ""
     residuals_vector = .
     panelvar = timevar = ""
+    iteration_count = 0
 
     // Optimization defaults
     slope_method = "invsym"
@@ -525,7 +526,6 @@ class FixedEffects
     if (acceleration=="lsmr") {
         // RRE benchmarking
         if (compute_rre) rre_depvar_norm = norm(y[., 1])
-        iteration_count = .
         if (cols(y)==1) {
             y = lsmr(this, y, alphas=.)
             alphas = . // or return them!
@@ -536,7 +536,6 @@ class FixedEffects
             }
             alphas = .
         }
-        return
     }
     else {
         // Standardize variables
@@ -561,7 +560,6 @@ class FixedEffects
         if (verbose==1) printf("{txt}    - Iterating:")
         if (verbose>1) printf("{txt}      ")
         converged = 0 // converged will get updated by check_convergence()
-        iteration_count = 0
         if (timeit) timer_on(62)
         y = (*func_accel)(this, y, funct_transform) :* stdevs // 'this' is like python's self
         if (timeit) timer_off(62)
@@ -918,13 +916,6 @@ class FixedEffects
     `Integer'               i
     `Vector'                mask
     idx = st_addvar("double", tokens(varname))
-    "SAMPLE"
-    sample
-    "IDX"
-    idx
-    "DATA"
-    data
-    ">__"
     st_store(sample, idx, data)
     if (args()>=3 & varlabel!="") {
         for (i=1; i<=cols(data); i++) {

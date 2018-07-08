@@ -1,7 +1,7 @@
 * Not a proper cscript yet...
 
 clear all
-cls
+* cls
 sysuse auto
 
 

@@ -226,7 +226,7 @@ mata:
 		// If the regressor is perfectly explained by the absvars, we can have SSR very close to zero but negative
 		// (so sqrt is missing)
 
-		eps_threshold = 1e-13 // 100 * epsilon(1)
+		eps_threshold = 1e-15 // 10 * epsilon(1) ; perhaps too aggressive and should be 1e-14 ?
 		if (S.verbose > 0 & any(y_new :< eps_threshold)) {
 			printf("{txt} note: eps. is very close to zero (%g), so hestenes assumed convergence to avoid numerical precision errors\n", min(y_new))
 		}
@@ -245,7 +245,7 @@ mata:
 	is_last_iter = iter==S.maxiter
 	
 	if (S.converged) {
-		S.iteration_count = iter
+		S.iteration_count = max((iter, S.iteration_count))
 		if (S.verbose==1) printf("{txt}    converged in %g iterations (last error =%3.1e)\n", iter, update_error)
 		if (S.verbose>1) printf("\n{txt}    - Converged in %g iterations (last error =%3.1e)\n", iter, update_error)
 	}

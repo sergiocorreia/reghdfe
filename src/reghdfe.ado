@@ -1,4 +1,4 @@
-*! version 5.1.0 08jul2018
+*! version 5.1.1 08jul2018
 
 program reghdfe, eclass
 	* Intercept old+version
@@ -321,12 +321,7 @@ program Estimate, eclass
 	Parse `0'
 	mata: st_local("timeit", strofreal(HDFE.timeit))
 	mata: st_local("compact", strofreal(HDFE.compact))
-
-	* Preserve
-	if (`compact') {
-		preserve
-		keep `keepvars'
-	}
+	mata: st_local("verbose", strofreal(HDFE.verbose))
 
 	* Compute degrees-of-freedom
 	if (`timeit') timer on 21
@@ -378,6 +373,13 @@ program Estimate, eclass
 	* Condition number
 	mata: HDFE.estimate_cond()
 
+	* Preserve
+	if (`compact') {
+		if (`verbose' > 0) di as text " ## Preserving dataset"
+		preserve
+		keep `keepvars'
+	}
+
 	* Partial out; save TSS of depvar
 	if (`timeit') timer on 23
 	mata: hdfe_variables = HDFE.partial_out(HDFE.varlist, 1) // 1=Save TSS of first var if HDFE.tss is missing
@@ -391,8 +393,8 @@ program Estimate, eclass
 	mata: hdfe_variables = .
 	* Restore
 	if (`compact') {
+		if (`verbose' > 0) di as text " ## Restoring dataset"
 		restore
-		mata: HDFE.save_touse("`touse'")
 		mata: st_local("residuals", HDFE.residuals)
 		if ("`residuals'" != "") mata: HDFE.save_variable(HDFE.residuals, HDFE.residuals_vector, "Residuals")
 	}

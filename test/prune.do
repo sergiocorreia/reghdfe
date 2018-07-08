@@ -1,5 +1,4 @@
-do setup
-
+*do setup
 noi cscript "reghdfe: test -prune- option for correctness" adofile reghdfe
 
 loc cmd reghdfe y x, a(id1 id2) tol(1e-10)
@@ -19,7 +18,7 @@ forv i=1/5 {
 	storedresults compare benchmark e(), tol(1e-12) exclude(`exclude')
 	storedresults drop benchmark
 	
-	assert `ic`i'a' >= `ic`i'b'
+	assert `ic`i'a' >= `ic`i'b' // pruning reduces the number of iterations
 }
 
 di as text "IC:"

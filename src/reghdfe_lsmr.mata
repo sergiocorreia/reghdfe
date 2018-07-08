@@ -226,7 +226,7 @@ mata:
         exit(430)
     }
 
-    S.iteration_count = min((iter, S.iteration_count))
+    S.iteration_count = max((iter, S.iteration_count))
 
     u = b - S.lsmr_A_mult(x)
     return(u)
