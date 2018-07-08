@@ -107,6 +107,8 @@ exit
 	run test-cache
 
 	run test-stages
+
+	run test-estat-ic
 	
 	run test-hdfe // just tests that the syntax works, not for correctness
 
