@@ -2,6 +2,8 @@
 
 ## Recent Updates
 
+* **version 5.1 08jul2018**:
+    - Added support for `compact` and `poolsize(#)` options. These existed previously (on reghdfe 2.x) and allow a much lower memory usage (on a simple exercise, default reghdfe increased memory up to 4.8x at peak, which was reduced to 2.0x with the `compact pool(2)` options)
 * **version 5.0 29jun2018**: three major changes:
     - Added support for `margins`
     - Estimates for `_cons` are now reported by default (noconstant disables them, but shouldn't not be used followed by`margins`).
