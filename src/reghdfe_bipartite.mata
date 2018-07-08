@@ -58,7 +58,7 @@ class BipartiteGraph
                             `Boolean' verbose)
 {
 	if (verbose) {
-		printf("\n{txt} ## Initializing bipartite graph\n\n")
+		printf("\n{txt}## Initializing bipartite graph\n\n")
 		printf("    - FE #1: {res}%s{txt}\n", invtokens((*PF1).varlist))
 		printf("    - FE #2: {res}%s{txt}\n", invtokens((*PF2).varlist))
 	}
@@ -79,19 +79,19 @@ class BipartiteGraph
 	// But you can also run (slower)
 	//			F12 = _factor( (F1.levels, F2.levels) )
 	//			asarray(F12.extra, "levels_as_keys", 1)
-	if (verbose) printf("{txt}    - computing F12:  ")
+	if (verbose) printf("{txt}   - computing F12:  ")
 	// join_factors(F1, (*PF2) [, count_levels, save_keys, levels_as_keys])
 	F12 = join_factors((*PF1), (*PF2), ., ., 1)
 	if (verbose) printf("{txt} edges found: {res}%-10.0gc{txt}\n", F12.num_levels)
 	F12.panelsetup()
 	
-	if (verbose) printf("{txt}    - computing F12_1:")
+	if (verbose) printf("{txt}   - computing F12_1:")
 	// _factor(data [, integers_only, verbose, method, sort_levels, count_levels, hash_ratio, save_keys])
 	F12_1 = _factor(F12.keys[., 1], 1, 0, "", 1, 1, ., 0)
 	if (verbose) printf("{txt} edges found: {res}%-10.0gc{txt}\n", F12_1.num_levels)
 	F12_1.panelsetup()
 	
-	if (verbose) printf("{txt}    - computing F12_2:")
+	if (verbose) printf("{txt}   - computing F12_2:")
 	F12_2 = _factor(F12.keys[., 2], 1, 0, "", 1, 1, ., 0)
 	if (verbose) printf("{txt} edges found: {res}%-10.0gc{txt}\n", F12_1.num_levels)
 	F12_2.panelsetup()
@@ -142,7 +142,7 @@ class BipartiteGraph
 	
 	`Matrix'				matches // list of CEOs that matched with firm j (or viceversa)
 
-	if (verbose) printf("\n{txt} ## Initializing zigzag iterator for bipartite graph\n\n")
+	if (verbose) printf("\n{txt}## Initializing zigzag iterator for bipartite graph\n\n")
 	assert(F12_1.panel_is_setup)
 	assert(F12_2.panel_is_setup)
 	assert(asarray(F12.extra, "levels_as_keys") == 1)
@@ -245,7 +245,7 @@ class BipartiteGraph
 
 	if (save_subgraphs) subgraph_id = subgraph_id[(*PF2).levels]
 	
-	if (verbose) printf("{txt}    - disjoint subgraphs found: {res}%g{txt}\n", num_subgraphs)
+	if (verbose) printf("{txt}   - disjoint subgraphs found: {res}%g{txt}\n", num_subgraphs)
 	return(num_subgraphs)
 }
 
@@ -275,7 +275,7 @@ class BipartiteGraph
 	`Integer'				dv, du
 	`Vector'				bin, deg, pos, invpos, vert, neighbors
 
-	if (verbose) printf("\n{txt} ## Computing vertex core numbers\n\n")
+	if (verbose) printf("\n{txt}## Computing vertex core numbers\n\n")
 
 	// v, u, w are vertices; <0 for CEOs and >0 for firms
 	// vert is sorted by degree; deg is unsorted
@@ -379,11 +379,11 @@ class BipartiteGraph
 
 	N_drop = sum(cores :== 1)
 	if (!N_drop) {
-	    if (verbose) printf("{txt}    - no 1-core vertices found\n")
+	    if (verbose) printf("{txt}   - no 1-core vertices found\n")
 	    prune = 0
 	    return
 	}
-	if (verbose) printf("{txt}    - 1-core vertices found: {res}%g{txt}\n", N_drop)
+	if (verbose) printf("{txt}   - 1-core vertices found: {res}%g{txt}\n", N_drop)
 
 	drop_order = drop_order[1..N_drop]
 	drop1 = `selectindex'(cores[1..N1] :== 1)
@@ -476,7 +476,7 @@ class BipartiteGraph
     `RowVector'             tmp_mean
 
     if (prune==0) return(y)
-    if (verbose) printf("\n{txt} ## Expanding 2-core into original dataset\n\n")
+    if (verbose) printf("\n{txt}## Expanding 2-core into original dataset\n\n")
     assert(N_drop == rows(drop_order))
 
     sorted_y = (*PF1).sort(y)
@@ -521,7 +521,7 @@ class BipartiteGraph
         }
     }
 
-    if (verbose) printf("{txt}    - number of coefficients solved triangularly: {res}%s{txt}\n", strofreal(rows(drop_order)))
+    if (verbose) printf("{txt}   - number of coefficients solved triangularly: {res}%s{txt}\n", strofreal(rows(drop_order)))
     return((*PF1).invsort(sorted_y))
 }
 

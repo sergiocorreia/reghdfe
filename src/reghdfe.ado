@@ -1,4 +1,4 @@
-*! version 5.1.1 08jul2018
+*! version 5.1.2 08jul2018
 
 program reghdfe, eclass
 	* Intercept old+version
@@ -356,6 +356,11 @@ program Estimate, eclass
 		loc allvars `allvars' `varlist'
 		mata: HDFE.`cat' = "`varlist'"
 
+		if (`verbose' > 0) {
+			di as text _n "## Parsing and expanding `cat': {res}`vars'"
+			return list // output from ms_fvstrip
+		}
+
 		if ("`cat'" == "indepvars") {
 			mata: HDFE.fullindepvars = "`r(fullvarlist)'"
 			mata: HDFE.not_basevar = strtoreal(tokens("`r(nobase)'"))
@@ -375,7 +380,7 @@ program Estimate, eclass
 
 	* Preserve
 	if (`compact') {
-		if (`verbose' > 0) di as text " ## Preserving dataset"
+		if (`verbose' > 0) di as text "## Preserving dataset"
 		preserve
 		keep `keepvars'
 	}
@@ -393,7 +398,7 @@ program Estimate, eclass
 	mata: hdfe_variables = .
 	* Restore
 	if (`compact') {
-		if (`verbose' > 0) di as text " ## Restoring dataset"
+		if (`verbose' > 0) di as text "## Restoring dataset"
 		restore
 		mata: st_local("residuals", HDFE.residuals)
 		if ("`residuals'" != "") mata: HDFE.save_variable(HDFE.residuals, HDFE.residuals_vector, "Residuals")

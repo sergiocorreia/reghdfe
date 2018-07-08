@@ -26,7 +26,7 @@ mata:
     `Real' normA, normAr, condA, normx, rtol
 
     assert(cols(b)==1)
-    if (S.verbose > 0) printf("\n{txt} ## Computing LSMR\n\n")
+    if (S.verbose > 0) printf("\n{txt}## Computing LSMR\n\n")
 
     // Constants
     eps = epsilon(1)

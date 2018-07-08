@@ -246,8 +246,8 @@ mata:
 	
 	if (S.converged) {
 		S.iteration_count = max((iter, S.iteration_count))
-		if (S.verbose==1) printf("{txt}    converged in %g iterations (last error =%3.1e)\n", iter, update_error)
-		if (S.verbose>1) printf("\n{txt}    - Converged in %g iterations (last error =%3.1e)\n", iter, update_error)
+		if (S.verbose==1) printf("{txt}   converged in %g iterations (last error =%3.1e)\n", iter, update_error)
+		if (S.verbose>1) printf("\n{txt}   - Converged in %g iterations (last error =%3.1e)\n", iter, update_error)
 	}
 	else if (is_last_iter & S.abort) {
 		printf("\n{err}convergence not achieved in %g iterations (last error=%e); try increasing maxiter() or decreasing tol().\n", S.maxiter, update_error)

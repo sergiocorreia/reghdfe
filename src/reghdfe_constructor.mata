@@ -33,7 +33,7 @@ mata:
     S.drop_singletons = drop_singletons
 
     // Parse absvars
-    if (S.verbose > 0) printf("\n{txt} ## Parsing absvars and HDFE options\n")
+    if (S.verbose > 0) printf("\n{txt}## Parsing absvars and HDFE options\n")
     
     if (touse == "") touse = st_tempname()
     st_global("reghdfe_touse", touse)
@@ -122,10 +122,11 @@ mata:
     remaining = S.G
     i = 0
     if (S.verbose > 0) {
-        printf("\n{txt} ## Initializing Mata object for %g fixed effects\n\n", S.G)
+        printf("\n{txt}## Initializing Mata object for %g fixed effects\n\n", S.G)
         spaces = max((0, max(strlen(S.absvars))-4))
-        printf("{txt}   |  i | g | %s Name | Int? | #Slopes |    Obs.   |   Levels   | Sorted? | #Drop Singl. |\n", " " * spaces)
-        printf("{txt}   |----|---|-%s------|------|---------|-----------|------------|---------|--------------|\n", "-" * spaces)
+        printf("{txt}   {c TLC}{hline 4}{c TT}{hline 3}{c TT}{hline 1}%s{hline 6}{c TT}{hline 6}{c TT}{hline 9}{c TT}{hline 11}{c TT}{hline 12}{c TT}{hline 9}{c TT}{hline 14}{c TRC}\n", "{hline 1}" * spaces)
+        printf("{txt}   {c |}  i {c |} g {c |} %s Name {c |} Int? {c |} #Slopes {c |}    Obs.   {c |}   Levels   {c |} Sorted? {c |} #Drop Singl. {c |}\n", " " * spaces)
+        printf("{txt}   {c LT}{hline 4}{c +}{hline 3}{c +}{hline 1}%s{hline 6}{c +}{hline 6}{c +}{hline 9}{c +}{hline 11}{c +}{hline 12}{c +}{hline 9}{c +}{hline 14}{c RT}\n", "{hline 1}" * spaces)
         displayflush()
     }
 
@@ -135,13 +136,13 @@ mata:
         absvar = S.absvars[g]
         
         if (S.verbose > 0) {
-            printf("{txt}   | %2.0f | %1.0f | {res}%s{txt} | ", i, g, (spaces+5-strlen(absvar)) * " " + absvar)
-            printf("{txt}  {%s}%1.0f{txt}  |    %1.0f    |", S.intercepts[g] ? "txt" : "err", S.intercepts[g], S.num_slopes[g])
+            printf("{txt}   {c |} %2.0f {c |} %1.0f {c |} {res}%s{txt} {c |} ", i, g, (spaces+5-strlen(absvar)) * " " + absvar)
+            printf("{txt}{%s}%3s{txt}  {c |}    %1.0f    {c |}", S.intercepts[g] ? "txt" : "err", S.intercepts[g] ? "Yes" : "No", S.num_slopes[g])
             displayflush()
         }
 
         if (S.verbose > 0) {
-            printf("{res}%10.0g{txt} |", rows(S.sample))
+            printf("{res}%10.0g{txt} {c |}", rows(S.sample))
             displayflush()
         }
 
@@ -156,7 +157,7 @@ mata:
         }
 
         if (S.verbose > 0) {
-            printf(" {res}%10.0g{txt} | %7.0f |", S.factors[g].num_levels, S.factors[g].is_sorted)
+            printf(" {res}%10.0g{txt} {c |} %7s {c |}", S.factors[g].num_levels, S.factors[g].is_sorted ? "Yes" : "No")
             displayflush()
         }
  
@@ -175,7 +176,7 @@ mata:
             num_singletons_i = rows(idx)
             S.num_singletons = S.num_singletons + num_singletons_i
             if (S.verbose > 0) {
-                printf(" %10.0g   |", num_singletons_i)
+                printf(" %10.0g   {c |}", num_singletons_i)
                 displayflush()
             }
 
@@ -197,12 +198,14 @@ mata:
             }
         }
         else {
-            if (S.verbose > 0) printf("      n/a     |")
+            if (S.verbose > 0) printf("      n/a     {c |}")
             --remaining
         }
         if (S.verbose > 0) printf("\n")
     }
-    if (S.verbose > 0) printf("\n")
+    if (S.verbose > 0) {
+        printf("{txt}   {c BLC}{hline 4}{c BT}{hline 3}{c BT}{hline 1}%s{hline 6}{c BT}{hline 6}{c BT}{hline 9}{c BT}{hline 11}{c BT}{hline 12}{c BT}{hline 9}{c BT}{hline 14}{c BRC}\n", "{hline 1}" * spaces)
+    }
 
     if ( drop_singletons & S.num_singletons>0 & S.verbose>-1 | S.factors[1].num_obs<2) {
         if (weighttype=="iweight") {
@@ -224,10 +227,10 @@ mata:
 
 
     // (2) run *.panelsetup() after the sample is defined
-    if (S.verbose > 0) printf("\n{txt} ## Initializing panelsetup() for each fixed effect\n\n")
+    if (S.verbose > 0) printf("\n{txt}## Initializing panelsetup() for each fixed effect\n\n")
     for (g=1; g<=S.G; g++) {
         absvar = S.absvars[g]
-        if (S.verbose > 0) printf("{txt}    - panelsetup({res}%s{txt})\n", absvar)
+        if (S.verbose > 0) printf("{txt}   - panelsetup({res}%s{txt})\n", absvar)
         S.factors[g].panelsetup()
     }
 
@@ -243,12 +246,12 @@ mata:
 
     // (5) load cvars
     if (sum(S.num_slopes)) {
-        if (S.verbose > 0) printf("\n{txt} ## Loading slope variables\n\n")
+        if (S.verbose > 0) printf("\n{txt}## Loading slope variables\n\n")
         for (g=1; g<=S.G; g++) {
             cvars = tokens(S.cvars[g])
             if (S.num_slopes[g]) {
                 // Load, standardize, sort by factor, precompute (TODO), and store
-                if (S.verbose > 0) printf("{txt}    - cvars({res}%s{txt})\n", invtokens(cvars))
+                if (S.verbose > 0) printf("{txt}   - cvars({res}%s{txt})\n", invtokens(cvars))
                 pf = &(S.factors[g])
                 cvar_data = (*pf).sort(st_data(S.sample, cvars))
                 asarray((*pf).extra, "x_stdevs", reghdfe_standardize(cvar_data))

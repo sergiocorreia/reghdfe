@@ -217,15 +217,16 @@ class FixedEffects
 // This adds/removes weights or changes their type
 `Void' FixedEffects::load_weights(`String' weighttype, `String' weightvar, `Variable' weight, `Boolean' verbose)
 {
-    if (this.verbose > 0 & verbose > 0) printf("{txt} ## Loading weights [%s=%s]\n", weighttype, weightvar)
     `Integer' g
    
+    this.has_weights = (weighttype != "" & weightvar != "")
+    if (this.verbose > 0 & verbose > 0 & this.has_weights) printf("{txt}## Loading weights [%s=%s]\n", weighttype, weightvar)
+
     // Update main properties
     this.weight_var = weightvar
     this.weight_type = weighttype
 
-    // Update boolean
-    this.has_weights = (weighttype !="" & weightvar!="")
+    // Update booleans
     for (g=1; g<=this.G; g++) {
         asarray(this.factors[g].extra, "has_weights", this.has_weights)
     }
@@ -237,7 +238,7 @@ class FixedEffects
 
     // Update weight vectors
     if (this.has_weights) {
-        if (this.verbose > 0 & verbose > 0) printf("{txt} ## Sorting weights for each absvar\n")
+        if (this.verbose > 0 & verbose > 0) printf("{txt}## Sorting weights for each absvar\n")
         this.update_sorted_weights(weight)
     }
     else {
@@ -262,9 +263,9 @@ class FixedEffects
     assert_msg(!hasmissing(weight), "weights can't be missing")
     this.weight = weight
     assert(rows(weight)==rows(sample))
-    if (verbose > 0) printf("{txt}    - loading %s weight from variable %s\n", weight_type, weight_var)
+    if (verbose > 0) printf("{txt}   - loading %s weight from variable %s\n", weight_type, weight_var)
     for (g=1; g<=G; g++) {
-        if (verbose > 0) printf("{txt}    - sorting weight for factor {res}%s{txt}\n", absvars[g])
+        if (verbose > 0) printf("{txt}   - sorting weight for factor {res}%s{txt}\n", absvars[g])
         pf = &(factors[g])
         w = (*pf).sort(weight)
 
@@ -304,14 +305,14 @@ class FixedEffects
         k = cols(vars)
 
         if (poolsize < k) {
-            if (verbose > 0) printf("\n{txt} ## Loading and partialling out %g variables in blocks of %g\n\n", k, poolsize)
+            if (verbose > 0) printf("\n{txt}## Loading and partialling out %g variables in blocks of %g\n\n", k, poolsize)
             if (timeit) timer_on(50)
             partial_out_pool(vars, save_tss, standardize_data, first_is_depvar, poolsize, y=.)
             if (timeit) timer_off(50)
         }
         else {
-            if (verbose > 0) printf("\n{txt} ## Partialling out %g variables: {res}%s{txt}\n\n", cols(vars), invtokens(vars))
-            if (verbose > 0) printf("{txt}    - Loading variables into Mata\n")
+            if (verbose > 0) printf("\n{txt}## Partialling out %g variables: {res}%s{txt}\n\n", cols(vars), invtokens(vars))
+            if (verbose > 0) printf("{txt}   - Loading variables into Mata\n")
             if (timeit) timer_on(50)
             y = st_data(sample, invtokens(vars))
             if (timeit) timer_off(50)
@@ -330,7 +331,7 @@ class FixedEffects
         }
     }
     else {
-        if (verbose > 0) printf("\n{txt} ## Partialling out %g variables\n\n", cols(data))
+        if (verbose > 0) printf("\n{txt}## Partialling out %g variables\n\n", cols(data))
         if (timeit) timer_on(54)
         _partial_out(y=data, save_tss, standardize_data, first_is_depvar)
         if (timeit) timer_off(54)
@@ -405,15 +406,15 @@ class FixedEffects
     `Variable'              d
     `RowVector'             tmp_stdev
 
-    if (verbose > 0) printf("\n{txt} ## Storing estimated fixed effects\n\n")
+    if (verbose > 0) printf("\n{txt}## Storing estimated fixed effects\n\n")
 
     // Load -d- variable
-    if (verbose > 0) printf("{txt}    - Loading d = e(depvar) - xb - e(resid)\n")
+    if (verbose > 0) printf("{txt}   - Loading d = e(depvar) - xb - e(resid)\n")
     d = st_data(sample, d_varname)
     assert(!missing(d))
 
     // Create empty alphas
-    if (verbose > 0) printf("{txt}    - Initializing alphas\n")
+    if (verbose > 0) printf("{txt}   - Initializing alphas\n")
     for (g=j=1; g<=G; g++) {
         if (!save_fe[g]) continue
         asarray(factors[g].extra, "alphas", J(factors[g].num_levels, intercepts[g] + num_slopes[g], 0))
@@ -421,15 +422,15 @@ class FixedEffects
     }
 
     // Fill out alphas
-    if (verbose > 0) printf("{txt}    - Computing alphas\n")
+    if (verbose > 0) printf("{txt}   - Computing alphas\n")
     storing_alphas = 1
     d = accelerate_sd(this, d, &transform_kaczmarz())
     storing_alphas = 0
 
-    if (verbose > 0) printf("{txt}    - SSR of d wrt FEs: %g\n", quadcross(d,d))
+    if (verbose > 0) printf("{txt}   - SSR of d wrt FEs: %g\n", quadcross(d,d))
 
     // Store alphas in dataset
-    if (verbose > 0) printf("{txt}    - Creating varlabels\n")
+    if (verbose > 0) printf("{txt}   - Creating varlabels\n")
     for (g=j=1; g<=G; g++) {
         if (!save_fe[g]) {
             j = j + intercepts[g] + num_slopes[g]
@@ -442,7 +443,7 @@ class FixedEffects
         }
 
         if (num_slopes[g]) {
-            if (verbose > 0) printf("{txt}    - Recovering unstandardized variables\n")
+            if (verbose > 0) printf("{txt}   - Recovering unstandardized variables\n")
             tmp_stdev = asarray(factors[g].extra, "x_stdevs")
             if (intercepts[g]) tmp_stdev = 1, tmp_stdev
 
@@ -452,7 +453,7 @@ class FixedEffects
             )
         }
 
-        if (verbose > 0) printf("{txt}    - Storing alphas in dataset\n")
+        if (verbose > 0) printf("{txt}   - Storing alphas in dataset\n")
         save_variable(targets[g], asarray(factors[g].extra, "alphas")[factors[g].levels, .], varlabel)
         asarray(factors[g].extra, "alphas", .)
         asarray(factors[g].extra, "tmp_alphas", .)
@@ -541,7 +542,7 @@ class FixedEffects
         // Standardize variables
         if (timeit) timer_on(61)
         if (standardize_data) {
-            if (verbose > 0) printf("{txt}    - Standardizing variables\n")
+            if (verbose > 0) printf("{txt}   - Standardizing variables\n")
             stdevs = reghdfe_standardize(y)
         }
         else {
@@ -556,8 +557,8 @@ class FixedEffects
         }
 
         // Solve
-        if (verbose>0) printf("{txt}    - Running solver (acceleration={res}%s{txt}, transform={res}%s{txt} tol={res}%-1.0e{txt})\n", acceleration, transform, tolerance)
-        if (verbose==1) printf("{txt}    - Iterating:")
+        if (verbose>0) printf("{txt}   - Running solver (acceleration={res}%s{txt}, transform={res}%s{txt} tol={res}%-1.0e{txt})\n", acceleration, transform, tolerance)
+        if (verbose==1) printf("{txt}   - Iterating:")
         if (verbose>1) printf("{txt}      ")
         converged = 0 // converged will get updated by check_convergence()
         if (timeit) timer_on(62)
@@ -662,7 +663,7 @@ class FixedEffects
     `BipartiteGraph'        BG
     `Integer'               pair_count
     
-    if (verbose > 0) printf("\n{txt} ## Estimating degrees-of-freedom absorbed by the fixed effects\n\n")
+    if (verbose > 0) printf("\n{txt}## Estimating degrees-of-freedom absorbed by the fixed effects\n\n")
 
     // Count all FE intercepts and slopes
     SubGs = intercepts + num_slopes
@@ -670,7 +671,7 @@ class FixedEffects
     num_intercepts = sum(intercepts)
     offsets = runningsum(SubGs) - SubGs :+ 1 // start of each FE within the extended list
     idx = `selectindex'(intercepts) // Select all FEs with intercepts
-    if (verbose > 0) printf("{txt}    - there are %f fixed intercepts and slopes in the %f absvars\n", G_extended, G)
+    if (verbose > 0) printf("{txt}   - there are %f fixed intercepts and slopes in the %f absvars\n", G_extended, G)
 
     // Initialize result vectors and scalars
     doflist_M_is_exact = J(1, G_extended, 0)
@@ -737,7 +738,7 @@ class FixedEffects
 
     // (4) (Intercept-Only) Every intercept but the first has at least one redundant coef.
     if (length(idx) > 1) {
-        if (verbose > 0) printf("{txt}    - there is at least one redundant coef. for every set of FE intercepts after the first one\n")
+        if (verbose > 0) printf("{txt}   - there is at least one redundant coef. for every set of FE intercepts after the first one\n")
         doflist_M[offsets[idx[2..length(idx)]]] = J(1, length(idx)-1, 1) // Set DoF loss of all intercepts but the first one to 1
     }
 
@@ -763,7 +764,7 @@ class FixedEffects
                 BG.init(&factors[g], &factors[h], bg_verbose)
                 m = BG.init_zigzag()
                 ++pair_count
-                if (verbose > 0) printf("{txt}    - mobility groups between FE intercepts #%f and #%f: {res}%f\n", g, h, m)
+                if (verbose > 0) printf("{txt}   - mobility groups between FE intercepts #%f and #%f: {res}%f\n", g, h, m)
                 doflist_M[i] = max(( doflist_M[i] , m ))
                 if (j_intercept==2) doflist_M_is_exact[i] = 1
                 if (pair_count & anyof(dofadjustments, "firstpair")) break
@@ -801,8 +802,8 @@ class FixedEffects
             }
             data = .
             if (sum(results)) {
-                if (has_int  & verbose) printf("{txt}    - the slopes in the FE #%f are constant for {res}%f{txt} levels, which don't reduce DoF\n", g, sum(results))
-                if (!has_int & verbose) printf("{txt}    - the slopes in the FE #%f are zero for {res}%f{txt} levels, which don't reduce DoF\n", g, sum(results))
+                if (has_int  & verbose) printf("{txt}   - the slopes in the FE #%f are constant for {res}%f{txt} levels, which don't reduce DoF\n", g, sum(results))
+                if (!has_int & verbose) printf("{txt}   - the slopes in the FE #%f are zero for {res}%f{txt} levels, which don't reduce DoF\n", g, sum(results))
                 doflist_M[i..i+num_slopes[g]-1] = results
             }
             i = i + num_slopes[g]
@@ -891,7 +892,7 @@ class FixedEffects
     if (args()==0) replace = 1
     if (args()==1 | replace==.) replace = 0
 
-    if (verbose > 0) printf("\n{txt} ## Saving e(sample)\n")
+    if (verbose > 0) printf("\n{txt}## Saving e(sample)\n")
 
     // Compute dummy vector
     mask = J(st_nobs(), 1, 0)
@@ -1134,35 +1135,35 @@ class FixedEffects
 
     if (finite_condition!=-1) return
 
-    if (verbose > 0) printf("\n{txt} ## Computing finite condition number of the Laplacian\n\n")
+    if (verbose > 0) printf("\n{txt}## Computing finite condition number of the Laplacian\n\n")
 
-    if (verbose > 0) printf("{txt}    - Constructing vectors of levels\n")
+    if (verbose > 0) printf("{txt}   - Constructing vectors of levels\n")
     F12 = join_factors(factors[1], factors[2], ., ., 1)
     
     // Non-sparse (lots of memory usage!)
-    if (verbose > 0) printf("{txt}    - Constructing design matrices\n")
+    if (verbose > 0) printf("{txt}   - Constructing design matrices\n")
     D1 = designmatrix(F12.keys[., 1])
     D2 = designmatrix(F12.keys[., 2])
     assert_msg(rows(D1)<=2000, "System is too big!")
     assert_msg(rows(D2)<=2000, "System is too big!")
 
-    if (verbose > 0) printf("{txt}    - Constructing graph Laplacian\n")
+    if (verbose > 0) printf("{txt}   - Constructing graph Laplacian\n")
     L =   D1' * D1 , - D1' * D2 \
         - D2' * D1 ,   D2' * D2
-    if (verbose > 0) printf("{txt}    - L is %g x %g \n", rows(L), rows(L))
+    if (verbose > 0) printf("{txt}   - L is %g x %g \n", rows(L), rows(L))
         
-    if (verbose > 0) printf("{txt}    - Computing eigenvalues\n")
+    if (verbose > 0) printf("{txt}   - Computing eigenvalues\n")
     assert_msg(rows(L)<=2000, "System is too big!")
     eigensystem(L, ., lambda=.)
     lambda = Re(lambda')
 
-    if (verbose > 0) printf("{txt}    - Selecting positive eigenvalues\n")
+    if (verbose > 0) printf("{txt}   - Selecting positive eigenvalues\n")
     lambda = edittozerotol(lambda, 1e-8)
     tmp = select(lambda,  edittozero(lambda, 1))
     tmp = minmax(tmp)
     finite_condition = tmp[2] / tmp[1]
 
-    if (verbose > 0) printf("{txt}    - Finite condition number: {res}%s{txt}\n", strofreal(finite_condition))
+    if (verbose > 0) printf("{txt}   - Finite condition number: {res}%s{txt}\n", strofreal(finite_condition))
 }
 
 
