@@ -25,6 +25,9 @@ program reghdfe_parse, sclass
 		SLOPEmethod(string)
 		PRUNE
 
+		/* Memory usage (also see -compact- option) */ 
+		POOLsize(integer 0) /* Process variables in batches of # ; 0 turns it off */
+
 		/* Degrees-of-freedom Adjustments */
 		DOFadjustments(string)
 		GROUPVar(name) /* var with the first connected group between FEs */
@@ -127,4 +130,7 @@ program reghdfe_parse, sclass
 	if ("`rre'" != "") {
 		sreturn loc rre `rre'
 	}
+
+	if (`poolsize' < 1) loc poolsize .
+	sreturn loc poolsize `poolsize'
 end

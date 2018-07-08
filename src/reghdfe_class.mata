@@ -52,12 +52,16 @@ class FixedEffects
     // Misc
     `Integer'               verbose
     `Boolean'               timeit
+    `Boolean'               compact
+    `Integer'               poolsize
     `Boolean'               store_sample
     `Real'                  finite_condition
     `Real'                  compute_rre         // Relative residual error: || e_k - e || / || e ||
     `Real'                  rre_depvar_norm
     `Vector'                rre_varname
     `Vector'                rre_true_residual
+    `String'                panelvar
+    `String'                timevar
 
     `RowVector'             not_basevar         // Boolean vector indicating whether each regressor is or not a basevar
     `String'                fullindepvars       // indepvars including basevars
@@ -110,6 +114,7 @@ class FixedEffects
     `StringRowVector'       dofadjustments // firstpair pairwise cluster continuous
     `Varname'               groupvar
     `String'                residuals
+    `Variable'              residuals_vector
     `RowVector'             kept // 1 if the regressors are not deemed as omitted (by partial_out+cholsolve+invsym)
     `String'                diopts
 
@@ -145,6 +150,7 @@ class FixedEffects
     `Void'                  load_weights() // calls update_sorted_weights, etc.
     `Void'                  update_sorted_weights()
     `Matrix'                partial_out()
+    `Matrix'                partial_out_pool()
     `Void'                  _partial_out()
     `Variables'             project_one_fe()
     `Void'                  prune_1core()
@@ -174,8 +180,12 @@ class FixedEffects
 
     verbose = 0
     timeit = 0
+    compact = 0
+    poolsize = .
     finite_condition = .
     residuals = ""
+    residuals_vector = .
+    panelvar = timevar = ""
 
     // Optimization defaults
     slope_method = "invsym"
@@ -197,6 +207,9 @@ class FixedEffects
     accel_freq = 3
 
     not_basevar = J(1, 0, .)
+
+    means = J(1, 0, .) // necessary with pool() because we append to it
+    kept = J(1, 0, .) // necessary with pool() because we append to it
 }
 
 
@@ -279,38 +292,41 @@ class FixedEffects
     `Variables'             y
     `Varlist'               vars
     `Integer'               i
+    `Integer'               k
 
     if (args()<2 | save_tss==.) save_tss = 0
     if (args()<3 | standardize_data==.) standardize_data = 1
     if (args()<4 | first_is_depvar==.) first_is_depvar = 1
 
     if (eltype(data) == "string") {
-        vars = tokens(invtokens(data))
-        if (verbose > 0) printf("\n{txt} ## Partialling out %g variables: {res}%s{txt}\n\n", cols(vars), invtokens(vars))
-        if (verbose > 0) printf("{txt}    - Loading variables into Mata\n")
-        if (timeit) timer_on(50)
-        y = st_data(sample, invtokens(vars))
-        if (timeit) timer_off(50)
+        vars = tokens(invtokens(data)) // tweak to allow string scalars and string vectors
+        k = cols(vars)
 
-        if (cols(y) < cols(vars)) {
-            if (verbose) printf("{err}(some columns were dropped due to a bug/quirk in st_data() (%g cols created instead of %g for %s); running slower workaround)\n", cols(y), cols(vars), invtokens(vars))
-            assert(0) // when does this happen?
+        if (poolsize < k) {
+            if (verbose > 0) printf("\n{txt} ## Loading and partialling out %g variables in blocks of %g\n\n", k, poolsize)
+            if (timeit) timer_on(50)
+            partial_out_pool(vars, save_tss, standardize_data, first_is_depvar, poolsize, y=.)
+            if (timeit) timer_off(50)
         }
-        else if (cols(y) > cols(vars)) {
-            printf("{err}(some empty columns were added due to a bug/quirk in {bf:st_data()}; %g cols created instead of %g for {it:%s}; running slower workaround)\n", cols(y), cols(vars), invtokens(vars))
-            y = J(rows(y), 0, .)
+        else {
+            if (verbose > 0) printf("\n{txt} ## Partialling out %g variables: {res}%s{txt}\n\n", cols(vars), invtokens(vars))
+            if (verbose > 0) printf("{txt}    - Loading variables into Mata\n")
+            if (timeit) timer_on(50)
+            y = st_data(sample, invtokens(vars))
+            if (timeit) timer_off(50)
+
+            // Workaround to odd Stata quirk
             if (timeit) timer_on(51)
-            for (i=1; i<=cols(vars); i++) {
-                y = y, st_data(sample, vars[i])
-            }            
+            if (cols(y) > cols(vars)) {
+                printf("{err}(some empty columns were added due to a bug/quirk in {bf:st_data()}; %g cols created instead of %g for {it:%s}; running slower workaround)\n", cols(y), cols(vars), invtokens(vars))
+                partial_out_pool(vars, save_tss, standardize_data, first_is_depvar, 1, y=.)
+            }
+            else {
+                _partial_out(y, save_tss, standardize_data, first_is_depvar)
+            }
             if (timeit) timer_off(51)
+            
         }
-
-        assert_msg(cols(y)==cols(vars), "st_data() constructed more columns than expected")
-
-        if (timeit) timer_on(53)
-        _partial_out(y, save_tss, standardize_data, first_is_depvar)
-        if (timeit) timer_off(53)
     }
     else {
         if (verbose > 0) printf("\n{txt} ## Partialling out %g variables\n\n", cols(data))
@@ -318,9 +334,66 @@ class FixedEffects
         _partial_out(y=data, save_tss, standardize_data, first_is_depvar)
         if (timeit) timer_off(54)
     }
-    //if (verbose==0) printf("\n")
+
     if (verbose==0) printf(`"{txt}({browse "http://scorreia.com/research/hdfe.pdf":MWFE estimator} converged in %s iteration%s)\n"', strofreal(iteration_count), iteration_count > 1 ? "s" : "s")
     return(y)
+}
+
+
+
+`Variables' FixedEffects::partial_out_pool(`Anything' vars,
+                                           `Boolean' save_tss,
+                                           `Boolean' standardize_data,
+                                           `Boolean' first_is_depvar,
+                                           `Integer' step,
+                                           `Variables' y)
+{
+    `Variables'             part_y
+    `Integer'               i, j, ii
+    `Integer'               k
+    `StringRowVector'       keepvars
+
+    k = cols(vars)
+    assert(step > 0)
+    assert(step < k)
+    y = J(rows(sample), 0, .)
+
+    for (i=1; i<=k; i=i+step) {
+        
+        j = i + step - 1
+        if (j>k) j = k
+
+        // Load data
+        part_y = st_data(sample, vars[i..j])
+
+        if (cols(part_y) > j - i + 1) {
+            printf("{err}(some empty columns were added due to a bug/quirk in {bf:st_data()}; running slower workaround)\n")
+            if (timeit) timer_on(51)
+            part_y = J(rows(sample), 0, .)
+            for (ii=i; ii<=j; ii++) {
+                part_y = part_y, st_data(sample, vars[ii])
+            }
+            if (timeit) timer_off(51)
+        }
+
+        // Drop loaded vars as quickly as possible
+        if (compact) {
+            // st_dropvar(vars[i..j]) // bugbug what if repeated??
+            keepvars = base_clustervars , timevar, panelvar, (j == k ? "" : vars[j+1..k])
+            keepvars = tokens(invtokens(keepvars))
+            if (cols(keepvars)) {
+                stata(sprintf("fvrevar %s, list", invtokens(keepvars)))
+                stata(sprintf("keep %s", st_global("r(varlist)")))
+            }
+            else {
+                stata("clear")
+            }
+        }
+
+        _partial_out(part_y, save_tss, standardize_data, first_is_depvar)
+        y = y, part_y
+        part_y = .
+    }
 }
 
 
@@ -391,7 +464,7 @@ class FixedEffects
                                   `Boolean' standardize_data,
                                   `Boolean' first_is_depvar)
 {
-    `RowVector'             stdevs, needs_zeroing
+    `RowVector'             stdevs, needs_zeroing, kept2
     `FunctionP'             funct_transform, func_accel // transform
     `Real'                  y_mean
     `Vector'                lhs
@@ -443,10 +516,10 @@ class FixedEffects
 
 
     // Compute 2-norm of each var, to see if we need to drop as regressors
-    kept = diagonal(cross(y, y))'
+    kept2 = diagonal(cross(y, y))'
 
     // Compute and save means of each var
-    means = compute_constant ? mean(y, weight) : J(1, cols(y), 1)
+    means = means , ( compute_constant ? mean(y, weight) : J(1, cols(y), 1) )
 
     // Intercept LSMR case
     if (acceleration=="lsmr") {
@@ -509,20 +582,22 @@ class FixedEffects
     if (timeit) timer_on(64)
     vars = tokens(varlist)
     if (cols(vars)!=cols(y)) vars ="variable #" :+ strofreal(1..cols(y))
-    kept = (diagonal(cross(y, y))' :/ kept) :> (tolerance*1e-1)
-    if (first_is_depvar & kept[1]==0) {
-        kept[1] = 1
+    kept2 = (diagonal(cross(y, y))' :/ kept2) :> (tolerance*1e-1)
+    if (first_is_depvar & kept2[1]==0) {
+        kept2[1] = 1
         if (verbose > -1) printf("{txt}warning: %s might be perfectly explained by fixed effects (tol =%3.1e)\n", vars[1], tolerance*1e-1)
     }
-    needs_zeroing = `selectindex'(!kept)
+    needs_zeroing = `selectindex'(!kept2)
     if (cols(needs_zeroing)) {
         y[., needs_zeroing] = J(rows(y), cols(needs_zeroing), 0)
         for (i=1; i<=cols(vars); i++) {
-            if (!kept[i] & verbose>-1 & (i > 1 | !first_is_depvar)) {
+            if (!kept2[i] & verbose>-1 & (i > 1 | !first_is_depvar)) {
                 printf("{txt}note: %s is probably collinear with the fixed effects (all values close to zero after partialling-out; tol =%3.1e)\n", vars[i], tolerance*1e-1)
             }
         }
     }
+
+    kept = kept, kept2
     if (timeit) timer_off(64)
 }
 
@@ -843,6 +918,13 @@ class FixedEffects
     `Integer'               i
     `Vector'                mask
     idx = st_addvar("double", tokens(varname))
+    "SAMPLE"
+    sample
+    "IDX"
+    idx
+    "DATA"
+    data
+    ">__"
     st_store(sample, idx, data)
     if (args()>=3 & varlabel!="") {
         for (i=1; i<=cols(data); i++) {
@@ -1038,6 +1120,8 @@ class FixedEffects
     ans.notes = this.notes
     ans.store_sample = this.store_sample
     ans.timeit = this.timeit
+    ans.compact = this.compact
+    ans.poolsize = this.poolsize
     ans.diopts = this.diopts
 
     ans.fullindepvars = this.indepvars

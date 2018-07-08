@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 5.0.1 07jul2018}{...}
+{* *! version 5.1.0 08jul2018}{...}
 {vieweralsosee "[R] areg" "help areg"}{...}
 {vieweralsosee "[R] xtreg" "help xtreg"}{...}
 {vieweralsosee "[R] ivregress" "help ivregress"}{...}
@@ -57,7 +57,6 @@ may be {opt un:adjusted} (default), {opt r:obust} or {opt cl:uster} {help fvvarl
 {syntab:Optimization {help reghdfe##opt_optimization:[+]}}
 {p2coldent:+ {opth tol:erance(#)}}criterion for convergence (default=1e-8){p_end}
 {synopt :{opth maxit:erations(#)}}maximum number of iterations (default=10,000); if set to missing ({cmd:.}) it will run for as long as it takes.{p_end}
-{synopt :{opth pool:size(#)}}apply the within algorithm in groups of {it:#} variables (default 10). a large poolsize is usually faster but uses more memory{p_end}
 {synopt :{opt accel:eration(str)}}acceleration method; options are conjugate_gradient (cg), steep_descent (sd), aitken (a),
 {browse "http://web.stanford.edu/group/SOL/software/lsmr/":lsmr} (with diagonal preconditioner), and none (no){p_end}
 {synopt :{opt transf:orm(str)}}transform operation that defines the type of alternating projection; options are Kaczmarz (kac), Cimmino (cim), Symmetric Kaczmarz (sym).
@@ -67,6 +66,11 @@ that is useful if the underlying network is very sparse{p_end}
 {synopt :{opt cond}}compute the finite condition number;
 will only run successfully with few fixed effects
 (because it computes the eigenvalues of the graph Laplacian){p_end}
+
+{syntab:Memory Usage {help reghdfe##memory:[+]}}
+{synopt :{opth pool:size(#)}}apply the within algorithm in groups of {it:#} variables (else, it will run on all variables at the same time).
+A large pool size is usually faster but uses more memory{p_end}
+{synopt :{opt compact}}preserve the dataset and drop variables as much as possible on every step{p_end}
 
 {syntab:Speedup Tricks {help reghdfe##opt_speedup:[+]}}
 {synopt :{opt nosamp:le}}will not create {it:e(sample)},

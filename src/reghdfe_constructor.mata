@@ -83,6 +83,8 @@ mata:
     if (st_global("s(finite_condition)")=="1") S.finite_condition = -1 // signal to compute it
     S.compute_rre = (st_global("s(compute_rre)")=="1")
     if (S.compute_rre) S.rre_varname = st_global("s(rre)")
+    
+    S.poolsize = strtoreal(st_global("s(poolsize)"))
 
     if (S.verbose > -1 & !S.has_intercept) printf("{txt}(warning: no intercepts terms in absorb(); regression lacks constant term)\n")
 

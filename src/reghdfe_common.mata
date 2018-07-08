@@ -189,7 +189,12 @@ mata:
 
 	if (S.residuals != "") {
 		if (S.verbose > 0) printf("\n{txt} ## Storing residuals in {res}%s{txt}\n\n", S.residuals)
-		S.save_variable(S.residuals, resid, "Residuals")
+		if (S.compact == 1) {
+			S.residuals_vector = resid
+		}
+		else {
+			S.save_variable(S.residuals, resid, "Residuals")
+		}
 	}
 }
 

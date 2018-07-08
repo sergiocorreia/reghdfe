@@ -1,4 +1,4 @@
-*! version 5.0.1 07jul2018
+*! version 5.1.0 08jul2018
 
 program reghdfe, eclass
 	* Intercept old+version
@@ -168,6 +168,7 @@ program Parse
 
 		/* Speedup and memory Tricks */
 		NOSAMPle /* do not save e(sample) */
+		COMPACT /* use as little memory as possible but is slower */
 
 		/* Undocumented */
 		KEEPSINgletons
@@ -182,12 +183,12 @@ program Parse
 	* SAVEcache
 	* USEcache
 	* CLEARcache
-	* COMPACT /* use as little memory as possible but is slower */
 
 	* Convert options to boolean
 	if ("`verbose'" == "") loc verbose 0
 	loc timeit = ("`timeit'"!="")
-	loc drop_singletons = ("`keepsingletons'"=="")
+	loc drop_singletons = ("`keepsingletons'" == "")
+	loc compact = ("`compact'" != "")
 
 	if (`timeit') timer on 29
 
@@ -268,6 +269,15 @@ program Parse
 	mata: HDFE.base_clustervars = tokens("`base_clustervars'")
 	mata: HDFE.vceextra = "`vceextra'"
 
+	* Preserve memory
+	mata: HDFE.compact = `compact'
+	if (`compact') {
+		loc panelvar "`_dta[_TSpanel]'"
+		loc timevar "`_dta[_TStvar]'"
+		mata: HDFE.panelvar = "`panelvar'"
+		mata: HDFE.timevar = "`timevar'"
+		c_local keepvars `base_varlist' `base_clustervars' `panelvar' `timevar' // `exp'
+	}
 
 	* Parse summarize
 	if ("`summarize'" != "") {
@@ -310,6 +320,13 @@ program Estimate, eclass
 	* Parse and fill out HDFE object
 	Parse `0'
 	mata: st_local("timeit", strofreal(HDFE.timeit))
+	mata: st_local("compact", strofreal(HDFE.compact))
+
+	* Preserve
+	if (`compact') {
+		preserve
+		keep `keepvars'
+	}
 
 	* Compute degrees-of-freedom
 	if (`timeit') timer on 21
@@ -366,10 +383,20 @@ program Estimate, eclass
 	mata: hdfe_variables = HDFE.partial_out(HDFE.varlist, 1) // 1=Save TSS of first var if HDFE.tss is missing
 	if (`timeit') timer off 23
 
-	* Regress
+	* Regress (moved part of RegressOLS outside so we can run restore efficiently, after clearing hdfe_variables)
 	mata: assert_msg(HDFE.model=="ols", "You can only run OLS with reghdfe; for IV see https://github.com/sergiocorreia/ivreg2_demo")
 	if (`timeit') timer on 24
-	RegressOLS `touse'
+	tempname b V N rank df_r
+	mata: reghdfe_post_ols(HDFE, hdfe_variables, "`b'", "`V'", "`N'", "`rank'", "`df_r'")
+	mata: hdfe_variables = .
+	* Restore
+	if (`compact') {
+		restore
+		mata: HDFE.save_touse("`touse'")
+		mata: st_local("residuals", HDFE.residuals)
+		if ("`residuals'" != "") mata: HDFE.save_variable(HDFE.residuals, HDFE.residuals_vector, "Residuals")
+	}
+	RegressOLS `touse' `b' `V' `N' `rank' `df_r'
 	if (`timeit') timer off 24
 
 	* (optional) Store FEs
@@ -403,17 +430,12 @@ end
 
 
 program RegressOLS, eclass
-	args touse
+	args touse b V N rank df_r
 
-	tempname b V N rank df_r
-	mata: reghdfe_post_ols(HDFE, hdfe_variables, "`b'", "`V'", "`N'", "`rank'", "`df_r'")
-	mata: st_local("indepvars", HDFE.fullindepvars)
-	mata: hdfe_variables = .
-
-	loc esample
 	mata: st_local("store_sample", strofreal(HDFE.store_sample))
 	if (`store_sample') loc esample "esample(`touse')"
 	
+	mata: st_local("indepvars", HDFE.fullindepvars)
 	if ("`indepvars'" != "") {
 		matrix colnames `b' = `indepvars'
 		matrix colnames `V' = `indepvars'
