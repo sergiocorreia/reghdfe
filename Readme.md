@@ -109,9 +109,9 @@ ssc install reghdfe
 
 To install `reghdfe` to a firewalled server, you need to download these zip files by hand and extract them:
 
-- `ftools`[https://codeload.github.com/sergiocorreia/ftools/zip/master]
-- `reghdfe`[https://codeload.github.com/sergiocorreia/reghdfe/zip/master]
-- `ivreghdfe`[https://codeload.github.com/sergiocorreia/ivreghdfe/zip/master]
+- `ftools`(https://codeload.github.com/sergiocorreia/ftools/zip/master)
+- `reghdfe`(https://codeload.github.com/sergiocorreia/reghdfe/zip/master)
+- `ivreghdfe`(https://codeload.github.com/sergiocorreia/ivreghdfe/zip/master)
 
 Then, run the following, adjusting the folder names:
 
