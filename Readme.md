@@ -10,13 +10,13 @@
 * **version 5.1 08jul2018**:
     - Added the `compact` and `poolsize(#)` options, to reduce memory usage. This can reduce reghdfe's memory usage by up to 5x-10x, at a slight speed cost.
     - Automatically check that the installed version of ftools is not too old.
-* **version 5.0 29jun2018**: three major changes:
+* **version 5.0 29jun2018**:
     - Added support for `basevar`. This is not very useful by itself but makes some postestimation packages (`coefplot`) easier to use
     - Added support for `margins` postestimation command.
     - Added `_cons` row to output table, so the intercept is reported (as in regress/xtreg/areg). The `noconstant` option disables this, but doing so might make the output of `margin` incorrect.
     - `predict, xb` now includes the value of `_cons`, which before was included in `predict, d`.
 
-- **version 4.4.x (11sep2017-)**:
+- **version 4.4 11sep2017**:
     - Performance: speedup when [using weights](https://github.com/sergiocorreia/reghdfe/commit/027f31aaafd78074e14826ae5292d8149835bac9), [reduced memory usage](https://github.com/sergiocorreia/reghdfe/commit/0074319f2197841e3436254290c06b63218525cb), [improve convergence detection](https://github.com/sergiocorreia/reghdfe/commit/e86ebdd20bcb0d3878f789194abd5a6aaa7ffd5a)
     - Bugfixes: [`summarize` option](https://github.com/sergiocorreia/reghdfe/commit/ee2ee1743da3d05cb74a2e69092dc7fc811c8df4) was using full sample instead of regression sample, [fixed](https://github.com/sergiocorreia/reghdfe/commit/44fc64645aca8446a96206f5ca876efb92590e9c) a recent bug that failed to detect when FEs were  nested within clusters
     - Mata: refactor Mata internals and add their description to `help reghdfe_mata`; clean up warning messages
