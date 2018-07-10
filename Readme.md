@@ -1,18 +1,23 @@
 # REGHDFE: Linear Regressions With Multiple Fixed Effects
 
+- Current version: ` 5.1.2 08jul2018`
+- Jump to: [`news`](#recent-updates) [`citation`](#citation) [`install`](#install) [`manual install`](#manual-install) [`description`](#description)
+
+-----------
+
 ## Recent Updates
 
 * **version 5.1 08jul2018**:
-    - Added support for `compact` and `poolsize(#)` options. These existed previously (on reghdfe 2.x) and allow a much lower memory usage (on a simple exercise, default reghdfe increased memory up to 4.8x at peak, which was reduced to 2.0x with the `compact pool(2)` options)
+    - Added the `compact` and `poolsize(#)` options, to reduce memory usage. This can reduce reghdfe's memory usage by up to 5x-10x, at a slight speed cost.
+    - Automatically check that the installed version of ftools is not too old.
 * **version 5.0 29jun2018**: three major changes:
-    - Added support for `margins`
-    - Estimates for `_cons` are now reported by default (noconstant disables them, but shouldn't not be used followed by`margins`).
-    - `predict, xb` now includes `_cons`, which before was included in `predict, d`
     - Added support for `basevar`. This is not very useful by itself but makes some postestimation packages (`coefplot`) easier to use
+    - Added support for `margins` postestimation command.
+    - Added `_cons` row to output table, so the intercept is reported (as in regress/xtreg/areg). The `noconstant` option disables this, but doing so might make the output of `margin` incorrect.
+    - `predict, xb` now includes the value of `_cons`, which before was included in `predict, d`.
 
-- **version 4.4.x (11sep2017-)**, major changes include:
+- **version 4.4.x (11sep2017-)**:
     - Performance: speedup when [using weights](https://github.com/sergiocorreia/reghdfe/commit/027f31aaafd78074e14826ae5292d8149835bac9), [reduced memory usage](https://github.com/sergiocorreia/reghdfe/commit/0074319f2197841e3436254290c06b63218525cb), [improve convergence detection](https://github.com/sergiocorreia/reghdfe/commit/e86ebdd20bcb0d3878f789194abd5a6aaa7ffd5a)
-    - Added experimental [`constant` option](https://github.com/sergiocorreia/reghdfe/commit/2ce9da9feae585fe99478f53058980e3cb162a76) that gives the coefficient for `_cons`, as with areg/xtreg.
     - Bugfixes: [`summarize` option](https://github.com/sergiocorreia/reghdfe/commit/ee2ee1743da3d05cb74a2e69092dc7fc811c8df4) was using full sample instead of regression sample, [fixed](https://github.com/sergiocorreia/reghdfe/commit/44fc64645aca8446a96206f5ca876efb92590e9c) a recent bug that failed to detect when FEs were  nested within clusters
     - Mata: refactor Mata internals and add their description to `help reghdfe_mata`; clean up warning messages
     - Poisson/PPML HDFE: extend Mata internals so we can e.g. change weights without creating an entirely new object. This is mostly to speed up the `ppmlhdfe` package.
@@ -27,15 +32,13 @@
 ####  Things to be aware of:
 
 - `reghdfe` now depends on the `ftools` package (and `boottest` for Stata 12 and older)
-- IV/GMM is not done directly with `reghdfe` but through `ivreg2`. See [this port](https://github.com/sergiocorreia/ivreg2_demo/), which adds an `absorb()` option to `ivreg2`.
+- IV/GMM is not done directly with `reghdfe` but through `ivreg2`. See [this port](https://github.com/sergiocorreia/ivreghdfe/), which adds an `absorb()` option to `ivreg2`. This is also useful for using more advanced standard error estimates, which `ivreg2` supports.
 - If you use commands that depend on reghdfe (`regife`, `poi2hdfe`, `ppml_panel_sg`, etc.), check that they have been updated before using the new version of reghdfe.
 - Some options are not yet fully supported. They include `cache` and `groupvar`.
 - The previous stable release (3.2.9 21feb2016) can be accessed with the `old` option
 
 #### Future/possible updates
 
-- Reduce memory usage. This is done by loading and processing the data by parts into Mata.
-- Improve inference with more robust VCE options (`avar` package)
 - Add back group3hdfe option
 
 ## Citation
@@ -64,39 +67,68 @@ If you use it, please cite either the paper and/or the command's RePEc citation:
 
 To find out which version you have installed, type `reghdfe, version`.
 
-`reghdfe` 4.x is not yet in SSC. To quickly install it and all its dependencies, copy/paste these lines and run them:
+`reghdfe` 5.x is not yet in SSC. To quickly install it and all its dependencies, copy/paste these lines and run them:
 
 ```stata
-cap ado uninstall moresyntax
+* Install ftools (remove program if it existed previously)
 cap ado uninstall ftools
-net install ftools, from("https://github.com/sergiocorreia/ftools/raw/master/src/")
+net install ftools, from("https://raw.githubusercontent.com/sergiocorreia/ftools/master/src/")
 
+* Install reghdfe 4.x
 cap ado uninstall reghdfe
-net install reghdfe, from("https://github.com/sergiocorreia/reghdfe/raw/master/src/")
+net install reghdfe, from("https://raw.githubusercontent.com/sergiocorreia/reghdfe/master/src/")
 
+* Install boottest for Stata 11 and 12
 if (c(version)<13) cap ado uninstall boottest
 if (c(version)<13) ssc install boottest
 
+* Install moremata (sometimes used by ftools but not needed for reghdfe)
 cap ssc install moremata
+
+ftools, compile
+reghdfe, compile
 ```
 
-To run IV/GMM regressions, run these lines:
+To run IV/GMM regressions with `ivreghdfe`, also run these lines:
 
-```stata
+```
 cap ado uninstall ivreg2hdfe
-cap ssc install ivreg2
-net install ivreg2hdfe, from("https://github.com/sergiocorreia/ivreg2_demo/raw/master/")
+cap ado uninstall ivreghdfe
+cap ssc install ivreg2 // Install ivreg2, the core package
+net install ivreghdfe, from(https://raw.githubusercontent.com/sergiocorreia/ivreghdfe/master/src/)
 ```
 
-To install the stable version from SSC (3.x):
+Alternatively, you can install the stable/older version from SSC (3.x):
 
 ```stata
 cap ado uninstall reghdfe
 ssc install reghdfe
 ```
 
+## Manual Install:
+
+To install `reghdfe` to a firewalled server, you need to download these zip files by hand and extract them:
+
+- `ftools`[https://codeload.github.com/sergiocorreia/ftools/zip/master]
+- `reghdfe`[https://codeload.github.com/sergiocorreia/reghdfe/zip/master]
+- `ivreghdfe`[https://codeload.github.com/sergiocorreia/ivreghdfe/zip/master]
+
+Then, run the following, adjusting the folder names:
+
+```
+cap ado uninstall ftools
+cap ado uninstall reghdfe
+cap ado uninstall ivreghdfe
+net install ftools, from(c:\git\ftools)
+net install reghdfe, from(c:\git\reghdfe)
+net install ivreghdfe, from(c:\git\ivreghdfe)
+ftools, compile
+reghdfe, compile
+```
 
 ------------------------------------------
+
+## Description
 
 `reghdfe` is a [Stata](http://www.stata.com/) package that estimates linear regressions with multiple levels of fixed effects. It works as a generalization of the built-in `areg`, `xtreg,fe` and `xtivreg,fe` regression commands. It's objectives are similar to the R package [lfe](http://cran.r-project.org/web/packages/lfe/index.html) by Simen Gaure and to the Julia package [FixedEffectModels](https://github.com/matthieugomez/FixedEffectModels.jl) by Matthieu Gomez (beta). It's features include:
 
