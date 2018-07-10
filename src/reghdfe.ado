@@ -43,9 +43,11 @@ end
 
 program Compile
 	args force
+	
+	* Check dependencies
 	ftools, check // in case lftools.mlib does not exist or is outdated
+	ms_get_version ftools, min_version("2.28.1")
 	ms_get_version reghdfe // save local package_version
-
 	loc list_objects "FixedEffects() fixed_effects() BipartiteGraph()"
 	loc list_functions "reghdfe_*() transform_*() accelerate_*() panelmean() panelsolve_*() lsmr()"
 	loc list_misc "weighted_quadcolsum() safe_divide() check_convergence() precompute_inv_xx()"

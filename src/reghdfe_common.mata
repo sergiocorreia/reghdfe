@@ -160,7 +160,7 @@ mata:
 		if (S.verbose > 1) printf("\n{txt}## Adding base variables to varlist\n")
 		k = cols(S.not_basevar)
 		assert_msg(cols(S.not_basevar) == k, "cols(S.not_basevar) == k")
-		idx = selectindex(S.not_basevar)
+		idx = `selectindex'(S.not_basevar)
 		swap(b, temp_b)
 		swap(V, temp_V)
 		b = J(k, 1, 0)
