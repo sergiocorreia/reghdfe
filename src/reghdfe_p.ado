@@ -13,7 +13,6 @@ program define reghdfe_p, rclass
 		loc 0 `s(varlist)' `if' `in' , residuals
 	}
 
-
 	syntax newvarname [if] [in] [, XB STDP Residuals D XBD DResiduals]
 
 	* Ensure there is only one option
@@ -25,6 +24,8 @@ program define reghdfe_p, rclass
 		di as text "(option xb assumed; fitted values)"
 		loc xb "xb"
 	}
+
+	local fixed_effects "`e(absvars)'"
 
 	* Except for xb and stdp, we need the previously computed residuals
 	if ("`xb'" == "" & "`stdp'" == "") {
@@ -47,10 +48,12 @@ program define reghdfe_p, rclass
 		tempvar xb
 		PredictXB `xb' `if' `in', xb
 		gen double `varlist' = `e(depvar)' -  `xb' - `e(resid)' `if' `in'
+		la var `varlist' "d[`fixed_effects']"
 	}
 	else if ("`xbd'" != "") {
 		* xbd: y - resid
 		gen double `varlist' = `e(depvar)' - `e(resid)' `if' `in'
+		la var `varlist' "Xb + d[`fixed_effects']"
 	}
 	else if ("`dresiduals'" != "") {
 		* dresid:	y - xb
