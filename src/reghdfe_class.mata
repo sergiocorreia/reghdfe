@@ -464,7 +464,8 @@ class FixedEffects
 `Void' FixedEffects::_partial_out(`Variables' y,
                                 | `Boolean' save_tss,
                                   `Boolean' standardize_data,
-                                  `Boolean' first_is_depvar)
+                                  `Boolean' first_is_depvar,
+                                  `Boolean' flush)
 {
     `RowVector'             stdevs, needs_zeroing, kept2
     `FunctionP'             funct_transform, func_accel // transform
@@ -477,6 +478,12 @@ class FixedEffects
     if (args()<2 | save_tss==.) save_tss = 0
     if (args()<3 | standardize_data==.) standardize_data = 1
     if (args()<4 | first_is_depvar==.) first_is_depvar = 1
+    if (args()<5 | flush==.) flush = 0 // whether or not to flush the values of means & kept
+
+    if (flush) {
+        means = J(1, 0, .)
+        kept = J(1, 0, .)
+    }
 
     // Solver Warnings
     if (transform=="kaczmarz" & acceleration=="conjugate_gradient") {

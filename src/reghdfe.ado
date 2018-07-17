@@ -1,4 +1,4 @@
-*! version 5.1.2 08jul2018
+*! version 5.1.3 17jul2018
 
 program reghdfe, eclass
 	* Intercept old+version

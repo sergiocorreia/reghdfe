@@ -227,7 +227,7 @@ mata:
 
 	if (S.vcetype == "unadjusted" & S.weight_type=="pweight") S.vcetype = "robust"
 	if (S.verbose > 0) printf("\n{txt}## Solving least-squares regression of partialled-out variables\n\n")
-	assert(anyof( ("vce_none", "vce_small", "vce_asymptotic") , vce_mode))
+	assert_in(vce_mode, ("vce_none", "vce_small", "vce_asymptotic"))
 
 	// Weight FAQ:
 	// - fweight: obs. i represents w[i] duplicate obs. (there is no loss of info wrt to having the "full" dataset)
