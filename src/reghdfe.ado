@@ -1,4 +1,4 @@
-*! version 5.1.3 17jul2018
+*! version 5.2.0 17jul2018
 
 program reghdfe, eclass
 	* Intercept old+version
@@ -46,11 +46,11 @@ program Compile
 	
 	* Check dependencies
 	ftools, check // in case lftools.mlib does not exist or is outdated
-	ms_get_version ftools, min_version("2.28.1")
+	ms_get_version ftools, min_version("2.30.0")
 	ms_get_version reghdfe // save local package_version
 	loc list_objects "FixedEffects() fixed_effects() BipartiteGraph()"
 	loc list_functions "reghdfe_*() transform_*() accelerate_*() panelmean() panelsolve_*() lsmr()"
-	loc list_misc "weighted_quadcolsum() safe_divide() check_convergence() precompute_inv_xx()"
+	loc list_misc "weighted_quadcolsum() safe_divide() check_convergence() precompute_inv_xx() st_data_wrapper()"
 	// TODO: prefix everything with reghdfe_*
 
 	ms_compile_mata, ///
@@ -155,7 +155,7 @@ program Parse
 
 	* Main syntax
 	#d;
-	syntax anything(id=varlist equalok) [if] [in] [aw pw fw/] , [
+	syntax varlist(fv ts numeric) [if] [in] [aw pw fw/] , [
 
 		/* Model */
 		Absorb(string) NOAbsorb
@@ -206,14 +206,13 @@ program Parse
 		loc cluster // clear it to avoid bugs in subsequent lines
 	}
 
-	* Parse Varlist
-	ms_parse_varlist `anything'
-	loc base_varlist "`r(basevars)'"
-	foreach cat in depvar indepvars endogvars instruments {
-		loc original_`cat' "`r(`cat')'"
-	}
-	loc model = cond("`r(instruments)'" == "", "ols", "iv")
-	loc original_varlist = "`r(varlist)'" // no parens or equal sign
+	* Split varlist into <depvar> and <indepvars>
+	ms_parse_varlist `varlist'
+	if (`verbose' > 0) return list
+	loc depvar `r(depvar)'
+	loc indepvars `r(indepvars)'
+	loc fe_format "`r(fe_format)'"
+	loc basevars `r(basevars)'
 
 	* Parse Weights
 	if ("`weight'"!="") {
@@ -229,7 +228,7 @@ program Parse
 	loc vceextra = "`s(vceextra)'"
 
 	* Select sample (except for absvars)
-	loc varlist `original_varlist' `base_clustervars'
+	loc varlist `depvar' `indepvars' `base_clustervars'
 	tempvar touse
 	marksample touse, strok // based on varlist + cluster + if + in + weight
 
@@ -257,14 +256,9 @@ program Parse
 	if (`N' == 0) error 2000
 
 	* Fill out HDFE object
-	mata: HDFE.varlist = "`base_varlist'"
-	mata: HDFE.original_depvar = "`original_depvar'"
-	mata: HDFE.original_indepvars = "`original_indepvars'"
-	mata: HDFE.original_endogvars = "`original_endogvars'"
-	mata: HDFE.original_instruments = "`original_instruments'"
-	mata: HDFE.original_varlist = "`original_varlist'"
-	mata: HDFE.model = "`model'"
-
+	* mata: HDFE.varlist = "`base_varlist'"
+	mata: HDFE.depvar = "`depvar'"
+	mata: HDFE.indepvars = "`indepvars'"
 	mata: HDFE.vcetype = "`vcetype'"
 	mata: HDFE.num_clusters = `num_clusters'
 	mata: HDFE.clustervars = tokens("`clustervars'")
@@ -278,7 +272,7 @@ program Parse
 		loc timevar "`_dta[_TStvar]'"
 		mata: HDFE.panelvar = "`panelvar'"
 		mata: HDFE.timevar = "`timevar'"
-		c_local keepvars `base_varlist' `base_clustervars' `panelvar' `timevar' // `exp'
+		c_local keepvars `basevars' `base_clustervars' `panelvar' `timevar' // `exp'
 	}
 
 	* Parse summarize
@@ -339,38 +333,15 @@ program Estimate, eclass
 
 	* Expand varlists
 	if (`timeit') timer on 22
-	foreach cat in /*varlist*/ depvar indepvars endogvars instruments {
-		mata: st_local("vars", HDFE.original_`cat')
-		if ("`vars'" == "") continue
-
-		loc varlist
-		// Expand (need to do it after the dataset has been reduced in size)
-		loc 0 `vars' if `touse'
-		syntax varlist(ts fv numeric) if
-		//di as error "VAR1=<`vars'>"
-		//di as error "VAR2=<`varlist'>"
-
-		// HACK: addbn replaces 0.foreign with 0bn.foreign , to prevent st_data() from loading a bunch of zeros
-		ms_fvstrip `varlist' if `touse', expand dropomit addbn  // onebyone
-		// If we don't use onebyone, then 1.x 2.x ends up as 2.x
-		loc varlist "`r(varlist)'"
-		//di as error "VAR3=<`varlist'>"
-		loc allvars `allvars' `varlist'
-		mata: HDFE.`cat' = "`varlist'"
-
-		if (`verbose' > 0) {
-			di as text _n "## Parsing and expanding `cat': {res}`vars'"
-			return list // output from ms_fvstrip
-		}
-
-		if ("`cat'" == "indepvars") {
-			mata: HDFE.fullindepvars = "`r(fullvarlist)'"
-			mata: HDFE.not_basevar = strtoreal(tokens("`r(nobase)'"))
-		}
-
-		loc varlist // (optional) clear it up to prevent bugs
-	}
-	mata: HDFE.varlist = "`allvars'"
+	mata: st_local("depvar", HDFE.depvar)
+	mata: st_local("indepvars", HDFE.indepvars)
+	if (`verbose' > 0) di as text _n "## Parsing and expanding indepvars: {res}`indepvars'"
+	ms_expand_varlist `indepvars' if `touse'
+	if (`verbose' > 0) return list
+	mata: HDFE.fullindepvars = "`r(fullvarlist)'"
+	mata: HDFE.indepvars = "`r(varlist)'"
+	mata: HDFE.not_basevar = strtoreal(tokens("`r(not_omitted)'"))
+	mata: HDFE.varlist = "`depvar' `r(varlist)'"
 	if (`timeit') timer off 22
 
 	* Stats
@@ -392,8 +363,7 @@ program Estimate, eclass
 	mata: hdfe_variables = HDFE.partial_out(HDFE.varlist, 1) // 1=Save TSS of first var if HDFE.tss is missing
 	if (`timeit') timer off 23
 
-	* Regress (moved part of RegressOLS outside so we can run restore efficiently, after clearing hdfe_variables)
-	mata: assert_msg(HDFE.model=="ols", "You can only run OLS with reghdfe; for IV see https://github.com/sergiocorreia/ivreg2_demo")
+	* Regress
 	if (`timeit') timer on 24
 	tempname b V N rank df_r
 	mata: reghdfe_post_ols(HDFE, hdfe_variables, "`b'", "`V'", "`N'", "`rank'", "`df_r'")
@@ -416,18 +386,6 @@ program Estimate, eclass
 	* View estimation tables
 	mata: st_local("diopts", HDFE.diopts)
 	Replay, `diopts'
-
-	// ~~ Preserve relevant dataset ~~-
-	// 
-	// if (`compact') {
-	// 	preserve
-	// 	keep `varlist' `absorb'
-	// 	loc N = c(N)
-	// }
-	// else {
-	// 	qui cou if `touse'
-	// 	loc N = r(N)
-	// }
 
 	if (`timeit') {
 		di as text _n "{bf: Timer results:}"

@@ -314,7 +314,7 @@ class FixedEffects
             if (verbose > 0) printf("\n{txt}## Partialling out %g variables: {res}%s{txt}\n\n", cols(vars), invtokens(vars))
             if (verbose > 0) printf("{txt}   - Loading variables into Mata\n")
             if (timeit) timer_on(50)
-            y = st_data(sample, invtokens(vars))
+            y = st_data_wrapper(sample, invtokens(vars))
             if (timeit) timer_off(50)
 
             // Workaround to odd Stata quirk
@@ -366,7 +366,7 @@ class FixedEffects
         if (j>k) j = k
 
         // Load data
-        part_y = st_data(sample, vars[i..j])
+        part_y = st_data_wrapper(sample, vars[i..j])
 
         if (cols(part_y) > j - i + 1) {
             printf("{err}(some empty columns were added due to a bug/quirk in {bf:st_data()}; running slower workaround)\n")

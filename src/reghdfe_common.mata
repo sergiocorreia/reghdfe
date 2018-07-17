@@ -17,6 +17,29 @@ mata:
 
 
 // --------------------------------------------------------------------------
+// Partial workaround to st_data's odd behavior
+// --------------------------------------------------------------------------
+// Example of the issue:
+// 	sysuse auto, clear
+//	mata: cols(st_data(., "1.rep78 2.rep78 3.rep78#1.foreign")) // expected 3, got 6
+// Happens b/c st_data doesn't work variable by variable but expands the interactions
+// We can partly fix it by surrounding interactions with parens
+// But st_data() only supports up to 4 parens
+
+`Variables' st_data_wrapper(`Variables' index, `StringRowVector' vars)
+{
+	`RowVector' is_interaction
+	`StringRowVector' fixed_vars
+	vars = tokens(invtokens(vars))
+	is_interaction = strpos(vars, "#") :> 0
+	is_interaction = is_interaction :& (runningsum(is_interaction) :<= 4)
+	fixed_vars = subinstr(strofreal(is_interaction), "0", "")
+	fixed_vars = subinstr(fixed_vars, "1", "(") :+ vars :+ subinstr(fixed_vars, "1", ")")
+	return(st_data(index, fixed_vars))
+}
+	
+
+// --------------------------------------------------------------------------
 // Each col of A will have stdev of 1 unless stdev is quite close to 0
 // --------------------------------------------------------------------------
 `RowVector' function reghdfe_standardize(`Matrix' A)
