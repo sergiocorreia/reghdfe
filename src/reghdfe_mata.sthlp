@@ -172,16 +172,9 @@ Then you can modify the object and add important properties:
 {synopthdr:properties (regression-specific)}
 {synoptline}
 
-{synopt:{it:String} {cmd:original_varlist}}y x1 x2 (x3 x4 = z1 z2 z3){p_end}
 {synopt:{it:String} {cmd:varlist}}y x1 x2 x3 x4 z1 z2 z3{p_end}
-{synopt:{it:String} {cmd:original_depvar}}{p_end}
-{synopt:{it:String} {cmd:original_indepvars}}{p_end}
-{synopt:{it:String} {cmd:original_endogvars}}{p_end}
-{synopt:{it:String} {cmd:original_instruments}}{p_end}
 {synopt:{it:String} {cmd:depvar}}y{p_end}
 {synopt:{it:String} {cmd:indepvars}}x1 x2{p_end}
-{synopt:{it:String} {cmd:endogvars}}x3 x4{p_end}
-{synopt:{it:String} {cmd:instruments}}z1 z2 z3{p_end}
     
 {synopt:{it:Boolean} {cmd:drop_singletons}}{p_end}
 {synopt:{it:String} {cmd:absorb}}contents of absorb(){p_end}

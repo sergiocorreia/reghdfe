@@ -92,16 +92,9 @@ class FixedEffects
     `String'                vceextra
 
     // Regression-specific
-    `String'                original_varlist    // y x1 x2 (x3 x4 = z1 z2 z3)
-    `String'                varlist             // y x1 x2 x3 x4 z1 z2 z3
-    `String'                original_depvar
-    `String'                original_indepvars
-    `String'                original_endogvars
-    `String'                original_instruments
+    `String'                varlist             // y x1 x2 x3
     `String'                depvar              // y
-    `String'                indepvars           // x1 x2
-    `String'                endogvars           // x3 x4
-    `String'                instruments         // z1 z2 z3
+    `String'                indepvars           // x1 x2 x3
     `String'                tousevar
     
     `Boolean'               drop_singletons
@@ -1100,14 +1093,7 @@ class FixedEffects
     // Fill out new object with values of current one
     ans.depvar = this.depvar
     ans.indepvars = this.indepvars
-    ans.endogvars = this.endogvars
-    ans.instruments = this.instruments
     ans.varlist = this.varlist
-    ans.original_depvar = this.original_depvar
-    ans.original_indepvars = this.original_indepvars
-    ans.original_endogvars = this.original_endogvars
-    ans.original_instruments = this.original_instruments
-    ans.original_varlist = this.original_varlist
     ans.model = this.model
     ans.vcetype = this.vcetype
     ans.num_clusters = this.num_clusters
