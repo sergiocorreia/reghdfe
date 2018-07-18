@@ -711,8 +711,6 @@ on the other hand, there may be alternatives:
 {synopt:{cmd:e(dofmethod)}}dofmethod employed in the regression{p_end}
 {synopt:{cmd:e(depvar)}}name of dependent variable{p_end}
 {synopt:{cmd:e(indepvars)}}names of independent variables{p_end}
-{synopt:{cmd:e(endogvars)}}names of endogenous right-hand-side variables{p_end}
-{synopt:{cmd:e(instruments)}}names of excluded instruments{p_end}
 {synopt:{cmd:e(absvars)}}name of the absorbed variables or interactions{p_end}
 {synopt:{cmd:e(title)}}title in estimation output{p_end}
 {synopt:{cmd:e(clustvar)}}name of cluster variable{p_end}

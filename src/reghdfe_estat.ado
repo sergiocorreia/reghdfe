@@ -12,10 +12,10 @@ program reghdfe_estat, rclass
 		local 0 `rest'
 		syntax [anything] , [*] [noheader] // -noheader- gets silently ignored b/c it will always be -on-
 
-		if ("`anything'"=="") {
-			* By default include the instruments
-			local anything // `e(depvar)' `e(indepvars)' `e(endogvars)' `e(instruments)'
-		}
+		**if ("`anything'"=="") {
+		**	* By default include the instruments
+		**	local anything // `e(depvar)' `e(indepvars)' `e(endogvars)' `e(instruments)'
+		**}
 
 		* Need to use -noheader- as a workaround to the bug in -estat_summ-
 		estat_summ `anything' , `options' noheader

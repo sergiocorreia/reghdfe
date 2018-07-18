@@ -166,6 +166,27 @@ local included_e ///
 	storedresults drop benchmark
 
 
+* [TEST] Simpler version of: https://github.com/sergiocorreia/reghdfe/issues/43
+	
+	sysuse nlsw88.dta, clear
+
+	* 1) Benchmark
+	areg wage i.industry, a(race)
+	matrix list e(b)
+	local bench_df_a = e(df_a)
+	storedresults save benchmark e()
+	
+	* 2) Reghdfe
+	reghdfe wage i.industry, a(race) keepsing // v(-1)
+	storedresults compare benchmark e(), tol(1e-9) include(`included_e')
+	assert `bench_df_a'==e(df_a)-1
+
+	* 3) Cleanup
+	storedresults drop benchmark
+
+
+
+
 * [TEST] https://github.com/sergiocorreia/reghdfe/issues/43
 	
 	sysuse nlsw88.dta, clear

@@ -17,8 +17,13 @@ mata:
 
 
 // --------------------------------------------------------------------------
-// Partial workaround to st_data's odd behavior
+// Workaround to st_data's odd behavior
 // --------------------------------------------------------------------------
+// This does three things:
+// 1) Wrap up interactions in parens (up to four) to avoid Stata's quirk/bug
+// 2) If issue persists, load columns one-by-one
+// 1) Instead of returning it reuses existing matrices (might use less mem?)
+//
 // Example of the issue:
 // 	sysuse auto, clear
 //	mata: cols(st_data(., "1.rep78 2.rep78 3.rep78#1.foreign")) // expected 3, got 6
@@ -26,16 +31,30 @@ mata:
 // We can partly fix it by surrounding interactions with parens
 // But st_data() only supports up to 4 parens
 
-`Variables' st_data_wrapper(`Variables' index, `StringRowVector' vars)
+
+`Void' _st_data_wrapper(`Variables' index, `StringRowVector' vars, `Variables' data, `Boolean' verbose)
 {
-	`RowVector' is_interaction
-	`StringRowVector' fixed_vars
+	`RowVector'			is_interaction
+	`StringRowVector'	fixed_vars
+	`Integer'			i, k
+
 	vars = tokens(invtokens(vars))
 	is_interaction = strpos(vars, "#") :> 0
 	is_interaction = is_interaction :& (runningsum(is_interaction) :<= 4)
 	fixed_vars = subinstr(strofreal(is_interaction), "0", "")
 	fixed_vars = subinstr(fixed_vars, "1", "(") :+ vars :+ subinstr(fixed_vars, "1", ")")
-	return(st_data(index, fixed_vars))
+
+	data = st_data(index, fixed_vars)
+	k = cols(vars)
+
+	if (cols(data) > k) {
+	    if (verbose) printf("{err}(some empty columns were added due to a bug/quirk in {bf:st_data()}; %g cols created instead of %g for {it:%s}; running slower workaround)\n", cols(data), k, vars)
+	    data = J(rows(data), 0, .)
+	    for (i=1; i<=k; i++) {
+	        data = data, st_data(index, vars[i])
+	    }
+	}
+	assert(cols(data)==k)
 }
 	
 
