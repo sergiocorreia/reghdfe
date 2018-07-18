@@ -1110,6 +1110,9 @@ class FixedEffects
 	ans.fullindepvars = this.indepvars
 	ans.not_basevar = this.not_basevar
 
+	ans.compute_constant = this.compute_constant
+	ans.report_constant = this.report_constant
+
 	return(ans)
 }
 
