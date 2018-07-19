@@ -48,7 +48,7 @@ mata:
 	k = cols(vars)
 
 	if (cols(data) > k) {
-	    if (verbose) printf("{err}(some empty columns were added due to a bug/quirk in {bf:st_data()}; %g cols created instead of %g for {it:%s}; running slower workaround)\n", cols(data), k, vars)
+	    if (verbose > 0) printf("{err}(some empty columns were added due to a bug/quirk in {bf:st_data()}; %g cols created instead of %g for {it:%s}; running slower workaround)\n", cols(data), k, invtokens(vars))
 	    data = J(rows(data), 0, .)
 	    for (i=1; i<=k; i++) {
 	        data = data, st_data(index, vars[i])
