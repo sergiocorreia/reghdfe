@@ -208,7 +208,10 @@ program Parse
 
 	* Split varlist into <depvar> and <indepvars>
 	ms_parse_varlist `varlist'
-	if (`verbose' > 0) return list
+	if (`verbose' > 0) {
+		di as text _n "## Parsing varlist: {res}`varlist'"
+		return list
+	}
 	loc depvar `r(depvar)'
 	loc indepvars `r(indepvars)'
 	loc fe_format "`r(fe_format)'"
@@ -221,6 +224,10 @@ program Parse
 
 	* Parse VCE
 	ms_parse_vce, vce(`vce') weighttype(`weight')
+	if (`verbose' > 0) {
+		di as text _n "## Parsing vce({res}`vce'{txt})"
+		sreturn list
+	}
 	loc vcetype = "`s(vcetype)'"
 	loc num_clusters = `s(num_clusters)'
 	loc clustervars = "`s(clustervars)'"
