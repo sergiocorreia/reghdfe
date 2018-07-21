@@ -895,8 +895,7 @@ class FixedEffects
 	if (verbose > 0) printf("\n{txt}## Saving e(sample)\n")
 
 	// Compute dummy vector
-	mask = J(st_nobs(), 1, 0)
-	mask[sample] = J(rows(sample), 1, 1)
+	mask = create_mask(st_nobs, 0, sample, 1)
 
 	// Save vector as variable
 	if (replace) {
@@ -915,7 +914,6 @@ class FixedEffects
 {
 	`RowVector'               idx
 	`Integer'               i
-	`Vector'                mask
 	idx = st_addvar("double", tokens(varname))
 	st_store(sample, idx, data)
 	if (args()>=3 & varlabel!="") {
