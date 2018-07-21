@@ -895,7 +895,7 @@ class FixedEffects
 	if (verbose > 0) printf("\n{txt}## Saving e(sample)\n")
 
 	// Compute dummy vector
-	mask = create_mask(st_nobs, 0, sample, 1)
+	mask = create_mask(st_nobs(), 0, sample, 1)
 
 	// Save vector as variable
 	if (replace) {
