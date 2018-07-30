@@ -735,11 +735,12 @@ mata:
 	// 2) To recover variance ("full_inv_xx")
 	//	  apply formula for inverse of partitioned symmetric matrix
 	//    http://fourier.eng.hmc.edu/e161/lectures/gaussianprocess/node6.html
+	//    http://www.cs.nthu.edu.tw/~jang/book/addenda/matinv/matinv/
 	//
 	//    Given A = [X'X X'1]		B = [B11 B21']		B = inv(A)
 	//              [1'X 1'1]			[B21 B22 ]
 	//
-	//	  B11 is just inv(xx)
+	//	  B11 is just inv(xx) (because of Frisch-Waugh)
 	//	  B21 ("side") = means * B11
 	//	  B22 ("corner") = 1 / sumweights * (1 - side * means')
 	//
@@ -753,8 +754,8 @@ mata:
 
 	means_x = cols(means) > 1 ? means[2..cols(means)] : J(1, 0, .)
 	b = b \ means[1] - means_x * b // means * (1 \ -b)
+	corner = (1 / N) + means_x * inv_xx * means_x'
 	side = - means_x * inv_xx
-	corner = 1 / N - side * means_x'
 	inv_xx = (inv_xx , side' \ side , corner)
 
 }
