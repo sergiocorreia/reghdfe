@@ -259,7 +259,7 @@ mata:
                                   `String' vce_mode)
 {
 	// Hack: the first col of X is actually y!
-	`Integer'				K, KK
+	`Integer'				K, KK, tmp_N
 	`Matrix'				xx, inv_xx, W, inv_V, just_X
 	`Vector' 				w
 	`Integer'				used_df_r
@@ -343,35 +343,9 @@ mata:
 	resid = X * (1 \ -b) // y - X * b
 	if (S.timeit) timer_off(92)
 
-	// How to add back _cons:
-	// 1) To recover coefficient, apply "regression through means formula":
-	//	  b0 = mean(y) - mean(x) * b1
-
-	// 2) To recover variance ("full_inv_xx")
-	//	  apply formula for inverse of partitioned symmetric matrix
-	//    http://fourier.eng.hmc.edu/e161/lectures/gaussianprocess/node6.html
-	//
-	//    Given A = [X'X X'1]		B = [B11 B21']		B = inv(A)
-	//              [1'X 1'1]			[B21 B22 ]
-	//
-	//	  B11 is just inv(xx)
-	//	  B21 ("side") = means * B11
-	//	  B22 ("corner") = 1 / sumweights * (1 - side * means')
-	//
-	//	- Note that means is NOT A12, but A12/N or A12 / (sum_weights)
-
 	if (S.compute_constant) {
-		means_x = cols(S.means) > 1 ? S.means[2..cols(S.means)] : J(1, 0, .)
-		b = b \ S.means[1] - means_x * b // S.means * (1 \ -b)
-		side = - means_x * inv_xx
-		if (S.weight_type=="aweight" | S.weight_type=="pweight") {
-			// aw and pw (and unweighted) just use normal weights
-			corner = 1 / N - side * means_x'
-		}
-		else {
-			corner = 1 / S.sumweights - side * means_x'
-		}
-		inv_xx = (inv_xx , side' \ side , corner)
+		tmp_N = (S.weight_type=="aweight" | S.weight_type=="pweight") ? N : S.sumweights
+		reghdfe_extend_b_and_inv_xx(S.means, tmp_N, b, inv_xx)
 	}
 
 	// Stop if no VCE/R2/RSS needed
@@ -742,6 +716,47 @@ mata:
 	if (cols(vl_drop)) st_global("r(omitted)", invtokens(vl_drop))
 	kept = `selectindex'(!smat) // Return it, so we can exclude these variables from the joint Wald test
 	return(inv_xx)
+}
+
+
+// --------------------------------------------------------------------------
+// Use regression-through-mean and block partition formula to enlarge b and inv(XX)
+// --------------------------------------------------------------------------
+`Void' reghdfe_extend_b_and_inv_xx(
+	`RowVector' 	means,
+	`Integer'		N,
+	`Vector'		b,
+	`Matrix' 		inv_xx)
+{
+	// How to add back _cons:
+	// 1) To recover coefficient, apply "regression through means formula":
+	//	  b0 = mean(y) - mean(x) * b1
+
+	// 2) To recover variance ("full_inv_xx")
+	//	  apply formula for inverse of partitioned symmetric matrix
+	//    http://fourier.eng.hmc.edu/e161/lectures/gaussianprocess/node6.html
+	//
+	//    Given A = [X'X X'1]		B = [B11 B21']		B = inv(A)
+	//              [1'X 1'1]			[B21 B22 ]
+	//
+	//	  B11 is just inv(xx)
+	//	  B21 ("side") = means * B11
+	//	  B22 ("corner") = 1 / sumweights * (1 - side * means')
+	//
+	//	- Note that means is NOT A12, but A12/N or A12 / (sum_weights)
+
+	//  - Note: aw and pw (and unweighted) use normal weights,
+	//	  but for fweights we expected S.sumweights
+
+	`RowVector'		means_x, side
+	`Real'			corner
+
+	means_x = cols(means) > 1 ? means[2..cols(means)] : J(1, 0, .)
+	b = b \ means[1] - means_x * b // means * (1 \ -b)
+	side = - means_x * inv_xx
+	corner = 1 / N - side * means_x'
+	inv_xx = (inv_xx , side' \ side , corner)
+
 }
 
 end
