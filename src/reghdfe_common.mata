@@ -354,10 +354,10 @@ mata:
 	if (S.timeit) timer_on(93)
 	if (S.vcetype != "unadjusted") {
 		if (S.compute_constant) {
-			just_X = K ? X[., 2..K+1] :+ S.means[2..cols(S.means)] : J(N, 0, .)
+			just_X = K ? X[., 2..K+1] :+ S.means[2..cols(S.means)] : J(rows(X), 0, .)
 		}
 		else {
-			just_X = K ? X[., 2..K+1] : J(N, 0, .)
+			just_X = K ? X[., 2..K+1] : J(rows(X), 0, .)
 		}
 	}
 	if (S.timeit) timer_off(93)
