@@ -210,7 +210,7 @@ mata:
     if ( drop_singletons & S.num_singletons>0 & S.verbose>-1 | S.factors[1].num_obs<2) {
         if (weighttype=="iweight") {
             // PPML-specific
-            printf(`"{txt}(dropped %s singleton or separating observations)\n\n"', strofreal(S.num_singletons))
+            printf(`"{txt}(dropped %s observations that are either singletons or separated by a fixed effect)\n"', strofreal(S.num_singletons))
         }
         else {
             printf(`"{txt}(dropped %s {browse "http://scorreia.com/research/singletons.pdf":singleton observations})\n"', strofreal(S.num_singletons))
