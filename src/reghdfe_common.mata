@@ -256,7 +256,8 @@ mata:
                                   `Integer' df_r,
                                   `Vector' resid,
                                   `RowVector' kept,
-                                  `String' vce_mode)
+                                  `String' vce_mode,
+                                | `Variable' true_w)
 {
 	// Hack: the first col of X is actually y!
 	`Integer'				K, KK, tmp_N
@@ -267,6 +268,7 @@ mata:
 	`RowVector'				means_x, side
 	`Real'					corner
 
+	if (true_w == . | args() < 11) true_w = J(0, 1, .)
 	if (S.vcetype == "unadjusted" & S.weight_type=="pweight") S.vcetype = "robust"
 	if (S.verbose > 0) printf("\n{txt}## Solving least-squares regression of partialled-out variables\n\n")
 	assert_in(vce_mode, ("vce_none", "vce_small", "vce_asymptotic"))
@@ -286,7 +288,13 @@ mata:
 	assert(cols(S.means) == cols(X))
 
 	w = 1
-	if (S.weight_type=="fweight") {
+	if (rows(true_w)) {
+		// Custom case for IRLS (ppmlhdfe) where S.weight = mu * true_w
+		assert_msg(S.weight_type == "aweight")
+		N = sum(true_w)
+		w = S.weight * sum(true_w) / sum(S.weight)
+	}
+	else if (S.weight_type=="fweight") {
 		N = S.sumweights
 		w = S.weight
 	}
@@ -297,21 +305,14 @@ mata:
 	// Build core matrices
 	if (S.timeit) timer_on(91)
 
-	//if (S.report_constant) {
-	//	S.kept = S.kept , cols(X)
-	//	S.indepvars = S.indepvars + " _cons"
-	//	X = X, J(N,1,1)
-	//}
 	K = cols(X) - 1
 	xx = quadcross(X, w, X)
 	S.tss_within = xx[1,1]
-	//xy = K ? xx[| 2 , 1 \ K+1 , 1 |] : J(0, 1, .)
 	xx = K ? xx[| 2 , 2 \ K+1 , K+1 |] : J(0, 0, .)
 	if (S.timeit) timer_off(91)
 
 	// This matrix indicates what regressors are not collinear
 	assert_msg(cols(S.kept)==K+1, "partial_out() was run with a different set of vars")
-	// USELESS??? kept = K ? S.kept[2..K+1] : J(1, 0, .)
 
 	// Bread of the robust VCV matrix
 	// Compute this early so we can update the list of collinear regressors
@@ -345,6 +346,7 @@ mata:
 
 	if (S.compute_constant) {
 		tmp_N = (S.weight_type=="aweight" | S.weight_type=="pweight") ? N : S.sumweights
+		if (rows(true_w)) tmp_N = N
 		reghdfe_extend_b_and_inv_xx(S.means, tmp_N, b, inv_xx)
 	}
 
@@ -378,7 +380,7 @@ mata:
 		V = (S.rss / N) * dof_adj * inv_xx
 	}
 	else if (S.vcetype == "robust") {
-		V = reghdfe_robust(S, just_X, inv_xx, resid, w, N, KK, vce_mode)
+		V = reghdfe_robust(S, just_X, inv_xx, resid, w, N, KK, vce_mode, true_w)
 	}
 	else {
 		V = reghdfe_cluster(S, just_X, inv_xx, resid, w, N, KK, vce_mode)
@@ -443,7 +445,8 @@ mata:
 						`Variable' w,
 						`Integer' N,
 						`Integer' K,
-						`String' vce_mode)
+						`String' vce_mode,
+					    `Variable' true_w)
 {
 	`Matrix'				M, V
 	`Integer'				dof_adj
@@ -452,7 +455,11 @@ mata:
 	if (S.verbose > 0) printf("{txt}   - VCE type: {res}%s{txt}\n", S.vcetype)
 	if (S.verbose > 0) printf("{txt}   - Weight type: {res}%s{txt}\n", S.weight_type=="" ? "<none>" : S.weight_type)
 
-	if (S.weight_type=="") {
+	if (rows(true_w)) {
+		assert(S.weight_type=="aweight")
+		w = (resid :* w) :^ 2 :/ true_w // resid^2 * aw^2 * fw
+	}
+	else if (S.weight_type=="") {
 		w = resid :^ 2
 	}
 	else if (S.weight_type=="fweight") {
@@ -496,16 +503,6 @@ mata:
 	`Integer'				Msize
 
 	w = resid :* w
-	//if (S.weight_type=="") {
-	//	w = resid
-	//}
-	//else if (S.weight_type=="fweight") {
-	//	w = resid :* w
-	//}
-	//else if (S.weight_type=="aweight" | S.weight_type=="pweight") {
-	//	w = resid :* w
-	//}
-
 	Msize = cols(X) + S.compute_constant
 
 	vars = S.clustervars
