@@ -1105,7 +1105,7 @@ class FixedEffects
 	ans.poolsize = this.poolsize
 	ans.diopts = this.diopts
 
-	ans.fullindepvars = this.indepvars
+	ans.fullindepvars = this.fullindepvars
 	ans.not_basevar = this.not_basevar
 
 	ans.compute_constant = this.compute_constant
