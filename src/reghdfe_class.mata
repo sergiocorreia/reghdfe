@@ -245,7 +245,8 @@ class FixedEffects
 	}
 	
 	// Update cvar objects (do AFTER updating weights!)
-	this.update_cvar_objects()
+	// (this is meaningless with iweights)
+	if (weighttype != "iweight") this.update_cvar_objects()
 }
 
 
@@ -286,7 +287,7 @@ class FixedEffects
 {
 	`Integer'               g
 	`FactorPointer'         pf
-	
+
 	for (g=1; g<=G; g++) {
 		pf = &(factors[g])
 		// Update mean(z; w) and inv(z'z; w) where z is a slope variable and w is the weight
