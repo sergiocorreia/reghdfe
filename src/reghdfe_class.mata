@@ -142,6 +142,7 @@ class FixedEffects
 	`Void'                  new()
 	`Void'                  load_weights() // calls update_sorted_weights, etc.
 	`Void'                  update_sorted_weights()
+	`Void'                  update_cvar_objects()
 	`Matrix'                partial_out()
 	`Matrix'                partial_out_pool()
 	`Void'                  _partial_out()
@@ -242,6 +243,9 @@ class FixedEffects
 			asarray(this.factors[g].extra, "weighted_counts", .)
 		}
 	}
+	
+	// Update cvar objects (do AFTER updating weights!)
+	this.update_cvar_objects()
 }
 
 
@@ -274,6 +278,26 @@ class FixedEffects
 
 		asarray((*pf).extra, "weights", w)
 		asarray((*pf).extra, "weighted_counts", `panelsum'(w, (*pf).info))
+	}
+}
+
+
+`Void' FixedEffects::update_cvar_objects()
+{
+	`Integer'               g
+	`FactorPointer'         pf
+	
+	for (g=1; g<=G; g++) {
+		pf = &(factors[g])
+		// Update mean(z; w) and inv(z'z; w) where z is a slope variable and w is the weight
+		if (num_slopes[g]) {
+			if (verbose > 0) printf("{txt}   - precomputing cvar objects for factor {res}%s{txt}\n", absvars[g])
+			if (intercepts[g]) {
+			    asarray((*pf).extra, "xmeans",
+			            panelmean(asarray((*pf).extra, "x"), *pf))
+			}
+			asarray((*pf).extra, "inv_xx", precompute_inv_xx(*pf, intercepts[g]))
+		}
 	}
 }
 

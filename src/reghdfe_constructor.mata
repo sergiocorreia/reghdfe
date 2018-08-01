@@ -234,36 +234,31 @@ mata:
         S.factors[g].panelsetup()
     }
 
-
-    // (3) load weight
-    S.load_weights(weighttype, weightvar, J(0,1,.), 1) // update S.has_weights, S.factors, etc.
-
-
-    // (4) prune edges of degree-1
-    // S.prune = 0 // bugbug
-    if (S.prune) S.prune_1core()
-
-
-    // (5) load cvars
+    // (3) load cvars
     if (sum(S.num_slopes)) {
         if (S.verbose > 0) printf("\n{txt}## Loading slope variables\n\n")
         for (g=1; g<=S.G; g++) {
             cvars = tokens(S.cvars[g])
             if (S.num_slopes[g]) {
-                // Load, standardize, sort by factor, precompute (TODO), and store
+                // Load, standardize, sort by factor and store
+                // Don't precompute aux objects (xmeans, inv_xx) as they depend on the weights
+                // and will be computed on step (5)
                 if (S.verbose > 0) printf("{txt}   - cvars({res}%s{txt})\n", invtokens(cvars))
                 pf = &(S.factors[g])
                 cvar_data = (*pf).sort(st_data(S.sample, cvars))
                 asarray((*pf).extra, "x_stdevs", reghdfe_standardize(cvar_data))
                 asarray((*pf).extra, "x", cvar_data)
-                if (S.intercepts[g]) {
-                    asarray((*pf).extra, "xmeans", panelmean(cvar_data, *pf))
-                }
-                asarray((*pf).extra, "inv_xx", precompute_inv_xx(*pf, S.intercepts[g]))
             }
         }
         cvar_data = .
     }
+
+    // (4) prune edges of degree-1
+    // S.prune = 0 // bugbug
+    if (S.prune) S.prune_1core()
+
+    // (5) load weight
+    S.load_weights(weighttype, weightvar, J(0,1,.), 1) // update S.has_weights, S.factors, etc.
 
     // Preconditioners for LSMR
     if (S.acceleration=="lsmr") {
