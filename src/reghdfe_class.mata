@@ -270,6 +270,7 @@ class FixedEffects
 		// Rescale weights so there are no weights below 1
 		if (weight_type != "fweight") {
 			min_w = colmin(w)
+			if (min_w < 1e-6) min_w = 1e-6 // Prevent bugs if a weight is very close to zero
 			//assert_msg(min_w > 0, "weights must be positive")
 			//if (min_w <= 0) printf("{err} not all weights are positive\n")
 			if (0 < min_w & min_w < 1) {
