@@ -11,6 +11,9 @@ program define reghdfe_store_alphas, eclass
 		if (e(rank)) {
 			qui _predict double `d' if e(sample), xb
 		}
+		else if (e(report_constant)) {
+			gen double `d' = _b[_cons]
+		}
 		else {
 			gen double `d' = 0
 		}

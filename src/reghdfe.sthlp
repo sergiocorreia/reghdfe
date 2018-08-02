@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 5.2.6 01aug2018}{...}
+{* *! version 5.2.7 02aug2018}{...}
 {vieweralsosee "[R] areg" "help areg"}{...}
 {vieweralsosee "[R] xtreg" "help xtreg"}{...}
 {vieweralsosee "[R] ivregress" "help ivregress"}{...}
@@ -10,7 +10,7 @@
 {vieweralsosee "reg2hdfe" "help reg2hdfe"}{...}
 {vieweralsosee "a2reg" "help a2reg"}{...}
 {viewerjumpto "Syntax" "reghdfe##syntax"}{...}
-{viewerjumpto "Description" "reghdfe##description"}{...}
+{viewerjumpto "description" "reghdfe##description"}{...}
 {viewerjumpto "Options" "reghdfe##options"}{...}
 {viewerjumpto "Postestimation Syntax" "reghdfe##postestimation"}{...}
 {viewerjumpto "Remarks" "reghdfe##remarks"}{...}
@@ -701,6 +701,9 @@ on the other hand, there may be alternatives:
 {synopt:{cmd:e(mobility)}}Sum of all {cmd:e(M#)}{p_end}
 {synopt:{cmd:e(df_m)}}model degrees of freedom{p_end}
 {synopt:{cmd:e(df_r)}}residual degrees of freedom{p_end}
+
+{synopt:{cmd:e(report_constant)}}whether _cons was included in the regressions (default)
+or as part of the fixed effects{p_end}
 
 {synoptset 24 tabbed}{...}
 {syntab:Macros}

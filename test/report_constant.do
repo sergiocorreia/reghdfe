@@ -11,8 +11,10 @@ noi cscript "reghdfe: test that the constant option does not change anything" ad
 	local absvars turn
 
 	local exclude ///
+		scalar: report_constant ///
 		matrix: b V ///
 		macros: indepvars cmdline
+
 
 * [TEST] Unadjusted
 	reghdfe `lhs' `rhs', absorb(`absvars') keepsingletons verbose(-1) constant

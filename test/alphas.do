@@ -8,28 +8,60 @@ noi cscript "reghdfe: saving alphas (FEs)" adofile reghdfe
 * [TEST] Non-missing alphas
 	gen double turn2 = turn
 	reghdfe turn2, a(TURN=turn) keepsing v(-1)
-	assert abs(TURN - turn) < 1e-12
+	assert abs(turn - TURN - _b[_cons]) < 1e-12
 	drop turn2 TURN
+
 
 * [TEST] One FE
 	areg price weight gear, absorb(turn)
-	loc c = _b[_cons]
-	predict double bench_d if e(sample), d
-	*replace bench_d = bench_d + `c' if e(sample) // Now both areg and reghdfe save demeaned FEs
+	predict double D0 if e(sample), d
 
 	reghdfe price weight gear, absorb(FE=turn) keepsing v(-1)
-	gen double d1 = FE
+	gen double D1 = FE
 
 	reghdfe price weight gear, absorb(turn, save) keepsing v(-1)
-	gen double d2 = __hdfe1__
+	gen double D2 = __hdfe1__
 
-	gen delta1 = reldif(bench_d, d1)
-	gen delta2 = reldif(bench_d, d2)
+	gen delta1 = reldif(D0, D1)
+	gen delta2 = reldif(D0, D2)
+
+	su D*
 
 	assert(delta1 < 1e-10)
 	assert(delta2 < 1e-10)
+	drop delta* D* FE __*
 
-	drop bench_* delta* d1 d2 FE __*
+
+* [TEST] One FE, no regressors
+* SEE: https://github.com/sergiocorreia/reghdfe/issues/140
+
+	areg price, absorb(turn)
+	predict double D0 if e(sample), d
+
+	reghdfe price, absorb(FE=turn) keepsing v(-1)
+	gen double D1 = FE
+
+	reghdfe price, absorb(turn, save) keepsing v(-1)
+	gen double D2 = __hdfe1__
+
+	gen delta1 = reldif(D0, D1)
+	gen delta2 = reldif(D0, D2)
+
+	su D*
+
+	assert(delta1 < 1e-10)
+	assert(delta2 < 1e-10)
+	drop delta* D* FE __*
+
+
+* [TEST] Several FEs, all should have mean zero
+	reghdfe price weight length gear, a(foreign turn trunk rep, save) tol(1e-16)
+	foreach var of varlist __hdfe* {
+		su `var'
+		assert(abs(r(mean)) < 1e-7) // this is actually good precision, as price has mean of 6,000
+	}
+	drop __hdfe*
+
 
 * [TEST] One FE with MVs
 	areg price weight gear, absorb(rep)
@@ -68,7 +100,9 @@ noi cscript "reghdfe: saving alphas (FEs)" adofile reghdfe
 
 	drop bench* delta* fe*
 
+
 * [TEST] Slope
+
 	reg price ibn.turn#c.gear, nocons
 	predict double bench_slope, xb
 
@@ -78,6 +112,7 @@ noi cscript "reghdfe: saving alphas (FEs)" adofile reghdfe
 	gen double delta = reldif(bench_slope, slope)
 	assert(delta < 1e-8)
 	drop delta bench_slope slope
+
 
 * [TEST] Several slopes
 	areg price ibn.turn#c.(gear disp), a(turn)

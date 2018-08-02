@@ -1048,7 +1048,9 @@ class FixedEffects
 		st_global("e(title3)", text)
 	}
 
-	if (!missing(sumweights)) st_numscalar("e(sumweights)", sumweights)     
+	if (!missing(sumweights)) st_numscalar("e(sumweights)", sumweights)
+
+	st_numscalar("e(report_constant)", compute_constant & report_constant)
 
 
 	// ---- .options properties ---------------------------------------------
