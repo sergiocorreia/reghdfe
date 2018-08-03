@@ -115,6 +115,7 @@ mata:
 		ssr_old = ssr
 		if (S.timeit) timer_off(75)
 		if (S.timeit) timer_on(73)
+		if (S.verbose>=5) r
 		ssr = weighted_quadcolsum(S, r, r)
 		beta = safe_divide( ssr , ssr_old) // Fletcher-Reeves formula, but it shouldn't matter in our problem
 		if (S.timeit) timer_off(73)
@@ -265,7 +266,7 @@ mata:
 		if (S.verbose==4 & method!="hestenes") printf("{txt} iter={res}%4.0f{txt}\tupdate_error={res}%-9.6e\n", iter, update_error)
 		if (S.verbose==4 & method=="hestenes") printf("{txt} iter={res}%4.0f{txt}\tupdate_error={res}%-9.6e  {txt}norm(ssr)={res}%g\n", iter, update_error, norm(y_new))
 		
-		if (S.verbose==5) {
+		if (S.verbose>=5) {
 			printf("\n{txt} iter={res}%4.0f{txt}\tupdate_error={res}%-9.6e{txt}\tmethod={res}%s\n", iter, update_error, method)
 			"old:"
 			y_old
