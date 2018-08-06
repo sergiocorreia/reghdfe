@@ -418,7 +418,7 @@ class FixedEffects
 }
 
 
-`Void' FixedEffects::store_alphas(`Varname' d_varname)
+`Void' FixedEffects::store_alphas(`Anything' d_varname)
 {
 	`Integer'               g, i, j
 	`StringRowVector'       varlabel
@@ -427,9 +427,16 @@ class FixedEffects
 
 	if (verbose > 0) printf("\n{txt}## Storing estimated fixed effects\n\n")
 
+	// -d- can be either the data or the variable name
+
 	// Load -d- variable
-	if (verbose > 0) printf("{txt}   - Loading d = e(depvar) - xb - e(resid)\n")
-	d = st_data(sample, d_varname)
+	if (eltype(d_varname) == "string") {
+		if (verbose > 0) printf("{txt}   - Loading d = e(depvar) - xb - e(resid)\n")
+		d = st_data(sample, d_varname)
+	}
+	else {
+		d = d_varname
+	}
 	assert(!missing(d))
 
 	// Create empty alphas
