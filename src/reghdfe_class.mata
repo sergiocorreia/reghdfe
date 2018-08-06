@@ -1138,6 +1138,7 @@ class FixedEffects
 
 	ans.compute_constant = this.compute_constant
 	ans.report_constant = this.report_constant
+	ans.tolerance = this.tolerance
 
 	return(ans)
 }
