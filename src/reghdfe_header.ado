@@ -43,9 +43,9 @@ program reghdfe_header
 	if !missing(e(r2)) {
 		.`right'.Arrpush `C3' "R-squared" `C4' "= " as res %`c4wfmt'.4f e(r2)
 	}
-	*if !missing(e(r2_p)) {
-	*	.`right'.Arrpush `C3' "Pseudo R2" `C4' "= " as res %`c4wfmt'.4f e(r2_p)
-	*}
+	if !missing(e(r2_p)) {
+		.`right'.Arrpush `C3' "Pseudo R2" `C4' "= " as res %`c4wfmt'.4f e(r2_p)
+	}
 	if !missing(e(r2_a)) {
 		.`right'.Arrpush `C3' "Adj R-squared" `C4' "= " as res %`c4wfmt'.4f e(r2_a)
 	}

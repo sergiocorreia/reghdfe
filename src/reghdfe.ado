@@ -1,4 +1,4 @@
-*! version 5.2.9 06aug2018
+*! version 5.2.10 23aug2018
 
 program reghdfe, eclass
 	* Intercept old+version
@@ -15,6 +15,12 @@ program reghdfe, eclass
 		if ("`weight'"!="") local weightexp [`weight'=`exp']
 		reghdfe_old `anything' `weightexp', `options'
 		exit
+	}
+
+	* Intercept IV calls that now require ivreghdfe
+	cap syntax varlist(fv ts numeric) [if] [in] [aw pw fw/], [*]
+	if c(rc)==132 {
+		di as error `"(warning: use {browse "https://github.com/sergiocorreia/ivreghdfe":ivreghdfe} to run IV/2SLS regressions)"'
 	}
 
 	* Aux. subcommands

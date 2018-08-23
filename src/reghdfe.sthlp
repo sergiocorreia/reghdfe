@@ -1,12 +1,13 @@
 {smcl}
-{* *! version 5.2.9 06aug2018}{...}
+{* *! version 5.2.10 23aug2018}{...}
 {vieweralsosee "[R] areg" "help areg"}{...}
 {vieweralsosee "[R] xtreg" "help xtreg"}{...}
 {vieweralsosee "[R] ivregress" "help ivregress"}{...}
 {vieweralsosee "" "--"}{...}
 {vieweralsosee "reghdfe_mata" "help reghdfe_mata"}{...}
 {vieweralsosee "ivreg2" "help ivreg2"}{...}
-{vieweralsosee "ivregress" "help ivregress"}{...}
+{vieweralsosee "ivreghdfe" "help ivreghdfe"}{...}
+{vieweralsosee "" "--"}{...}
 {vieweralsosee "reg2hdfe" "help reg2hdfe"}{...}
 {vieweralsosee "a2reg" "help a2reg"}{...}
 {viewerjumpto "Syntax" "reghdfe##syntax"}{...}
@@ -134,7 +135,11 @@ convergence will still be {it:much} faster.{p_end}
 
 {pstd}
 {cmd:reghdfe} is a generalization of {help areg} (and {help xtreg:xtreg,fe}, {help xtivreg:xtivreg,fe}) for multiple levels of fixed effects
-(including heterogeneous slopes), alternative estimators (2sls, gmm2s, liml), and additional robust standard errors (multi-way clustering, HAC standard errors, etc).{p_end}
+(including heterogeneous slopes) and additional robust standard errors (multi-way clustering, HAC standard errors, etc).{p_end}
+
+{pstd}
+Note: additional linear estimators (2sls, gmm2s, liml), are implemented through the {browse "https://github.com/sergiocorreia/ivreghdfe":ivreghdfe}
+package, which in turn relies on {help ivreg2} for the heavy lifting.{p_end}
 
 {pstd}Additional features include:{p_end}
 
@@ -283,6 +288,10 @@ This issue is similar to applying the CUE estimator, described further below.
 
 {marker opt_iv}{...}
 {dlgtab:IV/2SLS/GMM}
+
+{pmore}
+Note: this section has been made redundant by the {help ivreghdfe} package, but can still be accessed with the {cmd:old} option.
+{p_end}
 
 {phang}
 {opt est:imator}{cmd:(}{opt 2sls}|{opt gmm:2s}|{opt liml}|{opt cue}{cmd:)}
