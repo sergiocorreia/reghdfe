@@ -507,6 +507,7 @@ class FixedEffects
 	if (args()<5 | flush==.) flush = 0 // whether or not to flush the values of means & kept
 
 	if (flush) {
+		iteration_count = 0
 		means = J(1, 0, .)
 		kept = J(1, 0, .)
 	}
