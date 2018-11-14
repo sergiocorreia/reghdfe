@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 5.2.10 29aug2018}{...}
+{* *! version 5.2.11 14nov2018}{...}
 {vieweralsosee "[R] areg" "help areg"}{...}
 {vieweralsosee "[R] xtreg" "help xtreg"}{...}
 {vieweralsosee "[R] ivregress" "help ivregress"}{...}
@@ -632,18 +632,8 @@ on the other hand, there may be alternatives:
 {pstd}Save the FEs as variables{p_end}
 {phang2}{cmd:. reghdfe ln_w grade age ttl_exp tenure not_smsa south , absorb(FE1=idcode FE2=year)}{p_end}
 
-{pstd}Report nested F-tests{p_end}
-{phang2}{cmd:. reghdfe ln_w grade age ttl_exp tenure not_smsa south , absorb(idcode year) nested}{p_end}
-
-{pstd}Do AvgE instead of absorb() for one FE{p_end}
-{phang2}{cmd:. reghdfe ln_w grade age ttl_exp tenure not_smsa south , absorb(idcode year) avge(occ)}{p_end}
-{phang2}{cmd:. reghdfe ln_w grade age ttl_exp tenure not_smsa south , absorb(idcode year) avge(AvgByOCC=occ)}{p_end}
-
-{pstd}Check that FE coefs are close to 1.0{p_end}
-{phang2}{cmd:. reghdfe ln_w grade age ttl_exp tenure not_smsa , absorb(idcode year) check}{p_end}
-
 {pstd}Save first mobility group{p_end}
-{phang2}{cmd:. reghdfe ln_w grade age ttl_exp tenure not_smsa , absorb(idcode occ) group(mobility_occ)}{p_end}
+{phang2}{cmd:. reghdfe ln_w grade age ttl_exp tenure not_smsa , absorb(idcode occ) groupv(mobility_occ)}{p_end}
 
 {pstd}Factor interactions in the independent variables{p_end}
 {phang2}{cmd:. reghdfe ln_w i.grade#i.age ttl_exp tenure not_smsa , absorb(idcode occ)}{p_end}
@@ -651,18 +641,15 @@ on the other hand, there may be alternatives:
 {pstd}Interactions in the absorbed variables (notice that only the {it:#} symbol is allowed){p_end}
 {phang2}{cmd:. reghdfe ln_w grade age ttl_exp tenure not_smsa , absorb(idcode#occ)}{p_end}
 
-{pstd}Interactions in both the absorbed and AvgE variables (again, only the {it:#} symbol is allowed){p_end}
-{phang2}{cmd:. reghdfe ln_w grade age ttl_exp not_smsa , absorb(idcode#occ) avge(tenure#occ)}{p_end}
+{pstd}Factorial interactions{p_end}
+{phang2}{cmd:. reghdfe price weight (length=head), absorb(rep78)}{p_end}
+{phang2}{cmd:. reghdfe price weight length, absorb(rep78 turn##c.price)}{p_end}
 
-{pstd}IV regression{p_end}
+{pstd}IV regression (this does NOT work anymore, please use the ivreghdfe package instead{p_end}
 {phang2}{cmd:. sysuse auto}{p_end}
 {phang2}{cmd:. reghdfe price weight (length=head), absorb(rep78)}{p_end}
 {phang2}{cmd:. reghdfe price weight (length=head), absorb(rep78) first}{p_end}
 {phang2}{cmd:. reghdfe price weight (length=head), absorb(rep78) ivsuite(ivregress)}{p_end}
-
-{pstd}Factorial interactions{p_end}
-{phang2}{cmd:. reghdfe price weight (length=head), absorb(rep78)}{p_end}
-{phang2}{cmd:. reghdfe price weight length, absorb(rep78 turn##c.price)}{p_end}
 
 
 {marker results}{...}

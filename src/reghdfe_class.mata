@@ -607,6 +607,8 @@ class FixedEffects
 		}
 	}
 
+	assert_msg(!hasmissing(y), "error partialling out; missing values found")
+
 	// Standardizing makes it hard to detect values that are perfectly collinear with the absvars
 	// in which case they should be 0.00 but they end up as e.g. 1e-16
 	// EG: reghdfe price ibn.foreign , absorb(foreign)
