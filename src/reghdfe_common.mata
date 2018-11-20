@@ -84,12 +84,12 @@ mata:
 
 	// (B) Precise
 	//means = cross(1, A) / N
-	//stdevs =  sqrt(diagonal(crossdev(A, means, A, means))' / (N-1))
+	//stdevs =  sqrt(diagonal(quadcrossdev(A, means, A, means))' / (N-1))
 
 	// (C) 20% faster; don't use it if you care about accuracy
 	stdevs = sqrt( (diagonal(cross(A, A))' - (cross(1, A) :^ 2 / N)) / (N-1) )
-	assert_msg(!missing(stdevs), "stdevs are missing; is N==1?") // Shouldn't happen as we don't expect N==1
 
+	assert_msg(!missing(stdevs), "stdevs are missing; is N==1?") // Shouldn't happen as we don't expect N==1
 	stdevs = colmax(( stdevs \ J(1, K, 1e-3) ))
 	A = A :/ stdevs
 	return(stdevs)
