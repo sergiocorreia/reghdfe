@@ -185,15 +185,12 @@ local included_e ///
 	storedresults drop benchmark
 
 
-
-
 * [TEST] https://github.com/sergiocorreia/reghdfe/issues/43
 	
 	sysuse nlsw88.dta, clear
 
 	* 1) Benchmark
 	areg wage i.industry##c.age i.union##c.age, a(race)
-	matrix list e(b)
 	local bench_df_a = e(df_a)
 	storedresults save benchmark e()
 	
@@ -215,6 +212,4 @@ local included_e ///
 	reghdfe F.price L.weight, noa
 
 
-
-cd "C:/Git/reghdfe/test"
 exit

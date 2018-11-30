@@ -42,7 +42,11 @@
 	run noabsorb
 	run more-weights
 	run fvstrip // Test cases with complex factor variable 
-	run stdata
+	
+	run stdata1
+	run stdata2
+	run stdata3
+
 	run singleton-x
 	run inconsistent-r2
 	run singleton-and-fweights

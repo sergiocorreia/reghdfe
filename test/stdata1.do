@@ -11,7 +11,19 @@ noi cscript "reghdfe: bug in st_data" adofile reghdfe
 		matrix: b V ///
 		macros: wexp wtype
 
-* [TEST] 1.x 2.x sometimes selects less variables
+
+* [TEST] Prevent regression of Stata 11-14 issue
+	
+	local lhs price
+	local rhs 1.rep78 2.rep78 3.rep78#1.foreign
+
+	* 1. Run benchmark
+	reg `lhs' `rhs'
+
+
+
+
+* [TEST] 1.x 2.x sometimes selects fewer variables
 
 	local lhs price
 	local rhs 32bn.turn 43.turn 51.turn
@@ -80,6 +92,8 @@ noi cscript "reghdfe: bug in st_data" adofile reghdfe
 
 	* Done!
 	storedresults drop benchmark
+
+
 
 * [Test] rhs collinear
 	loc vars price 0.foreign#31.turn 1.foreign#32.turn

@@ -1,11 +1,15 @@
 {smcl}
-{* *! version 5.2.11 14nov2018}{...}
+{* *! version 5.3.0 30nov2018}{...}
 {vieweralsosee "[R] areg" "help areg"}{...}
 {vieweralsosee "[R] xtreg" "help xtreg"}{...}
 {vieweralsosee "[R] ivregress" "help ivregress"}{...}
 {vieweralsosee "" "--"}{...}
 {vieweralsosee "reghdfe_mata" "help reghdfe_mata"}{...}
+{vieweralsosee "ivreghdfe" "help ivreghdfe"}{...}
+{vieweralsosee "ppmlhdfe" "help ppmlhdfe"}{...}
 {vieweralsosee "ivreg2" "help ivreg2"}{...}
+{vieweralsosee "ftools" "help ftools"}{...}
+{vieweralsosee "" "--"}{...}
 {vieweralsosee "ivregress" "help ivregress"}{...}
 {vieweralsosee "reg2hdfe" "help reg2hdfe"}{...}
 {vieweralsosee "a2reg" "help a2reg"}{...}
@@ -285,50 +289,7 @@ This issue is similar to applying the CUE estimator, described further below.
 {dlgtab:IV/2SLS/GMM}
 
 {phang}
-{opt est:imator}{cmd:(}{opt 2sls}|{opt gmm:2s}|{opt liml}|{opt cue}{cmd:)}
-estimator used in the instrumental-variable estimation
-
-{pmore}
-{opt 2sls} (two-stage least squares, default), {opt gmm:2s} (two-stage efficient GMM), {opt liml} (limited-information maximum likelihood), and
-{opt cue} ("continuously-updated" GMM) are allowed.{p_end}
-
-{pmore}
-Warning: {opt cue} will not give the same results as ivreg2. See the discussion in
-{browse "http://www.stata-journal.com/sjpdf.html?articlenum=st0030_3": Baum, Christopher F., Mark E. Schaffer, and Steven Stillman. "Enhanced routines for instrumental variables/GMM estimation and testing." Stata Journal 7.4 (2007): 465-506}
-(page 484).
-Note that even if this is not exactly {opt cue}, it may still be a desirable/useful alternative to standard cue, as explained in the article.
-
-{phang}
-{opt stage:s(list)}
-adds and saves up to four auxiliary regressions useful when running instrumental-variable regressions:
-
-{phang2}{cmd:first} all first-stage regressions{p_end}
-{phang2}{cmd:ols} ols regression (between dependent variable and endogenous variables; useful as a benchmark){p_end}
-{phang2}{cmd:reduced} reduced-form regression (ols regression with included and excluded instruments as regressors){p_end}
-{phang2}{cmd:acid} an "acid" regression that includes both instruments and endogenous variables as regressors; in this setup, excluded instruments should not be significant.{p_end}
-
-{pmore}
-You can pass suboptions not just to the iv command but to all stage regressions with a comma after the list of stages. Example:{break}
-{cmd:reghdfe price (weight=length), absorb(turn) subopt(nocollin) stages(first, eform(exp(beta)) )}
-
-{pmore}
-By default all stages are saved (see {help estimates dir}).
-The suboption {cmd:,nosave} will prevent that.
-However, future {cmd:replay}s will only replay the iv regression.
-
-{phang}
-{opt ffirst}
-compute and report first stage statistics ({help ivreg2##s_relevance:details}); requires the ivreg2 package.
-
-{pmore}
-These statistics will be saved on the {it:e(first)} matrix. 
-If the first-stage estimates are also saved (with the {cmd:stages()} option), the respective statistics will be copied to {cmd:e(first_*)}.
-
-{phang}
-{opth iv:suite(subcmd)}
-allows the IV/2SLS regression to be run either using {opt ivregress} or {opt ivreg2}.
-
-{pmore} {opt ivreg2} is the default, but needs to be installed for that option to work.
+The IV functionality of {cmd:reghdfe} has been moved into {ivreghdfe}.
 
 {marker opt_diagnostic}{...}
 {dlgtab:Diagnostic}
@@ -642,14 +603,12 @@ on the other hand, there may be alternatives:
 {phang2}{cmd:. reghdfe ln_w grade age ttl_exp tenure not_smsa , absorb(idcode#occ)}{p_end}
 
 {pstd}Factorial interactions{p_end}
-{phang2}{cmd:. reghdfe price weight (length=head), absorb(rep78)}{p_end}
 {phang2}{cmd:. reghdfe price weight length, absorb(rep78 turn##c.price)}{p_end}
 
 {pstd}IV regression (this does NOT work anymore, please use the ivreghdfe package instead{p_end}
 {phang2}{cmd:. sysuse auto}{p_end}
-{phang2}{cmd:. reghdfe price weight (length=head), absorb(rep78)}{p_end}
-{phang2}{cmd:. reghdfe price weight (length=head), absorb(rep78) first}{p_end}
-{phang2}{cmd:. reghdfe price weight (length=head), absorb(rep78) ivsuite(ivregress)}{p_end}
+{phang2}{cmd:. ivreghdfe price weight (length=head), absorb(rep78)}{p_end}
+{phang2}{cmd:. ivreghdfe price weight (length=head), absorb(rep78, resid)}{p_end}
 
 
 {marker results}{...}

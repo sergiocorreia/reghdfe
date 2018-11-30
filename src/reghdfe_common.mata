@@ -39,10 +39,19 @@ mata:
 	`Integer'			i, k
 
 	vars = tokens(invtokens(vars))
-	is_interaction = strpos(vars, "#") :> 0
-	is_interaction = is_interaction :& (runningsum(is_interaction) :<= 4)
-	fixed_vars = subinstr(strofreal(is_interaction), "0", "")
-	fixed_vars = subinstr(fixed_vars, "1", "(") :+ vars :+ subinstr(fixed_vars, "1", ")")
+
+	// Add parenthesis only for Stata 11-14, as on Stata 15+ they are i) not needed and ii) corrupt output
+	// For i) see "help set fvtrack"
+	// For ii) see "test/stdata3.do" on Github
+	if (st_numscalar("c(stata_version)") < 15) {
+		is_interaction = strpos(vars, "#") :> 0
+		is_interaction = is_interaction :& (runningsum(is_interaction) :<= 4) // Only up to 4 parenthesis supported
+		fixed_vars = subinstr(strofreal(is_interaction), "0", "")
+		fixed_vars = subinstr(fixed_vars, "1", "(") :+ vars :+ subinstr(fixed_vars, "1", ")")
+	}
+	else {
+		fixed_vars = vars
+	}
 
 	data = st_data(index, fixed_vars)
 	k = cols(vars)
@@ -758,4 +767,3 @@ mata:
 }
 
 end
-

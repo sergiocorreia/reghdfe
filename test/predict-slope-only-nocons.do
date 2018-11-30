@@ -24,7 +24,7 @@ noi cscript "reghdfe postestimation: predict with slope FEs and no constant (id#
 	di e(df_a)
 	trim_cons `K'
 	storedresults save benchmark e()
-	predict double xb, xb
+	predict double xbd, xb
 	predict double resid, resid
 
 	* 2. Run reghdfe and compare
