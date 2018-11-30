@@ -1,4 +1,4 @@
-*! version 5.3.0 30nov2018
+*! version 5.3.1 30nov2018
 
 program reghdfe, eclass
 	* Intercept old+version
@@ -145,6 +145,12 @@ program Cleanup
 	cap mata: mata drop hdfe_*
 	cap drop __temp_reghdfe_resid__
 	cap matrix drop reghdfe_statsmatrix
+	if (`rc' == 132) {
+		di as text "- If you got the {it:parentheses unbalanced} error, note that IV/2SLS was moved to {help ivreghdfe}"
+		di as smcl `"- Latest version: {browse "https://github.com/sergiocorreia/ivreghdfe":https://github.com/sergiocorreia/ivreghdfe}"'
+		di as smcl `"- SSC version: {stata "net describe ivreghdfe, from(http://fmwww.bc.edu/RePEc/bocode/i)"}"'
+		di as smcl `"- Note: the older functionality can still be accessed through the {it:old} option"'
+	}
 	if (`rc') exit `rc'
 end
 
