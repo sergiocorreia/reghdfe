@@ -53,6 +53,11 @@ mata:
 		fixed_vars = vars
 	}
 
+	// Override code above, to minimize any risk of incorrect data
+	// Since this is an undocumented feature, it might or might not work on some older versions of Stata
+	// (See also email from jpitblado@stata.com)
+	fixed_vars = vars
+
 	data = st_data(index, fixed_vars)
 	k = cols(vars)
 

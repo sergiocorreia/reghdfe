@@ -1,6 +1,6 @@
 # REGHDFE: Linear Regressions With Multiple Fixed Effects
 
-- Current version: ` 5.3.0 30nov2018`
+- Current version: ` 5.3.2 30nov2018`
 - Jump to: [`news`](#recent-updates) [`citation`](#citation) [`install`](#install) [`manual install`](#manual-install) [`description`](#description)
 
 -----------
@@ -10,7 +10,7 @@
 * **version 5.3 30nov2018**:
     - Fixed silent error with Stata 15 and version 5.2.x of reghdfe. Data was loading into Mata in the incorrect order if running regressions with many factor interactions. This resulted in a scrambling of the coefficients. Stata 15 users are **strongly encouraged** to upgrade. For more information see #150 by @simonheb
 * **version 5.2 17jul2018**:
-    - Added partial workaround for bug/quick when loading factor variables through `st_data()`. This does not affect Stata 15 users (see `help fvtrack`)
+    - Added partial workaround for bug/quick when loading factor variables through `st_data()`. This does not affect Stata 15 users (see `help fvtrack`). *(Note: this speed-up has been completely disabled as of 5.3.2)*
     - Misc. optimizations and refactoring.
     - Improved support for `ppmlhdfe` package (which adds fixed effects to Poisson and other GLM models).
 * **version 5.1 08jul2018**:
