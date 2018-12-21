@@ -995,6 +995,7 @@ class FixedEffects
 	st_numscalar("e(ic)", iteration_count)
 	st_numscalar("e(drop_singletons)", drop_singletons)
 	st_numscalar("e(num_singletons)", num_singletons)
+	st_numscalar("e(N_full)", st_numscalar("e(N)") + num_singletons)
 
 	// Prune specific
 	if (prune==1) {

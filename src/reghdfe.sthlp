@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 5.3.2 30nov2018}{...}
+{* *! version 5.3.3 20dec2018}{...}
 {vieweralsosee "[R] areg" "help areg"}{...}
 {vieweralsosee "[R] xtreg" "help xtreg"}{...}
 {vieweralsosee "[R] ivregress" "help ivregress"}{...}
@@ -623,6 +623,9 @@ on the other hand, there may be alternatives:
 {synoptset 24 tabbed}{...}
 {syntab:Scalars}
 {synopt:{cmd:e(N)}}number of observations{p_end}
+{synopt:{cmd:e(num_singletons)}}number of singleton observations{p_end}
+{synopt:{cmd:e(N_full)}}number of observations including singletons{p_end}
+
 {synopt:{cmd:e(N_hdfe)}}number of absorbed fixed-effects{p_end}
 {synopt:{cmd:e(tss)}}total sum of squares{p_end}
 {synopt:{cmd:e(rss)}}residual sum of squares{p_end}
