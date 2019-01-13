@@ -373,7 +373,8 @@ program Estimate, eclass
 
 	* Partial out; save TSS of depvar
 	if (`timeit') timer on 23
-	mata: hdfe_variables = HDFE.partial_out(HDFE.varlist, 1) // 1=Save TSS of first var if HDFE.tss is missing
+	// partial_out(Varlist/Matrix | , Save TSS if HDFE.tss is missing? [0], Standardize data? [1], First col is depvar? [1])
+	mata: hdfe_variables = HDFE.partial_out(HDFE.varlist, 1, ., .)
 	if (`timeit') timer off 23
 
 	* Regress
