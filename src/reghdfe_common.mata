@@ -333,6 +333,14 @@ mata:
 	if (S.timeit) timer_on(95)
 	assert_msg( cols(tokens(S.indepvars))==cols(xx) , "HDFE.indepvars is missing or has the wrong number of columns")
 	inv_xx = reghdfe_rmcoll(tokens(S.indepvars), xx, kept) // this modifies -kept-
+
+	// // Workaround for case with extremely high weights, where ivnsym loses precision and incorrectly excludes vars
+	// if (S.has_weights) {
+	// 	if (max(S.weight) > 1e5) {
+	// 		kept = (1..K)
+	// 	}
+	// }
+
 	S.df_m = rank = K - diag0cnt(inv_xx)
 	KK = S.df_a + S.df_m
 	S.df_r = N - KK // replaced when clustering
@@ -712,14 +720,27 @@ mata:
                         `Matrix' xx,
                         `RowVector' kept)
 {
-	`Integer'				K
-	`Matrix'				inv_xx, smat
+	`Integer'				K, num_dropped
+	`Matrix'				inv_xx, smat, alt_inv_xx
 	`RowVector'				vl_drop, vl_keep
 
 	assert(rows(xx)==cols(xx))
 	K = cols(xx)
 	inv_xx = K ? invsym(xx, 1..K) : J(0, 0, .)
-	st_numscalar("r(k_omitted)", diag0cnt(inv_xx))
+	
+	// Specifying the sweep order in invsym() can lead to incorrectly dropped regressors
+	// (EG: with very VERY high weights)
+	// We'll double check in this case
+	num_dropped = diag0cnt(inv_xx)
+	if (K & num_dropped) {
+		alt_inv_xx = invsym(xx)
+		if (num_dropped != diag0cnt(alt_inv_xx)) {
+			inv_xx = alt_inv_xx
+			num_dropped = diag0cnt(alt_inv_xx)
+		}
+	}
+
+	st_numscalar("r(k_omitted)", num_dropped)
 	smat = (diagonal(inv_xx) :== 0)'
 	vl_drop = select(varnames, smat)
 	vl_keep = select(varnames, !smat)

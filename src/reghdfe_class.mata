@@ -1278,10 +1278,10 @@ class FixedEffects
 		if (num_slopes[g]) {
 			idx_end = idx_start + k * num_slopes[g] - 1
 			if (has_weights) {
-				tmp_alphas = panelsum((*pf).sort(x :* weight :* asarray((*pf).extra, "precond_slopes")), (*pf).info)
+				tmp_alphas = `panelsum'((*pf).sort(x :* weight :* asarray((*pf).extra, "precond_slopes")), (*pf).info)
 			}
 			else {
-				tmp_alphas = panelsum((*pf).sort(x :* asarray((*pf).extra, "precond_slopes")), (*pf).info)
+				tmp_alphas = `panelsum'((*pf).sort(x :* asarray((*pf).extra, "precond_slopes")), (*pf).info)
 			}
 			alphas[| idx_start , 1 \ idx_end , 1 |] = vec(tmp_alphas)
 			idx_start = idx_end + 1
