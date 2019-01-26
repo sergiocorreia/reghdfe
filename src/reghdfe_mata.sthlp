@@ -199,7 +199,6 @@ Then you can modify the object and add important properties:
 {synopt:{it:Integer} {cmd:iteration_count}}e(ic){p_end}
 {synopt:{it:Varlist} {cmd:extended_absvars}}{p_end}
 {synopt:{it:String} {cmd:notes}}{p_end}
-{synopt:{it:String} {cmd:equation_d}}{p_end}
 {synopt:{it:Integer} {cmd:df_r}}{p_end}
 {synopt:{it:Integer} {cmd:df_m}}{p_end}
 {synopt:{it:Integer} {cmd:N_clust}}{p_end}

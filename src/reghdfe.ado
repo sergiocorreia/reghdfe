@@ -1,4 +1,4 @@
-*! version 5.3.5 26jan2018
+*! version 5.4.0 26jan2018
 
 program reghdfe, eclass
 	* Intercept old+version
@@ -46,7 +46,7 @@ program Compile
 	
 	* Check dependencies
 	ftools, check // in case lftools.mlib does not exist or is outdated
-	ms_get_version ftools, min_version("2.32.0")
+	ms_get_version ftools, min_version("2.33.0")
 	ms_get_version reghdfe // save local package_version
 	loc list_objects "FixedEffects() fixed_effects() BipartiteGraph()"
 	loc list_functions "reghdfe_*() transform_*() accelerate_*() panelmean() panelsolve_*() lsmr()"
@@ -249,9 +249,6 @@ program Parse
 	_assert  ("`absorb'`noabsorb'" != ""), msg("option {bf:absorb()} or {bf:noabsorb} required")
 	if ("`noabsorb'" != "") {
 		_assert ("`absorb'" == ""), msg("{bf:absorb()} and {bf:noabsorb} are mutually exclusive")
-		tempvar c
-		gen byte `c' = 1
-		loc absorb `c'
 	}
 
 	if (`timeit') timer off 29

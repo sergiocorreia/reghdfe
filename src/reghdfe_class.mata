@@ -119,7 +119,6 @@ class FixedEffects
 	`Integer'               iteration_count // e(ic)
 	`Varlist'               extended_absvars
 	`String'                notes
-	`String'                equation_d
 	`Integer'               df_r
 	`Integer'               df_m
 	`Integer'               N_clust
@@ -976,6 +975,10 @@ class FixedEffects
 	st_numscalar("e(df_a_initial)", df_a_initial)
 	st_numscalar("e(df_a_redundant)", df_a_redundant)
 	st_numscalar("e(df_a_nested)", df_a_nested)
+
+	if (absvars == "") {
+		absvars = extended_absvars = "_cons"
+	}
 
 	st_global("e(absvars)", invtokens(absvars))
 	text = invtokens(extended_absvars)

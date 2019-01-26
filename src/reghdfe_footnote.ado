@@ -4,6 +4,10 @@
 program reghdfe_footnote
 syntax [, width(int 13)]
 
+	if (`"`e(absvars)'"' == "_cons") {
+		exit
+	}
+
 	tempname table
 	matrix `table' = e(dof_table)
 	mata: st_local("var_width", strofreal(max(strlen(st_matrixrowstripe("`table'")[., 2]))))

@@ -89,7 +89,6 @@ mata:
     if (S.verbose > -1 & !S.has_intercept) printf("{txt}(warning: no intercepts terms in absorb(); regression lacks constant term)\n")
 
     S.extended_absvars = tokens(st_global("s(extended_absvars)"))
-    S.equation_d = st_global("s(equation_d)")
     S.tss = .
 
     assert(1<=S.G)
@@ -99,7 +98,6 @@ mata:
     assert(S.G == cols(S.targets))
     assert(S.G == cols(S.intercepts))
     assert(S.G == cols(S.num_slopes))
-
 
     // Fill out object
     S.G = cols(S.absvars)
@@ -152,8 +150,14 @@ mata:
         }
 
         if (i<=S.G) {
-            // We don't need to save keys (or sort levels but that might change estimates of FEs)
-            S.factors[g] = factor(S.ivars[g], S.sample, ., "", ., 1, ., 0)
+            if (S.ivars[g] == "_cons") {
+                // Special case without any fixed effects
+                S.factors[g] = _factor(J(rows(S.sample),1,1), 1, ., "hash0", ., 1, ., 0)
+            }
+            else {
+                // We don't need to save keys (or sort levels but that might change estimates of FEs)
+                S.factors[g] = factor(S.ivars[g], S.sample, ., "", ., 1, ., 0)
+            }
         }
 
         if (S.verbose > 0) {
