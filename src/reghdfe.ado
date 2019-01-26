@@ -1,4 +1,4 @@
-*! version 5.3.4 13jan2018
+*! version 5.3.5 26jan2018
 
 program reghdfe, eclass
 	* Intercept old+version
@@ -46,7 +46,7 @@ program Compile
 	
 	* Check dependencies
 	ftools, check // in case lftools.mlib does not exist or is outdated
-	ms_get_version ftools, min_version("2.30.1")
+	ms_get_version ftools, min_version("2.32.0")
 	ms_get_version reghdfe // save local package_version
 	loc list_objects "FixedEffects() fixed_effects() BipartiteGraph()"
 	loc list_functions "reghdfe_*() transform_*() accelerate_*() panelmean() panelsolve_*() lsmr()"
@@ -258,9 +258,9 @@ program Parse
 
 	* Construct HDFE object
 	// SYNTAX: fixed_effects(absvars | , touse, wtype, wtvar, dropsing, verbose)
-	mata: st_local("comma", strpos(`"`absorb'"', ",") ? "" : ",")
+	ms_add_comma, loc(absorb) cmd(`"`absorb'"') opt(`"`options'"')
 	if (`timeit') timer on 20
-	mata: HDFE = fixed_effects(`"`absorb' `comma' `options'"', "`touse'", "`weight'", "`exp'", `drop_singletons', `verbose')
+	mata: HDFE = fixed_effects(`"`absorb'"', "`touse'", "`weight'", "`exp'", `drop_singletons', `verbose')
 	if (`timeit') timer off 20
 	mata: HDFE.cmdline = "reghdfe " + st_local("0")
 	loc options `s(options)'
