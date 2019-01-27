@@ -34,7 +34,7 @@ program reghdfe, eclass
 	}
 	else {
 		Cleanup 0
-		Compile // takes 0.01s to run this useful check (ensures .mlib exists)
+		//Compile // takes 0.01s to run this useful check (ensures .mlib exists)
 		cap noi Estimate `0'
 		Cleanup `c(rc)'
 	}
@@ -483,3 +483,8 @@ program Stats
 	qui tabstat `full_varlist' if `touse' `weight' , stat(`stats') col(stat) save
 	matrix reghdfe_statsmatrix = r(StatTotal)
 end
+
+findfile "reghdfe.mata"
+include "`r(fn)'"
+
+exit
