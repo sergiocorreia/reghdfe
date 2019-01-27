@@ -594,8 +594,15 @@ class FixedEffects
 		if (verbose==1) printf("{txt}   - Iterating:")
 		if (verbose>1) printf("{txt}      ")
 		converged = 0 // converged will get updated by check_convergence()
+
 		if (timeit) timer_on(62)
-		y = (*func_accel)(this, y, funct_transform) :* stdevs // 'this' is like python's self
+		if (G==1 & factors[1].method=="none" & num_slopes[1]==0 & !(storing_alphas & save_fe[1])) {
+			assert(factors[1].num_levels == 1)
+			y = stdevs :* y :- stdevs :* mean(y, has_weights ? asarray(factors[1].extra, "weights") : 1)
+		}
+		else {
+			y = (*func_accel)(this, y, funct_transform) :* stdevs // 'this' is like python's self
+		}
 		if (timeit) timer_off(62)
 		
 		if (prune) {
