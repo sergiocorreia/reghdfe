@@ -598,6 +598,7 @@ class FixedEffects
 		if (timeit) timer_on(62)
 		if (G==1 & factors[1].method=="none" & num_slopes[1]==0 & !(storing_alphas & save_fe[1])) {
 			assert(factors[1].num_levels == 1)
+			iteration_count = 1
 			y = stdevs :* y :- stdevs :* mean(y, has_weights ? asarray(factors[1].extra, "weights") : 1)
 		}
 		else {
