@@ -74,7 +74,6 @@ mata:
     if (st_global("s(transform)") != "") S.transform = st_global("s(transform)")
     if (st_global("s(acceleration)") != "") S.acceleration = st_global("s(acceleration)")
 
-
     // Override LSMR if G=1
     if (S.G==1 & S.acceleration=="lsmr") S.acceleration = "conjugate_gradient"
 
@@ -150,9 +149,20 @@ mata:
         }
 
         if (i<=S.G) {
-            if (S.ivars[g] == "_cons") {
+            if (S.ivars[g] == "_cons" & S.G == 1) {
                 // Special case without any fixed effects
-                S.factors[g] = _factor(J(rows(S.sample),1,1), 1, ., "hash0", ., 1, ., 0)
+
+                S.factors[g] = Factor()
+                pf = &(S.factors[g])
+                (*pf).num_obs = (*pf).counts = rows(S.sample)
+                (*pf).num_levels = 1
+                //(*pf).levels = . // Not filled to save space
+                (*pf).levels = J(rows(S.sample), 1, 1)
+                (*pf).is_sorted = 1
+                (*pf).method = "none"
+
+                // The code below is equivalent but 3x slower
+                // S.factors[g] = _factor(J(rows(S.sample),1,1), 1, ., "hash0", ., 1, ., 0)
             }
             else {
                 // We don't need to save keys (or sort levels but that might change estimates of FEs)

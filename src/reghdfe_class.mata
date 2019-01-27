@@ -511,6 +511,9 @@ class FixedEffects
 		kept = J(1, 0, .)
 	}
 
+	// Shortcut for trivial case (1 FE)
+	if (G==1) acceleration = "none"
+
 	// Solver Warnings
 	if (transform=="kaczmarz" & acceleration=="conjugate_gradient") {
 		printf("{err}(WARNING: convergence is {bf:unlikely} with transform=kaczmarz and accel=CG)\n")
@@ -529,9 +532,6 @@ class FixedEffects
 	if (acceleration=="steepest_descent") func_accel = &accelerate_sd()
 	if (acceleration=="aitken") func_accel = &accelerate_aitken()
 	if (acceleration=="hybrid") func_accel = &accelerate_hybrid()
-
-	// Shortcut for trivial case (1 FE)
-	if (G==1) func_accel = &accelerate_none()
 
 	// Compute TSS of depvar
 	if (timeit) timer_on(60)
