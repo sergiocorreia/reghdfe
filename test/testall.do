@@ -66,6 +66,7 @@
 	
 	* Prevent specific bugs
 	run bug_cluster
+	run extreme_values // test numerical accuracy
 
 	* Extra
 	do margins // not yet cscript
