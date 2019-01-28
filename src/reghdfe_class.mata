@@ -136,6 +136,7 @@ class FixedEffects
 	`Real'                  ll
 	`Real'                  ll_0
 	`RowVector'             means
+	`RowVector'				all_stdevs
 
 	// Methods
 	`Void'                  new()
@@ -202,7 +203,7 @@ class FixedEffects
 
 	not_basevar = J(1, 0, .)
 
-	means = J(1, 0, .) // necessary with pool() because we append to it
+	means = all_stdevs = J(1, 0, .) // necessary with pool() because we append to it
 	kept = J(1, 0, .) // necessary with pool() because we append to it
 }
 
@@ -505,9 +506,11 @@ class FixedEffects
 	if (args()<4 | first_is_depvar==.) first_is_depvar = 1
 	if (args()<5 | flush==.) flush = 0 // whether or not to flush the values of means & kept
 
+	assert(anyof((-1, 0, 1), standardize_data)) // 1=Standardize+Partial 0=Standardize+Partial+Undo -1=Partial (this one is a bit hackish)
+
 	if (flush) {
 		iteration_count = 0
-		means = J(1, 0, .)
+		means = stdevs = J(1, 0, .)
 		kept = J(1, 0, .)
 	}
 
@@ -572,20 +575,20 @@ class FixedEffects
 		}
 	}
 	else {
+
 		// Standardize variables
 		if (timeit) timer_on(61)
-		if (standardize_data) {
+		if (standardize_data != -1) {
 			if (verbose > 0) printf("{txt}   - Standardizing variables\n")
 			stdevs = reghdfe_standardize(y)
-		}
-		else {
-			stdevs = J(1, cols(y), 1)
+			all_stdevs = all_stdevs, stdevs
+			kept2 = kept2 :/ stdevs :^ 2
 		}
 		if (timeit) timer_off(61)
 
 		// RRE benchmarking
 		if (compute_rre) {
-			rre_true_residual = rre_true_residual / stdevs[1]
+			rre_true_residual = rre_true_residual / (standardize_data != -1 ? stdevs[1] : 1)
 			rre_depvar_norm = norm(y[., 1])
 		}
 
@@ -599,10 +602,22 @@ class FixedEffects
 		if (G==1 & factors[1].method=="none" & num_slopes[1]==0 & !(storing_alphas & save_fe[1])) {
 			assert(factors[1].num_levels == 1)
 			iteration_count = 1
-			y = stdevs :* y :- stdevs :* mean(y, has_weights ? asarray(factors[1].extra, "weights") : 1)
+
+			if (standardize_data == 0) {
+				y = stdevs :* y :- stdevs :* mean(y, has_weights ? asarray(factors[1].extra, "weights") : 1) // Undoing standardization
+			}
+			else {
+				y = y :- mean(y, has_weights ? asarray(factors[1].extra, "weights") : 1)
+			}
 		}
 		else {
-			y = (*func_accel)(this, y, funct_transform) :* stdevs // 'this' is like python's self
+			if (standardize_data == 0) {
+				y = (*func_accel)(this, y, funct_transform) :* stdevs // Undoing standardization
+			}
+			else {
+				// Hack: note that this is true if it's equal to both +1 and -1
+				y = (*func_accel)(this, y, funct_transform) // 'this' is like python's self
+			}
 		}
 		if (timeit) timer_off(62)
 		

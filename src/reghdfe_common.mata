@@ -77,7 +77,7 @@ mata:
 // --------------------------------------------------------------------------
 `RowVector' function reghdfe_standardize(`Matrix' A)
 {
-	`RowVector'				stdevs // , means
+	`RowVector'				stdevs, means
 	`Integer'				K, N // i, 
 
 	// We don't need to good accuracy for the stdevs, so we have a few alternatives:
@@ -97,8 +97,8 @@ mata:
 	// (A) Very precise
 
 	// (B) Precise
-	//means = cross(1, A) / N
-	//stdevs =  sqrt(diagonal(quadcrossdev(A, means, A, means))' / (N-1))
+	// means = cross(1, A) / N
+	// stdevs =  sqrt(diagonal(quadcrossdev(A, means, A, means))' / (N-1))
 
 	// (C) 20% faster; don't use it if you care about accuracy
 	stdevs = sqrt( (diagonal(cross(A, A))' - (cross(1, A) :^ 2 / N)) / (N-1) )
@@ -279,13 +279,18 @@ mata:
 	`Vector' 				w
 	`Integer'				used_df_r
 	`Integer'				dof_adj
-	`RowVector'				means_x, side
-	`Real'					corner
+	
+	`Boolean'				is_standardized
+	`Real'					stdev_y
+	`RowVector'				stdev_x
 
 	if (true_w == . | args() < 11) true_w = J(0, 1, .)
 	if (S.vcetype == "unadjusted" & S.weight_type=="pweight") S.vcetype = "robust"
 	if (S.verbose > 0) printf("\n{txt}## Solving least-squares regression of partialled-out variables\n\n")
 	assert_in(vce_mode, ("vce_none", "vce_small", "vce_asymptotic"))
+
+	is_standardized = S.all_stdevs != J(1, 0, .)
+	if (is_standardized) S.means = S.means :/ S.all_stdevs
 
 	// Weight FAQ:
 	// - fweight: obs. i represents w[i] duplicate obs. (there is no loss of info wrt to having the "full" dataset)
@@ -373,12 +378,22 @@ mata:
 	}
 
 	// Stop if no VCE/R2/RSS needed
-	if (vce_mode == "vce_none") return
+	if (vce_mode == "vce_none") {
+		assert(!is_standardized)
+		return
+	}
 
 	if (S.timeit) timer_on(93)
 	if (S.vcetype != "unadjusted") {
 		if (S.compute_constant) {
-			just_X = K ? X[., 2..K+1] :+ S.means[2..cols(S.means)] : J(rows(X), 0, .)
+			if (isfleeting(X)) {
+				// Save some memory... unsure if it helps
+				swap(just_X, X)
+				just_X = K ? just_X[., 2..K+1] :+ S.means[2..cols(S.means)] : J(rows(just_X), 0, .)
+			}
+			else {
+				just_X = K ? X[., 2..K+1] :+ S.means[2..cols(S.means)] : J(rows(X), 0, .)
+			}
 		}
 		else {
 			just_X = K ? X[., 2..K+1] : J(rows(X), 0, .)
@@ -430,6 +445,26 @@ mata:
 	if (missing(V)) {
 		if (S.verbose > 0) printf("{txt}   - VCE has missing values, setting it to zeroes (are your regressors all collinear?)\n")
 		V = J(rows(V), rows(V), 0)
+	}
+
+	// Undo standardization
+	if (is_standardized) {
+		// Sanity checks
+		assert(rows(S.all_stdevs)==1)
+		assert(cols(S.all_stdevs) - 1 == rows(b) - S.compute_constant) // Subtract "y" on left; subtract "_cons" on right
+		
+		// Recover stdevs
+		stdev_y = S.all_stdevs[1]
+		stdev_x = K ? S.all_stdevs[2..cols(S.all_stdevs)] : J(1, 0, .)
+		if (S.compute_constant) stdev_x = stdev_x, 1
+		stdev_x = stdev_x :/ stdev_y
+		
+		// Transform output (note that S.tss is already ok)
+		S.rss = S.rss * stdev_y ^ 2
+		S.tss_within = S.tss_within * stdev_y ^ 2
+		resid = resid * stdev_y
+		V = V :/ (stdev_x' * stdev_x)
+		b = b :/ stdev_x'
 	}
 
 	// Results

@@ -7,6 +7,10 @@
 
 ## Recent Updates
 
+* **version 5.6 26jan2019**:
+    - Improved numerical accuracy. Previously, reghdfe standardized the data, partialled it out, unstandardized it, and solved the least squares problem. It now runs the solver on the standardized data, which preserves numerical accuracy on datasets with extreme combinations of values. Thanks to Zhaojun Huang for the bug report.
+    - Speed up calls to reghdfe. The first call to reghdfe after "clear all" should be around 2s faster, and each subsequent call around 0.1s faster.
+    - Running reghdfe with `noabsorb` option should now be considerably faster.
 * **version 5.3 30nov2018**:
     - Fixed silent error with Stata 15 and version 5.2.x of reghdfe. Data was loading into Mata in the incorrect order if running regressions with many factor interactions. This resulted in a scrambling of the coefficients. Stata 15 users are **strongly encouraged** to upgrade. For more information see #150 by @simonheb
 * **version 5.2 17jul2018**:
