@@ -12,12 +12,14 @@ program define reghdfe_store_alphas, eclass
 			qui _predict double `d' if e(sample), xb
 		}
 		else if (e(report_constant)) {
-			gen double `d' = _b[_cons]
+			gen double `d' = _b[_cons] if e(sample)
 		}
 		else {
-			gen double `d' = 0
+			gen double `d' = 0 if e(sample)
 		}
 		qui replace `d' = `e(depvar)' - `d' - `e(resid)' if e(sample)
+		su `e(resid)' if e(sample), d
+
 		mata: HDFE.store_alphas("`d'")
 		drop `d'
 

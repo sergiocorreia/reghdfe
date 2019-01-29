@@ -102,10 +102,18 @@ mata:
 
 	// (C) 20% faster; don't use it if you care about accuracy
 	stdevs = sqrt( (diagonal(cross(A, A))' - (cross(1, A) :^ 2 / N)) / (N-1) )
-
 	assert_msg(!missing(stdevs), "stdevs are missing; is N==1?") // Shouldn't happen as we don't expect N==1
 	stdevs = colmax(( stdevs \ J(1, K, 1e-3) ))
 	A = A :/ stdevs
+
+	// (D) Equilibrate matrix columns instead of standardize (i.e. just divide by column max)
+	// _perhapsequilc(A, stdevs=.)
+	// stdevs = 1 :/ stdevs
+	// assert_msg(!missing(stdevs), "stdevs are missing; is N==1?")
+
+	// (E) Don't do anything
+	// stdevs = J(1, cols(A), 1)
+
 	return(stdevs)
 }
 
