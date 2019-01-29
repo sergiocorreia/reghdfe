@@ -506,7 +506,7 @@ class FixedEffects
 	if (args()<4 | first_is_depvar==.) first_is_depvar = 1
 	if (args()<5 | flush==.) flush = 0 // whether or not to flush the values of means & kept
 
-	assert(anyof((-1, 0, 1), standardize_data)) // 1=Standardize+Partial 0=Standardize+Partial+Undo -1=Partial (this one is a bit hackish)
+	assert(anyof((0, 1, 2), standardize_data)) // 0=Don't standardize; 1=Std. and REVERT after partial; 2=Std., partial, and KEEP STANDARDIZED
 
 	if (flush) {
 		iteration_count = 0
@@ -578,7 +578,7 @@ class FixedEffects
 
 		// Standardize variables
 		if (timeit) timer_on(61)
-		if (standardize_data != -1) {
+		if (standardize_data) {
 			if (verbose > 0) printf("{txt}   - Standardizing variables\n")
 			stdevs = reghdfe_standardize(y)
 			all_stdevs = all_stdevs, stdevs
@@ -588,7 +588,7 @@ class FixedEffects
 
 		// RRE benchmarking
 		if (compute_rre) {
-			rre_true_residual = rre_true_residual / (standardize_data != -1 ? stdevs[1] : 1)
+			rre_true_residual = rre_true_residual / (standardize_data ? stdevs[1] : 1)
 			rre_depvar_norm = norm(y[., 1])
 		}
 
@@ -600,10 +600,10 @@ class FixedEffects
 
 		if (timeit) timer_on(62)
 		if (G==1 & factors[1].method=="none" & num_slopes[1]==0 & !(storing_alphas & save_fe[1])) {
+			// Speedup for constant-only case (no fixed effects)
 			assert(factors[1].num_levels == 1)
 			iteration_count = 1
-
-			if (standardize_data == 0) {
+			if (standardize_data == 1) {
 				y = stdevs :* y :- stdevs :* mean(y, has_weights ? asarray(factors[1].extra, "weights") : 1) // Undoing standardization
 			}
 			else {
@@ -611,11 +611,10 @@ class FixedEffects
 			}
 		}
 		else {
-			if (standardize_data == 0) {
+			if (standardize_data == 1) {
 				y = (*func_accel)(this, y, funct_transform) :* stdevs // Undoing standardization
 			}
 			else {
-				// Hack: note that this is true if it's equal to both +1 and -1
 				y = (*func_accel)(this, y, funct_transform) // 'this' is like python's self
 			}
 		}

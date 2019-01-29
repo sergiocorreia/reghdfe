@@ -1,4 +1,4 @@
-*! version 5.6.0 28jan2018
+*! version 5.6.1 29jan2018
 
 program reghdfe, eclass
 	* Intercept old+version
@@ -370,8 +370,9 @@ program Estimate, eclass
 
 	* Partial out; save TSS of depvar
 	if (`timeit') timer on 23
-	// partial_out(Varlist/Matrix | , Save TSS if HDFE.tss is missing? [0], Standardize data? [1], First col is depvar? [1])
-	mata: hdfe_variables = HDFE.partial_out(HDFE.varlist, 1, ., .)
+	// SYNTAX: partial_out(Varlist/Matrix | , Save TSS if HDFE.tss is missing? [0], Standardize data? [1], First col is depvar? [1])
+	// Note: standardize=2 will standardize, partial out, and return the data standardized!
+	mata: hdfe_variables = HDFE.partial_out(HDFE.varlist, 1, 2, .)
 	if (`timeit') timer off 23
 
 	* Regress
