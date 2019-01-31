@@ -636,7 +636,7 @@ class FixedEffects
 
 	// This will edit to zero entire columns where *ALL* values are very close to zero
 	if (timeit) timer_on(64)
-	vars = tokens(varlist)
+	vars = cols(varlist) > 1 ? varlist : tokens(varlist)
 	if (cols(vars)!=cols(y)) vars ="variable #" :+ strofreal(1..cols(y))
 	kept2 = (diagonal(cross(y, y))' :/ kept2) :> (tolerance*1e-1)
 	if (first_is_depvar & kept2[1]==0) {

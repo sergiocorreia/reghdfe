@@ -376,7 +376,7 @@ mata:
 	}
 
 	if (S.timeit) timer_on(92)
-	resid = X * (1 \ -b) // y - X * b
+	if (!isfleeting(resid) | vce_mode != "vce_none") resid = X * (1 \ -b) // y - X * b
 	if (S.timeit) timer_off(92)
 
 	if (S.compute_constant) {
