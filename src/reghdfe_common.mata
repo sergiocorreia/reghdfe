@@ -344,8 +344,8 @@ mata:
 	// Bread of the robust VCV matrix
 	// Compute this early so we can update the list of collinear regressors
 	if (S.timeit) timer_on(95)
-	assert_msg( cols(tokens(S.indepvars))==cols(xx) , "HDFE.indepvars is missing or has the wrong number of columns")
-	inv_xx = reghdfe_rmcoll(tokens(S.indepvars), xx, kept) // this modifies -kept-
+	assert_msg( cols(tokens(invtokens(S.indepvars)))==cols(xx) , "HDFE.indepvars is missing or has the wrong number of columns")
+	inv_xx = reghdfe_rmcoll(tokens(invtokens(S.indepvars)), xx, kept) // this modifies -kept-
 
 	// // Workaround for case with extremely high weights, where ivnsym loses precision and incorrectly excludes vars
 	// if (S.has_weights) {
