@@ -228,7 +228,7 @@ mata:
 		// (so sqrt is missing)
 
 		eps_threshold = 1e-15 // 10 * epsilon(1) ; perhaps too aggressive and should be 1e-14 ?
-		if (S.verbose > 0 & any(y_new :< eps_threshold)) {
+		if (S.verbose > 0 & all(y_new :< eps_threshold)) {
 			printf("{txt} note: eps. is very close to zero (%g), so hestenes assumed convergence to avoid numerical precision errors\n", min(y_new))
 		}
 		update_error = safe_divide(edittozerotol(y_new, eps_threshold ),
