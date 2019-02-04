@@ -11,7 +11,13 @@
     *mata: mata set matalnum off
 
 // Include ftools -----------------------------------------------------------
-    findfile "ftools.mata"
+    cap findfile "ftools.mata"
+    if (_rc) {
+        di as error "reghdfe requires the {bf:ftools} package, which is not installed"
+        di as error `"    - install from {stata ssc install ftools:SSC}"'
+        di as error `"    - install from {stata `"net install ftools, from("https://github.com/sergiocorreia/ftools/raw/master/src/")"':Github}"'
+        exit 9
+    }
     include "`r(fn)'"
 
 

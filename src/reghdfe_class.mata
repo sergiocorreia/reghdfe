@@ -1092,7 +1092,7 @@ class FixedEffects
 	// ---- .options properties ---------------------------------------------
 
 	st_global("e(depvar)", depvar)
-	st_global("e(indepvars)", indepvars)
+	st_global("e(indepvars)", invtokens(indepvars))
 
 	if (!missing(N_clust)) {
 		st_numscalar("e(N_clustervars)", num_clusters)
