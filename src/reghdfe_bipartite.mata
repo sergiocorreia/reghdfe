@@ -93,7 +93,7 @@ class BipartiteGraph
 	
 	if (verbose) printf("{txt}   - computing F12_2:")
 	F12_2 = _factor(F12.keys[., 2], 1, 0, "", 1, 1, ., 0)
-	if (verbose) printf("{txt} edges found: {res}%-10.0gc{txt}\n", F12_1.num_levels)
+	if (verbose) printf("{txt} edges found: {res}%-10.0gc{txt}\n", F12_2.num_levels)
 	F12_2.panelsetup()
 }
 
