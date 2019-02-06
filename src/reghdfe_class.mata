@@ -495,7 +495,7 @@ class FixedEffects
 {
 	`RowVector'             stdevs, needs_zeroing, kept2
 	`FunctionP'             funct_transform, func_accel // transform
-	`Real'                  y_mean
+	`Real'                  y_mean, collinear_tol
 	`Vector'                lhs
 	`Vector'                alphas
 	`StringRowVector'       vars
@@ -638,17 +638,19 @@ class FixedEffects
 	if (timeit) timer_on(64)
 	vars = cols(varlist) > 1 ? varlist : tokens(varlist)
 	if (cols(vars)!=cols(y)) vars ="variable #" :+ strofreal(1..cols(y))
-	kept2 = (diagonal(cross(y, y))' :/ kept2) :> (tolerance*1e-1)
+	collinear_tol = min(( 1e-6 , tolerance / 10))
+
+	kept2 = (diagonal(cross(y, y))' :/ kept2) :> (collinear_tol)
 	if (first_is_depvar & kept2[1]==0) {
 		kept2[1] = 1
-		if (verbose > -1) printf("{txt}warning: %s might be perfectly explained by fixed effects (tol =%3.1e)\n", vars[1], tolerance*1e-1)
+		if (verbose > -1) printf("{txt}warning: %s might be perfectly explained by fixed effects (tol =%3.1e)\n", vars[1], collinear_tol)
 	}
 	needs_zeroing = `selectindex'(!kept2)
 	if (cols(needs_zeroing)) {
 		y[., needs_zeroing] = J(rows(y), cols(needs_zeroing), 0)
 		for (i=1; i<=cols(vars); i++) {
 			if (!kept2[i] & verbose>-1 & (i > 1 | !first_is_depvar)) {
-				printf("{txt}note: %s is probably collinear with the fixed effects (all values close to zero after partialling-out; tol =%3.1e)\n", vars[i], tolerance*1e-1)
+				printf("{txt}note: {res}%s{txt} is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =%3.1e)\n", vars[i], collinear_tol)
 			}
 		}
 	}
