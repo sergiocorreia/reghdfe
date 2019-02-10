@@ -1,6 +1,6 @@
 program reghdfe_estat, rclass
 	version `=cond(c(version)<14, c(version), 13)'
-	if "`e(cmd)'" != "reghdfe" {
+	if !inlist("`e(cmd)'", "reghdfe", "ppmlhdfe") {
 		error 301
 	}
 	

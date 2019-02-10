@@ -999,6 +999,7 @@ class FixedEffects
 	st_numscalar("e(df_a_initial)", df_a_initial)
 	st_numscalar("e(df_a_redundant)", df_a_redundant)
 	st_numscalar("e(df_a_nested)", df_a_nested)
+	st_global("e(dofmethod)", invtokens(dofadjustments))
 
 	if (absvars == "") {
 		absvars = extended_absvars = "_cons"
