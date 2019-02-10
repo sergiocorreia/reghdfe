@@ -1,12 +1,14 @@
 # REGHDFE: Linear Regressions With Multiple Fixed Effects
 
-- Current version: ` 5.3.2 30nov2018`
+- Current version: ` 5.6.2 10feb2018`
 - Jump to: [`news`](#recent-updates) [`citation`](#citation) [`install`](#install) [`manual install`](#manual-install) [`description`](#description)
 
 -----------
 
 ## Recent Updates
 
+* **version 5.6.2 10feb2019**:
+    - Minimum required version required to run [Poisson pseudo-maximum likelihood estimation](https://github.com/sergiocorreia/ppmlhdfe)
 * **version 5.6 26jan2019**:
     - Improved numerical accuracy. Previously, reghdfe standardized the data, partialled it out, unstandardized it, and solved the least squares problem. It now runs the solver on the standardized data, which preserves numerical accuracy on datasets with extreme combinations of values. Thanks to Zhaojun Huang for the bug report.
     - Speed up calls to reghdfe. The first call to reghdfe after "clear all" should be around 2s faster, and each subsequent call around 0.1s faster.
