@@ -84,7 +84,7 @@ To find out which version you have installed, type `reghdfe, version`.
 cap ado uninstall ftools
 net install ftools, from("https://raw.githubusercontent.com/sergiocorreia/ftools/master/src/")
 
-* Install reghdfe 4.x
+* Install reghdfe 5.x
 cap ado uninstall reghdfe
 net install reghdfe, from("https://raw.githubusercontent.com/sergiocorreia/reghdfe/master/src/")
 
