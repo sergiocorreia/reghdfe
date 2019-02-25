@@ -41,6 +41,7 @@ class FixedEffects
 	`Boolean'               storing_alphas      // 1 if we should compute the alphas/fes
 	`Real'                  conlim              // specific to LSMR
 	`Real'                  btol                // specific to LSMR
+	`Integer'				min_ok
 
 	// Optimization objects
 	`BipartiteGraph'        bg                  // Used when pruning 1-core vertices
@@ -191,7 +192,8 @@ class FixedEffects
 	accel_start = 6
 	conlim = 1e+8 // lsmr only
 	btol = 1e-8 // lsmr only (note: atol is just tolerance)
-	
+	min_ok = 1
+
 	prune = 0
 	converged = 0
 	abort = 1
@@ -1179,6 +1181,18 @@ class FixedEffects
 	ans.report_constant = this.report_constant
 	ans.tolerance = this.tolerance
 	ans.save_any_fe = this.save_any_fe
+
+	ans.slope_method = this.slope_method
+	ans.maxiter = this.maxiter
+	ans.transform = this.transform
+	ans.acceleration = this.acceleration
+	ans.accel_start = this.accel_start
+	ans.conlim = this.conlim
+	ans.btol = this.btol
+	ans.min_ok = this.min_ok
+	ans.prune = this.prune
+
+	ans.M = this.M
 
 	return(ans)
 }

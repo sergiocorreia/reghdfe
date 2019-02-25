@@ -242,10 +242,10 @@ mata:
 
 	assert_msg(!missing(update_error), "update error is missing")
 
-	S.converged = (update_error <= S.tolerance)
+	S.converged = S.converged + (update_error <= S.tolerance)
 	is_last_iter = iter==S.maxiter
 	
-	if (S.converged) {
+	if (S.converged >= S.min_ok) {
 		S.iteration_count = max((iter, S.iteration_count))
 		if (S.verbose==1) printf("{txt}   converged in %g iterations (last error =%3.1e)\n", iter, update_error)
 		if (S.verbose>1) printf("\n{txt}   - Converged in %g iterations (last error =%3.1e)\n", iter, update_error)
@@ -274,7 +274,7 @@ mata:
 			y_new
 		}
 	}
-	return(S.converged)
+	return(S.converged >= S.min_ok)
 }
 
 // --------------------------------------------------------------------------
