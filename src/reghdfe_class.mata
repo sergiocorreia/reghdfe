@@ -141,6 +141,7 @@ class FixedEffects
 
 	// Methods
 	`Void'                  new()
+	`Void'                  destroy()
 	`Void'                  load_weights() // calls update_sorted_weights, etc.
 	`Void'                  update_sorted_weights()
 	`Void'                  update_cvar_objects()
@@ -207,6 +208,12 @@ class FixedEffects
 
 	means = all_stdevs = J(1, 0, .) // necessary with pool() because we append to it
 	kept = J(1, 0, .) // necessary with pool() because we append to it
+}
+
+
+`Void' FixedEffects::destroy()
+{
+	stata(sprintf("cap drop %s", tousevar))
 }
 
 
