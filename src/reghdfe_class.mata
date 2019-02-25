@@ -213,7 +213,7 @@ class FixedEffects
 
 `Void' FixedEffects::destroy()
 {
-	stata(sprintf("cap drop %s", tousevar))
+	// stata(sprintf("cap drop %s", tousevar))
 }
 
 
