@@ -1283,7 +1283,7 @@ class FixedEffects
 
 		if (intercepts[g]) {
 			idx_end = idx_start + k - 1
-			ans = ans + (x[|idx_start, 1 \ idx_end , 1 |] :* asarray((*pf).extra, "precond_intercept") )[(*pf).levels]
+			ans = ans + (x[|idx_start, 1 \ idx_end , 1 |] :* asarray((*pf).extra, "precond_intercept") )[(*pf).levels, .]
 			idx_start = idx_end + 1
 		}
 
