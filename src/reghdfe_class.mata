@@ -41,6 +41,7 @@ class FixedEffects
 	`Boolean'               storing_alphas      // 1 if we should compute the alphas/fes
 	`Real'                  conlim              // specific to LSMR
 	`Real'                  btol                // specific to LSMR
+	`Boolean'				always_run_lsmr_preconditioner
 	`Integer'				min_ok
 
 	// Optimization objects
@@ -193,6 +194,7 @@ class FixedEffects
 	accel_start = 6
 	conlim = 1e+8 // lsmr only
 	btol = 1e-8 // lsmr only (note: atol is just tolerance)
+	always_run_lsmr_preconditioner = 0
 	min_ok = 1
 
 	prune = 0

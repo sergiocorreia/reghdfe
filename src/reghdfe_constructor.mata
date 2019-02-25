@@ -62,6 +62,7 @@ mata:
 	S.num_slopes = strtoreal(tokens(st_global("s(num_slopes)")))
 	S.save_fe = S.targets :!= ""
 	S.report_constant = strtoreal(st_global("s(report_constant)"))
+	S.always_run_lsmr_preconditioner = strtoreal(st_global("s(precondition)"))
 
 	// Ensure that S.report_constant and S.has_intercept are 0/1
 	assert(anyof((0,1), S.has_intercept))
@@ -275,7 +276,7 @@ mata:
 	S.load_weights(weighttype, weightvar, J(0,1,.), 1) // update S.has_weights, S.factors, etc.
 
 	// Preconditioners for LSMR
-	if (S.acceleration=="lsmr") {
+	if (S.acceleration=="lsmr" | S.always_run_lsmr_preconditioner) {
 		// Compute M
 		S.M = 0
 		for (g=1; g<=S.G; g++) {

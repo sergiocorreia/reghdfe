@@ -24,6 +24,7 @@ program reghdfe_parse, sclass
 		ACCELeration(string)
 		SLOPEmethod(string)
 		PRUNE
+		PRECONDition /* always compute LSMR preconditioner */
 
 		/* Memory usage (also see -compact- option) */ 
 		POOLsize(integer 0) /* Process variables in batches of # ; 0 turns it off */
@@ -133,4 +134,6 @@ program reghdfe_parse, sclass
 
 	if (`poolsize' < 1) loc poolsize .
 	sreturn loc poolsize `poolsize'
+
+	sreturn loc precondition = "`precondition'" != ""
 end
