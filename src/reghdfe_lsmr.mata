@@ -38,6 +38,7 @@ mata:
     assert_msg(beta < . , "beta is missing")
     u = (beta > eps) ? (b / beta) : b
     v = S.lsmr_At_mult(u) // v = (*A)(u, 2)
+    assert_msg(!missing(v), "-v- missing")
     // m = rows(v) // A is m*n
     // n = rows(u)
 

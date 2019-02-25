@@ -1201,8 +1201,7 @@ class FixedEffects
 	ans.btol = this.btol
 	ans.min_ok = this.min_ok
 	ans.prune = this.prune
-
-	ans.M = this.M
+	ans.always_run_lsmr_preconditioner = this.always_run_lsmr_preconditioner
 
 	return(ans)
 }
