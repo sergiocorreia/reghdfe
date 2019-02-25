@@ -459,6 +459,7 @@ class FixedEffects
 	// Fill out alphas
 	if (verbose > 0) printf("{txt}   - Computing alphas\n")
 	storing_alphas = 1
+	converged = 0
 	d = accelerate_sd(this, d, &transform_kaczmarz())
 	storing_alphas = 0
 

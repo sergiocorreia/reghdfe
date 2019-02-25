@@ -18,7 +18,6 @@ program define reghdfe_store_alphas, eclass
 			gen double `d' = 0 if e(sample)
 		}
 		qui replace `d' = `e(depvar)' - `d' - `e(resid)' if e(sample)
-		su `e(resid)' if e(sample), d
 
 		mata: HDFE.store_alphas("`d'")
 		drop `d'

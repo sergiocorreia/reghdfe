@@ -10,6 +10,8 @@ mata:
 	`Factor' f
 	pragma unset resid
 
+	assert(S.converged == 0)
+
 	for (iter=1; iter<=S.maxiter; iter++) {
 		for (g=1; g<=S.G; g++) {
 			f = S.factors[g]
@@ -29,6 +31,8 @@ mata:
 	`Variables'		resid
 	pragma unset resid
 
+	assert(S.converged == 0)
+
 	for (iter=1; iter<=S.maxiter; iter++) {
 		(*T)(S, y, resid) // Faster version of "resid = S.T(y)"
 		if (check_convergence(S, iter, resid, y)) break
@@ -45,6 +49,7 @@ mata:
 	pragma unset resid
 
 	accel_start = 6
+	assert(S.converged == 0)
 
 	for (iter=1; iter<=accel_start; iter++) {
 		(*T)(S, y, resid) // Faster version of "resid = S.T(y)"
@@ -77,6 +82,7 @@ mata:
 	pragma unset r
 	pragma unset v
 
+	assert(S.converged == 0)
 	if (S.timeit) timer_on(70)
 	Q = cols(y)
 	
@@ -140,6 +146,8 @@ mata:
 	`RowVector' t
 	pragma unset proj
 
+	assert(S.converged == 0)
+
 	for (iter=1; iter<=S.maxiter; iter++) {
 		(*T)(S, y, proj, 1)
 		if (check_convergence(S, iter, y-proj, y)) break
@@ -148,7 +156,7 @@ mata:
 
 		y = y - t :* proj
 		if (S.compute_rre & !S.prune) reghdfe_rre_benchmark(y[., 1], S.rre_true_residual, S.rre_depvar_norm)
-		
+
 		if (S.storing_alphas) {
 			for (g=1; g<=S.G; g++) {
 				//g, ., ., t
@@ -179,6 +187,7 @@ mata:
 	`RowVector' t
 	pragma unset resid
 
+	assert(S.converged == 0)
 	y_old = J(rows(y), cols(y), .)
 
 	for (iter=1; iter<=S.maxiter; iter++) {

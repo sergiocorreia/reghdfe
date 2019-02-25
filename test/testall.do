@@ -7,6 +7,9 @@
 	di as text "DIR: `dir'"
 	net install reghdfe, from("`dir'")
 
+	findfile "lreghdfe.mlib"
+	cap drop "`r(fn)'"
+
 
 * Clean slate
 	set more off
