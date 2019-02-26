@@ -19,7 +19,6 @@ mata:
 	`Integer'               num_singletons_i
 	`Variables'             cvar_data
 	`FactorPointer'         pf
-	`Matrix'                precond // used for lsmr
 
 	// Set default value of arguments
 	if (args()<2) touse = ""
@@ -274,33 +273,6 @@ mata:
 
 	// (5) load weight
 	S.load_weights(weighttype, weightvar, J(0,1,.), 1) // update S.has_weights, S.factors, etc.
-
-	// Preconditioners for LSMR
-	if (S.acceleration=="lsmr" | S.always_run_lsmr_preconditioner) {
-		// Compute M
-		S.M = 0
-		for (g=1; g<=S.G; g++) {
-			S.M = S.M + S.factors[g].num_levels * (S.intercepts[g] + S.num_slopes[g])
-		}
-
-		// Preconditioner
-		for (g=1; g<=S.G; g++) {
-			pf = &(S.factors[g])
-			if (S.intercepts[g]) {
-				precond = S.has_weights ? asarray((*pf).extra, "weighted_counts") : (*pf).counts
-				asarray((*pf).extra, "precond_intercept", sqrt(1 :/ precond))
-			}
-
-			if (S.num_slopes[g]) {
-				cvars = tokens(S.cvars[g])
-				precond = st_data(S.sample, cvars)
-				precond = reghdfe_panel_precondition(precond, (*pf))
-				asarray((*pf).extra, "precond_slopes", precond)
-			}
-
-			precond = .
-		}
-	}
 
 	// Save "true" residuals for RRE
 	if (S.compute_rre) {
