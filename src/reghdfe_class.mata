@@ -222,7 +222,10 @@ class FixedEffects
 // This adds/removes weights or changes their type
 `Void' FixedEffects::load_weights(`String' weighttype, `String' weightvar, `Variable' weight, `Boolean' verbose)
 {
-	`Integer' g
+	`Integer'				g
+	`FactorPointer'         pf
+	`Matrix'                precond // used for lsmr
+	`Varname'               cvars
    
 	this.has_weights = (weighttype != "" & weightvar != "")
 	if (this.verbose > 0 & verbose > 0 & this.has_weights) printf("{txt}## Loading weights [%s=%s]\n", weighttype, weightvar)
@@ -258,6 +261,35 @@ class FixedEffects
 	// Update cvar objects (do AFTER updating weights!)
 	// (this is meaningless with iweights)
 	if (weighttype != "iweight") this.update_cvar_objects()
+
+	// Preconditioners for LSMR
+	if (acceleration=="lsmr" | always_run_lsmr_preconditioner) {
+
+		// Compute M
+		M = 0
+		for (g=1; g<=G; g++) {
+			M = M + factors[g].num_levels * (intercepts[g] + num_slopes[g])
+		}
+
+		// Preconditioner
+		for (g=1; g<=G; g++) {
+			pf = &(factors[g])
+			if (intercepts[g]) {
+				precond = has_weights ? asarray((*pf).extra, "weighted_counts") : (*pf).counts
+				asarray((*pf).extra, "precond_intercept", sqrt(1 :/ precond))
+			}
+
+			if (num_slopes[g]) {
+				cvars = tokens(cvars[g])
+				precond = st_data(sample, cvars)
+				precond = reghdfe_panel_precondition(precond, (*pf))
+				asarray((*pf).extra, "precond_slopes", precond)
+			}
+
+			precond = .
+		}
+	}
+
 }
 
 
@@ -1296,6 +1328,7 @@ class FixedEffects
 		}
 
 	}
+	//assert(!missing(ans))
 	return(ans)
 }
 
@@ -1339,6 +1372,7 @@ class FixedEffects
 			idx_start = idx_end + 1
 		}
 	}
+	//assert(!missing(alphas))
 	return(alphas)
 }
 
