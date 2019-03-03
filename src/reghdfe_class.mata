@@ -225,7 +225,7 @@ class FixedEffects
 	`Integer'				g
 	`FactorPointer'         pf
 	`Matrix'                precond // used for lsmr
-	`Varname'               cvars
+	`Varname'               cvars_g
    
 	this.has_weights = (weighttype != "" & weightvar != "")
 	if (this.verbose > 0 & verbose > 0 & this.has_weights) printf("{txt}## Loading weights [%s=%s]\n", weighttype, weightvar)
@@ -280,8 +280,8 @@ class FixedEffects
 			}
 
 			if (num_slopes[g]) {
-				cvars = tokens(cvars[g])
-				precond = st_data(sample, cvars)
+				cvars_g = tokens(this.cvars[g])
+				precond = st_data(this.sample, cvars_g)
 				precond = reghdfe_panel_precondition(precond, (*pf))
 				asarray((*pf).extra, "precond_slopes", precond)
 			}
