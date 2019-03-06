@@ -8,7 +8,7 @@ d
 d reghdfe fits a linear or instrumental-variable/GMM regression absorbing an arbitrary number of categorical factors and factorial interactions
 d Optionally, it saves the estimated fixed effects.
 d
-d The estimator employed is described in Correia (2016):
+d The estimator employed is described in Correia (2017):
 d http://scorreia.com/research/hdfe.pdf
 d
 d For details (user guide, help, FAQ), see the website:
@@ -29,7 +29,7 @@ d Required packages:
 d 	ftools
 d 	boottest (for Stata version 12 or earlier)
 d
-d Distribution-Date: 20181130
+d Distribution-Date: 20190303
 d
 
 f reghdfe.ado
