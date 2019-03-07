@@ -27,3 +27,8 @@ program define reghdfe_store_alphas, eclass
 		if (!c(rc)) ereturn local resid
 	}
 end
+
+findfile "reghdfe.mata"
+include "`r(fn)'"
+
+exit
