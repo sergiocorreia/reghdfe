@@ -28,7 +28,6 @@ program define reghdfe_store_alphas, eclass
 	}
 end
 
-findfile "reghdfe.mata"
-include "`r(fn)'"
-
-exit
+*findfile "reghdfe.mata"
+*include "`r(fn)'"
+*exit
