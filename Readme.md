@@ -1,12 +1,15 @@
 # REGHDFE: Linear Regressions With Multiple Fixed Effects
 
-- Current version: ` 5.6.2 10feb2018`
+- Current version: `5.6.8 03mar2019` (current SSC version: `5.6.8 03mar2019`)
 - Jump to: [`news`](#recent-updates) [`citation`](#citation) [`install`](#install) [`manual install`](#manual-install) [`description`](#description)
 
 -----------
 
 ## Recent Updates
 
+* **version 5.6.8 03mar2019**:
+    - [`ppmlhdfe`](http://scorreia.com/software/ppmlhdfe/) package released, for Poisson models with fixed effects. Use this if you are running regressions with `log(y)` on the left-hand-side.
+    - Stable version of reghdfe, also on SSC.
 * **version 5.6.2 10feb2019**:
     - Minimum required version required to run [Poisson pseudo-maximum likelihood estimation](https://github.com/sergiocorreia/ppmlhdfe)
 * **version 5.6 26jan2019**:
