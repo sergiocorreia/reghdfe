@@ -7,6 +7,8 @@
 
 ## Recent Updates
 
+* **version 5.7.0 20mar2019**:
+    - Users no longer have to run `reghdfe, compile` after installing. If you are getting the error "class FixedEffects undefined", either upgrade to this version, or run `reghdfe, compile`
 * **version 5.6.8 03mar2019**:
     - [`ppmlhdfe`](http://scorreia.com/software/ppmlhdfe/) package released, for Poisson models with fixed effects. Use this if you are running regressions with `log(y)` on the left-hand-side.
     - Stable version of reghdfe, also on SSC.
