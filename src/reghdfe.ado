@@ -1,4 +1,4 @@
-*! version 5.6.10 08mar2019
+*! version 5.7.0 20mar2019
 
 program reghdfe, eclass
 	* Intercept old+version
@@ -19,7 +19,7 @@ program reghdfe, eclass
 
 	* Aux. subcommands
 	cap syntax, [*]
-	if inlist("`options'", "check", "compile", "reload", "update", "version", "requirements") {
+	if inlist("`options'", "check", "compile", "reload", "update", "version", "requirements", "store_alphas") {
 		if ("`options'"=="compile") loc args force
 		if ("`options'"=="check") loc options compile
 		if ("`options'"=="update") {
@@ -34,7 +34,7 @@ program reghdfe, eclass
 	}
 	else {
 		Cleanup 0
-		ms_get_version ftools, min_version("2.34.0") // Compile // takes 0.01s to run this useful check (ensures .mlib exists)
+		ms_get_version ftools, min_version("2.36.1") // Compile // takes 0.01s to run this useful check (ensures .mlib exists)
 		cap noi Estimate `0'
 		Cleanup `c(rc)'
 	}
@@ -136,6 +136,37 @@ program Requirements
 	}
 
 	if (`error') exit 601
+end
+
+
+program Store_Alphas, eclass
+	mata: st_local("save_any_fe", strofreal(HDFE.save_any_fe))
+	assert inlist(`save_any_fe', 0, 1)
+	if (`save_any_fe') {
+		_assert e(depvar) != "", msg("e(depvar) is empty")
+		_assert e(resid) != "", msg("e(resid) is empty")
+		// we can't use -confirm var- because it might have TS operators
+		fvrevar `e(depvar)', list
+		confirm numeric var `e(resid)', exact
+		tempvar d
+		if (e(rank)) {
+			qui _predict double `d' if e(sample), xb
+		}
+		else if (e(report_constant)) {
+			gen double `d' = _b[_cons] if e(sample)
+		}
+		else {
+			gen double `d' = 0 if e(sample)
+		}
+		qui replace `d' = `e(depvar)' - `d' - `e(resid)' if e(sample)
+
+		mata: HDFE.store_alphas("`d'")
+		drop `d'
+
+		// Drop resid if we don't want to save it; and update e(resid)
+		cap drop __temp_reghdfe_resid__
+		if (!c(rc)) ereturn local resid
+	}
 end
 
 
@@ -392,7 +423,7 @@ program Estimate, eclass
 
 	* (optional) Store FEs
 	if (`timeit') timer on 29
-	reghdfe_store_alphas
+	reghdfe, store_alphas
 	if (`timeit') timer off 29
 
 	* View estimation tables

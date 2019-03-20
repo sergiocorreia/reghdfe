@@ -7,8 +7,8 @@
 	di as text "DIR: `dir'"
 	net install reghdfe, from("`dir'")
 
-	findfile "lreghdfe.mlib"
-	cap drop "`r(fn)'"
+	cap findfile "lreghdfe.mlib"
+	if (!c(rc)) cap drop "`r(fn)'"
 
 
 * Clean slate
