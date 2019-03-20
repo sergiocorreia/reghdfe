@@ -1,4 +1,4 @@
-*! version 5.7.0 20mar2019
+*! version 5.7.1 20mar2019
 
 program reghdfe, eclass
 	* Intercept old+version
@@ -209,11 +209,14 @@ program Parse
 		NOSAMPle /* do not save e(sample) */
 		COMPACT /* use as little memory as possible but is slower */
 
+		/* Extra display options (based on regress) */
+		noHEader noTABle noFOOTnote
+		
 		/* Undocumented */
 		KEEPSINgletons
 		OLD /* use latest v3 */
 		NOTES(string) /* NOTES(key=value ...), will be stored on e() */
-		
+
 		] [*] /* capture optimization options, display options, etc. */
 		;
 	#d cr
@@ -334,6 +337,7 @@ program Parse
 
 	* Parse Coef Table Options (do this last!)
 	_get_diopts diopts options, `options' // store in `diopts', and the rest back to `options'
+	loc diopts `diopts' `header' `table' `footnote'
 	_assert (`"`options'"'==""), msg(`"invalid options: `options'"')
 	if ("`hascons'"!="") di in ye "(option ignored: `hascons')"
 	if ("`tsscons'"!="") di in ye "(option ignored: `tsscons')"
@@ -474,18 +478,24 @@ end
 
 
 program Replay, rclass
-	syntax [, *]
+	syntax [, noHEader noTABle noFOOTnote *]
 
 	if `"`e(cmd)'"' != "reghdfe"  {
 	        error 301
 	}
 
 	_get_diopts options, `options'
-	reghdfe_header // _coef_table_header
-	di ""
-	_coef_table, `options' // ereturn display, `options'
-	return add // adds r(level), r(table), etc. to ereturn (before the footnote deletes them)
-	reghdfe_footnote
+	if ("`header'" == "") {
+		reghdfe_header // _coef_table_header
+		di ""
+	}
+	if ("`table'" == "") {
+		_coef_table, `options' // ereturn display, `options'
+		return add // adds r(level), r(table), etc. to ereturn (before the footnote deletes them)
+	}
+	if ("`footnote'" == "") {
+		reghdfe_footnote
+	}
 
 	* Replay stats
 	if (e(summarize_quietly)==0) {
