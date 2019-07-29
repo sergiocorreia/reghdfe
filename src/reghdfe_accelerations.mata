@@ -256,6 +256,7 @@ mata:
 	
 	if (S.converged >= S.min_ok) {
 		S.iteration_count = max((iter, S.iteration_count))
+		S.accuracy = max((S.accuracy, update_error))
 		if (S.verbose==1) printf("{txt}   converged in %g iterations (last error =%3.1e)\n", iter, update_error)
 		if (S.verbose>1) printf("\n{txt}   - Converged in %g iterations (last error =%3.1e)\n", iter, update_error)
 	}

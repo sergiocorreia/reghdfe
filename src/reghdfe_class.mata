@@ -30,6 +30,7 @@ class FixedEffects
 
 	// Optimization options
 	`Real'                  tolerance
+	`Real'                  extra_tolerance		// Try to achieve this tol if it only takes a few more iters: ceil(10%)
 	`Integer'               maxiter
 	`String'                transform           // Kaczmarz Cimmino Symmetric_kaczmarz (k c s)
 	`String'                acceleration        // Acceleration method. None/No/Empty is none\
@@ -137,6 +138,7 @@ class FixedEffects
 	`Real'                  r2_a_within
 	`Real'                  ll
 	`Real'                  ll_0
+	`Real'                  accuracy
 	`RowVector'             means
 	`RowVector'				all_stdevs
 
@@ -184,6 +186,7 @@ class FixedEffects
 	residuals_vector = .
 	panelvar = timevar = ""
 	iteration_count = 0
+	accuracy = -1 // Epsilon at the time of convergence
 
 	// Optimization defaults
 	slope_method = "invsym"
@@ -554,6 +557,7 @@ class FixedEffects
 
 	if (flush) {
 		iteration_count = 0
+		accuracy = -1
 		means = stdevs = J(1, 0, .)
 		kept = J(1, 0, .)
 	}
@@ -647,6 +651,7 @@ class FixedEffects
 			// Speedup for constant-only case (no fixed effects)
 			assert(factors[1].num_levels == 1)
 			iteration_count = 1
+			accuracy = 0
 			if (standardize_data == 1) {
 				y = stdevs :* y :- stdevs :* mean(y, has_weights ? asarray(factors[1].extra, "weights") : 1) // Undoing standardization
 			}
