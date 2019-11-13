@@ -1,4 +1,4 @@
-*! version 5.7.2 29jul2019
+*! version 5.7.3 13nov2019
 
 program reghdfe, eclass
 	* Intercept old+version
@@ -314,6 +314,13 @@ program Parse
 	if (`compact') {
 		loc panelvar "`_dta[_TSpanel]'"
 		loc timevar "`_dta[_TStvar]'"
+
+		cap conf var `panelvar', exact
+		if (c(rc)) loc panelvar
+
+		cap conf var `timevar', exact
+		if (c(rc)) loc timevar
+
 		mata: HDFE.panelvar = "`panelvar'"
 		mata: HDFE.timevar = "`timevar'"
 		c_local keepvars `basevars' `base_clustervars' `panelvar' `timevar' // `exp'
@@ -400,7 +407,7 @@ program Estimate, eclass
 	if (`compact') {
 		if (`verbose' > 0) di as text "## Preserving dataset"
 		preserve
-		keep `keepvars'
+		novarabbrev keep `keepvars'
 	}
 
 	* Partial out; save TSS of depvar

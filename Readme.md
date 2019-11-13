@@ -7,6 +7,8 @@
 
 ## Recent Updates
 
+* **version 5.7.3 13nov2019**:
+    - Fix rare error with compact option (#194). Version also submitted to SSC.
 * **version 5.7.0 20mar2019**:
     - Users no longer have to run `reghdfe, compile` after installing. If you are getting the error "class FixedEffects undefined", either upgrade to this version, or run `reghdfe, compile`
 * **version 5.6.8 03mar2019**:
