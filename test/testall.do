@@ -1,3 +1,14 @@
+// --------------------------------------------------------------------------
+// Run all certification tests
+// --------------------------------------------------------------------------
+
+* Requirements:
+* - FTOOLS (latest version)
+* - MOREMATA
+	
+
+
+
 **** PREPARE
 
 * Reload
@@ -70,6 +81,7 @@
 	* Prevent specific bugs
 	run bug_cluster
 	run extreme_values // test numerical accuracy
+	run bug_compact
 
 	* Extra
 	do margins // not yet cscript
