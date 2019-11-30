@@ -1,10 +1,10 @@
-*! version 5.7.3 13nov2019
+*! version 5.7.4 29nov2019
 
 program reghdfe, eclass
-	* Intercept old+version
-	cap syntax, version old
+	* Intercept old+version and cache(clear) operation
+	cap syntax, old [version CACHE(passthru)]
 	if !c(rc) {
-		reghdfe_old, version
+        	reghdfe_old, `version' `cache'
 		exit
 	}
 
