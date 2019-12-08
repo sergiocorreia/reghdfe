@@ -1,6 +1,7 @@
-*! version 5.7.4 29nov2019
+*! version 5.8.0 07dec2019
 
 program reghdfe, eclass
+	
 	* Intercept old+version and cache(clear) operation
 	cap syntax, old [version CACHE(passthru)]
 	if !c(rc) {
@@ -19,7 +20,7 @@ program reghdfe, eclass
 
 	* Aux. subcommands
 	cap syntax, [*]
-	if inlist("`options'", "check", "compile", "reload", "update", "version", "requirements", "store_alphas") {
+	if inlist("`options'", "check", "compile", "reload", "update", "version", "requirements", "store_alphas", "worker") {
 		if ("`options'"=="compile") loc args force
 		if ("`options'"=="check") loc options compile
 		if ("`options'"=="update") {
@@ -34,7 +35,7 @@ program reghdfe, eclass
 	}
 	else {
 		Cleanup 0
-		ms_get_version ftools, min_version("2.36.1") // Compile // takes 0.01s to run this useful check (ensures .mlib exists)
+		ms_get_version ftools, min_version("2.37.0") // Compile // takes 0.01s to run this useful check (ensures .mlib exists)
 		cap noi Estimate `0'
 		Cleanup `c(rc)'
 	}
@@ -170,8 +171,25 @@ program Store_Alphas, eclass
 end
 
 
+program Worker
+	syntax, parallel_path(string)
+	
+	_assert "${task_id}" != "", "global -task_id- cannot be missing"
+	_assert (${task_id} == int(${task_id})) & inrange(${task_id}, 1, 1000)), "global -task_id- must be an integer between 1 and 100"
+	
+	loc hdfe_object "`parallel_path'`c(dirsep)'data0.tmp"
+	loc vars_object "`parallel_path'`c(dirsep)'data${task_id}.tmp"
+	conf file "`hdfe_object'"
+	conf file "`vars_object'"
+
+
+end
+
+
 program Cleanup
 	args rc
+	mata: mata desc
+	exit
 	cap mata: mata drop HDFE
 	cap mata: mata drop hdfe_*
 	cap drop __temp_reghdfe_resid__

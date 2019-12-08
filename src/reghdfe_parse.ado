@@ -1,6 +1,7 @@
 * This program should only be called by fixed_effects()
 program reghdfe_parse, sclass
 
+
 * Parse absorb
 	cap drop __hdfe* // destructive!
 	ms_parse_absvars `0'
@@ -8,6 +9,7 @@ program reghdfe_parse, sclass
 	mata: st_local("unquoted_absvars", subinstr(st_global("s(absvars)"), `"""', ""))
 	loc 0, `s(options)'
 	loc G = `s(G)'
+
 
 * Main syntax
 	#d;
@@ -28,6 +30,9 @@ program reghdfe_parse, sclass
 
 		/* Memory usage (also see -compact- option) */ 
 		POOLsize(integer 0) /* Process variables in batches of # ; 0 turns it off */
+
+		/* Parallel/distributed options */
+		PARallel(string asis)
 
 		/* Degrees-of-freedom Adjustments */
 		DOFadjustments(string)
@@ -56,6 +61,7 @@ program reghdfe_parse, sclass
 	if (c(rc)) gen byte $reghdfe_touse = 1
 	markout $reghdfe_touse `unquoted_absvars', strok
 
+
 * Optimization
 	loc maxiterations = int(`maxiterations')
 	if (`tolerance' > 0) sreturn loc tolerance = `tolerance'
@@ -71,6 +77,7 @@ program reghdfe_parse, sclass
 		_assert (`: list transform in valid_transforms'), msg("invalid transform: `transform'")
 		sreturn loc transform "`transform'"
 	}
+
 
 	* Accelerations
 	if ("`acceleration'" != "") {
@@ -88,6 +95,7 @@ program reghdfe_parse, sclass
 
 	* Disable prune of degree-1 edges
 	if ("`prune'" == "prune") sreturn loc prune = 1
+
 
 * Parse DoF Adjustments
 	if ("`dofadjustments'"=="") local dofadjustments all
@@ -110,6 +118,22 @@ program reghdfe_parse, sclass
 	sreturn local dofadjustments "`opts'"
 	sreturn loc groupvar "`s(groupvar)'"
 
+
+* POOLSIZE: how many cols we process together
+	if (`poolsize' < 1) loc poolsize .
+	sreturn loc poolsize `poolsize'
+
+
+* PARALLEL: how many worker processes to create; and how to run them
+	loc parallel_maxproc 0
+	if (`"`parallel'"' != "") {
+		ParseParallel `parallel' // Returns `parallel_opts' and `parallel_maxproc'
+		sreturn loc parallel_maxproc `parallel_maxproc'
+		sreturn loc parallel_dir `"`parallel_dir'"'
+	}
+	sreturn loc parallel_opts `parallel_opts' // If this is zero, no parallel code will be run
+
+
 * Residuals
 	if ("`residuals2'" != "") {
 		_assert ("`residuals'" == ""), msg("residuals() syntax error")
@@ -120,6 +144,7 @@ program reghdfe_parse, sclass
 		conf new var `residuals'
 		sreturn loc residuals `residuals'
 	}
+
 
 * Misc
 	if ("`condition'"!="") {
@@ -132,8 +157,42 @@ program reghdfe_parse, sclass
 		sreturn loc rre `rre'
 	}
 
-	if (`poolsize' < 1) loc poolsize .
-	sreturn loc poolsize `poolsize'
-
 	sreturn loc precondition = "`precondition'" != ""
+end
+
+
+program define ParseParallel
+	
+	* We intercept three options from -parallel_map-
+	syntax anything(name=maxprocesses id="number of worker processes"), ///
+		[MAXprocesses2(integer 0) ID(integer 0) TMP_path(string)] [*]
+
+	* maxprocesses2 -> DISCARDED
+	* tmp_path		-> Where will we store the Mata objects
+	* id			-> Subfolder within the tmp path where we actually store them
+
+	_assert inrange(`maxprocesses', 0, 1000)
+	if (`maxprocesses' == 1) {
+		di as text "(ignoring parallel(1) as it's slower than parallel(0)"
+		loc maxprocesses 0 // Launching one extra instance is slower than using the current one
+	}
+
+	if (`id' <= 0) loc id = runiformint(1, 1e9-1)
+	if ("`tmp_path'" == "") loc tmp_path = c(tmpdir)
+	* Workaround for inputs that don't end with "/"
+	loc last_char = substr("`tmp_path'", strlen("`tmp_path'"), 1)
+	if (!inlist("`last_char'", "/", "\")) loc tmp_path = "`tmp_path'`c(dirsep)'"
+	loc padded_caller_id = string(`id', "%09.0f")
+	loc parallel_dir = "`tmp_path'PARALLEL_`padded_caller_id'"
+
+	loc options `"maxproc(`maxprocesses') id(`id') tmp_path("`tmp_path'") `options'"'
+
+	c_local parallel_maxproc 	`maxprocesses'
+	c_local parallel_dir 		`"`parallel_dir'"'
+	c_local parallel_opts 		`"`options'"'
+	
+	* Run the syntax line of parallel_map just to be sure there are no syntax errors
+	loc 0, `options'
+	syntax, [MAXprocesses(integer 0) COREs_per_process(integer 0) FORCE ID(integer 0) ///
+			METHOD(string) STATA_path(string) TMP_path(string) PRograms(string) Verbose]
 end

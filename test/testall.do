@@ -7,9 +7,14 @@
 * - MOREMATA
 	
 
-
-
 **** PREPARE
+
+
+* Ensure code has no compile-time errors
+	clear all
+	cap cls
+	do "../src/reghdfe.mata"
+
 
 * Reload
 	cap ado uninstall reghdfe

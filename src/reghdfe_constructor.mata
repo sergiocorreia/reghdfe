@@ -83,7 +83,14 @@ mata:
 	S.compute_rre = (st_global("s(compute_rre)")=="1")
 	if (S.compute_rre) S.rre_varname = st_global("s(rre)")
 	
+	// Parallel and poolsize options
 	S.poolsize = strtoreal(st_global("s(poolsize)"))
+	if (st_global("s(parallel_maxproc)") != "") {
+		S.parallel_opts = st_global("s(parallel_opts)")
+		S.parallel_dir = st_global("s(parallel_dir)")
+		S.parallel_maxproc = strtoreal(st_global("s(parallel_maxproc)"))
+		assert(S.parallel_maxproc >= 0 & S.parallel_maxproc < .) // remove this after fixing
+	}
 
 	if (S.verbose > -1 & !S.has_intercept) printf("{txt}(warning: no intercepts terms in absorb(); regression lacks constant term)\n")
 

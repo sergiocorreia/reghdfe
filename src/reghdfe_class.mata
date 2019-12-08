@@ -57,6 +57,9 @@ class FixedEffects
 	`Boolean'               timeit
 	`Boolean'               compact
 	`Integer'               poolsize
+	`Integer'               parallel_maxproc
+	`Str'                   parallel_opts
+	`Str'                   parallel_dir
 	`Boolean'               store_sample
 	`Real'                  finite_condition
 	`Real'                  compute_rre         // Relative residual error: || e_k - e || / || e ||
@@ -150,6 +153,7 @@ class FixedEffects
 	`Void'                  update_cvar_objects()
 	`Matrix'                partial_out()
 	`Matrix'                partial_out_pool()
+	`Matrix'                partial_out_parallel()
 	`Void'                  _partial_out()
 	`Variables'             project_one_fe()
 	`Void'                  prune_1core()
@@ -181,6 +185,9 @@ class FixedEffects
 	timeit = 0
 	compact = 0
 	poolsize = .
+	parallel_maxproc = 0
+	parallel_opts = ""
+	parallel_dir = ""
 	finite_condition = .
 	residuals = ""
 	residuals_vector = .
@@ -360,6 +367,7 @@ class FixedEffects
 	`Varlist'               vars
 	`Integer'               i
 	`Integer'               k
+	`Integer'               parallel_poolsize
 
 	if (args()<2 | save_tss==.) save_tss = 0
 	if (args()<3 | standardize_data==.) standardize_data = 1
@@ -369,7 +377,15 @@ class FixedEffects
 		vars = tokens(invtokens(data)) // tweak to allow string scalars and string vectors
 		k = cols(vars)
 
-		if (poolsize < k) {
+		if (parallel_maxproc > 0) {
+			assert(parallel_maxproc > 1) // We should never run only ONE worker process
+			parallel_poolsize = min(( poolsize, ceil(k / parallel_maxproc)) )
+			if (verbose > 0) printf("\n{txt}## [Parallel] Loading and partialling %g variables using %g worker processes\n", k, parallel_maxproc)
+			if (verbose > 0) printf("{txt}              Each process will work in blocks of %g variables\n", parallel_poolsize)
+			if (verbose > 0) printf("{txt}              Temporary files will be saved in %s\n\n", parallel_dir)
+			partial_out_parallel(vars, save_tss, standardize_data, first_is_depvar, parallel_poolsize, y=.)
+		}
+		else if (poolsize < k) {
 			if (verbose > 0) printf("\n{txt}## Loading and partialling out %g variables in blocks of %g\n\n", k, poolsize)
 			if (timeit) timer_on(50)
 			partial_out_pool(vars, save_tss, standardize_data, first_is_depvar, poolsize, y=.)
@@ -405,6 +421,93 @@ class FixedEffects
 	if (verbose==0) printf(`"{txt}({browse "http://scorreia.com/research/hdfe.pdf":MWFE estimator} converged in %s iteration%s)\n"', strofreal(iteration_count), iteration_count > 1 ? "s" : "s")
 	return(y)
 }
+
+
+
+
+
+
+`Variables' FixedEffects::partial_out_parallel(`Anything' vars,
+										       `Boolean' save_tss,
+										       `Boolean' standardize_data,
+										       `Boolean' first_is_depvar,
+										       `Integer' step, // step=parallel_poolsize
+										       `Variables' y)
+{
+	`Variables'             part_y
+	`Integer'               i, j, ii
+	`Integer'               k
+	`StringRowVector'       keepvars
+	`String'				fn
+	`Integer'               fh
+
+	k = cols(vars)
+	assert(step > 0)
+	assert(step < k)
+	y = J(rows(sample), 0, .)
+
+	"<<<"
+	parallel_dir
+	mkdir(parallel_dir, 1) // Need to create it before calling -parallel_map- (1=Public)
+	fn = pathjoin(parallel_dir, "data0.tmp")
+	fh = fopen(fn, "w")
+	fputmatrix(fh, this)
+	fclose(fh)
+	">>>"
+
+	for (i=1; i<=k; i=i+step) {
+		
+		j = i + step - 1
+		if (j>k) j = k
+
+		// Load data
+		_st_data_wrapper(sample, vars[i..j], part_y=., verbose)
+
+		// Load data col-by-col (workaround to issue with Stata 15+)
+		if (cols(part_y) > j - i + 1) {
+			printf("{err}(some empty columns were added due to a bug/quirk in {bf:st_data()}; running slower workaround)\n")
+			if (timeit) timer_on(51)
+			part_y = J(rows(sample), 0, .)
+			for (ii=i; ii<=j; ii++) {
+				part_y = part_y, st_data(sample, vars[ii])
+			}
+			if (timeit) timer_off(51)
+		}
+
+		// Save each part to its own file
+		// We need to know the PATH where this will be saved
+		111
+		assert(0)
+
+
+		// Drop loaded vars as quickly as possible
+		if (compact) {
+			// st_dropvar(vars[i..j]) // bugbug what if repeated??
+			keepvars = base_clustervars , timevar, panelvar, (j == k ? "" : vars[j+1..k])
+			keepvars = tokens(invtokens(keepvars))
+			if (cols(keepvars)) {
+				stata(sprintf("fvrevar %s, list", invtokens(keepvars)))
+				stata(sprintf("keep %s", st_global("r(varlist)")))
+			}
+			else {
+				stata("clear")
+			}
+		}
+
+		_partial_out(part_y, save_tss, standardize_data, first_is_depvar)
+		y = y, part_y
+		part_y = .
+	}
+}
+
+
+
+
+
+
+
+
+
 
 
 

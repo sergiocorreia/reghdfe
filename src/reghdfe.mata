@@ -37,26 +37,11 @@
 
 
 // Includes -----------------------------------------------------------------
-    findfile "reghdfe_bipartite.mata"
-    include "`r(fn)'"
-
-    findfile "reghdfe_class.mata"
-    include "`r(fn)'"
-
-    findfile "reghdfe_constructor.mata"
-    include "`r(fn)'"
-
-    findfile "reghdfe_common.mata"
-    include "`r(fn)'"
-
-    findfile "reghdfe_projections.mata"
-    include "`r(fn)'"
-
-    findfile "reghdfe_transforms.mata"
-    include "`r(fn)'"
-
-    findfile "reghdfe_accelerations.mata"
-    include "`r(fn)'"
-
-    findfile "reghdfe_lsmr.mata"
-    include "`r(fn)'"
+    include "reghdfe_bipartite.mata", adopath
+    include "reghdfe_class.mata", adopath
+    include "reghdfe_constructor.mata", adopath
+    include "reghdfe_common.mata", adopath
+    include "reghdfe_projections.mata", adopath
+    include "reghdfe_transforms.mata", adopath
+    include "reghdfe_accelerations.mata", adopath
+    include "reghdfe_lsmr.mata", adopath
