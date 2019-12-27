@@ -770,6 +770,8 @@ class FixedEffects
 	`Factor'                F
 	`BipartiteGraph'        BG
 	`Integer'               pair_count
+	`Boolean'				save_subgraph
+	`String'				grouplabel
 	
 	if (verbose > 0) printf("\n{txt}## Estimating degrees-of-freedom absorbed by the fixed effects\n\n")
 
@@ -870,9 +872,16 @@ class FixedEffects
 				h = idx[j_intercept]
 				i = offsets[h]
 				BG.init(&factors[g], &factors[h], bg_verbose)
-				m = BG.init_zigzag()
 				++pair_count
+				save_subgraph = (pair_count == 1) & (groupvar != "")
+				m = BG.init_zigzag(save_subgraph)
 				if (verbose > 0) printf("{txt}   - mobility groups between FE intercepts #%f and #%f: {res}%f\n", g, h, m)
+				if (save_subgraph) {
+					if (verbose > 2) printf("{txt}   - Saving identifier for the first mobility group: {res}%s\n", groupvar)
+					st_store(sample, st_addvar("long", groupvar), BG.subgraph_id)
+					grouplabel = sprintf("Mobility group between %s and %s", invtokens(factors[g].varlist, "#"), invtokens(factors[h].varlist, "#"))
+					st_varlabel(groupvar, grouplabel)
+				}
 				doflist_M[i] = max(( doflist_M[i] , m ))
 				if (j_intercept==2) doflist_M_is_exact[i] = 1
 				if (pair_count & anyof(dofadjustments, "firstpair")) break
@@ -1031,7 +1040,6 @@ class FixedEffects
 	}
 
 }
-
 
 
 `Void' FixedEffects::post_footnote()

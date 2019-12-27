@@ -29,7 +29,7 @@ d Required packages:
 d 	ftools
 d 	boottest (for Stata version 12 or earlier)
 d
-d Distribution-Date: 20191113
+d Distribution-Date: 20191227
 d
 
 f reghdfe.ado

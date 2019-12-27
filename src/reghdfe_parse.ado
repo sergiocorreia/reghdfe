@@ -107,8 +107,8 @@ program reghdfe_parse, sclass
 	//	_assert !_rc , msg("error: -group3hdfe- not installed, please run {stata ssc install group3hdfe}")
 	//}
 	if ("`groupvar'"!="") conf new var `groupvar'
-	sreturn local dofadjustments "`opts'"
-	sreturn loc groupvar "`s(groupvar)'"
+	sreturn loc dofadjustments "`opts'"
+	sreturn loc groupvar "`groupvar'"
 
 * Residuals
 	if ("`residuals2'" != "") {

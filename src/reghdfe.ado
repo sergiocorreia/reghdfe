@@ -1,4 +1,4 @@
-*! version 5.7.4 29nov2019
+*! version 5.8.0 27dec2019
 
 program reghdfe, eclass
 	* Intercept old+version and cache(clear) operation

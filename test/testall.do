@@ -83,8 +83,10 @@
 	run extreme_values // test numerical accuracy
 	run bug_compact
 
+
 	* Extra
 	do margins // not yet cscript
+	run groupvar // mobility group; not yet cscript
 
 	* do lsmr // TODO
 
