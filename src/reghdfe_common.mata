@@ -628,9 +628,12 @@ mata:
 
 	// Build VCE
 	N_clust = min(N_clust_list)
-	nested_adj = (S.df_a==0) // minor adj. so we match xtreg when the absvar is nested within cluster
+	
+	nested_adj = S.df_a_nested > 0 // minor adj. so we match xtreg when the absvar is nested within cluster
 	// (when ..nested.., df_a is zero so we divide N-1 by something that can potentially be N (!))
 	// so we either add the 1 back, or change the numerator (and the N_clust-1 factor!)
+	// addendum: this just ensures we subtract the constant when we have nested FEs
+
 	dof_adj = (N - 1) / (N - nested_adj - K) * N_clust / (N_clust - 1) // adjust for more than 1 cluster
 	if (vce_mode == "vce_asymptotic") dof_adj = N_clust / (N_clust - 1)  // 1.0
 	if (S.verbose > 0) {
