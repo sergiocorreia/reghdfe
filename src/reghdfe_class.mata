@@ -756,7 +756,7 @@ class FixedEffects
 	`Boolean'               has_int
 	`Integer'               g, h                        // index FEs (1..G)
 	`Integer'               num_intercepts              // Number of absvars with an intercept term
-	`Integer'               i_cluster, i_intercept, j_intercept
+	`Integer'               i_cluster, i_intercept, j_intercept, i_start
 	`Integer'               i                           // index 1..G_extended
 	`Integer'               j
 	`Integer'               bg_verbose                  // verbose level when calling BipartiteGraph()
@@ -847,9 +847,12 @@ class FixedEffects
 
 
 	// (4) (Intercept-Only) Every intercept but the first has at least one redundant coef.
-	if (length(idx) > 1) {
+	// Note that this excludes the ones nested within clusters
+	// If we DO have FEs nested within clusters, we should also include the first intercept
+	if ((length(idx) > 1) | (length(idx) >= 1 & df_a_nested > 0)) {
 		if (verbose > 0) printf("{txt}   - there is at least one redundant coef. for every set of FE intercepts after the first one\n")
-		doflist_M[offsets[idx[2..length(idx)]]] = J(1, length(idx)-1, 1) // Set DoF loss of all intercepts but the first one to 1
+		i_start = df_a_nested ? 1 : 2
+		doflist_M[offsets[idx[i_start..length(idx)]]] = J(1, length(idx)-i_start+1, 1) // Set DoF loss of all intercepts but the first one to 1
 	}
 
 	// (5) (Intercept-only) Mobility group algorithm

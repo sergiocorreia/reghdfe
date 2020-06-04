@@ -1,4 +1,4 @@
-*! version 5.8.1 03jun2020
+*! version 5.9.0 03jun2020
 
 program reghdfe, eclass
 	* Intercept old+version and cache(clear) operation
@@ -34,7 +34,7 @@ program reghdfe, eclass
 	}
 	else {
 		Cleanup 0
-		ms_get_version ftools, min_version("2.38.0")
+		ms_get_version ftools, min_version("2.39.1")
 		cap noi Estimate `0'
 		Cleanup `c(rc)'
 	}
@@ -46,7 +46,7 @@ program Compile
 	
 	* Check dependencies
 	ftools, check // in case lftools.mlib does not exist or is outdated
-	ms_get_version ftools, min_version("2.34.0")
+	ms_get_version ftools, min_version("2.39.1")
 	ms_get_version reghdfe // save local package_version
 	loc list_objects "FixedEffects() fixed_effects() BipartiteGraph()"
 	loc list_functions "reghdfe_*() transform_*() accelerate_*() panelmean() panelsolve_*() lsmr()"
