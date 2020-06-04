@@ -1,4 +1,4 @@
-*! version 5.8.0 27dec2019
+*! version 5.8.1 03jun2020
 
 program reghdfe, eclass
 	* Intercept old+version and cache(clear) operation
@@ -34,7 +34,7 @@ program reghdfe, eclass
 	}
 	else {
 		Cleanup 0
-		ms_get_version ftools, min_version("2.36.1") // Compile // takes 0.01s to run this useful check (ensures .mlib exists)
+		ms_get_version ftools, min_version("2.38.0")
 		cap noi Estimate `0'
 		Cleanup `c(rc)'
 	}
