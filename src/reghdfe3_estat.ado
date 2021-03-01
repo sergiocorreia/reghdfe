@@ -1,4 +1,4 @@
-program reghdfe_old_estat, rclass
+program reghdfe3_estat, rclass
 	version `=cond(c(version)<14, c(version), 13)'
 	if "`e(cmd)'" != "reghdfe" {
 		error 301

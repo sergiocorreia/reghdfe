@@ -281,6 +281,13 @@ See {stata "mata: mata desc using lreghdfe"} for full list of functions and clas
 TBD
 
 
+
+{dlgtab:Programmer's options}
+{phang} {opt nopartial:_out} stop before partialling out. will keep the mata HDFE object, and allow extra options in {opt HDFE.extra_options}{p_end}
+{phang} {opt noreg:ress} stop before regressing. will keep the mata HDFE object, and allow extra options in {opt HDFE.extra_options}{p_end}
+{phang} {opt keepmata} keep the mata HDFE object{p_end}
+
+
 {marker example}{...}
 {title:Example: OLS regression}
 

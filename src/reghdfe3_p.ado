@@ -1,4 +1,4 @@
-program define reghdfe_old_p
+program define reghdfe3_p
 	* (Maybe refactor using _pred_se ??)
 
 	local version `clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred

@@ -1,145 +1,624 @@
-*! version 5.9.0 03jun2020
-
-program reghdfe, eclass
-	* Intercept old+version and cache(clear) operation
-	cap syntax, old [version CACHE(passthru)]
-	if !c(rc) {
-        	reghdfe_old, `version' `cache'
-		exit
-	}
-
-	* Intercept old
-	cap syntax anything(everything) [fw aw pw/], [*] old
-	if !c(rc) {
-		di as error "(running historical version of reghdfe)"
-		if ("`weight'"!="") local weightexp [`weight'=`exp']
-		reghdfe_old `anything' `weightexp', `options'
-		exit
-	}
-
-	* Aux. subcommands
-	cap syntax, [*]
-	if inlist("`options'", "check", "compile", "reload", "update", "version", "requirements", "store_alphas") {
-		if ("`options'"=="compile") loc args force
-		if ("`options'"=="check") loc options compile
-		if ("`options'"=="update") {
-			loc args 1
-			loc options reload
-		}
-		loc subcmd = proper("`options'")
-		`subcmd' `args'
-	}
-	else if replay() {
-		Replay `0'
-	}
-	else {
-		Cleanup 0
-		ms_get_version ftools, min_version("2.39.1")
-		cap noi Estimate `0'
-		Cleanup `c(rc)'
-	}
-end
-
-
-program Compile
-	args force
+*! version 6.0.5 01Mar2021
+program define reghdfe
 	
-	* Check dependencies
-	ftools, check // in case lftools.mlib does not exist or is outdated
-	ms_get_version ftools, min_version("2.39.1")
-	ms_get_version reghdfe // save local package_version
-	loc list_objects "FixedEffects() fixed_effects() BipartiteGraph()"
-	loc list_functions "reghdfe_*() transform_*() accelerate_*() panelmean() panelsolve_*() lsmr()"
-	loc list_misc "weighted_quadcolsum() safe_divide() check_convergence() precompute_inv_xx() _st_data_wrapper()"
-	// TODO: prefix everything with reghdfe_*
+	* Intercept storing alphas
+	cap syntax, store_alphas
+	if (!c(rc)) {
+		Store_Alphas
+		exit
+	}
 
-	ms_compile_mata, ///
-		package(reghdfe) ///
-		version(`package_version') ///
-		fun("`list_objects' `list_functions' `list_misc'") ///
-		verbose ///
-		`force'
-end
+	* Super secret option
+	cap syntax, shrug
+	if (!c(rc)) {
+		di as text _n `"    {browse "https://www.theawl.com/2014/05/the-life-and-times-of-%C2%AF_%E3%83%84_%C2%AF/":¯\_(ツ)_/¯}"'
+		exit
+	}
 
+	* Intercept calls to parallel workers
+	* NOTE: EXPERIMENTAL FEATURE
+	cap syntax, worker [*]
+	if (!c(rc)) {
+		ParallelWorker, `options'
+		exit
+	}
 
-program Reload
-	* Internal debugging tool.
-	* Updates dependencies and reghdfe from local path or from github
-	* Usage:
-	* 	reghdfe, update // from c:\git\..
-	* 	reghdfe, reload // from github
+	* Intercept previous versions of reghdfe
+	cap syntax anything(everything) [fw aw pw/], [*] VERSION(integer) [noWARN]
+	if !c(rc) {
 
-	args online
-	if ("`online'" == "") loc online 0
+		_assert inlist(`version', 3, 5)
+		* reghdfe 3: 3.2.9 (21feb2016)
+		* reghdfe 5: 5.9.0 (03jun2020)
 
-	di as text _n "{bf:reghdfe: updating required packages}"
-	di as text "{hline 64}"
+		if ("`warn'" != "nowarn") di as error "(running historical version of reghdfe: `version')"
+		if ("`weight'"!="") local weightexp [`weight'=`exp']
 
-	* -ftools- https://github.com/sergiocorreia/ftools/
-	cap ado uninstall ftools
-	if (`online') net install ftools, from("https://github.com/sergiocorreia/ftools/raw/master/src/")
-	if (!`online') net install ftools, from("c:\git\ftools\src")
-	di as text "{hline 64}"
-	ftools, compile
-	di as text "{hline 64}"
-
-	* Update -reghdfe-
-	di as text _n  _n "{bf:reghdfe: updating self}"
-	di as text "{hline 64}"
-	qui ado uninstall reghdfe
-	if (`online') net install reghdfe, from("https://github.com/sergiocorreia/reghdfe/raw/master/src/")
-	if (!`online') net install reghdfe, from("c:\git\reghdfe\src")
-	qui which reghdfe
-	di as text "{hline 64}"
-	reghdfe, compile
-	di as text "{hline 64}"
-
-	* Cleaning up
-	di as text _n "{bf:Note:} You need to run {stata program drop _all} now."
-end
-
-
-program Version
-	which reghdfe
-	Requirements
-end
-
-
-program Requirements
-	di as text _n "Required packages installed?"
-	loc reqs ftools
-	// ivreg2 avar tuples group3hdfe
-	if (c(stata_version)<13) loc reqs `reqs' boottest
-
-	loc ftools_github "https://github.com/sergiocorreia/ftools/raw/master/src/"
-
-	loc error 0
-
-	foreach req of local reqs {
-		loc fn `req'.ado
-		cap findfile `fn'
-		if (_rc) {
-			loc error 1
-			di as text "{lalign 20:- `req'}" as error "not" _c
-			di as text "    {stata ssc install `req':install from SSC}" _c
-			if inlist("`req'", "ftools") {
-				loc github ``req'_github'
-				di as text `"    {stata `"net install `req', from(`"`github'"')"':install from github}"'
-			}
-			else {
-				di as text // newline
-			}
+		if (`version' == 3) {
+			reghdfe3 `anything' `weightexp', `options'
 		}
 		else {
-			di as text "{lalign 20:- `req'}" as text "yes"
+			reghdfe5 `anything' `weightexp', `options'
 		}
+		exit
 	}
 
-	if (`error') exit 601
+	* Intercept replay of results
+	* replay() is True if the first non-blank character of `0' is a comma
+	if replay() {
+		Replay `0'
+		exit
+	}
+
+	* Main use case
+	loc keep_mata 0
+	Cleanup 0 `keep_mata'
+	qui which ftools // ms_get_version
+	ms_get_version ftools, min_version("2.45.0")
+	cap noi Estimate `0' // Estimate will change the value of `keep_mata' if it receives noregress
+	Cleanup `c(rc)' `keep_mata'
+end
+
+
+program Cleanup
+	* Clean up globals, variables, mata objects, etc. Raise error if required
+	args rc keep_mata
+
+	* Cleanup after parallel
+	* TODO REMOVE "NOI" AND TURN 1 to 0 ("VERBOSE")
+	
+	//cap noi mata: unlink_folder(HDFE.parallel_dir, 1) // (folder, verbose)
+	if (!`keep_mata') cap mata: unlink_folder(HDFE.parallel_dir, 0) // (folder, verbose)
+	
+	//global LAST_PARALLEL_DIR
+	global pids
+	
+	* Main cleanup
+	if (!`keep_mata') cap mata: mata drop HDFE
+	cap mata: mata drop hdfe_*
+	cap drop __temp_reghdfe_resid__
+
+	if (`rc') exit `rc'
+end
+
+
+program Replay, rclass
+	syntax [, * noHEADer noTABLE noFOOTnote]
+	if (`"`e(cmd)'"' != "reghdfe") error 301
+	_get_diopts options, `options'
+
+	if ("`header'" == "") reghdfe_header // ReghdfeHeader // _coef_table_header // reghdfe_header
+	if ("`header'" == "" & "`table'" == "") di ""
+	if ("`table'" == "") _coef_table, `options'
+	return add // adds r(level), r(table), etc. to ereturn (before the footnote deletes them)
+	if ("`footnote'" == "") ReghdfeFootnote
+end
+
+
+program Estimate, eclass
+
+// --------------------------------------------------------------------------
+// Parse syntax
+// --------------------------------------------------------------------------
+	* We try to keep consistency with "help maximize" and "help estimation options"
+
+	ereturn clear
+	#delimit ;
+	syntax varlist(fv ts numeric) [if] [in] [fw aw pw/] [ ,
+		
+		/* Standard FEs */
+		Absorb(string)
+	
+		/* Team FEs */
+		Group_id(varname numeric)
+		Individual_id(varname numeric)
+		AGgregation(string)
+		
+		/* Model */
+		VCE(string) CLuster(string)
+		RESiduals(name) RESiduals2 	/* if no name, residuals saved as _reghdfe_resid */
+
+		/* Degrees-of-freedom Adjustments */
+		DOFadjustments(string)
+		GROUPVar(name) 				/* var with the first connected group between FEs */
+
+		/* Optimization */
+		TEChnique(string) 			/* lsmr lsqr map gt */
+		TOLerance(real 1e-8)
+		ITERATE(real 16000)			/* */
+		
+		/* Optimization: MAP */
+		TRAnsform(string)
+		ACCELeration(string)
+
+		/* Optimization: LSMR and LSQR */
+		PREConditioner(string)
+		
+		/* Optimization: GT */
+		PRUNE /* (currently disabled) */
+
+		/* Memory usage */
+		NOSAMPle					/* do not save e(sample) */
+		COMPACT						/* use as little memory as possible but is slower */
+		POOLsize(integer 10) 		/* Process variables in batches of # ; 0 turns it off */
+
+		/* Multiprocessing (parallel computing) */
+		PARallel(string asis)
+
+		/* Extra display options (inspired on regress options) */
+		noHEader noTABle noFOOTnote
+
+		/* Debugging */
+		Verbose(integer 0) noWARN
+		TIMEit
+		
+		/* Undocumented */
+		KEEPSINgletons
+
+		/* Programming options (for other packages, etc) */
+		noPARTIALout /* stop before partialling out; will keep the mata object */
+		varlist_is_touse /* is used by ivreghdfe together with nopartialout; UNDOCUMENTED */
+		noREGress /* will stop before regressing; will keep the mata HDFE object, will allow extra options that will be kept in HDFE.extra_options */
+		KEEPMATA /* keep the mata HDFE object */
+		FASTREGress /* Use a much faster but less numerically accurate regression method */
+
+		/* Kept for backward-compatibility with reghdfe v5.9 */
+		noCONstant /* report constant; enabled by default as otherwise -margins- fails */
+		noAbsorb2 /* doesn't do anything; suffix it with "2" so it doesn't override absorb() */
+
+		/* Options parsed later:
+			a) display options: _get_diopts
+			b) advanced options that correspond to properties of the FixedEffects Mata class
+			EG: miniter(#) abort(0|1) ; min_ok(#) accel_start(#) accel_freq(#)
+		*/
+		] [*]
+		;
+	#delimit cr
+
+
+// --------------------------------------------------------------------------
+// Validate options
+// --------------------------------------------------------------------------
+
+	loc timeit = ("`timeit'"!="")
+	if (`timeit') timer on 20 // total time
+
+	if (`verbose' >= 2) di _n `"{txt}{bf:[CMD]} {inp}reghdfe `0'"'
+
+	cap drop __hdfe* // previously saved alphas (fixed effect coefs)
+
+	if (`verbose' > 0) di as text "{title:Parsing and validating options:}" _n
+	
+	* Store display options in `diopts', keep the rest in `options'
+	_get_diopts diopts options, `options'
+
+	* Convert some options to boolean
+	loc drop_singletons = ("`keepsingletons'" == "")
+	loc compact = ("`compact'" != "")
+	loc has_standard_fe = (`"`absorb'"' != "")
+	loc report_constant = "`constant'" != "noconstant"
+	loc has_teams = (`"`group_id'"' != "")
+	loc has_individual_fe = (`"`individual_id'"' != "")
+
+	* Convert programmer options to boolean
+	loc stop_before_partial_out = ("`partialout'" == "nopartialout")
+	loc stop_before_regression = ("`regress'" == "noregress")
+	loc fast_regression = ("`fastregress'" == "fastregress")
+
+	if (`has_individual_fe') _assert `has_teams', msg("cannot set the individual() identifiers without the group() identifiers") rc(198)
+
+	* Default values
+	if ("`technique'" == "") loc technique "lsmr" // note: map doesn't yet support indiv FEs
+	if ("`transform'" == "") loc transform "symmetric_kaczmarz"
+	if ("`acceleration'" == "") loc acceleration "conjugate_gradient"
+	if ("`preconditioner'" == "") loc preconditioner "block_diagonal"
+	if (`poolsize' == 0) loc poolsize = .
+
+	* Warn if keeping singletons
+	if (`verbose'>-1 & "`keepsingletons'"!="" & "`warn'" != "nowarn") {
+		loc url "http://scorreia.com/reghdfe/nested_within_cluster.pdf"
+		loc msg "WARNING: Singleton observations not dropped; statistical significance is biased"
+		di as error `"`msg' {browse "`url'":(link)}"'
+	}
+	
+	* Allow cluster(vars) as a shortcut for vce(cluster vars)
+	if ("`cluster'"!="") {
+		_assert ("`vce'"==""), msg("only one of cluster() and vce() can be specified") rc(198)
+		loc vce cluster `cluster'
+	}
+
+	* How are individual FEs added up
+	if ("`aggregation'" == "") loc aggregation mean
+	if ("`aggregation'" == "average" | "`aggregation'" == "avg") loc aggregation mean
+	_assert inlist("`aggregation'", "mean", "sum")
+	loc function_individual "`aggregation'" // this is the name used in HDFE()
+
+
+// --------------------------------------------------------------------------
+// Parse all options except absorb()
+// --------------------------------------------------------------------------
+
+	* Split varlist into <depvar> and <indepvars>
+	if (`verbose' > 0) di as text "# Parsing varlist: {res}`varlist'" _c
+	ms_parse_varlist `varlist'
+	if (`verbose' > 0) return list
+	loc depvar `r(depvar)'
+	loc indepvars `r(indepvars)'
+	loc fe_format "`r(fe_format)'"
+	loc basevars `r(basevars)'
+
+	* Parse weights (weight type saved in `weight'; weight var in `exp')
+	if ("`weight'"!="") unab exp : `exp', min(1) max(1) // simple weights only, no expressions
+
+	* Parse VCE
+	if (`verbose' > 0) di as text _n "# Parsing vce({res}`vce'{txt})" _c
+	ms_parse_vce, vce(`vce') weighttype(`weight')
+	if (`verbose' > 0) sreturn list
+	loc vcetype `s(vcetype)'
+	loc clustervars `s(clustervars)' // e.g. "exporter#importer"
+	loc base_clustervars `s(base_clustervars)' // e.g. "exporter importer"
+	loc num_clusters = `s(num_clusters)'
+	confirm /*numeric*/ variable `base_clustervars', exact // usually clustervar can be strings, but it's way easier to disallow it
+
+	if (`stop_before_partial_out' & "`varlist_is_touse'" != "") {
+		* We will just create and fill the HDFE object
+		loc touse `varlist'
+		loc varlist
+		markout `touse' `base_clustervars' `group_id' `individual_id'
+	}
+	else {
+		* Set sample based on if + in + weight + group + individual + cluster variables + regression varlist (i.e. excluding absvars)
+		loc varlist `depvar' `indepvars' `base_clustervars' `group_id' `individual_id'
+		marksample touse, strok
+		la var `touse' "[touse]"
+	}
+	
+	if (`stop_before_partial_out') loc varlist // clear out the varlist as it is only used to set -touse-
+
+	* Algorithm
+	loc valid_techniques map cg lsmr lsqr
+	_assert (`: list technique in valid_techniques'), msg("invalid technique: `technique'")
+
+	* Transforms: allow abbreviations (cim --> cimmino)
+	loc transform = lower("`transform'")
+	loc valid_transforms cimmino kaczmarz symmetric_kaczmarz rand_kaczmarz
+	foreach x of local valid_transforms {
+		if (strpos("`x'", "`transform'")==1) loc transform `x'
+	}
+	_assert (`: list transform in valid_transforms'), msg("invalid transform: `transform'")
+
+	* Accelerations
+	loc acceleration = lower("`acceleration'")
+	if ("`acceleration'"=="cg") loc acceleration conjugate_gradient
+	if ("`acceleration'"=="sd") loc acceleration steepest_descent
+	if ("`acceleration'"=="off") loc acceleration none
+	loc valid_accelerations conjugate_gradient steepest_descent aitken none
+	foreach x of local valid_accelerations {
+		if (strpos("`x'", "`acceleration'")==1) loc acceleration `x'
+	}
+	_assert (`: list acceleration in valid_accelerations'), msg("invalid acceleration: `acceleration'")
+
+	* Preconditioners
+	loc preconditioner = lower("`preconditioner'")
+	if ("`preconditioner'"=="off") loc preconditioner none
+	loc valid_preconditioners none diagonal block_diagonal
+	foreach x of local valid_preconditioners {
+		if (strpos("`x'", "`preconditioner'")==1) loc preconditioner `x'
+	}
+	_assert (`: list preconditioner in valid_preconditioners'), msg("invalid preconditioner: `preconditioner'")
+
+
+	 * Parse DoF Adjustments
+	if (`verbose' > 0) di as text _n `"# Parsing dof({res}`dofadjustments'{txt})"' _c
+	ParseDOF, `dofadjustments' // s(dofadjustments)
+	loc dofadjustments `s(dofadjustments)'
+	if (`verbose' > 0) sreturn list
+
+	* Residuals
+	 opts_exclusive "`residuals' `residuals2'" residuals
+	if ("`residuals2'" != "") {
+		cap drop _reghdfe_resid // destructive!
+		loc residuals _reghdfe_resid
+	}
+	else if ("`residuals'"!="") {
+		conf new var `residuals'
+	}
+
+	* Parallel
+	if (`"`parallel'"' != "") {
+		if (`verbose' > 0) di as text _n `"# Parsing parallel options: {inp}`parallel'"' _c
+		ParseParallel `parallel'
+		if (`verbose' > 0) sreturn list
+		loc parallel_maxproc `s(parallel_maxproc)' // If this is zero, no parallel code will be run
+		loc parallel_dir `"`s(parallel_dir)'"'
+		loc parallel_force `s(parallel_force)'
+		loc parallel_opts `"`s(parallel_opts)'"' // options passed to -parallel_map-
+	}
+	else {
+		loc parallel_maxproc 0
+		loc parallel_force 0
+	}
+
+
+	* 1) Assert that all variables (depvar, regressors, weights, etc.) have the same value with a given group
+	* 2) Assert that the same individual does not appear twice within a group
+	* 3) Restrict 'touse' to only include one observation per value of group_id
+	* 4) Generate a 'touse_individual' to be used with the individual FE variables
+	* We do these together to avoid sorting multiple times
+	if (`has_teams') {
+		tempvar indiv_tousevar
+		ValidateGroups `basevars' `base_clustervars' `exp', group_id(`group_id') touse(`touse') indivtouse(`indiv_tousevar') individual(`individual_id')
+		_assert ("`weight_type'"=="fweight") + ("`indiv_tousevar'" != "") < 2, msg("fweights are incompatible with individual ids as there cannot be two observations for a given group-individual touple")
+	}
+
+	* Parse absorb(), construct Mata object "fixed_effects", update -touse- accordingly
+	* Syntax: absorb(..., NOIisly SAVEfe|Generate Replace)
+	mata: HDFE = FixedEffects()
+	
+	if (`verbose' > 0) di as text _n `"# Passing main options to Mata"' _n
+
+	* Pass string options to HDFE object
+	loc absvars `"`absorb'"' // trick
+	loc tousevar `"`touse'"' // trick
+	loc weight_type `"`weight'"' // trick
+	loc weight_var `"`exp'"' // trick
+	loc optim_options absvars tousevar weight_type weight_var technique transform acceleration preconditioner parallel_dir parallel_opts
+	if (`has_teams') loc optim_options `optim_options' group_id individual_id indiv_tousevar function_individual
+	foreach opt of local optim_options {
+		if (`verbose' > 0) di as text `"    - HDFE.`opt' = {res}`"``opt''"' "'
+		mata: HDFE.`opt' = `"``opt''"'
+	}
+
+	* Pass numeric options to HDFE object
+	loc maxiter = `iterate' // prefer to call it maxiter within Mata
+	loc optim_options drop_singletons tolerance maxiter compact poolsize verbose parallel_maxproc parallel_force timeit // prune 
+	foreach opt of local optim_options {
+		if (`verbose' > 0) di as text `"    - HDFE.`opt' = {res}``opt''"'
+		mata: HDFE.`opt' = ``opt''
+	}
+
+	if (`verbose' > 0) di as text _n `"# Parsing absorb({res}`absorb'{txt}) and initializing FixedEffects() object"'
+	if (`timeit') timer on 21
+	mata: HDFE.init()
+	if (`timeit') timer off 21
+
+	* Pass undocumented numeric options to HDFE object
+	mata: add_undocumented_options("HDFE", `"`options'"', `verbose')
+
+	* Preserve memory
+	if (`compact') {
+		loc panelvar "`_dta[_TSpanel]'"
+		loc timevar "`_dta[_TStvar]'"
+
+		cap conf var `panelvar', exact
+		if (c(rc)) loc panelvar
+		mata: HDFE.panelvar = "`panelvar'"
+
+		cap conf var `timevar', exact
+		if (c(rc)) loc timevar
+		mata: HDFE.timevar = "`timevar'"
+
+		if (`verbose' > 0) di as text "## Preserving dataset"
+		preserve
+		novarabbrev keep `basevars' `base_clustervars' `panelvar' `timevar' `touse' // `exp'
+	}
+
+	* Fill out VCE information
+	mata: HDFE.vcetype = "`vcetype'"
+	mata: HDFE.num_clusters = `num_clusters' // used when computing degrees-of-freedom
+	mata: HDFE.clustervars = tokens("`clustervars'")
+	mata: HDFE.base_clustervars = tokens("`base_clustervars'")
+	
+	* Compute degrees-of-freedom (either exact or conservative lower bound)
+	if (`timeit') timer on 22
+	mata: estimate_dof(HDFE, tokens("`dofadjustments'"), "`groupvar'")
+	if (`timeit') timer off 22
+
+	if (`verbose' > 0) di as text "{title:Working on varlist: partialling out and regression}" _n
+
+	if (`stop_before_partial_out') {
+		if (`verbose' > 0) di as text "{title:Stopping reghdfe without partialling out}" _n
+		mata: HDFE.save_touse("`touse'", 1) // update touse (1 = overwrite)
+		c_local keep_mata 1
+		exit
+	}
+
+	* Expand varlists
+	if (`verbose' > 0) di as text "# Parsing and expanding indepvars: {res}`indepvars'" _c
+	if (`timeit') timer on 23
+	ms_expand_varlist `indepvars' if `touse'
+	if (`timeit') timer off 23
+	if (`verbose' > 0) return list
+	loc indepvars		"`r(varlist)'"
+	loc fullindepvars	"`r(fullvarlist)'"
+	loc not_omitted		"`r(not_omitted)'"
+
+	* Partial out variables
+	* Syntax:
+	* 	partial_out(varnames | ,
+	* 		Save TSS if HDFE.tss is missing? [0] ,
+	*		Standardize data? [1],  // Note: standardize=2 will standardize, partial out, and return the data standardized!
+	*		First col is depvar? [1]
+	* 	)
+	if (`timeit') timer on 24
+	mata: HDFE.partial_out("`depvar' `indepvars'", 1, 1) // saves results in HDFE.solution
+	if (`timeit') timer off 24
+	// NOTE: I would prefer to do "solution = HDFE.partial_out()" instead of attaching solution to HDFE,
+	// but Mata's compiler is unable to do type inference with "class.method()" and can only do it with "function()"
+
+	if (`parallel_maxproc' > 0) {
+		if (`timeit') timer on 27
+		ParallelBoss // call the parallel processes (workers), wait for them, and finalize by grouping back the data
+		if (`timeit') timer off 27
+	}
+
+	mata: HDFE.solution.depvar = "`depvar'"
+	mata: HDFE.solution.indepvars = tokens("`indepvars'")
+	mata: HDFE.solution.fullindepvars = tokens("`fullindepvars'")
+	mata: HDFE.solution.indepvar_status = !strtoreal(tokens("1 `not_omitted'")) // indepvar_status[i]=1 for variables omitted due to being a basevar (hack: the first element is the depvar)
+	mata: HDFE.solution.collinear_tol = min(( 1e-6 , HDFE.tolerance / 10))
+	mata: HDFE.solution.check_collinear_with_fe(`verbose')
+	mata: HDFE.solution.fast_regression = `fast_regression'
+
+	if (`stop_before_regression') {
+		if (`verbose' > 0) di as text "{title:Stopping reghdfe without running regression}" _n
+		c_local keep_mata 1
+		exit
+	}
+
+	* Regress
+	mata: HDFE.solution.report_constant = HDFE.has_intercept & `report_constant' // must set this BEFORE solve_ols()
+	if ("`keepmata'" != "") mata: hdfe_data = HDFE.solution.data // uses memory!
+	if ("`keepmata'" != "") mata: hdfe_tss = HDFE.solution.tss
+	if (`timeit') timer on 25
+	mata: reghdfe_solve_ols(HDFE, HDFE.solution, "vce_small")
+	if (`timeit') timer off 25
+	mata: HDFE.solution.cmdline = HDFE.solution.cmd + " " + st_local("0")
+
+	* Restore
+	if (`compact') {
+		if (`verbose' > 0) di as text "## Restoring dataset"
+		restore
+	}
+
+	if (`verbose' > 0) di as text "{title:Posting results to e() and displaying them}" _n
+	
+	* Post regression results
+	* 1) Expand 'b' and 'V' to add base/omitted vars; expand fullindepvars/indepvars to add _cons
+	tempname b V
+	mata: HDFE.solution.expand_results("`b'", "`V'", HDFE.verbose)
+
+	* 2) Run "ereturn post"
+	loc store_sample = ("`nosample'"=="")
+	EreturnPost `touse' `b' `V' `store_sample'
+
+	* 4) Store resids if needed (run this before solution.post())
+	* Need to save resids if saving FEs, even if temporarily
+	mata: st_local("save_any_fe", strofreal(HDFE.save_any_fe))
+	if ("`residuals'" == "" & `save_any_fe') loc residuals "__temp_reghdfe_resid__"
+	if ("`residuals'" != "") {
+		if (`verbose' > 0) di as text "# Storing residuals in {res}`residuals'{txt}" _n
+		mata: HDFE.save_variable("`residuals'", HDFE.solution.resid, "Residuals")
+		mata: HDFE.solution.residuals_varname = "`residuals'"
+	}
+
+	* 3) Post the remaining elements
+	mata: HDFE.solution.post()
+	mata: HDFE.post_footnote()
+
+	* 4) Store alphas if needed
+	if (`timeit') timer on 28
+	reghdfe, store_alphas
+	if (`timeit') timer off 28
+
+	* 4) View estimation tables
+	Replay, `diopts' `header' `table' `footnote'
+
+	if ("`keepmata'" != "") mata: swap(HDFE.solution.data, hdfe_data)
+	if ("`keepmata'" != "") mata: swap(HDFE.solution.tss, hdfe_tss)
+	if ("`keepmata'" != "") c_local keep_mata 1
+
+	if (`timeit') {
+		timer off 20
+		ViewTimer, title("Top-level") percent range(20 29) legend(21 "HDFE" 22 "DoF" 23 "Expand factors/Lags" 24 "Partial out" 25 "Solve OLS" 27 "Parallel Boss" 28 "Store alphas")
+		ViewTimer, title("Partial-out") percent range(40 49) legend(41 "Load data" 42 "Standardize/etc" 46 "MAP/LSMR" 47 "Data assign" 49 "Parallel Save")
+		
+		* 2) Show HDFE.init() timers
+		
+		* 3) Show HDFE.partial_out() timers
+	}
+end
+
+
+program define ParseDOF, sclass
+	syntax, [ALL NONE] [FIRSTpair PAIRwise] [CLusters] [CONTinuous]
+
+	* Select all methods by default
+	if ("`none'`firstpair'`pairwise'`clusters'`continuous'" == "") local all "all"
+
+	opts_exclusive "`all' `none' `firstpair' `pairwise'" dofadjustments
+	opts_exclusive "`all' `none' `clusters'" dofadjustments
+	opts_exclusive "`all' `none' `continuous'" dofadjustments
+
+	local opts `pairwise' `firstpair' `clusters' `continuous'
+	if ("`all'" != "") local opts pairwise clusters continuous
+	sreturn loc dofadjustments "`opts'"
+end
+
+
+program define ValidateGroups, sortpreserve
+	syntax varlist, Group_id(varname numeric) TOUSE(name) [INDIVIDUAL(string) INDIVTOUSE(name)]
+
+	* What if I exclude some obs within a group? then the sort order might not work well...
+	* EG: junior board members, small neighboring countries, etc.
+	* Solution: don't use "if" in syntax, and explictly use -touse- in "by:"
+
+	sort `touse' `group_id' `individual_id'
+	
+	* 1) Verify that regression variables are constant within group_id
+	foreach var of local varlist {
+		loc msg "variable `var' is not constant within `group_id'"
+		by `touse' `group_id': _assert2 `var' == `var'[1] if `touse', msg("`msg'") rc(498)
+	}
+
+	* 2) Validate that individuals are unique within group
+	*if ("`individual_id'" != "") {
+	*	loc msg "individual identifier {bf:`individual_id'} is not unique within `group_id'"
+	*	by `touse' `group_id' `individual_id': _assert2 _N == 1 if `touse', msg("`msg'") error(498)
+	*}
+
+	* 2) Even more strict, validate that group and individuals are unique identifiers of the data
+	if ("`individual_id'" != "") {
+		loc msg "identifiers for group (`group_id') and individual (`individual_id') do not uniquely identify the observations'" 
+		by `touse' `group_id' `individual_id': _assert2 _n == 1 if `touse', msg("`msg'") rc(459)
+	}
+
+	* 3) Create touse variable that is 1 only once per group
+	rename `touse' `indivtouse'
+	by `indivtouse' `group_id': gen byte `touse' = (_n == 1) & (`indivtouse') // tag=0 if touse=0
+	la var `touse' "[touse]"
+	la var `indivtouse' "[touse_individual]"
+
+end
+
+
+program EreturnPost, eclass
+	args touse b V store_sample
+	mata: st_local("depvar", HDFE.solution.depvar)
+	mata: st_local("indepvars", invtokens(HDFE.solution.fullindepvars))
+	if (`store_sample') loc esample "esample(`touse')"
+	if ("`indepvars'" != "") {
+		matrix colnames `b' = `indepvars'
+		matrix colnames `V' = `indepvars'
+		matrix rownames `V' = `indepvars'
+		_ms_findomitted `b' `V'
+		ereturn post `b' `V', `esample' buildfvinfo depname(`depvar') 
+	}
+	else {
+		ereturn post, `esample' buildfvinfo depname(`depvar')
+	}
+end
+
+
+program define UpdateTouseWithTag
+	assert 0 // NOT USED?
+	args touse tag group
+	tempvar touse_update
+	gegen byte `touse_update' = max(`tag'), by(`group_id')
+	*tab `touse', m
+	qui replace `touse' = 0 if `touse_update' == 0
+	*tab `touse', m
 end
 
 
 program Store_Alphas, eclass
+	* Explanation:
+	* Recall that residuals of regression with dummies are the same as with partialled-out variables
+	* Thus, (omitting hats):
+	*		e = y - x β - Dα = ytilde - xtilde β
+	*		d := Dα = e - (y - xβ)
+	* We can compute "d" using known variables (the RHS of above) and then solve the system again
+
 	mata: st_local("save_any_fe", strofreal(HDFE.save_any_fe))
 	assert inlist(`save_any_fe', 0, 1)
 	if (`save_any_fe') {
@@ -170,370 +649,204 @@ program Store_Alphas, eclass
 end
 
 
-program Cleanup
-	args rc
-	cap mata: mata drop HDFE
-	cap mata: mata drop hdfe_*
-	cap drop __temp_reghdfe_resid__
-	cap matrix drop reghdfe_statsmatrix
-	if (`rc' == 132) {
-		di as text "- If you got the {it:parentheses unbalanced} error, note that IV/2SLS was moved to {help ivreghdfe}"
-		di as smcl `"- Latest version: {browse "https://github.com/sergiocorreia/ivreghdfe":https://github.com/sergiocorreia/ivreghdfe}"'
-		di as smcl `"- SSC version: {stata "net describe ivreghdfe, from(http://fmwww.bc.edu/RePEc/bocode/i)"}"'
-		di as smcl `"- Note: the older functionality can still be accessed through the {it:old} option"'
-	}
-	if (`rc') exit `rc'
-end
-
-
-program Parse
-	* Trim whitespace (caused by "///" line continuations; aesthetic only)
-	mata: st_local("0", stritrim(st_local("0")))
-
-	* Main syntax
-	#d;
-	syntax varlist(fv ts numeric) [if] [in] [aw pw fw/] , [
-
-		/* Model */
-		Absorb(string) NOAbsorb
-		SUmmarize SUmmarize2(string asis) /* simulate implicit options */
-
-		/* Standard Errors */
-		VCE(string) CLuster(string)
-
-		/* Diagnostic */
-		Verbose(numlist min=1 max=1 >=-1 <=5 integer)
-		TIMEit
-
-		/* Speedup and memory Tricks */
-		NOSAMPle /* do not save e(sample) */
-		COMPACT /* use as little memory as possible but is slower */
-
-		/* Extra display options (based on regress) */
-		noHEader noTABle noFOOTnote
-		
-		/* Undocumented */
-		KEEPSINgletons
-		OLD /* use latest v3 */
-		NOTES(string) /* NOTES(key=value ...), will be stored on e() */
-
-		] [*] /* capture optimization options, display options, etc. */
-		;
-	#d cr
-
-	* Unused
-	* SAVEcache
-	* USEcache
-	* CLEARcache
-
-	* Convert options to boolean
-	if ("`verbose'" == "") loc verbose 0
-	loc timeit = ("`timeit'"!="")
-	loc drop_singletons = ("`keepsingletons'" == "")
-	loc compact = ("`compact'" != "")
-
-	if (`timeit') timer on 29
-
-	* Sanity checks
-	if (`verbose'>-1 & "`keepsingletons'"!="") {
-		loc url "http://scorreia.com/reghdfe/nested_within_cluster.pdf"
-		loc msg "WARNING: Singleton observations not dropped; statistical significance is biased"
-		di as error `"`msg' {browse "`url'":(link)}"'
-	}
-	if ("`cluster'"!="") {
-		_assert ("`vce'"==""), msg("cannot specify both cluster() and vce()")
-		loc vce cluster `cluster'
-		loc cluster // clear it to avoid bugs in subsequent lines
-	}
-
-	* Split varlist into <depvar> and <indepvars>
-	ms_parse_varlist `varlist'
-	if (`verbose' > 0) {
-		di as text _n "## Parsing varlist: {res}`varlist'"
-		return list
-	}
-	loc depvar `r(depvar)'
-	loc indepvars `r(indepvars)'
-	loc fe_format "`r(fe_format)'"
-	loc basevars `r(basevars)'
-
-	* Parse Weights
-	if ("`weight'"!="") {
-		unab exp : `exp', min(1) max(1) // simple weights only
-	}
-
-	* Parse VCE
-	ms_parse_vce, vce(`vce') weighttype(`weight')
-	if (`verbose' > 0) {
-		di as text _n "## Parsing vce({res}`vce'{txt})"
-		sreturn list
-	}
-	loc vcetype = "`s(vcetype)'"
-	loc num_clusters = `s(num_clusters)'
-	loc clustervars = "`s(clustervars)'"
-	loc base_clustervars = "`s(base_clustervars)'"
-	loc vceextra = "`s(vceextra)'"
-
-	* Select sample (except for absvars)
-	loc varlist `depvar' `indepvars' `base_clustervars'
-	tempvar touse
-	marksample touse, strok // based on varlist + cluster + if + in + weight
-
-	* Parse noabsorb
-	_assert  ("`absorb'`noabsorb'" != ""), msg("option {bf:absorb()} or {bf:noabsorb} required")
-	if ("`noabsorb'" != "") {
-		_assert ("`absorb'" == ""), msg("{bf:absorb()} and {bf:noabsorb} are mutually exclusive")
-	}
-
-	if (`timeit') timer off 29
-
-	* Construct HDFE object
-	// SYNTAX: fixed_effects(absvars | , touse, wtype, wtvar, dropsing, verbose)
-	ms_add_comma, loc(absorb) cmd(`"`absorb'"') opt(`"`options'"')
-	if (`timeit') timer on 20
-	mata: HDFE = fixed_effects(`"`absorb'"', "`touse'", "`weight'", "`exp'", `drop_singletons', `verbose')
-	if (`timeit') timer off 20
-	mata: HDFE.cmdline = "reghdfe " + st_local("0")
-	loc options `s(options)'
-
-	mata: st_local("N", strofreal(HDFE.N))
-	if (`N' == 0) error 2000
-
-	* Fill out HDFE object
-	* mata: HDFE.varlist = "`base_varlist'"
-	mata: HDFE.depvar = "`depvar'"
-	mata: HDFE.indepvars = "`indepvars'"
-	mata: HDFE.vcetype = "`vcetype'"
-	mata: HDFE.num_clusters = `num_clusters'
-	mata: HDFE.clustervars = tokens("`clustervars'")
-	mata: HDFE.base_clustervars = tokens("`base_clustervars'")
-	mata: HDFE.vceextra = "`vceextra'"
-
-	* Preserve memory
-	mata: HDFE.compact = `compact'
-	if (`compact') {
-		loc panelvar "`_dta[_TSpanel]'"
-		loc timevar "`_dta[_TStvar]'"
-
-		cap conf var `panelvar', exact
-		if (c(rc)) loc panelvar
-
-		cap conf var `timevar', exact
-		if (c(rc)) loc timevar
-
-		mata: HDFE.panelvar = "`panelvar'"
-		mata: HDFE.timevar = "`timevar'"
-		c_local keepvars `basevars' `base_clustervars' `panelvar' `timevar' // `exp'
-	}
-
-	* Parse summarize
-	if ("`summarize'" != "") {
-		_assert ("`summarize2'" == ""), msg("summarize() syntax error")
-		loc summarize2 mean min max  // default values
-	}
-	ParseSummarize `summarize2'
-	mata: HDFE.summarize_stats = "`s(stats)'"
-	mata: HDFE.summarize_quietly = `s(quietly)'
-
-
-	* Parse misc options
-	mata: HDFE.notes = `"`notes'"'
-	mata: HDFE.store_sample = ("`nosample'"=="")
-	mata: HDFE.timeit = `timeit'
-
-
-	* Parse Coef Table Options (do this last!)
-	_get_diopts diopts options, `options' // store in `diopts', and the rest back to `options'
-	loc diopts `diopts' `header' `table' `footnote'
-	_assert (`"`options'"'==""), msg(`"invalid options: `options'"')
-	if ("`hascons'"!="") di in ye "(option ignored: `hascons')"
-	if ("`tsscons'"!="") di in ye "(option ignored: `tsscons')"
-	mata: HDFE.diopts = `"`diopts'"'
-end
-
-
-program ParseSummarize, sclass
-	sreturn clear
-	syntax [namelist(name=stats)] , [QUIetly]
-	local quietly = ("`quietly'"!="")
-	sreturn loc stats "`stats'"
-	sreturn loc quietly = `quietly'
-end
-
-// --------------------------------------------------------------------------
-
-program Estimate, eclass
-	ereturn clear
-
-	* Parse and fill out HDFE object
-	Parse `0'
-	mata: st_local("timeit", strofreal(HDFE.timeit))
-	mata: st_local("compact", strofreal(HDFE.compact))
-	mata: st_local("verbose", strofreal(HDFE.verbose))
-
-	* Compute degrees-of-freedom
-	if (`timeit') timer on 21
-	mata: HDFE.estimate_dof()
-	if (`timeit') timer off 21
-
-	* Save updated e(sample) (singletons reduce sample);
-	* required to parse factor variables to partial out
-	if (`timeit') timer on 29
-	tempvar touse
-	mata: HDFE.save_touse("`touse'")
-	if (`timeit') timer off 29
-
-	* Expand varlists
-	if (`timeit') timer on 22
-	mata: st_local("depvar", HDFE.depvar)
-	mata: st_local("indepvars", HDFE.indepvars)
-	if (`verbose' > 0) di as text _n "## Parsing and expanding indepvars: {res}`indepvars'"
-	ms_expand_varlist `indepvars' if `touse'
-	if (`verbose' > 0) return list
-	mata: HDFE.fullindepvars = "`r(fullvarlist)'"
-	mata: HDFE.indepvars = "`r(varlist)'"
-	mata: HDFE.not_basevar = strtoreal(tokens("`r(not_omitted)'"))
-	mata: HDFE.varlist = "`depvar' `r(varlist)'"
-	if (`timeit') timer off 22
-
-	* Stats
-	mata: st_local("stats", HDFE.summarize_stats)
-	if ("`stats'" != "") Stats `touse'
-
-	* Condition number
-	mata: HDFE.estimate_cond()
-
-	* Preserve
-	if (`compact') {
-		if (`verbose' > 0) di as text "## Preserving dataset"
-		preserve
-		novarabbrev keep `keepvars'
-	}
-
-	* Partial out; save TSS of depvar
-	if (`timeit') timer on 23
-	// SYNTAX: partial_out(Varlist/Matrix | , Save TSS if HDFE.tss is missing? [0], Standardize data? [1], First col is depvar? [1])
-	// Note: standardize=2 will standardize, partial out, and return the data standardized!
-	mata: hdfe_variables = HDFE.partial_out(HDFE.varlist, 1, 2, .)
-	if (`timeit') timer off 23
-
-	* Regress
-	if (`timeit') timer on 24
-	tempname b V N rank df_r
-	mata: reghdfe_post_ols(HDFE, hdfe_variables, "`b'", "`V'", "`N'", "`rank'", "`df_r'")
-	mata: hdfe_variables = .
-	* Restore
-	if (`compact') {
-		if (`verbose' > 0) di as text "## Restoring dataset"
-		restore
-		mata: st_local("residuals", HDFE.residuals)
-		if ("`residuals'" != "") mata: HDFE.save_variable(HDFE.residuals, HDFE.residuals_vector, "Residuals")
-	}
-	RegressOLS `touse' `b' `V' `N' `rank' `df_r'
-	if (`timeit') timer off 24
-
-	* (optional) Store FEs
-	if (`timeit') timer on 29
-	reghdfe, store_alphas
-	if (`timeit') timer off 29
-
-	* View estimation tables
-	mata: st_local("diopts", HDFE.diopts)
-	Replay, `diopts'
-
-	if (`timeit') {
-		di as text _n "{bf: Timer results:}"
-		timer list
-		di as text "Legend: 20: Create HDFE object; 21: Estimate DoF; 22: expand varlists; 23: partial out; 24: regress; 29: rest"
-		di
-	}
-end
-
-
-program RegressOLS, eclass
-	args touse b V N rank df_r
-
-	mata: st_local("store_sample", strofreal(HDFE.store_sample))
-	if (`store_sample') loc esample "esample(`touse')"
+program define ViewTimer, rclass
+	syntax, range(numlist min=2 max=2 integer >0 <=100 ascending) LEGend(string asis) [Title(string)] [percent]
+	loc show_percent = ("`percent'" != "")
 	
-	mata: st_local("indepvars", HDFE.fullindepvars)
-	if ("`indepvars'" != "") {
-		matrix colnames `b' = `indepvars'
-		matrix colnames `V' = `indepvars'
-		matrix rownames `V' = `indepvars'
-		_ms_findomitted `b' `V'
-		ereturn post `b' `V', `esample' buildfvinfo depname(`depvar') 
+	* Process legend
+	forval i = 1/100 {
+		loc msg`i' "`i':"
+	}
+	while (`"`legend'"' != "") {
+		gettoken key legend : legend
+		gettoken val legend : legend
+		loc msg`key' `"`val'"'
+	}
+
+	* Fill matrix row names based on legend or default values
+	qui timer list
+	gettoken start end : range
+	loc index 0
+
+	* If we show percents we assume that the first value in the range is NOT missing and has the totals
+	if (`show_percent') {
+		loc total_time = r(t`start') / r(nt`start')
+		loc ++start
+	}
+
+	forval i = `start'/`end' {
+		loc t = r(t`i')
+		if (!mi(`t')) {
+			loc ++index
+			loc t`index' = r(t`i') // / r(nt`i')
+			loc rownames `"`rownames' "`msg`i''" "'
+		}
+	}
+	loc num_rows `index'
+
+	* Create and fill matrix
+	tempname timer
+
+	if (`show_percent') {
+		loc sum_time 0
+		matrix `timer' = J(`num_rows'+1, 2, .)
+		forval i = 1/`num_rows' {
+			loc sum_time = `sum_time' + `t`i''
+			matrix `timer'[`i', 1] = `t`i''
+			matrix `timer'[`i', 2] = 100 * `t`i'' / `total_time'
+		}
+		matrix `timer'[`num_rows'+1, 1] = `total_time' - `sum_time'
+		matrix `timer'[`num_rows'+1, 2] = 100 * (`total_time' - `sum_time') / `total_time'
+		matrix rownames `timer' = `rownames' "(Remainder)"
+		matrix colnames `timer' = "Time" "(% Total)"
+
+		di as text _n `"{bf: Timer results:} `title'"'
+		loc spaces = (`: rowsof `timer'' - 1) * "&"
+		matlist `timer', noblank cspec(& %25s | %10.2fc | %9.1f &) rspec(||`spaces'|) rowtitle(Step)
 	}
 	else {
-		ereturn post, `esample' buildfvinfo depname(`depvar')
+		matrix `timer' = J(`num_rows', 1, .)
+		forval i = 1/`num_rows' {
+			matrix `timer'[`i', 1] = `t`i''
+		}
+		matrix rownames `timer' = `rownames'
+		matrix colnames `timer' = "Time"
+
+		di as text _n `"{bf: Timer results:} `title'"'
+		loc spaces = (`: rowsof `timer'' - 1) * "&"
+		matlist `timer', noblank cspec(& %25s | %10.2fc &) rspec(||`spaces'|) rowtitle(Step)
 	}
 
-	ereturn scalar N       = `N'
-	ereturn scalar rank    = `rank'
-	ereturn scalar df_r    = `df_r'
-	ereturn local  cmd     "reghdfe"
-	mata: HDFE.post()
+	return matrix timer = `timer'
+end
 
-	* Post stats
-	cap conf matrix reghdfe_statsmatrix
-	if (!c(rc)) {
-		ereturn matrix summarize = reghdfe_statsmatrix
-		mata: st_local("summarize_quietly", strofreal(HDFE.summarize_quietly))
-		ereturn scalar summarize_quietly = `summarize_quietly'
-	}
+program _assert2, byable(onecall)
+* Improved version of _assert:
+* - allows if/in
+* - fails fast
+* - can use by:
+* TODO: move to -ftools-
+
+        syntax anything(everything) [ , msg(str) rc(str) ]
+
+        if _by() {
+        	capture by `_byvars': assert `anything', fast
+        }
+        else {
+        	capture assert `anything', fast
+        }
+
+        local rcc = _rc
+        if `rcc' {
+                if `"`msg'"' != "" {
+                        dis as err `"`msg'"'
+                }
+                else {
+                        dis as err `"assert failed: `anything'"'
+                }
+
+                if "`rc'" != "" {
+                        exit `rc'
+                }
+                else {
+                        exit `rcc'
+                }
+        }
 end
 
 
-program Replay, rclass
-	syntax [, noHEader noTABle noFOOTnote *]
-
-	if `"`e(cmd)'"' != "reghdfe"  {
-	        error 301
-	}
-
-	_get_diopts options, `options'
-	if ("`header'" == "") {
-		reghdfe_header // _coef_table_header
-		di ""
-	}
-	if ("`table'" == "") {
-		_coef_table, `options' // ereturn display, `options'
-		return add // adds r(level), r(table), etc. to ereturn (before the footnote deletes them)
-	}
-	if ("`footnote'" == "") {
-		reghdfe_footnote
-	}
-
-	* Replay stats
-	if (e(summarize_quietly)==0) {
-		di as text _n "{sf:Regression Summary Statistics:}" _c
-		matlist e(summarize)', border(top bottom) rowtitle(Variable) // twidth(18) 
-	}
+program define ReghdfeFootnote
+	reghdfe_footnote
+	di as text "TODO: add info on absorbed individual dummies"
 end
 
 
-program Stats
-	args touse
-	* Optional weights
-	mata: st_local("weight", sprintf("[%s=%s]", HDFE.weight_type, HDFE.weight_var))
-	assert "`weight'" != ""
-	if ("`weight'" == "[=]") loc weight
-	loc weight : subinstr local weight "[pweight" "[aweight"
+program define ParseParallel, sclass
+	
+	* We intercept three options from -parallel_map-
+	syntax anything(name=maxprocesses id="number of worker processes"), ///
+		[MAXprocesses2(integer 0) ID(integer 0) TMP_path(string) FORCE] [*]
 
-	mata: st_local("stats", HDFE.summarize_stats)
-	mata: st_local("varlist", HDFE.varlist)
-	mata: st_local("cvars", invtokens(HDFE.cvars))
-	loc full_varlist `varlist' `cvars'
+	* maxprocesses2 -> DISCARDED
+	* tmp_path		-> Where will we store the Mata objects
+	* id			-> Subfolder within the tmp path where we actually store them
 
-	* quick workaround b/c -tabstat- does not support factor variables
-	fvrevar `full_varlist', list
-	loc full_varlist `r(varlist)'
+	_assert inrange(`maxprocesses', 0, 1000)
+	if (`maxprocesses' == 1) & ("`force'" == "") {
+		di as text "(ignoring parallel(1) as it's slower than parallel(0)"
+		loc maxprocesses 0 // Launching one extra instance is slower than using the current one
+	}
 
-	qui tabstat `full_varlist' if `touse' `weight' , stat(`stats') col(stat) save
-	matrix reghdfe_statsmatrix = r(StatTotal)
+	if (`id' <= 0) {
+		loc seed_time = mod(clock("$S_DATE $S_TIME", "DMYhms")/1000, 24*3600)
+		loc seed_data = c(N) * c(k)
+		loc seed_rand = runiformint(1, 1e9-1)
+		loc seed_rand = runiformint(1, 1e9-1)
+		loc id = mod((`seed_time' + `seed_data' + `seed_rand'), 1e9-1)
+		assert inrange(`id', 1, 1e9-1)
+	}
+
+	if ("`tmp_path'" == "") loc tmp_path = c(tmpdir)
+	* Workaround for inputs that don't end with "/"
+	loc last_char = substr("`tmp_path'", strlen("`tmp_path'"), 1)
+	if (!inlist("`last_char'", "/", "\")) loc tmp_path = "`tmp_path'`c(dirsep)'"
+	loc padded_caller_id = string(`id', "%09.0f")
+	loc parallel_dir = "`tmp_path'PARALLEL_`padded_caller_id'"
+
+	loc options `"maxproc(`maxprocesses') id(`id') tmp_path("`tmp_path'") `options' `force'"'
+
+	loc force_settings = ("`force'" != "")
+	sreturn clear
+	sreturn loc parallel_force			`force_settings'
+	sreturn loc parallel_maxproc 		`maxprocesses'
+	sreturn loc parallel_dir 			`"`parallel_dir'"'
+	sreturn loc parallel_opts 			`"`options'"'
+
+	* Run the syntax line of parallel_map just to be sure there are no syntax errors
+	* This must be done as the end as it overwrites the 'options' local
+	loc 0 `", `options'"'
+	syntax, [MAXprocesses(integer 0) COREs_per_process(integer 0) FORCE ID(integer 0) ///
+			METHOD(string) STATA_path(string) TMP_path(string) PRograms(string) Verbose]	
 end
 
-findfile "reghdfe.mata"
-include "`r(fn)'"
+
+program define ParallelBoss
+
+	mata: st_local("n", strofreal(HDFE.parallel_numproc))
+	mata: st_local("opts", HDFE.parallel_opts)
+	mata: st_local("parallel_dir", HDFE.parallel_dir)
+	mata: st_local("verbose", strofreal(HDFE.verbose))
+	
+	if (`verbose' <= 0) loc logtable "nologtable"
+	if (`verbose' > 0) loc verbose_string "verbose"
+	if (`verbose' > 0) di as text "{title:Starting parallel processes:}" _n
+	
+	loc cmd `"parallel_map, val(1/`n') `verbose_string' `logtable' `opts': reghdfe, worker parallel_path("`parallel_dir'")"'
+	if (`verbose' > 0) di as text `"command: {inp}`cmd'"'
+	`cmd'
+
+	mata: parallel_combine(HDFE)
+end
+
+
+program ParallelWorker
+	syntax, parallel_path(string)
+	_assert "${task_id}" != "", msg("global -task_id- cannot be missing")
+	_assert (${task_id} == int(${task_id})) & inrange(${task_id}, 1, 1000), msg("global -task_id- must be an integer between 1 and 100")
+
+	loc hdfe_object "`parallel_path'`c(dirsep)'data0.tmp"
+	loc vars_object "`parallel_path'`c(dirsep)'data${task_id}.tmp"
+	conf file "`hdfe_object'"
+	conf file "`vars_object'"
+
+	di as text "Files to load: `hdfe_object'"
+	di as text "Files to load: `vars_object'"
+	
+	mata: worker_partial_out("`hdfe_object'", "`vars_object'")
+	di as text "exiting worker thread"
+end
+
+
+include "reghdfe.mata", adopath
 
 exit

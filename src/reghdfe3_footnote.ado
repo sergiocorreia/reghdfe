@@ -2,7 +2,7 @@
 // Display Regression Footnote
 // -------------------------------------------------------------
 
-program reghdfe_old_footnote
+program reghdfe3_footnote
 syntax [, linesize(int 79)]
 
 	local skip1 = max(`s(width_col1)'-1, 12) // works with both _coef_table, ivreg2 and ivregress

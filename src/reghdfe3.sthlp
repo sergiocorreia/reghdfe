@@ -8,17 +8,17 @@
 {vieweralsosee "ivregress" "help ivregress"}{...}
 {vieweralsosee "reg2hdfe" "help reg2hdfe"}{...}
 {vieweralsosee "a2reg" "help a2reg"}{...}
-{viewerjumpto "Syntax" "reghdfe_old##syntax"}{...}
-{viewerjumpto "Description" "reghdfe_old##description"}{...}
-{viewerjumpto "Options" "reghdfe_old##options"}{...}
-{viewerjumpto "Postestimation Syntax" "reghdfe_old##postestimation"}{...}
-{viewerjumpto "Remarks" "reghdfe_old##remarks"}{...}
-{viewerjumpto "Examples" "reghdfe_old##examples"}{...}
-{viewerjumpto "Stored results" "reghdfe_old##results"}{...}
-{viewerjumpto "Author" "reghdfe_old##contact"}{...}
-{viewerjumpto "Updates" "reghdfe_old##updates"}{...}
-{viewerjumpto "Acknowledgements" "reghdfe_old##acknowledgements"}{...}
-{viewerjumpto "References" "reghdfe_old##references"}{...}
+{viewerjumpto "Syntax" "reghdfe3##syntax"}{...}
+{viewerjumpto "Description" "reghdfe3##description"}{...}
+{viewerjumpto "Options" "reghdfe3##options"}{...}
+{viewerjumpto "Postestimation Syntax" "reghdfe3##postestimation"}{...}
+{viewerjumpto "Remarks" "reghdfe3##remarks"}{...}
+{viewerjumpto "Examples" "reghdfe3##examples"}{...}
+{viewerjumpto "Stored results" "reghdfe3##results"}{...}
+{viewerjumpto "Author" "reghdfe3##contact"}{...}
+{viewerjumpto "Updates" "reghdfe3##updates"}{...}
+{viewerjumpto "Acknowledgements" "reghdfe3##acknowledgements"}{...}
+{viewerjumpto "References" "reghdfe3##references"}{...}
 {title:Title}
 
 {p2colset 5 18 20 2}{...}
@@ -30,27 +30,27 @@
 
 {p 8 15 2} {cmd:reghdfe}
 {depvar} [{indepvars}] [{cmd:(}{it:{help varlist:endogvars}} {cmd:=} {it:{help varlist:iv_vars}}{cmd:)}]
-{ifin} {it:{weight}} {cmd:,} {opth a:bsorb(reghdfe_old##absvar:absvars)} [{help reghdfe_old##options:options}] {p_end}
+{ifin} {it:{weight}} {cmd:,} {opth a:bsorb(reghdfe3##absvar:absvars)} [{help reghdfe3##options:options}] {p_end}
 
 {marker opt_summary}{...}
 {synoptset 22 tabbed}{...}
 {synopthdr}
 {synoptline}
-{syntab:Model {help reghdfe_old##opt_model:[+]}}
-{p2coldent:* {opth a:bsorb(reghdfe_old##absvar:absvars)}}identifiers of the absorbed fixed effects; each {help reghdfe_old##absvar:absvar} represents one set of fixed effects{p_end}
-{synopt: {cmdab:a:bsorb(}{it:...}{cmd:,} {cmdab:save:fe)}}save all fixed effect estimates ({it:__hdfe*} prefix); useful for a subsequent {help reghdfe_old##postestimation:predict}.
+{syntab:Model {help reghdfe3##opt_model:[+]}}
+{p2coldent:* {opth a:bsorb(reghdfe3##absvar:absvars)}}identifiers of the absorbed fixed effects; each {help reghdfe3##absvar:absvar} represents one set of fixed effects{p_end}
+{synopt: {cmdab:a:bsorb(}{it:...}{cmd:,} {cmdab:save:fe)}}save all fixed effect estimates ({it:__hdfe*} prefix); useful for a subsequent {help reghdfe3##postestimation:predict}.
 However, see also the {it:resid} option.{p_end}
 {synopt : {opth res:iduals(newvar)}}save residuals; more direct and much faster than saving the fixed effects and then running predict{p_end}
-{synopt :{opth su:mmarize(tabstat##statname:stats)}}equivalent to {help reghdfe_old##postestimation:estat summarize} after the regression,
+{synopt :{opth su:mmarize(tabstat##statname:stats)}}equivalent to {help reghdfe3##postestimation:estat summarize} after the regression,
 but more flexible, compatible with the {opt fast:} option, and saves results on {it:e(summarize)}{p_end}
 {synopt : {opt subopt:ions(...)}}additional options that will be passed to the regression command (either {help regress}, {help ivreg2}, or {help ivregress}){p_end}
 	
-{syntab:SE/Robust {help reghdfe_old##opt_vce:[+]}}
-{p2coldent:+ {opt vce}{cmd:(}{help reghdfe_old##opt_vce:vcetype} [{cmd:,}{it:opt}]{cmd:)}}{it:vcetype}
+{syntab:SE/Robust {help reghdfe3##opt_vce:[+]}}
+{p2coldent:+ {opt vce}{cmd:(}{help reghdfe3##opt_vce:vcetype} [{cmd:,}{it:opt}]{cmd:)}}{it:vcetype}
 may be {opt un:adjusted} (default), {opt r:obust} or {opt cl:uster} {help fvvarlist} (allowing two- and multi-way clustering){p_end}
 {synopt :}suboptions {opt bw(#)}, {opt ker:nel(str)}, {opt dkraay(#)} and {opt kiefer} allow for AC/HAC estimates; see the {help avar} package{p_end}
 
-{syntab:Instrumental-Variable/2SLS/GMM {help reghdfe_old##opt_iv:[+]}}
+{syntab:Instrumental-Variable/2SLS/GMM {help reghdfe3##opt_iv:[+]}}
 {synopt :{opt est:imator(str)}}either {opt 2sls} (default), {opt gmm:2s} (two-stage GMM),
 {opt liml} (limited-information maximum likelihood) or {opt cue} (which gives approximate results, see discussion below){p_end}
 {synopt :{opt stage:s(list)}}estimate additional regressions; choose any of {opt first} {opt ols} {opt reduced} {opt acid} (or {opt all}){p_end}
@@ -58,38 +58,38 @@ may be {opt un:adjusted} (default), {opt r:obust} or {opt cl:uster} {help fvvarl
 {synopt :{opth iv:suite(subcmd)}}package used in the IV/GMM regressions;
 options are {opt ivreg2} (default; needs installing) and {opt ivregress}{p_end}
 
-{syntab:Diagnostic {help reghdfe_old##opt_diagnostic:[+]}}
+{syntab:Diagnostic {help reghdfe3##opt_diagnostic:[+]}}
 {synopt :{opt v:erbose(#)}}amount of debugging information to show (0=None, 1=Some, 2=More, 3=Parsing/convergence details, 4=Every iteration){p_end}
 {synopt :{opt time:it}}show elapsed times by stage of computation{p_end}
 
-{syntab:Optimization {help reghdfe_old##opt_optimization:[+]}}
+{syntab:Optimization {help reghdfe3##opt_optimization:[+]}}
 {p2coldent:+ {opth tol:erance(#)}}criterion for convergence (default=1e-8){p_end}
 {synopt :{opth maxit:erations(#)}}maximum number of iterations (default=10,000); if set to missing ({cmd:.}) it will run for as long as it takes.{p_end}
 {synopt :{opth pool:size(#)}}apply the within algorithm in groups of {it:#} variables (default 10). a large poolsize is usually faster but uses more memory{p_end}
 {synopt :{opt accel:eration(str)}}acceleration method; options are conjugate_gradient (cg), steep_descent (sd), aitken (a), and none (no){p_end}
 {synopt :{opt transf:orm(str)}}transform operation that defines the type of alternating projection; options are Kaczmarz (kac), Cimmino (cim), Symmetric Kaczmarz (sym){p_end}
 
-{syntab:Speedup Tricks {help reghdfe_old##opt_speedup:[+]}}
+{syntab:Speedup Tricks {help reghdfe3##opt_speedup:[+]}}
 {synopt :{cmd: cache(save} [,opt]{cmd:)}}absorb all variables without regressing (destructive; combine it with {help preserve:preserve/restore}){p_end}
 {synopt :}suboption {opth keep(varlist)} adds additional untransformed variables to the resulting dataset{p_end}
 {synopt :{cmd: cache(use)}}run regressions on cached data; {it:vce()} must be the same as with {cmd: cache(save)}.{p_end}
 {synopt :{cmd: cache(clear)}}delete Mata objects to clear up memory; no more regressions can be run after this{p_end}
 {synopt :{opt fast}}will not create {it:e(sample)}; disabled when saving fixed effects, residuals or mobility groups{p_end}
 
-{syntab:Degrees-of-Freedom Adjustments {help reghdfe_old##opt_dof:[+]}}
+{syntab:Degrees-of-Freedom Adjustments {help reghdfe3##opt_dof:[+]}}
 {synopt :{opt dof:adjustments(list)}}allows selecting the desired adjustments for degrees of freedom;
 rarely used{p_end}
 {synopt: {opth groupv:ar(newvar)}}unique identifier for the first mobility group{p_end}
 
-{syntab:Reporting {help reghdfe_old##opt_reporting:[+]}}
+{syntab:Reporting {help reghdfe3##opt_reporting:[+]}}
 {synopt :{opt version:}}reports the version number and date of reghdfe, and saves it in e(version). standalone option{p_end}
 {synopt :{opt l:evel(#)}}set confidence level; default is {cmd:level(95)}{p_end}
-{synopt :{it:{help reghdfe_old##display_options:display_options}}}control column formats, row spacing, line width, display of omitted variables and base and empty cells, and factor-variable labeling.{p_end}
+{synopt :{it:{help reghdfe3##display_options:display_options}}}control column formats, row spacing, line width, display of omitted variables and base and empty cells, and factor-variable labeling.{p_end}
 {synopt :}particularly useful are the {opt noomit:ted} and {opt noempty} options to hide regressors omitted due to collinearity{p_end}
 
 {syntab:Undocumented}
 {synopt :{opt keepsin:gletons}}do not drop singleton groups{p_end}
-{synopt :{opt old}}will call the latest 2.x version of reghdfe instead (see the {help reghdfe_old:old help file}){p_end}
+{synopt :{opt old}}will call the latest 2.x version of reghdfe instead (see the {help reghdfe3:old help file}){p_end}
 {synoptline}
 {p2colreset}{...}
 {p 4 6 2}* {opt absorb(absvars)} is required.{p_end}
@@ -134,7 +134,7 @@ convergence will still be {it:much} faster.{p_end}
 
 {p2col 8 12 12 2: a)}A novel and robust algorithm to efficiently absorb the fixed effects (extending the work of Guimaraes and Portugal, 2010).{p_end}
 {p2col 8 12 12 2: b)}Coded in Mata, which in most scenarios makes it even faster than {it:areg} and {it:xtreg} for a single fixed effect (see benchmarks on the Github page).{p_end}
-{p2col 8 12 12 2: c)}Can save the point estimates of the fixed effects ({it:caveat emptor}: the fixed effects may not be identified, see the {help reghdfe_old##references:references}).{p_end}
+{p2col 8 12 12 2: c)}Can save the point estimates of the fixed effects ({it:caveat emptor}: the fixed effects may not be identified, see the {help reghdfe3##references:references}).{p_end}
 {p2col 8 12 12 2: d)}Calculates the degrees-of-freedom lost due to the fixed effects
 (note: beyond two levels of fixed effects, this is still an open problem, but we provide a conservative approximation).{p_end}
 {p2col 8 12 12 2: e)}Iteratively removes singleton groups by default, to avoid biasing the standard errors (see ancillary document).{p_end}
@@ -146,7 +146,7 @@ convergence will still be {it:much} faster.{p_end}
 {dlgtab:Model and Miscellanea}
 
 {phang}
-{opth a:bsorb(reghdfe_old##absvar:absvars)} list of categorical variables (or interactions) representing the fixed effects to be absorbed.
+{opth a:bsorb(reghdfe3##absvar:absvars)} list of categorical variables (or interactions) representing the fixed effects to be absorbed.
 this is equivalent to including an indicator/dummy variable for each category of each {it:absvar}. {cmd:absorb()} is required.
 
 {pmore}
@@ -155,7 +155,7 @@ For instance, the option {cmd:absorb(firm_id worker_id year_coefs=year_id)} will
 worker and year fixed effects, but will only save the estimates for the year fixed effects (in the new variable {it:year_coefs}).
 
 {pmore}
-If you want to {help reghdfe_old##postestimation:predict} afterwards but don't care about setting the names of each fixed effect, use the {cmdab:save:fe} suboption.
+If you want to {help reghdfe3##postestimation:predict} afterwards but don't care about setting the names of each fixed effect, use the {cmdab:save:fe} suboption.
 This will delete all variables named {it:__hdfe*__} and create new ones as required.
 Example: {it:reghdfe price weight, absorb(turn trunk, savefe)}
 
@@ -185,7 +185,7 @@ options that will be passed directly to the regression command (either {help reg
 {dlgtab:SE/Robust}
 
 {phang}
-{opth vce:(reghdfe_old##vcetype:vcetype, subopt)}
+{opth vce:(reghdfe3##vcetype:vcetype, subopt)}
 specifies the type of standard error reported.
 Note that all the advanced estimators rely on asymptotic theory, and will likely have poor performance with small samples
 (but again if you are using reghdfe, that is probably not your case)
@@ -541,7 +541,7 @@ Only {cmd:estat summarize}, {cmd:predict} and {cmd:test} are currently supported
 {ifin}
 [{cmd:,} {it:statistic}]
 {p_end}{col 23}May require you to previously save the fixed effects (except for option {opt xb}).
-{col 23}To see how, see the details of the {help reghdfe_old##absvar:absorb} option
+{col 23}To see how, see the details of the {help reghdfe3##absvar:absorb} option
 {col 23}Equation: y = xb + d_absorbvars + e
 
 {synoptset 20 tabbed}{...}
@@ -602,7 +602,7 @@ and thus {it:understate} the negative effects of fraud on future firm performanc
 
 {title:Missing Features}
 
-{phang}(If you are interested in discussing these or others, feel free to {help reghdfe_old##contact:contact me})
+{phang}(If you are interested in discussing these or others, feel free to {help reghdfe3##contact:contact me})
 
 {phang}Code, medium term:
 

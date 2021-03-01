@@ -1,5 +1,5 @@
 * This program should only be called by fixed_effects()
-program reghdfe_parse, sclass
+program reghdfe5_parse, sclass
 
 * Parse absorb
 	cap drop __hdfe* // destructive!

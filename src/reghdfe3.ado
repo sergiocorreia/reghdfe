@@ -1877,7 +1877,7 @@ void function fix_psd(string scalar Vname) {
 end
 // -------------------------------------------------------------------------------------------------
 
-program define reghdfe_old
+program define reghdfe3
 
 * Set Stata version
 	version `=clip(`c(version)', 11.2, 13.1)' // 11.2 minimum, 13+ preferred
@@ -1885,7 +1885,7 @@ program define reghdfe_old
 * Intercept old+version
 	cap syntax, version old
 	if !c(rc) {
-		reghdfe_old, version
+		reghdfe3, version
 		exit
 	}
 
@@ -1901,7 +1901,7 @@ program define reghdfe_old
 	if !c(rc) {
 		di as error "(running historical version of reghdfe)"
 		if ("`weight'"!="") local weightexp [`weight'=`exp']
-		reghdfe_old `anything' `weightexp', `options'
+		reghdfe3 `anything' `weightexp', `options'
 		exit
 	}
 
@@ -2360,7 +2360,7 @@ end
 program define Parse
 
 * Remove extra spacing from cmdline (just for aesthetics)
-	mata: st_local("cmdline", stritrim(`"reghdfe_old `0'"') )
+	mata: st_local("cmdline", stritrim(`"reghdfe3 `0'"') )
 
 * Parse the broad syntax (also see map_init(), ParseAbsvars.ado, ParseVCE.ado, etc.)
 	syntax anything(id="varlist" name=0 equalok) [if] [in] [aw pw fw/] , ///
@@ -4032,9 +4032,9 @@ program define Post, eclass
 	ereturn local dofadjustments = "`dofadjustments'"
 	ereturn local title = "HDFE " + e(title)
 	ereturn local title2 =  "Absorbing `N_hdfe' HDFE " + plural(`N_hdfe', "group")
-	ereturn local predict = "reghdfe_old_p"
-	ereturn local estat_cmd = "reghdfe_old_estat"
-	ereturn local footnote = "reghdfe_old_footnote"
+	ereturn local predict = "reghdfe3_p"
+	ereturn local estat_cmd = "reghdfe3_estat"
+	ereturn local footnote = "reghdfe3_footnote"
 	ereturn `hidden' local equation_d "`equation_d'" // The equation used to construct -d- (used to predict)
 	ereturn local absvars "`original_absvars'"
 	ereturn `hidden' local extended_absvars "`extended_absvars'"
@@ -4382,7 +4382,7 @@ end
 		local plus = cond("`e(model)'"=="ols" & inlist("`e(vce)'", "unadjusted", "ols"), "plus", "")
 		_coef_table, `plus' `diopts'
 	}
-	reghdfe_old_footnote
+	reghdfe3_footnote
 end
 
 	
