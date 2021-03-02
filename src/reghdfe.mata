@@ -2129,7 +2129,7 @@ class Solution
 	`Varname'				depvar
 	`Varlist'				fullindepvars       // indepvars including basevars
 	`Varlist'				indepvars           // x1 x2 x3
-	`RowVector'				indepvar_status		// 1: basevar (e.g. includes i2000.year in ib2000.year); 2: collinear with FEs; 3: collinear with partialled-out regressors; 0: Ok!
+	`RowVector'				indepvar_status		// 1: basevar (e.g. includes i2000.year in ib2000.year); 2: collinear with FEs; 3: collinear with partialled-out regressors; 0: Ok! Recall that first cell is the depvar!
 	`Varlist'				varlist             // y x1 x2 x3 ; set by HDFE.partial_out()
 	`Varname'				residuals_varname
 
@@ -2231,8 +2231,8 @@ class Solution
 	if (report_constant) {
 		if (verbose > 0) printf("{txt}# Adding _cons to varlist\n")
 		indepvar_status = indepvar_status, 0
-		fullindepvars = fullindepvars,  " _cons"
-		indepvars = indepvars, " _cons"
+		fullindepvars = fullindepvars,  "_cons"
+		indepvars = indepvars, "_cons"
 	}
 
 	// Expand 'b' and 'V' to include base and omitted variables (e.g. collinear vars)
@@ -4040,20 +4040,31 @@ mata:
 	`Matrix'				U
 	`Vector'				lambda
 	`Boolean' 				required_fix
+	`Matrix'				V_backup
 	`RowVector'				index
 
 	if (!issymmetric(V)) _makesymmetric(V)
 	if (!issymmetric(V)) exit(error(505))
 
-	index = report_constant ? (1..cols(V)-1) : (1..cols(V))
-	symeigensystem(V[index, index], U=., lambda=.)
+	if (report_constant) {
+		index = 1..cols(V)-1
+		V_backup = V[index, index]
+	}
+
+	symeigensystem(V, U=., lambda=.)
 	required_fix = min(lambda) < 0
 
 	if (required_fix) {
 		lambda = lambda :* (lambda :>= 0)
-		V[index, index] = quadcross(U', lambda, U') // V = U * diag(lambda) * U'
+		V = quadcross(U', lambda, U') // V = U * diag(lambda) * U'
+		
+		// If V is positive-semidefinite, then submatrix V_backup also is
+		if (report_constant) {
+			(void) reghdfe_fix_psd(V_backup, 0)
+			V[index, index] = V_backup
+		}
 	}
-	
+
 	return(required_fix)
 }
 

@@ -1,4 +1,4 @@
-*! version 6.0.5 01Mar2021
+*! version 6.0.6 01Mar2021
 program define reghdfe
 	
 	* Intercept storing alphas
@@ -414,14 +414,14 @@ program Estimate, eclass
 	mata: estimate_dof(HDFE, tokens("`dofadjustments'"), "`groupvar'")
 	if (`timeit') timer off 22
 
-	if (`verbose' > 0) di as text "{title:Working on varlist: partialling out and regression}" _n
-
 	if (`stop_before_partial_out') {
 		if (`verbose' > 0) di as text "{title:Stopping reghdfe without partialling out}" _n
 		mata: HDFE.save_touse("`touse'", 1) // update touse (1 = overwrite)
 		c_local keep_mata 1
 		exit
 	}
+
+	if (`verbose' > 0) di as text "{title:Working on varlist: partialling out and regression}" _n
 
 	* Expand varlists
 	if (`verbose' > 0) di as text "# Parsing and expanding indepvars: {res}`indepvars'" _c
@@ -455,9 +455,9 @@ program Estimate, eclass
 	mata: HDFE.solution.depvar = "`depvar'"
 	mata: HDFE.solution.indepvars = tokens("`indepvars'")
 	mata: HDFE.solution.fullindepvars = tokens("`fullindepvars'")
-	mata: HDFE.solution.indepvar_status = !strtoreal(tokens("1 `not_omitted'")) // indepvar_status[i]=1 for variables omitted due to being a basevar (hack: the first element is the depvar)
+	mata: HDFE.solution.indepvar_status = !strtoreal(tokens("1 `not_omitted'")) // indepvar_status[i]=1 for variables omitted due to being a basevar (hack: the first element is the depvar!)
 	mata: HDFE.solution.collinear_tol = min(( 1e-6 , HDFE.tolerance / 10))
-	mata: HDFE.solution.check_collinear_with_fe(`verbose')
+	mata: HDFE.solution.check_collinear_with_fe(`verbose') // mark variables collinear with the FEs (set HDFE.solution.indepvar_status[i]=2)
 	mata: HDFE.solution.fast_regression = `fast_regression'
 
 	if (`stop_before_regression') {
@@ -522,10 +522,6 @@ program Estimate, eclass
 		timer off 20
 		ViewTimer, title("Top-level") percent range(20 29) legend(21 "HDFE" 22 "DoF" 23 "Expand factors/Lags" 24 "Partial out" 25 "Solve OLS" 27 "Parallel Boss" 28 "Store alphas")
 		ViewTimer, title("Partial-out") percent range(40 49) legend(41 "Load data" 42 "Standardize/etc" 46 "MAP/LSMR" 47 "Data assign" 49 "Parallel Save")
-		
-		* 2) Show HDFE.init() timers
-		
-		* 3) Show HDFE.partial_out() timers
 	}
 end
 
