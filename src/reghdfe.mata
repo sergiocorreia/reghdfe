@@ -1496,7 +1496,7 @@ class Individual_Factor extends FE_Factor
 	
 	assert_msg(num_levels * FullK == N, "error1")
 	assert_msg(num_levels == this.FI.num_levels, sprintf("assertion failed: num_levels (%f) ≠ FI.num_levels (%f)", num_levels, FI.num_levels))
-	assert_msg(FG.num_levels == rows(y), "error3")
+	assert_msg(FG.num_levels == rows(y), "error3", 3456)
 	assert_msg(aggregate_function == "sum" | aggregate_function == "mean", "error4")
 
 	// REMOVE THESE LATER
@@ -1893,10 +1893,10 @@ mata:
 }
 
 
-`RowVector' function standardize_data(`Matrix' A, | `String' technique)
+`RowVector' function compute_stdevs(`Matrix' A)
 {
-	`RowVector'				stdevs // , means
-	`Integer'				K, N // i, 
+	`RowVector'				stdevs
+	`Integer'				K, N
 	// Note: each col of A will have stdev of 1 unless stdev is quite close to 0
 
 	// We don't need good accuracy for the stdevs, so we have a few alternatives:
@@ -1907,14 +1907,8 @@ mata:
 	// [C: .80s] stdevs = diagonal(sqrt(variance(A)))'
 	// [D: .67s] means = cross(1, A) / N; stdevs =  sqrt(diagonal(crossdev(A, means, A, means))' / (N-1))
 
-	assert_msg(!isfleeting(A), "input cannot be fleeting")
 	N = rows(A)
 	K = cols(A)
-
-	// Maybe LSMR/LSQR don't need standardization because they normalize each row?
-	// BUGBUG / TODO : Benchmark this in a large dataset and uncomment if worth it
-	// if (technique == "lsmr" | technique == "lsqr") return(J(1, cols(A), 1))
-
 	stdevs = J(1, K, .)
 
 	// (A) Very precise
@@ -1927,7 +1921,6 @@ mata:
 	stdevs = sqrt( (diagonal(cross(A, A))' - (cross(1, A) :^ 2 / N)) / (N-1) )
 	assert_msg(!missing(stdevs), "stdevs are missing; is N==1?") // Shouldn't happen as we don't expect N==1
 	stdevs = colmax(( stdevs \ J(1, K, 1e-3) ))
-	A = A :/ stdevs
 
 	// (D) Equilibrate matrix columns instead of standardize (i.e. just divide by column max)
 	// _perhapsequilc(A, stdevs=.)
@@ -1941,16 +1934,29 @@ mata:
 }
 
 
+`RowVector' function standardize_data(`Matrix' A)
+{
+	`RowVector'				stdevs
+	assert_msg(!isfleeting(A), "input cannot be fleeting")
+	stdevs = compute_stdevs(A)
+	A = A :/ stdevs
+	return(stdevs)
+}
+
+
 `Variables' st_data_pool(`Vector'  sample,		// observations to load
 					     `Varlist' vars,		// variables to load
 					     `Integer' poolsize,	// how many variables to load each time
-					     `Boolean' compact,		// whether to trim the dataset to save memory or not
+					   | `Boolean' compact,		// whether to trim the dataset to save memory or not
 					     `Varlist' keepvars,	// what extra vars to keep if we trim the dataset (clustervars, timevar, panelvar)
 					     `Boolean' verbose)
 {
 	`Integer'               i, j, k
 	`Varlist'				temp_keepvars
 	`Variables'				data
+
+	if (args()<4 | compact == .) compact = 0
+	if (args()<6 | verbose == .) verbose = 0
 
 	k = cols(vars)
 	assert_msg(poolsize > 0, "poolsize must be a positive integer")
@@ -2128,6 +2134,7 @@ class Solution
 	// Names of partialled-out variables	
 	`Varname'				depvar
 	`Varlist'				fullindepvars       // indepvars including basevars
+	`Varlist'				fullindepvars_bn    // as 'fullindepvars', but all factor variables have a "bn" (used by sumhdfe)
 	`Varlist'				indepvars           // x1 x2 x3
 	`RowVector'				indepvar_status		// 1: basevar (e.g. includes i2000.year in ib2000.year); 2: collinear with FEs; 3: collinear with partialled-out regressors; 0: Ok! Recall that first cell is the depvar!
 	`Varlist'				varlist             // y x1 x2 x3 ; set by HDFE.partial_out()
@@ -2232,6 +2239,7 @@ class Solution
 		if (verbose > 0) printf("{txt}# Adding _cons to varlist\n")
 		indepvar_status = indepvar_status, 0
 		fullindepvars = fullindepvars,  "_cons"
+		fullindepvars_bn = fullindepvars_bn,  "_cons"
 		indepvars = indepvars, "_cons"
 	}
 
@@ -2366,6 +2374,7 @@ class FixedEffects
 	`String'				function_individual
 	`Vector'				indiv_sample
 	`Variable'				indiv_weights		// unsorted weight
+	`Boolean'				has_indiv_fe
 	
 	// Weight-specific
 	`Boolean'				has_weights
@@ -2498,6 +2507,7 @@ class FixedEffects
 	abort = 1
 	verbose = 0
 	timeit = 0
+	has_indiv_fe = 0
 
 	// MAP Solver settings
 	min_ok = 1
@@ -2526,7 +2536,7 @@ class FixedEffects
 	`Vector'                idx, indiv_idx
 	`Integer'				num_singletons_i
 	`Integer'				i, g, gg, j, remaining, rc
-	`Boolean'				has_indiv_fe, already_found_individual
+	`Boolean'				already_found_individual
 	`Boolean'				is_fw_or_iw, zero_threshold
 
 	// To initialize, we use the following attributes:
@@ -2539,6 +2549,8 @@ class FixedEffects
 	// 	.verbose			: how much extra info to show (-1, 0, 1, 2, 3)
 
 	assert_msg(initialized == 0, "HDFE already initialized")
+
+	has_indiv_fe = this.individual_id != ""
 
 	// Construct touse if needed
 	if (this.tousevar == "") {
@@ -2554,6 +2566,9 @@ class FixedEffects
 
 	// Update sample with variables used in the fixed effects
 	stata(sprintf("markout %s %s, strok", this.tousevar, st_global("s(basevars)")))
+	if (has_indiv_fe) {
+		stata(sprintf("markout %s %s, strok", this.indiv_tousevar, st_global("s(basevars)")))
+	}
 
 	// Tokenize strings
 	this.absvars = tokens(st_global("s(absvars)"))
@@ -2578,7 +2593,6 @@ class FixedEffects
 	this.sample = selectindex(st_data(., tousevar))
 	if (this.weight_var != "") this.weights = st_data(this.sample, this.weight_var) // just to use it in f.drop_singletons()
 
-	has_indiv_fe = this.individual_id != ""
 	if (has_indiv_fe) {
 		assert(this.weight_type != "fweight") // because there are no duplicated obs, it makes no sense to have fw and indiv FEs with groups
 		this.indiv_sample = selectindex(st_data(., indiv_tousevar))
@@ -2697,8 +2711,8 @@ class FixedEffects
 		if (verbose > 0) logging_singletons("end", absvars)
 	}
 
-	if (drop_singletons) this.save_touse()
-
+	// Save updated e(sample); needed b/c singletons reduce sample; required to parse factor variables that we want to partial out
+	if (drop_singletons & num_singletons) this.save_touse()
 
 	if (has_indiv_fe) {
 		assert_msg(already_found_individual, "individual id not found on absorb()", 100, 0)
@@ -2925,6 +2939,7 @@ class FixedEffects
 		assert(tousevar != "")
 		touse = tousevar
 	}
+
 	// Note that args()==0 implies replace==1 (else how would you find the name)
 	if (args()==0) replace = 1
 	if (args()==1 | replace==.) replace = 0
@@ -2941,6 +2956,23 @@ class FixedEffects
 	else {
 		idx = st_addvar("byte", touse, 1)
 		st_store(., idx, mask)
+	}
+
+
+	// Do the same for indiv touse
+	
+	if (has_indiv_fe) {
+		// Compute dummy vector
+		mask = create_mask(st_nobs(), 0, indiv_sample, 1)
+
+		// Save vector as variable
+		if (replace) {
+			st_store(., indiv_tousevar, mask)
+		}
+		else {
+			idx = st_addvar("byte", indiv_sample, 1)
+			st_store(., idx, mask)
+		}
 	}
 }
 
@@ -3040,7 +3072,7 @@ class FixedEffects
 	// Standardize variables
 	if (standardize_inputs) {
 		if (verbose > 0) printf("{txt}   - Standardizing variables\n")
-		solution.stdevs = standardize_data(data, technique)
+		solution.stdevs = standardize_data(data)
 		solution.norm2 = solution.norm2 :/ solution.stdevs :^ 2
 		solution.means = solution.means :/ solution.stdevs
 	}

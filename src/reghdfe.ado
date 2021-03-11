@@ -1,4 +1,4 @@
-*! version 6.0.6 01Mar2021
+*! version 6.0.8 11Mar2021
 program define reghdfe
 	
 	* Intercept storing alphas
@@ -54,7 +54,7 @@ program define reghdfe
 	loc keep_mata 0
 	Cleanup 0 `keep_mata'
 	qui which ftools // ms_get_version
-	ms_get_version ftools, min_version("2.45.0")
+	ms_get_version ftools, min_version("2.46.0")
 	cap noi Estimate `0' // Estimate will change the value of `keep_mata' if it receives noregress
 	Cleanup `c(rc)' `keep_mata'
 end
@@ -416,7 +416,6 @@ program Estimate, eclass
 
 	if (`stop_before_partial_out') {
 		if (`verbose' > 0) di as text "{title:Stopping reghdfe without partialling out}" _n
-		mata: HDFE.save_touse("`touse'", 1) // update touse (1 = overwrite)
 		c_local keep_mata 1
 		exit
 	}
@@ -429,9 +428,10 @@ program Estimate, eclass
 	ms_expand_varlist `indepvars' if `touse'
 	if (`timeit') timer off 23
 	if (`verbose' > 0) return list
-	loc indepvars		"`r(varlist)'"
-	loc fullindepvars	"`r(fullvarlist)'"
-	loc not_omitted		"`r(not_omitted)'"
+	loc indepvars			"`r(varlist)'"
+	loc fullindepvars		"`r(fullvarlist)'"
+	loc fullindepvars_bn	"`r(fullvarlist_bn)'"
+	loc not_omitted			"`r(not_omitted)'"
 
 	* Partial out variables
 	* Syntax:
@@ -455,6 +455,7 @@ program Estimate, eclass
 	mata: HDFE.solution.depvar = "`depvar'"
 	mata: HDFE.solution.indepvars = tokens("`indepvars'")
 	mata: HDFE.solution.fullindepvars = tokens("`fullindepvars'")
+	mata: HDFE.solution.fullindepvars_bn = tokens("`fullindepvars_bn'")
 	mata: HDFE.solution.indepvar_status = !strtoreal(tokens("1 `not_omitted'")) // indepvar_status[i]=1 for variables omitted due to being a basevar (hack: the first element is the depvar!)
 	mata: HDFE.solution.collinear_tol = min(( 1e-6 , HDFE.tolerance / 10))
 	mata: HDFE.solution.check_collinear_with_fe(`verbose') // mark variables collinear with the FEs (set HDFE.solution.indepvar_status[i]=2)
