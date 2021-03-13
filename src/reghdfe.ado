@@ -1,4 +1,4 @@
-*! version 6.0.8 11Mar2021
+*! version 6.0.9 12Mar2021
 program define reghdfe
 	
 	* Intercept storing alphas
@@ -102,7 +102,6 @@ program Estimate, eclass
 // --------------------------------------------------------------------------
 	* We try to keep consistency with "help maximize" and "help estimation options"
 
-	ereturn clear
 	#delimit ;
 	syntax varlist(fv ts numeric) [if] [in] [fw aw pw/] [ ,
 		
@@ -580,6 +579,7 @@ end
 
 
 program EreturnPost, eclass
+	ereturn clear
 	args touse b V store_sample
 	mata: st_local("depvar", HDFE.solution.depvar)
 	mata: st_local("indepvars", invtokens(HDFE.solution.fullindepvars))
