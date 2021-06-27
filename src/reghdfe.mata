@@ -107,6 +107,7 @@ class FE_Factor extends Factor
 	// Prevent compile errors (we must place them here and not in Individual_Factor class)
 	//`Factor'				FG, FI
 	//`BipartiteGraph'		bg
+	`Vector'				group_p, group_inv_p
 
 	// Methods
 	`Void'					new()
@@ -117,6 +118,7 @@ class FE_Factor extends Factor
 	virtual `Vector'		mult_transpose()  	// x = A'b , implemented as x = A.mult_transpose(b)
 	virtual `Void'			undo_preconditioning()
 	virtual `Matrix'		panelsum()
+	virtual `Matrix'		panelmean()
 	virtual `Void'			set_weights()
 
 	// These methods don't do anything (are just pass through) but we declare them so "mata desc" does not crash
@@ -217,6 +219,26 @@ class FE_Factor extends Factor
 }
 
 
+`Variables' FE_Factor::panelmean(`Variables' y, | `Boolean' sort_input)
+{
+	`Variables' ans
+
+	if (args()<2 | sort_input == .) sort_input = 0
+	assert_boolean(this.has_weights)
+	assert_msg(this.panel_is_setup == 1, "this.panel_setup() must be run beforehand")
+	assert_msg(this.has_weights==1 | this.weights==1)
+
+	ans = ::panelsum(sort_input ? this.sort(y) : y, this.weights, this.info)
+
+	if (this.has_weights) {
+		return(editmissing(ans :/ this.weighted_counts, 0))
+	}
+	else {
+		return(ans :/ this.counts)
+	}
+}
+
+
 `Void' FE_Factor::set_weights(`Vector' input_weights, | `Boolean' verbose)
 {
 	if (args()<2 | verbose == .) verbose = 0
@@ -286,7 +308,8 @@ class FE_Factor extends Factor
 	// See: http://fourier.eng.hmc.edu/e161/lectures/gaussianprocess/node6.html
 	// See code in : reghdfe_extend_b_and_xx()
 	sorted_x = this.sort(this.unsorted_x)
-	if (this.has_intercept) this.x_means = panelmean(sorted_x, this) // We only need x_means if we have an intercept
+	if (this.has_intercept) this.x_means = this.panelmean(sorted_x, 0) // We only need x_means if we have an intercept
+
 	inv_xx = J(L*FullK, FullK, .)
 	if (rows(true_weights)) sorted_true_weights = this.sort(true_weights)
 
@@ -1060,8 +1083,9 @@ class BipartiteGraph
 	// Select obs where both FEs are degree-1 (and thus omitted)
 	sorted_w = J(N, 1, 1)
 	
-	proj1 = panelmean((*PF1).sort(sorted_w), *PF1)[(*PF1).levels, .]
-	proj2 = panelmean((*PF2).sort(sorted_w), *PF2)[(*PF2).levels, .]
+	proj1 = PF1->panelmean(sorted_w)[PF1->levels, .]
+	proj2 = PF2->panelmean(sorted_w)[PF2->levels, .]
+
 	sorted_w = ((sorted_w - proj1) :!= 1) :| ((sorted_w - proj2) :!= 1)
 	proj1 = proj2 = .
 	sorted_w = (*PF1).sort(sorted_w)
@@ -1184,6 +1208,7 @@ class Individual_Factor extends FE_Factor
 	`FE_Factor'				FG, FI
 	`BipartiteGraph'		bg
 	`Integer'				verbose
+	`Vector'				group_p, group_inv_p
 
 	// Methods
 	`Void'					new()
@@ -1301,6 +1326,8 @@ class Individual_Factor extends FE_Factor
 	bg.F12_1.counts = J(bg.F12_1.num_levels, 1, 2)
 	this.num_levels = this.FI.num_levels
 	this.num_obs = this.FG.num_levels
+
+	this.group_p = this.group_inv_p = . // ensure they are empty
 }
 
 
@@ -1355,7 +1382,8 @@ class Individual_Factor extends FE_Factor
 	}
 
 	if (this.num_slopes) {
-		assert(0) // SLOPES WITH INDIV FEs NOT YET IMPLEMENTED ; see the code in FE_Factor when implementing them
+		precond = this.panelsum(this.unsorted_x :^ 2, 1)
+		this.preconditioner_slopes = 1 :/ sqrt(precond)
 	}
 }
 
@@ -1391,46 +1419,60 @@ class Individual_Factor extends FE_Factor
 	this.preconditioner = (FullK == 1 & suggested_preconditioner == "block_diagonal") ? "diagonal" : suggested_preconditioner
 
 	// REMOVE THIS LATER
-	assert (this.preconditioner == "none" | preconditioner == "diagonal")
-	assert(intercept_only)
-
-	// TODO: Aggregate by adding up or taking mean, etc.
+	assert(this.preconditioner == "none" | preconditioner == "diagonal")
 
 	if (this.preconditioner == "none") {
 
-		expanded_coefs = coefs[this.FI.levels, .]
-		sum_coefs = this.FG.panelsum(expanded_coefs, 1)
-		
-		if (aggregate_function == "mean") {
-			sum_coefs = sum_coefs :/ this.FG.counts
-		}
-
 		if (intercept_only) {
-			//ans = ans + (this.num_levels > 1 ? coefs[this.levels] : coefs[this.levels, .])
-			ans = ans + sum_coefs
-		}
-		else if (!this.has_intercept) {
-			assert(0)
-			//ans = ans + rowsum( inv_vec(coefs, FullK)[this.levels, .] :* this.unsorted_x )
-		}
-		else {
-			assert(0)
-			//ans = ans + rowsum(inv_vec(coefs, FullK)[this.levels, .] :* (J(this.num_obs, 1, 1), this.unsorted_x))
-		}
-	}
-	else if (this.preconditioner == "diagonal") {
-		if (this.has_intercept) {
-			expanded_coefs = (coefs[|1\NI|] :* this.preconditioner_intercept)[this.FI.levels, .]
+			expanded_coefs = this.FI.num_levels > 1 ? coefs[this.FI.levels] : coefs[this.FI.levels, .]
 			sum_coefs = this.FG.panelsum(expanded_coefs, 1)
-
 			if (aggregate_function == "mean") {
 				sum_coefs = sum_coefs :/ this.FG.counts
 			}
-			ans = ans + sum_coefs
 		}
+		else {
+			expanded_coefs = inv_vec(coefs, FullK)[this.FI.levels, .]
+			sum_coefs = rowsum(expanded_coefs :* (J(this.FG.num_obs, this.has_intercept, 1), this.unsorted_x))
+			sum_coefs = this.FG.panelsum(sum_coefs, 1)
+			if (aggregate_function == "mean") {
+				sum_coefs = sum_coefs :/ this.FG.counts
+			}
+		}
+
+		//else if (!this.has_intercept) {
+		//	expanded_coefs = inv_vec(coefs, FullK)[this.FI.levels, .]
+		//	sum_coefs = rowsum(expanded_coefs :* this.unsorted_x)
+		//	sum_coefs = this.FG.panelsum(sum_coefs, 1)
+		//	if (aggregate_function == "mean") {
+		//		sum_coefs = sum_coefs :/ this.FG.counts
+		//	}
+		//}
+		//else {
+		//	expanded_coefs = inv_vec(coefs, FullK)[this.FI.levels, .]
+		//	sum_coefs = rowsum(expanded_coefs :* (J(this.num_obs, 1, 1), this.unsorted_x))
+		//	sum_coefs = this.FG.panelsum(sum_coefs, 1)
+		//	if (aggregate_function == "mean") {
+		//		sum_coefs = sum_coefs :/ this.FG.counts
+		//	}
+		//}
+	}
+	else if (this.preconditioner == "diagonal") {
+		sum_coefs = J(this.num_obs, 1, 0)
+
+		if (this.has_intercept) {
+			expanded_coefs = (coefs[|1\NI|] :* this.preconditioner_intercept)[this.FI.levels, .]
+			sum_coefs = sum_coefs + this.FG.panelsum(expanded_coefs, 1)
+		}
+
 		if (this.num_slopes) {
-			assert(0)
-			//ans = ans + rowsum( (inv_vec(coefs[|NI+1\NN|], this.num_slopes) :* this.preconditioner_slopes)[this.levels, .] :* this.unsorted_x )
+			expanded_coefs = inv_vec(coefs[|NI+1\NN|], this.num_slopes) // transform vector to matrix of coefs
+			expanded_coefs = (expanded_coefs :* this.preconditioner_slopes)[this.FI.levels, .] :* this.unsorted_x
+			if (this.num_slopes > 1) expanded_coefs = rowsum(expanded_coefs)
+			sum_coefs = sum_coefs + this.FG.panelsum(expanded_coefs, 1)
+		}
+
+		if (aggregate_function == "mean") {
+			sum_coefs = sum_coefs :/ this.FG.counts
 		}
 	}
 	else if (this.preconditioner == "block_diagonal") {
@@ -1471,6 +1513,8 @@ class Individual_Factor extends FE_Factor
 	else {
 		_error(3498, sprintf("invalid preconditioner %s", this.preconditioner))
 	}
+
+	ans = ans + (this.FG.is_sorted ? sum_coefs : sum_coefs[group_inv_p])
 }
 
 
@@ -1484,14 +1528,14 @@ class Individual_Factor extends FE_Factor
 	`Integer'				NI, NS, N, FullK
 	`Matrix' 				alphas
 	`Boolean'				intercept_only
-	`Vector'				expanded_y
+	`Vector'				sorted_y, expanded_y
 
 	NI = num_levels * has_intercept
 	NS = num_levels * num_slopes
 	N = NI + NS
 	FullK = has_intercept + num_slopes
 	
-	intercept_only = this.has_intercept& !this.num_slopes
+	intercept_only = this.has_intercept & !this.num_slopes
 	this.preconditioner = (FullK == 1 & suggested_preconditioner == "block_diagonal") ? "diagonal" : suggested_preconditioner
 	
 	assert_msg(num_levels * FullK == N, "error1")
@@ -1501,47 +1545,43 @@ class Individual_Factor extends FE_Factor
 
 	// REMOVE THESE LATER
 	assert_msg(this.preconditioner == "none" | this.preconditioner == "diagonal", "error5")
-	assert_msg(intercept_only, "error6")
+
+	// Sort input variable by group/team
+	sorted_y = this.FG.is_sorted ? y : y[this.group_p]
 
 	// A'y: sum of y over each group (intercept); weighted sum with slopes and/or weights
 	// note that weights are already presorted
 
-	if (this.preconditioner == "none") {
+	if (aggregate_function == "sum") {
+		expanded_y = sorted_y[this.FG.levels, .]
+	}
+	else if (aggregate_function == "mean") {
+		// If aggregation=mean, we find out denom and divide
+		expanded_y = (sorted_y :/ this.FG.counts)[this.FG.levels, .]
+	}
+	else {
+		_error(3333, sprintf("aggregation function not implemented: %s\n", aggregate_function))
+	}
 
+	if (this.preconditioner == "none") {
 		if (intercept_only) {
-			// If aggregation avg, then find out denom and divide
-			if (aggregate_function == "sum") {
-				expanded_y = y[this.FG.levels]
-			}
-			else {
-				expanded_y = (y :/ this.FG.counts)[this.FG.levels]
-			}
-			
 			alphas = this.FI.panelsum(expanded_y, 1)
 		}
 		else if (!this.has_intercept) {
-			assert(0)
-			//alphas = fast_vec( panelsum(this.sort(y :* this.unsorted_x), this.weights, this.info) )	
+			alphas = fast_vec(this.panelsum(expanded_y :* this.unsorted_x, 1))
 		}
 		else {
-			assert(0)
-			//alphas = fast_vec( panelsum(this.sort(y :* (J(this.num_obs, 1, 1), this.unsorted_x)), this.weights, this.info) )
+			alphas = fast_vec( this.panelsum(expanded_y :* (J(this.num_obs, 1, 1), this.unsorted_x), 1) )
 		}
 	}
 	else if (this.preconditioner == "diagonal") {
 		alphas = J(N, 1, .)
+
 		if (this.has_intercept) {
-			if (aggregate_function == "sum") {
-				expanded_y = y[this.FG.levels]
-			}
-			else {
-				expanded_y = (y :/ this.FG.counts)[this.FG.levels]
-			}
 			alphas[|1\NI|] = this.FI.panelsum(expanded_y, 1) :* this.preconditioner_intercept
 		}
 		if (this.num_slopes) {
-			assert(0)
-			//alphas[|NI+1\N|] = fast_vec( panelsum(this.sort(y :* this.unsorted_x), this.weights, this.info) :* this.preconditioner_slopes )
+			alphas[|NI+1\N|] = fast_vec( this.panelsum(expanded_y :* this.unsorted_x, 1) :* this.preconditioner_slopes )
 		}
 	}
 	else if (this.preconditioner == "block_diagonal") {
@@ -1608,7 +1648,7 @@ class Individual_Factor extends FE_Factor
 	if (verbose>2) printf("\n{txt}# Constructing factor for group id: {res}%s{txt}\n", group_id)
 	FG = fe_factor(group_id, indiv_sample, ., "", ., 1, ., 0)
 	//if (verbose>2) printf("{txt} groups found: {res}%-10.0gc{txt}\n", FG.num_levels)
-	
+
 	if (verbose>2) printf("\n{txt}# Constructing factor for individual id: {res}%s{txt}\n", group_id)
 	FI = fe_factor(individual_id, indiv_sample, ., "", ., 1, ., 0)
 	//if (verbose>2) printf("{txt} individuals found: {res}%-10.0gc{txt}\n", FI.num_levels)
@@ -1629,6 +1669,8 @@ class Individual_Factor extends FE_Factor
 	F.varlist = F.absvar = FG.varlist
 	F.aggregate_function = aggregate_function
 	F.verbose = verbose
+	F.group_p = order(st_data(sample, group_id), 1)
+	F.group_inv_p = invorder(F.group_p)
 	swap(F.FG, FG)
 	swap(F.FI, FI)
 	swap(F.bg, bg)
@@ -1801,6 +1843,7 @@ mata:
 
 `Variables' panelmean(`Variables' y, `FE_Factor' f)
 {
+	assert(0) // replaced by f.panelmean() which feels more natural
 	assert_boolean(f.has_weights)
 	assert_msg(f.panel_is_setup, "F.panel_setup() must be run beforehand")
 	if (f.has_weights) {
@@ -2762,13 +2805,28 @@ class FixedEffects
 			// and will be computed on step (5)
 			if (verbose > 0) printf("{txt}     loading cvars({res}%s{txt})\n", strtrim(invtokens(cvars)))
 			//this.factors[g].x = this.factors[g].sort(st_data(this.sample, this.factors[g].cvars))
-			this.factors[g].unsorted_x = st_data(this.sample, this.factors[g].cvars)
+			if (this.factors[g].is_individual_fe) {
+				this.factors[g].unsorted_x = st_data(this.indiv_sample, this.factors[g].cvars)
+			}
+			else {
+				this.factors[g].unsorted_x = st_data(this.sample, this.factors[g].cvars)
+			}
 			this.factors[g].x_stdevs = standardize_data(this.factors[g].unsorted_x)
 		}
 	}
 
 	// (5) load weight
 	this.load_weights(1) // update this.has_weights, this.factors, etc.
+
+	// (6) Update sort order of indiv FEs, if needed
+	if (has_indiv_fe) {
+		for (g=1; g<=this.G; g++) {
+			if (this.factors[g].is_individual_fe==0) {
+				this.factors[g].group_p = order(st_data(this.sample, this.group_id), 1)
+				this.factors[g].group_inv_p = invorder(this.factors[g].group_p)
+			}
+		}
+	}
 
 
 	// Mark the FixedEffects() object as correctly initialized
@@ -2883,7 +2941,6 @@ class FixedEffects
 {
 	`FE_Factor'				F
 	`Integer'				g
-	`Matrix'                sorted_x
 
 	if (this.weight_type == "iweight") {
 		// (this is meaningless with iweights) --> why?
@@ -2897,8 +2954,7 @@ class FixedEffects
 			if (factors[g].num_slopes) {
 				if (verbose > 0) printf("{txt}   - preprocessing cvars of factor {res}%s{txt}\n", factors[g].absvar)
 				if (factors[g].has_intercept) {
-					sorted_x = factors[g].sort(factors[g].unsorted_x)
-					factors[g].x_means = panelmean(sorted_x, factors[g])
+					factors[g].x_means = factors[g].panelmean(factors[g].unsorted_x, 1)
 				}
 				factors[g].inv_xx = precompute_inv_xx(factors[g])
 			}
@@ -3100,7 +3156,10 @@ class FixedEffects
 		if (transform=="cimmino") fun_transform = &transform_cimmino()
 		if (transform=="kaczmarz") fun_transform = &transform_kaczmarz()
 		if (transform=="symmetric_kaczmarz") fun_transform = &transform_sym_kaczmarz()
-		if (transform=="random_kaczmarz") fun_transform = &transform_rand_kaczmarz()
+		if (transform=="random_kaczmarz") fun_transform = &transform_rand_kaczmarz() // experimental
+		if (transform=="unrolled_sym_kaczmarz") fun_transform = &transform_unrolled_sym_kaczmarz() // experimental
+		if (transform=="commutative_kaczmarz") fun_transform = &transform_commutative_kaczmarz() // experimental
+		assert_msg(fun_transform != NULL, "NULL transform function")
 
 		// Pointer to acceleration routine
 		if (acceleration=="test") fun_accel = &accelerate_test()
@@ -3109,6 +3168,7 @@ class FixedEffects
 		if (acceleration=="steepest_descent") fun_accel = &accelerate_sd()
 		if (acceleration=="aitken") fun_accel = &accelerate_aitken()
 		if (acceleration=="hybrid") fun_accel = &accelerate_hybrid()
+		assert_msg(fun_accel != NULL, "NULL accelerate function")
 
 		if (verbose>0) printf("{txt}   - Running solver (acceleration={res}%s{txt}, transform={res}%s{txt} tol={res}%-1.0e{txt})\n", acceleration, transform, tolerance)
 		if (verbose==1) printf("{txt}   - Iterating:")
@@ -3251,16 +3311,16 @@ class FixedEffects
 
 	if (factors[g].num_slopes==0) {
 		if (store_these_alphas) {
-			factors[g].tmp_alphas = alphas = panelmean(factors[g].sort(y), factors[g])
+			factors[g].tmp_alphas = alphas = factors[g].panelmean(y, 1)
 			return(alphas[factors[g].levels, .])
 		}
 		else {
 			if (cols(y)==1 & factors[g].num_levels > 1) {
 				// For speed purposes this is the most important line with technique(map):
-				return(panelmean(factors[g].sort(y), factors[g])[factors[g].levels])
+				return(factors[g].panelmean(y, 1)[factors[g].levels])
 			}
 			else {
-				return(panelmean(factors[g].sort(y), factors[g])[factors[g].levels, .])
+				return(factors[g].panelmean(y, 1)[factors[g].levels, .])
 			}
 		}
 	}
@@ -3517,8 +3577,8 @@ mata:
 	//            then without weighting we would be over-representing men, which leads to a loss of efficiency +-+-
 	// 			  it is the same as aweight + robust
 
-	assert(rows(sol.means) == 1)
-	assert(cols(sol.means) == cols(sol.data))
+	assert_msg(rows(sol.means) == 1, "nonconforming row(means)")
+	assert_msg(cols(sol.means) == cols(sol.data), "nonconforming cols(means)")
 
 	sol.K = cols(sol.data) - 1 // recall that first col is depvar 'y'
 	sol.N = rows(sol.data) // This will change when using fweights
@@ -4328,6 +4388,7 @@ mata:
 		if (has_int) i++
 		k = S.factors[g].num_slopes
 		if (!k) continue
+		if (S.factors[g].is_individual_fe) continue // currently not adjusting DoFs with slopes of individual FEs
 		assert(k == cols(S.factors[g].unsorted_x))
 		results = J(1, k, 0)
 		// float(1.1) - 1 == 2.384e-08 , so let's pick something bigger, 1e-6
@@ -4968,21 +5029,24 @@ mata:
 {
 	`Integer'				i
 	
-	S.solution.converged = 0 // converged will get updated by check_convergence()
+		S.solution.converged = 0 // converged will get updated by check_convergence()
 
 	// Speedup for constant-only case (no fixed effects)
 	if (S.G==1 & S.factors[1].method=="none" & !S.factors[1].num_slopes & !(S.storing_alphas & S.factors[1].save_fe)) {
 		assert(S.factors[1].num_levels == 1)
-		S.solution.iteration_count = 1
 		// Not using poolsize here as this case is unlikely to happen with very large datasets
 		data = data :- mean(data, S.factors[1].weights)
+		S.solution.converged = 1
+		S.solution.iteration_count = 1
 	}
 	else {
 		if (poolsize >= cols(data)) {
 			data = (*fun_accel)(S, data, fun_transform)
 		}
 		else {
+			assert(S.solution.converged == 0) // check_convergence() sets converged=1 so we need to undo it
 			for (i=1; i<=S.solution.K; i++) {
+				S.solution.converged = 0
 				data[., i] = (*fun_accel)(S, data[., i], fun_transform)
 			}
 		}
@@ -5004,13 +5068,13 @@ mata:
 	`FE_Factor'				f
 	pragma unset resid
 
-	assert(S.solution.converged == 0)
+	assert_msg(S.solution.converged == 0, "solution had already converged")
 
 	for (iter=1; iter<=S.maxiter; iter++) {
 		for (g=1; g<=S.G; g++) {
 			f = S.factors[g]
-			if (g==1) resid = y - panelmean(f.sort(y), f)[f.levels, .]
-			else resid = resid - panelmean(f.sort(resid), f)[f.levels, .]
+			if (g==1) resid = y - f.panelmean(y, 1)[f.levels, .]
+			else resid = resid - f.panelmean(resid, 1)[f.levels, .]
 		}
 		if (check_convergence(S, iter, resid, y)) break
 		y = resid
@@ -5024,7 +5088,7 @@ mata:
 	`Integer'				iter
 	`Variables'				resid
 	pragma unset resid
-	assert(S.solution.converged == 0)
+	assert_msg(S.solution.converged == 0, "solution had already converged")
 
 	for (iter=1; iter<=S.maxiter; iter++) {
 		(*T)(S, y, resid) // Faster version of "resid = S.T(y)"
@@ -5042,7 +5106,7 @@ mata:
 	pragma unset resid
 
 	accel_start = 6
-	assert(S.solution.converged == 0)
+	assert_msg(S.solution.converged == 0, "solution had already converged")
 
 	for (iter=1; iter<=accel_start; iter++) {
 		(*T)(S, y, resid) // Faster version of "resid = S.T(y)"
@@ -5075,7 +5139,7 @@ mata:
 	pragma unset r
 	pragma unset v
 
-	assert(S.solution.converged == 0)
+	assert_msg(S.solution.converged == 0, "solution had already converged")
 	Q = cols(y)
 	
 	d = 1 // BUGBUG Set it to 2/3 // Number of recent SSR values to use for convergence criteria (lower=faster & riskier)
@@ -5085,7 +5149,7 @@ mata:
 	improvement_potential = weighted_quadcolsum(S, y, y)
 	recent_ssr = J(d, Q, .)
 	
-	(*T)(S, y, r, 1)
+	(*T)(S, y, r, 1) // this counts as "iteration 0"
 	ssr = weighted_quadcolsum(S, r, r) // cross(r,r) when cols(y)==1 // BUGBUG maybe diag(quadcross()) is faster?
 	u = r
 
@@ -5118,7 +5182,7 @@ mata:
 	`RowVector' t
 	pragma unset proj
 
-	assert(S.solution.converged == 0)
+	assert_msg(S.solution.converged == 0, "solution had already converged")
 
 	for (iter=1; iter<=S.maxiter; iter++) {
 		(*T)(S, y, proj, 1)
@@ -5164,7 +5228,7 @@ mata:
 	`RowVector' t
 	pragma unset resid
 
-	assert(S.solution.converged == 0)
+	assert_msg(S.solution.converged == 0, "solution had already converged")
 	y_old = J(rows(y), cols(y), .)
 
 	for (iter=1; iter<=S.maxiter; iter++) {
@@ -5357,7 +5421,7 @@ mata:
 
 // --------------------------------------------------------------------------
 
- `Void' function transform_sym_kaczmarz(`FixedEffects' S, `Variables' y, `Variables' ans,| `Boolean' get_proj) {
+`Void' function transform_sym_kaczmarz(`FixedEffects' S, `Variables' y, `Variables' ans,| `Boolean' get_proj) {
 	`Integer' 	g
 	if (args()<4 | get_proj==.) get_proj = 0
 	ans = y - S.project_one_fe(y, 1)
@@ -5528,7 +5592,7 @@ mata:
 		if (transform=="cimmino") fun_transform = &transform_cimmino()
 		if (transform=="kaczmarz") fun_transform = &transform_kaczmarz()
 		if (transform=="symmetric_kaczmarz") fun_transform = &transform_sym_kaczmarz()
-		if (transform=="random_kaczmarz") fun_transform = &transform_rand_kaczmarz()
+		if (transform=="random_kaczmarz") fun_transform = &transform_rand_kaczmarz() // experimental
 
 		// Pointer to acceleration routine
 		if (acceleration=="test") fun_accel = &accelerate_test()
