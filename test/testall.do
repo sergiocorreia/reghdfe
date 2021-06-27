@@ -1,38 +1,60 @@
-// --------------------------------------------------------------------------
-// Run all certification tests
-// --------------------------------------------------------------------------
-
-* Requirements:
-* - FTOOLS (latest version)
-* - MOREMATA
+* ===========================================================================
+* Run all certification tests
+* ===========================================================================
 	
+	global tests_run 0
 
 
+// --------------------------------------------------------------------------
+// Set up Stata
+// --------------------------------------------------------------------------
 
-**** PREPARE
-
-* Reload
-	cap ado uninstall reghdfe
-	loc dir `c(pwd)'
-	loc dir : subinstr loc dir "test" "src"
-	di as text "DIR: `dir'"
-	net install reghdfe, from("`dir'")
-
-	cap findfile "lreghdfe.mlib"
-	if (!c(rc)) cap drop "`r(fn)'"
+	which ftools // required
 
 
-* Clean slate
-	set more off
-	set trace off
-	set varabbrev on
-	do setup // cleanup, and reinstall reghdfe and dependencies
-	cap cls // uncomment
+// --------------------------------------------------------------------------
+// Reinstall reghdfe
+// --------------------------------------------------------------------------
 
-**** RUN CERTIFICATION SCRIPTS
+	do setup
+
+// --------------------------------------------------------------------------
+// Run certification scripts post v6
+// --------------------------------------------------------------------------
+	
+	cd "./part2"
+
+	* Quick tests:
+
+	run demo_groups
+	run demo_teams
+	run demo_indiv_preconditioner
+
+	run test-aggregation
+	run test-trivial-group
+	run test-simple-absorb
+	run test-error-no-obs
+	run test-error-sample
+	run test-error-missing-values
+	run test-bug-sort // bug found by nconstantine when the data was not sorted by group_id
+
+	* Test that we can save+load the HDFE object
+	run test-parallel-save-load
+
+	* Good quality tests:
+	run test-alphas
+	cd ".."
+
+
+// --------------------------------------------------------------------------
+// Run all certification scripts (pre v6)
+// --------------------------------------------------------------------------
+	
+	cd "./part1"
 
 	run report_constant // reghdfe,constant VS reghdfe,noconstant
-
+	run alphas
+	
 	run unadjusted
 	run unadjusted-if
 	run unadjusted-singular
@@ -47,7 +69,6 @@
 	run missing-absvar
 	run options
 	run omitted
-	run alphas
 	
 	cap run cluster-after-expand
 	if (c(rc)) di as error "TEST FAILED AS EXPECTED"
@@ -83,16 +104,20 @@
 	run extreme_values // test numerical accuracy
 	run bug_compact
 
-
 	* Extra
 	do margins // not yet cscript
 	run groupvar // mobility group; not yet cscript
 
 	* do lsmr // TODO
 
+
+	cd ".."
+
+
 set linesize 120
+di as text "TESTS COMPLETED SUCCESSFULLY!"
 exit
-	
+
 
 
 

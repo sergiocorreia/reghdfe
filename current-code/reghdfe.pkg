@@ -41,24 +41,25 @@ f reghdfe_footnote.ado
 f reghdfe_p.ado
 
 f reghdfe.mata
+f Common.mata
+f Solution.mata
+f FE.mata
+f Factor_FE.mata
+f Factor_Indiv.mata
+f Regression.mata
+f Bipartite.mata
+f DoF.mata
 
+f LSMR.mata
+f LSQR.mata
 
+f MAP.mata
+f MAP_Accelerations.mata
+f MAP_Transformations.mata
 
+f Parallel.mata
 
 f reghdfe.sthlp
 f reghdfe_programming.sthlp
 
 f estfe.ado
-f reghdfe3.ado
-f reghdfe3.sthlp
-f reghdfe3_estat.ado
-f reghdfe3_footnote.ado
-f reghdfe3_p.ado
-f reghdfe5.ado
-f reghdfe5.mata
-f reghdfe5.sthlp
-f reghdfe5_estat.ado
-f reghdfe5_footnote.ado
-f reghdfe5_header.ado
-f reghdfe5_p.ado
-f reghdfe5_parse.ado
