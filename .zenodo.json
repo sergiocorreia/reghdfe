@@ -1,36 +1,33 @@
 {
-    "license": "other-open", 
-    "title": "reghdfe: linear models with many levels of fixed effects", 
-    "upload_type": "software", 
-    "creators": [
-        {
-            "affiliation": "Federal Reserve Board", 
-            "name": "Sergio Correia",
-            "orcid": "0000-0002-0914-8648"
-        }, 
-        {
-            "affiliation": "Federal Reserve Board", 
-            "name": "Noah Constantine"
-        }
-    ], 
-    "access_right": "open", 
-    "related_identifiers": [
-        {
-            "scheme": "url", 
-            "identifier": "https://github.com/sergiocorreia/reghdfe/tree/6.12.0", 
-            "relation": "isSupplementTo"
-        }, 
-        {
-            "scheme": "doi", 
-            "identifier": "10.5281/zenodo.594794", 
-            "relation": "isVersionOf"
-        }
-    ],
-    "keywords": [
-    "regression",
-    "stata",
-    "fixed-effects",
-    "open-source"
-  ],
-  "license": "MIT",
+	"title": "reghdfe: linear models with many levels of fixed effects",
+	"upload_type": "software",
+	"creators": [{
+			"affiliation": "Federal Reserve Board",
+			"name": "Sergio Correia",
+			"orcid": "0000-0002-0914-8648"
+		},
+		{
+			"affiliation": "Federal Reserve Board",
+			"name": "Noah Constantine"
+		}
+	],
+	"access_right": "open",
+	"related_identifiers": [{
+			"scheme": "url",
+			"identifier": "https://github.com/sergiocorreia/reghdfe/tree/6.12.0",
+			"relation": "isSupplementTo"
+		},
+		{
+			"scheme": "doi",
+			"identifier": "10.5281/zenodo.594794",
+			"relation": "isVersionOf"
+		}
+	],
+	"keywords": [
+		"regression",
+		"stata",
+		"fixed-effects",
+		"open-source"
+	],
+	"license": "MIT"
 }
