@@ -1,12 +1,22 @@
 # REGHDFE: Linear Regressions With Multiple Fixed Effects
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/sergiocorreia/reghdfe?label=last%20version)
+![GitHub Release Date](https://img.shields.io/github/release-date/sergiocorreia/reghdfe)
+![GitHub commits since latest release (by date)](https://img.shields.io/github/commits-since/sergiocorreia/reghdfe/latest)
+![StataMin](https://img.shields.io/badge/stata-%3E%3D%2012.1-blue)
+[![DOI](https://zenodo.org/badge/27755549.svg)](https://zenodo.org/badge/latestdoi/27755549)
 
-- Current version: `5.6.8 03mar2019` (current SSC version: `5.6.8 03mar2019`)
+- Current SSC version: `5.6.8 03mar2019`
 - Jump to: [`news`](#recent-updates) [`citation`](#citation) [`install`](#install) [`manual install`](#manual-install) [`description`](#description)
 
 -----------
 
 ## Recent Updates
 
+* **version 6.12.0 26June2021**:
+    - Add support for individual fixed effects, through new options: indiv() group() aggregation(). See [Constantine and Correia (2021)](http://scorreia.com/research/individual_fes.pdf) as well as the help file.
+    - Add experimental support for parallelization via the parallel package
+    - Misc. code refactoring
+    - To use older versions of reghdfe, you can use `version(3)` and `version(5)`. Those two are the latest versions before a major rewrite. This supercedes the `old` option.
 * **version 5.7.3 13nov2019**:
     - Fix rare error with compact option (#194). Version also submitted to SSC.
 * **version 5.7.0 20mar2019**:
@@ -50,7 +60,7 @@
 
 ####  Things to be aware of:
 
-- `reghdfe` now depends on the `ftools` package (and `boottest` for Stata 12 and older)
+- `reghdfe` depends on the `ftools` package (and `boottest` for Stata 12 and older)
 - IV/GMM is not done directly with `reghdfe` but through `ivreg2`. See [this port](https://github.com/sergiocorreia/ivreghdfe/), which adds an `absorb()` option to `ivreg2`. This is also useful for using more advanced standard error estimates, which `ivreg2` supports.
 - If you use commands that depend on reghdfe (`regife`, `poi2hdfe`, `ppml_panel_sg`, etc.), check that they have been updated before using the new version of reghdfe.
 - Some options are not yet fully supported. They include `cache` and `groupvar`.
@@ -78,7 +88,7 @@ If you use it, please cite either the paper and/or the command's RePEc citation:
 > Working Paper.
 > http://scorreia.com/research/hdfe.pdf
 
-> Sergio Correia, 2017. *reghdfe: Stata module for linear and instrumental-variable/GMM regression absorbing multiple levels of fixed effects.*
+> Noah Constantine, Sergio Correia, 2021. *reghdfe: Stata module for linear and instrumental-variable/GMM regression absorbing multiple levels of fixed effects.*
 > https://ideas.repec.org/c/boc/bocode/s457874.html
 
 
@@ -86,14 +96,14 @@ If you use it, please cite either the paper and/or the command's RePEc citation:
 
 To find out which version you have installed, type `reghdfe, version`.
 
-`reghdfe` 5.x is not yet in SSC. To quickly install it and all its dependencies, copy/paste these lines and run them:
+`reghdfe` 6.x is not yet in SSC. To quickly install it and all its dependencies, copy/paste these lines and run them:
 
 ```stata
 * Install ftools (remove program if it existed previously)
 cap ado uninstall ftools
 net install ftools, from("https://raw.githubusercontent.com/sergiocorreia/ftools/master/src/")
 
-* Install reghdfe 5.x
+* Install reghdfe 6.x
 cap ado uninstall reghdfe
 net install reghdfe, from("https://raw.githubusercontent.com/sergiocorreia/reghdfe/master/src/")
 
@@ -117,7 +127,7 @@ cap ssc install ivreg2 // Install ivreg2, the core package
 net install ivreghdfe, from(https://raw.githubusercontent.com/sergiocorreia/ivreghdfe/master/src/)
 ```
 
-Alternatively, you can install the stable/older version from SSC (3.x):
+Alternatively, you can install the stable/older version from SSC (5.x):
 
 ```stata
 cap ado uninstall reghdfe
@@ -145,6 +155,8 @@ ftools, compile
 reghdfe, compile
 ```
 
+Note that you can now also use Github releases in order to install specific versions.
+
 ------------------------------------------
 
 ## Description
@@ -169,11 +181,15 @@ reghdfe, compile
 - Calculates the degrees-of-freedom lost due to the fixed effects (beyond two levels of fixed effects this is still an open problem, but we provide a conservative upper bound).
 - Avoids common pitfalls, by excluding singleton groups (see [notes](scorreia.com/software/reghdfe/nested_within_cluster.pdf)), computing correct within- adjusted-R-squares ([see initial discussion](http://www.statalist.org/forums/forum/general-stata-discussion/general/1290416-anyone-knows-what-is-an-adjusted-within-r2)), etc.
 
-## Author
+## Authors
 
 [Sergio Correia](http://scorreia.com)
 <br>Board of Governors of the Federal Reserve
 <br>Email: sergio.correia@gmail.com
+
+[Noah Constantine](https://www.linkedin.com/in/noah-constantine-9a8531118/)
+<br>Board of Governors of the Federal Reserve
+<br>Email: noahbconstantine@gmail.com
 
 
 ## Acknowledgments
@@ -188,3 +204,6 @@ Also invaluable are the great bug-spotting abilities of many users.
 Contributors and pull requests are more than welcome.
 There are a number of extension possibilities, such as estimating standard errors for the fixed effects using bootstrapping,
 exact computation of degrees-of-freedom for more than two HDFEs, and further improvements in the underlying algorithm.
+
+Note that all the code is written in the `current-code` folder, which then gets compiled by `build.py` into the `src` folder (which combines multiple files in single `.ado` and `.mata` files, so they can be installed and copied faster.
+
