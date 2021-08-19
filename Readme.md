@@ -106,16 +106,6 @@ net install ftools, from("https://raw.githubusercontent.com/sergiocorreia/ftools
 * Install reghdfe 6.x
 cap ado uninstall reghdfe
 net install reghdfe, from("https://raw.githubusercontent.com/sergiocorreia/reghdfe/master/src/")
-
-* Install boottest for Stata 11 and 12
-if (c(version)<13) cap ado uninstall boottest
-if (c(version)<13) ssc install boottest
-
-* Install moremata (sometimes used by ftools but not needed for reghdfe)
-cap ssc install moremata
-
-ftools, compile
-reghdfe, compile
 ```
 
 To run IV/GMM regressions with `ivreghdfe`, also run these lines:
@@ -151,8 +141,6 @@ cap ado uninstall ivreghdfe
 net install ftools, from(c:\git\ftools)
 net install reghdfe, from(c:\git\reghdfe)
 net install ivreghdfe, from(c:\git\ivreghdfe)
-ftools, compile
-reghdfe, compile
 ```
 
 Note that you can now also use Github releases in order to install specific versions.
