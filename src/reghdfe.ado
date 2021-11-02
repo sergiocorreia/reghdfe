@@ -65,12 +65,10 @@ program Cleanup
 	args rc keep_mata
 
 	* Cleanup after parallel
-	* TODO REMOVE "NOI" AND TURN 1 to 0 ("VERBOSE")
-	
-	//cap noi mata: unlink_folder(HDFE.parallel_dir, 1) // (folder, verbose)
-	if (!`keep_mata') cap mata: unlink_folder(HDFE.parallel_dir, 0) // (folder, verbose)
-	
-	//global LAST_PARALLEL_DIR
+	loc cleanup_folder = !`keep_mata' & ("$LAST_PARALLEL_DIR"!="")
+	mata: HDFE.parallel_dir
+	if (`cleanup_folder') cap mata: unlink_folder(HDFE.parallel_dir, 0) // (folder, verbose)
+	global LAST_PARALLEL_DIR
 	global pids
 	
 	* Main cleanup
