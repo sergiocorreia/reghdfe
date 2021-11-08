@@ -1,4 +1,4 @@
-*! version 6.12.1 27June2021
+*! version 6.12.2 02Nov2021
 program define reghdfe
 	
 	* Intercept storing alphas
@@ -66,7 +66,6 @@ program Cleanup
 
 	* Cleanup after parallel
 	loc cleanup_folder = !`keep_mata' & ("$LAST_PARALLEL_DIR"!="")
-	mata: HDFE.parallel_dir
 	if (`cleanup_folder') cap mata: unlink_folder(HDFE.parallel_dir, 0) // (folder, verbose)
 	global LAST_PARALLEL_DIR
 	global pids
