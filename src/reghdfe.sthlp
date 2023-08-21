@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 6.12.2 02Nov2021}{...}
+{* *! version 6.12.3 08aug2023}{...}
 {vieweralsosee "[R] areg" "help areg"}{...}
 {vieweralsosee "[R] xtreg" "help xtreg"}{...}
 {vieweralsosee "" "--"}{...}
@@ -707,7 +707,7 @@ Mean is the default method.{p_end}
 {synopt:{cmd:e(rank)}}rank of {cmd:e(V)}{p_end}
 {synopt:{cmd:e(N_clustervars)}}number of cluster variables{p_end}
         
-{synopt:{cmd:e(clust}#{cmd:)}}number of clusters for the #th cluster variable{p_end}
+{synopt:{cmd:e(N_clust}#{cmd:)}}number of clusters for the #th cluster variable{p_end}
 {synopt:{cmd:e(N_clust)}}number of clusters; minimum of {it:e(clust#)}{p_end}
 
 {synopt:{cmd:e(df_m)}}model degrees of freedom{p_end}

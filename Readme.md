@@ -5,13 +5,16 @@
 ![StataMin](https://img.shields.io/badge/stata-%3E%3D%2012.1-blue)
 [![DOI](https://zenodo.org/badge/27755549.svg)](https://zenodo.org/badge/latestdoi/27755549)
 
-- Current SSC version: `5.6.8 03mar2019`
+- Current SSC version: `6.12.3 20aug2023`
 - Jump to: [`news`](#recent-updates) [`citation`](#citation) [`install`](#install) [`manual install`](#manual-install) [`description`](#description)
 
 -----------
 
 ## Recent Updates
 
+* **version 6.12.3 20aug2023**:
+    - Bugfix for parallel option (macOS)
+    - Fix typos in help file
 * **version 6.12.0 26June2021**:
     - Add support for individual fixed effects, through new options: indiv() group() aggregation(). See [Constantine and Correia (2021)](http://scorreia.com/research/individual_fes.pdf) as well as the help file.
     - Add experimental support for parallelization via the parallel package

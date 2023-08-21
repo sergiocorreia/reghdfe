@@ -1,4 +1,4 @@
-*! version 6.12.2 02Nov2021
+*! version 6.12.3 08aug2023
 program define reghdfe
 	
 	* Intercept storing alphas
@@ -54,7 +54,7 @@ program define reghdfe
 	loc keep_mata 0
 	Cleanup 0 `keep_mata'
 	qui which ftools // ms_get_version
-	ms_get_version ftools, min_version("2.46.0")
+	ms_get_version ftools, min_version("2.49.1")
 	cap noi Estimate `0' // Estimate will change the value of `keep_mata' if it receives noregress
 	Cleanup `c(rc)' `keep_mata'
 end

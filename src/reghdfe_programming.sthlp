@@ -49,7 +49,7 @@ might also be interested in #3, due to the increase in efficiency and Mata integ
 {pstd}
 It's possible your command will depend on other user-written commands, in the same way as {cmd:reghdfe} depends on {cmd:ftools}.
 To ensure compatibility and reproducibility, you can use the {cmd:ms_get_version} command to ensure that users are not running versions of these programs that are not too old.
-For instance, reghdfe version 6.12.0 requires ftools of at least version 2.46.0.
+For instance, reghdfe version 6.12.3 requires ftools of at least version 2.49.1.
 
 {pstd}
 The syntax of {cmd:ms_get_version} is:
@@ -57,6 +57,10 @@ The syntax of {cmd:ms_get_version} is:
 {p 8 15 2} {it:ms_get_version}
 {it:command}
 [{cmd:,} {opt min_version(str)} {opt min_date(str)}]
+{p_end}
+
+{pstd}
+Note: this command has been superceded by {cmd:require}
 {p_end}
 
 {marker options_table}{...}
