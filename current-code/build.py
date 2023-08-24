@@ -116,7 +116,7 @@ def copy_pkg(project, input_path, output_path, historical_path=None):
 def clean_build_path(path):
 	print(f'Removing contents of {path} folder')
 	for fn in path.glob('*.*'):
-		if fn.suffix in ('.toc', '.pkg', '.ado', '.do', '.mata', '.mlib'):
+		if fn.suffix in ('.toc', '.pkg', '.ado', '.do', '.mata', '.mlib', '.sthlp'):
 			print(f' - {fn}')
 			fn.unlink()
 
@@ -126,10 +126,12 @@ def create_zip(path, project, version):
 	print(f'Creating zipfile "{zip_fn}"')
 	with zipfile.ZipFile(zip_fn, 'w', zipfile.ZIP_DEFLATED) as zh:
 		for fn in path.glob('*.*'):
-			if fn.suffix in ('.toc', '.pkg', '.ado', '.do', '.mata', '.mlib'):
+			if fn.suffix in ('.toc', '.pkg', '.ado', '.do', '.mata', '.mlib', '.sthlp'):
 				arcname = f'{project}/{fn.name}'
 				print(arcname)
 				zh.write(fn, arcname)
+			else:
+				print('FILE IGNORED:', fn.name)
 
 
 def get_version(fn):
