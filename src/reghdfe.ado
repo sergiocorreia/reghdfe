@@ -1,4 +1,4 @@
-*! version 6.12.3 08aug2023
+*! version 6.12.4 12sep2023
 program define reghdfe
 	
 	* Intercept storing alphas
@@ -260,7 +260,7 @@ program Estimate, eclass
 		* We will just create and fill the HDFE object
 		loc touse `varlist'
 		loc varlist
-		markout `touse' `base_clustervars' `group_id' `individual_id'
+		markout `touse' `base_clustervars' `group_id' `individual_id', strok
 	}
 	else {
 		* Set sample based on if + in + weight + group + individual + cluster variables + regression varlist (i.e. excluding absvars)

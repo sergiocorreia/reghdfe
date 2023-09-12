@@ -12,6 +12,8 @@
 
 ## Recent Updates
 
+* **version 6.12.4 12sep2023**:
+    - Fix `ivreghdfe` bug when clustering with string variables (#276)
 * **version 6.12.3 20aug2023**:
     - Bugfix for parallel option (macOS)
     - Fix typos in help file
