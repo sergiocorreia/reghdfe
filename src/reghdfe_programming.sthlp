@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 6.12.0 26June2021}{...}
+{* *! version 6.12.5 27Dec2023}{...}
 {vieweralsosee "reghdfe" "help reghdfe"}{...}
 {vieweralsosee "ftools" "help ftools"}{...}
 {vieweralsosee "" "--"}{...}
@@ -366,14 +366,42 @@ TODO: Update this example
 
 {inp}
     {hline 60}
-	sysuse auto, clear
-	local depvar price
-	local indepvars weight gear
-	mata: HDFE = fixed_effects("turn", "", "fweight", "trunk", 0, 2)
-	mata: HDFE.varlist = "`depvar' `indepvars'"
-	mata: HDFE.indepvars = "`indepvars'"
-	mata: data = HDFE.partial_out("`depvar' `indepvars'")
-	mata: reghdfe_solve_ols(HDFE, data, b=., V=., N=., rank=., df_r=., resid=., kept=., "vce_none")
-	mata: b
+    sysuse auto, clear
+    local depvar 	"price"
+    local indepvars     "weight gear"
+    local absvars 	"turn trunk"
+
+    * Benchmark:
+    reghdfe `depvar' `indepvars', a(`absvars')
+
+    * Step-by-step
+    qui include "reghdfe.mata", adopath
+    
+    mata:
+    // 1) Create the object
+    HDFE = FixedEffects()
+
+    // 2) Set up options as needed
+    HDFE.absvars = "`absvars'"
+
+    // 3) Initialize (validate options; compute singletons)
+    HDFE.init()
+
+    // 4) Partial out
+    HDFE.partial_out("`depvar' `indepvars'")
+
+    // 5) Solve OLS
+    data = HDFE.solution.data
+    k = cols(data)
+    y = data[., 1]
+    x = data[., 2::k]
+    b = qrsolve(x, y)
+
+    // Note: by default we standardize vars prior to partialling-out (for numerical stability)
+    // This step undoes the standardization:
+    stdev_y = HDFE.solution.stdevs[1]
+    stdev_x = HDFE.solution.stdevs[2..k]
+    b :/ stdev_x' * stdev_y
+    end
     {hline 60}
 {text}
