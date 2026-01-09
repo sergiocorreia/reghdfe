@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 6.12.5 27Dec2023}{...}
+{* *! version 6.13.0 09Jan2026}{...}
 {vieweralsosee "[R] areg" "help areg"}{...}
 {vieweralsosee "[R] xtreg" "help xtreg"}{...}
 {vieweralsosee "" "--"}{...}
@@ -9,6 +9,7 @@
 {vieweralsosee "ppmlhdfe" "help ppmlhdfe"}{...}
 {vieweralsosee "sumhdfe" "help sumhdfe"}{...}
 {vieweralsosee "ivreg2" "help ivreg2"}{...}
+{vieweralsosee "xtscc" "help xtscc"}{...}
 {vieweralsosee "did_imputation" "help did_imputation"}{...}
 {vieweralsosee "parallel" "help parallel"}{...}
 {vieweralsosee "" "--"}{...}
@@ -76,7 +77,7 @@
 {synopt : }{bf:- note:} {it:mean} and {it:sum} are equivalent if all groups are of equal size (eg: 11 starting players in a football/soccer team){p_end}
 
 {syntab:Model {help reghdfe##opt_model:[+]}}
-{synopt : {opth vce:(reghdfe##model_opts:vcetype)}}{it:vcetype} may be {opt un:adjusted} (default), {opt r:obust} or {opt cl:uster} {help fvvarlist} (allowing two- and multi-way clustering){p_end}
+{synopt : {opth vce:(reghdfe##model_opts:vcetype)}}{it:vcetype} may be {opt un:adjusted} (default), {opt r:obust}, {opt cl:uster} {help fvvarlist} (allowing two- and multi-way clustering), or {opt dk:raay} [{it:#}] (Driscoll-Kraay){p_end}
 {synopt : {opth res:iduals(newvar)}}save regression residuals{p_end}
 {synopt : }{bf:- note:} the postestimation command "{it:predict <varname>, d}" requires this option{p_end}
 
@@ -316,8 +317,28 @@ For instance, {it:vce(cluster firm#year)} will estimate SEs with {bf:one-way} cl
 A frequent rule of thumb is that each cluster variable must have at least 50 different categories
 (the number of categories for each clustervar appears at the top of the regression table).
 
-{pmore} {bf:Note:} More advanced SEs, including autocorrelation-consistent (AC), heteroskedastic and
-autocorrelation-consistent (HAC), Driscoll-Kraay, Kiefer, etc. are available in the {help ivreghdfe} package (which uses {help ivreg2} as its back-end).
+{pmore}
+{opt dk:raay} [{it:#}] estimates Driscoll-Kraay standard errors, which are robust to both arbitrary cross-sectional (spatial)
+correlation and serial (autocorrelation) correlation.
+This is equivalent to computing a Newey-West HAC estimator on the cross-sectional averages of the moment conditions.
+The optional integer {it:#} specifies the bandwidth used in the Bartlett kernel, where bandwidth = lags + 1
+(this matches the convention used by {help ivreg2} and {help ivreghdfe}).
+If omitted, the default bandwidth is {it:floor(4*(T/100)^(2/9)) + 1} based on Newey-West (1994), where T is the number of time periods.
+
+{pmore}
+{bf:Note:} {opt vce(dkraay)} requires the data to be {cmd:tsset} or {cmd:xtset} with a time variable.
+
+{pmore}
+{bf:Note:} Driscoll-Kraay standard errors are asymptotically valid as T (number of time periods) goes to infinity, 
+regardless of the cross-sectional dimension N. They are particularly useful for macro panels with 
+a moderate to large number of time periods but possibly strong cross-sectional dependence.
+
+{pmore}
+{bf:Tip:} {opt vce(dkraay 1)} (bandwidth=1, i.e., 0 lags) is equivalent to clustering on the time variable, i.e., {opt vce(cluster timevar)}.
+
+{pmore}
+{bf:References:} Driscoll and Kraay (1998), "Consistent Covariance Matrix Estimation with Spatially Dependent Panel Data", 
+Review of Economics and Statistics; Hoechle (2007), "Robust Standard Errors for Panel Regressions with Cross-Sectional Dependence", Stata Journal.
 
 {phang}
 {opth res:iduals(newvar)} saves the regression residuals in a new variable. 
@@ -645,6 +666,12 @@ or tests on different groups, you can replicate it manually, as described
 {phang2}{cmd:. reghdfe ln_w grade age ttl_exp tenure not_smsa south , absorb(idcode year occ)}{p_end}
 {hline}
 
+{pstd}Driscoll-Kraay standard errors (robust to cross-sectional and serial correlation){p_end}
+{phang2}{cmd:. webuse nlswork}{p_end}
+{phang2}{cmd:. reghdfe ln_w grade age ttl_exp tenure not_smsa south , absorb(idcode) vce(dkraay)}{p_end}
+{phang2}{cmd:. reghdfe ln_w grade age ttl_exp tenure not_smsa south , absorb(idcode) vce(dkraay 4)}{p_end}
+{hline}
+
 {title:Advanced examples}
 
 {pstd}Save the FEs as variables{p_end}
@@ -840,4 +867,18 @@ For details on the Aitken acceleration technique employed, please see "method 3"
 {phang}
 Macleod, Allan J. "Acceleration of vector sequences by multi-dimensional Delta-2 methods."
 {it:Communications in Applied Numerical Methods 2.4 (1986): 385-392.}
+{p_end}
+
+{p 0 0 0}
+For details on the Driscoll-Kraay standard errors:
+
+{phang}
+Driscoll, John C., and Aart C. Kraay. "Consistent Covariance Matrix Estimation with Spatially Dependent Panel Data."
+{it:Review of Economics and Statistics 80.4 (1998): 549-560.}
+{p_end}
+
+{phang}
+Hoechle, Daniel. "Robust Standard Errors for Panel Regressions with Cross-Sectional Dependence."
+{it:Stata Journal 7.3 (2007): 281-312.}
+{browse "https://journals.sagepub.com/doi/10.1177/1536867X0700700301":[link]}
 {p_end}

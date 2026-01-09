@@ -109,6 +109,7 @@ class FixedEffects
 	`Integer'				num_clusters
 	`Varlist'				clustervars
 	`Varlist'				base_clustervars
+	`Integer'				dkraay_lags			// Number of lags for Driscoll-Kraay standard errors
 
 	`Boolean'				drop_singletons
 	`String'				absorb              // contents of absorb()
@@ -178,6 +179,7 @@ class FixedEffects
 	parallel_dir = "" // commented out else fgetmatrix() crashes
 
 	storing_alphas = 0
+	dkraay_lags = .  // Will be set if vce(dkraay) is used; missing means use default
 }
 
 

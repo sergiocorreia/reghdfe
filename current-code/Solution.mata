@@ -267,6 +267,7 @@ class Solution
 	// In the cluster and robust options, set it as "Robust"
 	text = strproper(vcetype)
 	if (text=="Cluster") text = "Robust"
+	if (text=="Dkraay") text = "Robust"  // Driscoll-Kraay uses "Robust" header like cluster
 	if (text=="Unadjusted") text = ""
 	assert(anyof( ("", "Robust", "Jackknife", "Bootstrap") , text))
 	if (text!="") st_global("e(vcetype)", text)

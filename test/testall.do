@@ -26,9 +26,10 @@
 
 	* Quick tests:
 
-	run demo_groups
-	run demo_teams
-	run demo_indiv_preconditioner
+* Disabled groupreg...
+*run demo_groups
+*run demo_teams
+*run demo_indiv_preconditioner
 
 	run test-aggregation
 	run test-trivial-group

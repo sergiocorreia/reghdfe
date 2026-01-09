@@ -12,6 +12,9 @@
 
 ## Recent Updates
 
+* **version 6.13.0 09Jan2026**:
+    - Experimental support for Driscoll-Kraay standard errors: `vce(dkraay #)`
+    - Automatically use the `require` command to ensure the lates version of `ftools` is installed
 * **version 6.12.4 12sep2023**:
     - Fix `ivreghdfe` bug when clustering with string variables (#276)
 * **version 6.12.3 20aug2023**:
@@ -128,6 +131,17 @@ Alternatively, you can install the stable/older version from SSC (5.x):
 cap ado uninstall reghdfe
 ssc install reghdfe
 ```
+
+If you have odd errors regarding Mata and ftools, those are usually fixed by recompiling the ftools library:
+
+```stata
+* compile ftools
+ftools, compile 
+mata: mata mlib index
+```
+
+(The error occurs if you have an up-to-date ftools, but the `lftools.mlib` compiled file is still based on an older version)
+
 
 ## Manual Install:
 

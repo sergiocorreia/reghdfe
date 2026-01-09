@@ -13,8 +13,9 @@
     cap findfile "ftools.mata"
     if (_rc) {
         di as error "reghdfe requires the {bf:ftools} package, which is not installed"
-        di as error `"    - install from {stata ssc install ftools:SSC}"'
-        di as error `"    - install from {stata `"net install ftools, from("https://github.com/sergiocorreia/ftools/raw/master/src/")"':Github}"'
+        di as error `"    - install from {stata ssc install ftools:SSC} (stable version)"'
+        di as error `"    - install from {stata `"net install ftools, from("https://github.com/sergiocorreia/ftools/raw/master/src/")"':Github} (latest version)"'
+        di as error `"after installing; run {bf:ftools, compile}"'
         exit 9
     }
     include "`r(fn)'"
@@ -69,5 +70,6 @@
 	include "MAP_Transformations.mata", adopath
 	
 	include "Parallel.mata", adopath
+	include "Driscoll_Kraay.mata", adopath
 
 exit

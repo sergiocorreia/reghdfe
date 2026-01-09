@@ -122,12 +122,15 @@ mata:
 	}
 
 	// Compute VCE (update sol.V)
-	assert_msg(anyof( ("unadjusted", "robust", "cluster") , S.vcetype), "invalid vcetype: " + S.vcetype)
+	assert_msg(anyof( ("unadjusted", "robust", "cluster", "dkraay") , S.vcetype), "invalid vcetype: " + S.vcetype)
 	if (S.vcetype == "unadjusted") {
 		reghdfe_vce_unadjusted(S, sol, inv_xx, vce_mode)
 	}
 	else if (S.vcetype == "robust") {
 		reghdfe_vce_robust(S, sol, inv_xx, X, w, vce_mode)
+	}
+	else if (S.vcetype == "dkraay") {
+		reghdfe_vce_dkraay(S, sol, inv_xx, X, w, vce_mode, S.dkraay_lags)
 	}
 	else {
 		reghdfe_vce_cluster(S, sol, inv_xx, X, w, vce_mode)

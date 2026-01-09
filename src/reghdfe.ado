@@ -1,4 +1,4 @@
-*! version 6.12.5 27Dec2023
+*! version 6.13.0 09Jan2026
 program define reghdfe
 	
 	* Intercept storing alphas
@@ -53,8 +53,26 @@ program define reghdfe
 	* Main use case
 	loc keep_mata 0
 	Cleanup 0 `keep_mata'
-	qui which ftools // ms_get_version
-	ms_get_version ftools, min_version("2.49.1")
+
+	* Deal with dependencies
+	loc require_github_url `"https://raw.githubusercontent.com/sergiocorreia/stata-require/master/src/"'
+	loc ftools_github_url `"https://raw.githubusercontent.com/sergiocorreia/ftools/master/src/"'
+	cap which require
+	if (c(rc)) {
+		*di as error "reghdfe requires uses the {bf:require} and {bf:ftools} packages as dependencies; please install them:"
+		di as error "reghdfe requires uses the {bf:require} package to maintain its dependencies; please install it:"
+		di as error `" - install from {stata ssc install require:SSC}"'
+		di as error `" - install from {stata `"net install require, from("`require_github_url'")"':GitHub}"'
+		exit 9
+		*di as error `" - {bf:ftools}: install from {stata ssc install ftools:SSC} | {stata `"net install ftools, from("`ftools_github_url'")"':GitHub}"'
+	}
+	require require >= 1.3.1
+	require ftools >= 2.50.0
+	
+	*qui which ftools // ms_get_version
+	*ms_get_version ftools, min_version("2.49.1")
+
+
 	cap noi Estimate `0' // Estimate will change the value of `keep_mata' if it receives noregress
 	Cleanup `c(rc)' `keep_mata'
 end
@@ -254,7 +272,18 @@ program Estimate, eclass
 	loc clustervars `s(clustervars)' // e.g. "exporter#importer"
 	loc base_clustervars `s(base_clustervars)' // e.g. "exporter importer"
 	loc num_clusters = `s(num_clusters)'
+	loc dkraay_lags `s(dkraay_lags)'
 	confirm /*numeric*/ variable `base_clustervars', exact // usually clustervar can be strings, but it's way easier to disallow it
+	
+	* Driscoll-Kraay requires tsset time variable
+	* Since DK is equivalent to clustering on time, we set timevar as clustervar for DoF computation
+	if ("`vcetype'" == "dkraay") {
+		loc timevar "`_dta[_TStvar]'"
+		_assert "`timevar'" != "", msg("vce(dkraay) requires data to be tsset or xtset with a time variable")
+		loc clustervars `timevar'
+		loc base_clustervars `timevar'
+		loc num_clusters 1
+	}
 
 	if (`stop_before_partial_out' & "`varlist_is_touse'" != "") {
 		* We will just create and fill the HDFE object
@@ -404,6 +433,13 @@ program Estimate, eclass
 	mata: HDFE.num_clusters = `num_clusters' // used when computing degrees-of-freedom
 	mata: HDFE.clustervars = tokens("`clustervars'")
 	mata: HDFE.base_clustervars = tokens("`base_clustervars'")
+	if ("`dkraay_lags'" != "") mata: HDFE.dkraay_lags = `dkraay_lags'
+	
+	* For Driscoll-Kraay, ensure timevar is passed to Mata (even if not in compact mode)
+	if ("`vcetype'" == "dkraay") {
+		loc timevar "`_dta[_TStvar]'"
+		mata: HDFE.timevar = "`timevar'"
+	}
 	
 	* Compute degrees-of-freedom (either exact or conservative lower bound)
 	if (`timeit') timer on 22
