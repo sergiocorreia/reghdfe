@@ -140,6 +140,7 @@ mata:
     sol.N_clust_list = N_clust  // Required for display (as a scalar, will be treated as 1x1)
     sol.num_clusters = 1
     sol.clustervars = (S.timevar)
+    sol.dkraay_bw = lags + 1  // bandwidth = lags + 1
 
     if (S.verbose > 0) printf("\n")
 }

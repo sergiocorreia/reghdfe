@@ -93,6 +93,11 @@ program reghdfe_header
 		local num = e(N_clust`i')
 		.`left'.Arrpush `C1' "Number of clusters (" as res "`cluster'" as text  ") " `C2' as text "= " as res %`c2wfmt'.0fc `num'
 	}
+
+	* Driscoll-Kraay bandwidth
+	if ("`e(vce)'" == "dkraay" & e(dkraay_bw) < .) {
+		.`left'.Arrpush `C1' "DK Bandwidth" `C2' "= " as res %`c2wfmt'.0fc e(dkraay_bw)
+	}
 	
 	HeaderDisplay `left' `right' `"`title'"' `"`title2'"' `"`title3'"' `"`title4'"' `"`title5'"'
 end

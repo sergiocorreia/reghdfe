@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 6.13.0 09Jan2026}{...}
+{* *! version 6.13.1 10Jan2026}{...}
 {vieweralsosee "[R] areg" "help areg"}{...}
 {vieweralsosee "[R] xtreg" "help xtreg"}{...}
 {vieweralsosee "" "--"}{...}
@@ -318,11 +318,12 @@ A frequent rule of thumb is that each cluster variable must have at least 50 dif
 (the number of categories for each clustervar appears at the top of the regression table).
 
 {pmore}
-{opt dk:raay} [{it:#}] estimates Driscoll-Kraay standard errors, which are robust to both arbitrary cross-sectional (spatial)
+{opt dk:raay} [{it:#}] estimates Driscoll-Kraay standard errors, robust to both arbitrary cross-sectional (spatial)
 correlation and serial (autocorrelation) correlation.
-This is equivalent to computing a Newey-West HAC estimator on the cross-sectional averages of the moment conditions.
+This is equivalent to computing a Newey-West HAC estimator on the cross-sectional averages of the moment conditions, 
+or paraphrasing ivreg2, to "clustering on the tsset time variable and the bandwidth supplied as #".
 The optional integer {it:#} specifies the bandwidth used in the Bartlett kernel, where bandwidth = lags + 1
-(this matches the convention used by {help ivreg2} and {help ivreghdfe}).
+(this follows the convention used by {help ivreg2} but not {help xtscc}, which specifies lags instead of bandwidth).
 If omitted, the default bandwidth is {it:floor(4*(T/100)^(2/9)) + 1} based on Newey-West (1994), where T is the number of time periods.
 
 {pmore}

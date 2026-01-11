@@ -63,6 +63,7 @@ class Solution
 	`String'				vcetype
 	`Integer'				num_clusters
 	`Varlist'				clustervars
+	`Integer'				dkraay_bw			// Bandwidth for Driscoll-Kraay (lags + 1)
 
 	// Parameters
 	`Real'					collinear_tol		// Tolerance used to determine regressors collinear with fixed effects
@@ -238,6 +239,10 @@ class Solution
 		}
 		text = "Statistics robust to heteroskedasticity"
 		st_global("e(title3)", text)
+		if (vcetype=="dkraay") {
+			text = "and autocorrelation (Driscoll-Kraay)"
+			st_global("e(title4)", text)
+		}
 		st_global("e(clustvar)", invtokens(clustervars))
 	}
 
@@ -275,6 +280,11 @@ class Solution
 	text = vcetype
 	if (text=="unadjusted") text = "ols"
 	st_global("e(vce)", text)
+
+	// Driscoll-Kraay bandwidth
+	if (vcetype == "dkraay" & !missing(dkraay_bw)) {
+		st_numscalar("e(dkraay_bw)", dkraay_bw)
+	}
 
 	// Weights
 	if (weight_type != "") {
