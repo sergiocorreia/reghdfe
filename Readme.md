@@ -111,6 +111,10 @@ To find out which version you have installed, type `reghdfe, version`.
 cap ado uninstall ftools
 net install ftools, from("https://raw.githubusercontent.com/sergiocorreia/ftools/master/src/")
 
+* compile ftools to prevent errors if you already had an older version installed:
+ftools, compile 
+mata: mata mlib index
+
 * Install reghdfe 6.x
 cap ado uninstall reghdfe
 net install reghdfe, from("https://raw.githubusercontent.com/sergiocorreia/reghdfe/master/src/")
@@ -130,18 +134,11 @@ Alternatively, you can install the stable/older version from SSC (5.x):
 ```stata
 cap ado uninstall reghdfe
 ssc install reghdfe
-```
 
-If you have odd errors regarding Mata and ftools, those are usually fixed by recompiling the ftools library:
-
-```stata
-* compile ftools
+* compile ftools to prevent errors if you already had an older version installed:
 ftools, compile 
 mata: mata mlib index
 ```
-
-(The error occurs if you have an up-to-date ftools, but the `lftools.mlib` compiled file is still based on an older version)
-
 
 ## Manual Install:
 
