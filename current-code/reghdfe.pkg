@@ -29,6 +29,7 @@ d
 d Requires: Stata version 11.2
 d
 d Required packages:
+d 	require
 d 	ftools
 d
 d Distribution-Date: 20260110
