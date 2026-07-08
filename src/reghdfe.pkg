@@ -26,12 +26,13 @@ d KW: MWFE
 d KW: MWC
 d KW: cluster
 d
-d Requires: Stata version 11.2
+d Requires: Stata version 14.1
 d
 d Required packages:
+d 	require
 d 	ftools
 d
-d Distribution-Date: 20260110
+d Distribution-Date: 20260708
 d
 
 f reghdfe.ado

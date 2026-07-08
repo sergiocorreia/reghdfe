@@ -4079,39 +4079,34 @@ mata:
                                   `Integer' Msize,
                                   `Boolean' report_constant)
 {
-	`Integer'				i, N_clust
 	`Variables'				X_sorted
 	`Variable'				resid_sorted
-	`Matrix'				X_tmp
-	`Vector'				resid_tmp
-	`RowVector'				Xe_tmp
-	`Matrix'				M
+	`Matrix'				M, Xe
 
 	if (cols(X)==0 & !report_constant) return(J(0,0,0))
+	assert(Msize == cols(X) + report_constant)
 
-	N_clust = (*FP).num_levels
 	(*FP).panelsetup()
-	X_sorted = (*FP).sort(X)
-	resid_sorted = (*FP).sort(resid)
-	M = J(Msize, Msize, 0)
 
 	if (cols(X)) {
-		for (i=1; i<=N_clust; i++) {
-			X_tmp = panelsubmatrix(X_sorted, i, (*FP).info)
-			resid_tmp = panelsubmatrix(resid_sorted, i, (*FP).info)
-			Xe_tmp = quadcross(1, 0, resid_tmp, X_tmp, report_constant) // Faster than colsum(e_tmp :* X_tmp)
-			M = M + quadcross(Xe_tmp, Xe_tmp)
-		}		
+		if ((*FP).num_levels == rows(resid)) {
+			M = report_constant ? quadcross(X, 1, resid:^2, X, 1) : quadcross(X, resid:^2, X)
+			return(M)
+		}
+		X_sorted = (*FP).sort(X)
+		resid_sorted = (*FP).sort(resid)
+		Xe = panelsum(X_sorted, resid_sorted, (*FP).info)
+		if (report_constant) Xe = Xe, panelsum(resid_sorted, (*FP).info)
 	}
 	else {
 		// Workaround for when there are no Xs except for _cons
 		assert(report_constant)
-		for (i=1; i<=N_clust; i++) {
-			resid_tmp = panelsubmatrix(resid_sorted, i, (*FP).info)
-			M = M + quadsum(resid_tmp) ^ 2
-		}
+		if ((*FP).num_levels == rows(resid)) return(J(1, 1, quadsum(resid:^2)))
+		resid_sorted = (*FP).sort(resid)
+		Xe = panelsum(resid_sorted, (*FP).info)
 	}
 
+	M = quadcross(Xe, Xe)
 	return(M)
 }
 

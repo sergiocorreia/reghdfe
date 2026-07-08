@@ -66,6 +66,7 @@
 	run cluster-strictly-nested
 	run cluster-string
 	run cluster-mwc
+	run cluster-mwc-meat
 
 	run missing-absvar
 	run options
