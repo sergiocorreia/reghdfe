@@ -2,15 +2,17 @@ noi cscript "reghdfe: multi-way cluster meat matches legacy algorithm" adofile r
 
 clear all
 set seed 123456
-set obs 3000
+set obs 4317
 
 gen byte touse = 1
-gen int id = ceil(_n / 10)
-bys id: gen byte t = _n
-gen double resid = sin(_n / 7) + cos(_n / 13)
+gen int id_single = ceil(_n / 10)
+bys id_single: gen byte t_single = _n
+gen int id_unbal = floor(sqrt(_n * 13)) + mod(_n, 7)
+gen int t_unbal = mod(_n + floor(_n / 17), 41)
+gen double resid = cond(mod(_n, 2), 1, -1) * (sin(_n / 7) + cos(_n / 13) + mod(_n, 19) / 10)
 
-forval i = 1/60 {
-	gen double x`i' = sin(_n / (`i' + 1)) + cos(_n * (`i' + 1) / 100) + rnormal() / 100
+forval i = 1/80 {
+	gen double x`i' = cond(mod(_n, 17)==0, 1e7, 1) * (sin(_n / (`i' + 1)) + cos(_n * (`i' + 1) / 100)) + rnormal() / 100
 }
 unab xvars : x*
 
@@ -80,7 +82,9 @@ void function reghdfe_test_meat_cmp(pointer(class Factor scalar) scalar FP,
 	}
 }
 
-void function reghdfe_test_cluster_meat()
+void function reghdfe_test_meat_pair(string scalar idvar,
+                                     string scalar tvar,
+                                     string scalar label)
 {
 	real matrix				X, X0
 	real colvector			resid
@@ -90,21 +94,27 @@ void function reghdfe_test_cluster_meat()
 	X0 = J(rows(X), 0, .)
 	resid = st_data(., "resid")
 
-	F_id = factor("id", "touse", 0, "", 1, 1, ., 0)
-	F_t = factor("t", "touse", 0, "", 1, 1, ., 0)
+	F_id = factor(idvar, "touse", 0, "", 1, 1, ., 0)
+	F_t = factor(tvar, "touse", 0, "", 1, 1, ., 0)
 	F_id_t = join_factors(F_id, F_t, ., ., 1)
 
-	reghdfe_test_meat_cmp(&F_id, X, resid, 0, "id/no constant")
-	reghdfe_test_meat_cmp(&F_id, X, resid, 1, "id/constant")
-	reghdfe_test_meat_cmp(&F_id, X0, resid, 1, "id/constant only")
+	reghdfe_test_meat_cmp(&F_id, X, resid, 0, label + " id/no constant")
+	reghdfe_test_meat_cmp(&F_id, X, resid, 1, label + " id/constant")
+	reghdfe_test_meat_cmp(&F_id, X0, resid, 1, label + " id/constant only")
 
-	reghdfe_test_meat_cmp(&F_t, X, resid, 0, "t/no constant")
-	reghdfe_test_meat_cmp(&F_t, X, resid, 1, "t/constant")
-	reghdfe_test_meat_cmp(&F_t, X0, resid, 1, "t/constant only")
+	reghdfe_test_meat_cmp(&F_t, X, resid, 0, label + " t/no constant")
+	reghdfe_test_meat_cmp(&F_t, X, resid, 1, label + " t/constant")
+	reghdfe_test_meat_cmp(&F_t, X0, resid, 1, label + " t/constant only")
 
-	reghdfe_test_meat_cmp(&F_id_t, X, resid, 0, "id#t/no constant")
-	reghdfe_test_meat_cmp(&F_id_t, X, resid, 1, "id#t/constant")
-	reghdfe_test_meat_cmp(&F_id_t, X0, resid, 1, "id#t/constant only")
+	reghdfe_test_meat_cmp(&F_id_t, X, resid, 0, label + " id#t/no constant")
+	reghdfe_test_meat_cmp(&F_id_t, X, resid, 1, label + " id#t/constant")
+	reghdfe_test_meat_cmp(&F_id_t, X0, resid, 1, label + " id#t/constant only")
+}
+
+void function reghdfe_test_cluster_meat()
+{
+	reghdfe_test_meat_pair("id_single", "t_single", "singleton")
+	reghdfe_test_meat_pair("id_unbal", "t_unbal", "unbalanced")
 }
 
 reghdfe_test_cluster_meat()

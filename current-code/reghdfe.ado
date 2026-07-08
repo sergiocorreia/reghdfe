@@ -1,4 +1,4 @@
-*! version 6.14.0 08Jul2026
+*! version 6.14.1 08Jul2026
 program define reghdfe
 	
 	* Intercept storing alphas
