@@ -41,6 +41,9 @@ program define Add, rclass
 	while (`"`labels'"'!="") {
 		gettoken lhs labels : labels
 		gettoken rhs labels : labels
+		if "`lhs'"=="" {
+			continue, break
+		}
 		if "`rhs'"=="" {
 			di as error "error: odd number of labels"
 			error 123
